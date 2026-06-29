@@ -614,19 +614,20 @@ impl State {
         }
 
         // `chop`: trim each end (default circlerad) so connectors meet shapes cleanly
-        if let Some(amt) = self.chop_of(obj)? {
-            if pts.len() >= 2 && amt > 0.0 {
-                let n = pts.len();
-                let d0 = pts[1] - pts[0];
-                let l0 = d0.len();
-                if l0 > amt {
-                    pts[0] = pts[0] + d0 / l0 * amt;
-                }
-                let d1 = pts[n - 2] - pts[n - 1];
-                let l1 = d1.len();
-                if l1 > amt {
-                    pts[n - 1] = pts[n - 1] + d1 / l1 * amt;
-                }
+        if let Some(amt) = self.chop_of(obj)?
+            && pts.len() >= 2
+            && amt > 0.0
+        {
+            let n = pts.len();
+            let d0 = pts[1] - pts[0];
+            let l0 = d0.len();
+            if l0 > amt {
+                pts[0] = pts[0] + d0 / l0 * amt;
+            }
+            let d1 = pts[n - 2] - pts[n - 1];
+            let l1 = d1.len();
+            if l1 > amt {
+                pts[n - 1] = pts[n - 1] + d1 / l1 * amt;
             }
         }
 
@@ -680,7 +681,7 @@ impl State {
         let start = self.find_from(obj)?.unwrap_or(self.pos);
         let cw = obj.attrs.iter().any(|a| matches!(a, Attr::Cw));
         let rad_attr = self.dim(obj, DimKind::Rad)?;
-        let to = self.to_of(obj)?;
+        let to = self.dest_of(obj)?;
 
         // (center, radius, start angle, end angle)
         let (center, r, a0, a1) = if let Some(end) = to {
@@ -907,7 +908,7 @@ impl State {
         Ok(None)
     }
 
-    fn to_of(&mut self, obj: &Object) -> ER<Option<Point>> {
+    fn dest_of(&mut self, obj: &Object) -> ER<Option<Point>> {
         for a in &obj.attrs {
             if let Attr::To(pos) = a {
                 return Ok(Some(self.eval_pos(pos)?));
