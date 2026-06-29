@@ -15,8 +15,8 @@ path = 'document.rs'
 
 [dependencies]
 extendr-api = '*'
-rpic-core = { path = "../../../../crates/core" }
-rpic-render = { path = "../../../../crates/render" }
+rpic-core = "0.0.1"
+rpic-render = "0.0.1"
 
 [profile.release]
 lto = true
