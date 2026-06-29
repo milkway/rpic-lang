@@ -1,5 +1,5 @@
 Package: rpic
-Title: The pic Graphics Language Rendered to SVG, PNG and PDF
+Title: The Pic Graphics Language Rendered to SVG, PNG and PDF
 Version: 0.0.2
 Authors@R:
     person("André", "Leite", email = "leite@de.ufpe.br", role = c("aut", "cre"))

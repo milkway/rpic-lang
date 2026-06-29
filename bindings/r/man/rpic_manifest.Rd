@@ -17,3 +17,6 @@ a JSON string.
 \description{
 Compile to a JSON \verb{\{svg, animations\}} bundle (as a string)
 }
+\examples{
+rpic_manifest('box; animate last box with "pop"')
+}

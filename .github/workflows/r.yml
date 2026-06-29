@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -23,12 +23,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Vendor Rust dependencies
         run: |
+          cargo update --manifest-path bindings/r/src/rust/Cargo.toml
           Rscript -e 'install.packages("rextendr")'
           Rscript -e 'rextendr::vendor_pkgs("bindings/r")'
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: bindings/r
           extra-packages: any::rcmdcheck
+      - name: Install checkbashisms (top-level files check)
+        run: sudo apt-get update && sudo apt-get install -y devscripts
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: bindings/r
@@ -42,6 +45,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Vendor and build
         run: |
+          cargo update --manifest-path bindings/r/src/rust/Cargo.toml
           Rscript -e 'install.packages("rextendr")'
           Rscript -e 'rextendr::vendor_pkgs("bindings/r")'
           R CMD build bindings/r

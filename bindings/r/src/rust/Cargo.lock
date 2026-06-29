@@ -566,15 +566,15 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9242b931c1f8d47c6684c2d8453658f40e2b080256490a9351304adbd21513d"
+checksum = "52faa6e8af8ead48c8a3789a25d7b3f956476d87505fa2a09175b8b45fcdc114"
 
 [[package]]
 name = "rpic-render"
-version = "0.0.1"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a60aa6612a703eec7669cf7c7a21d487db8530fb049d8ecb8b7f12185734290b"
+checksum = "07ec2bb47274cb2b48b463c35ae77f67a249ed10c0dc78c49a0fe1bbece917e9"
 dependencies = [
  "resvg 0.47.0",
  "svg2pdf",

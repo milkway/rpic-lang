@@ -5,6 +5,8 @@
 #' @param src pic source code.
 #' @param circuits load the native circuit-element library.
 #' @return an SVG string.
+#' @examples
+#' rpic_svg('box "hi"; arrow; circle "x"')
 #' @export
 rpic_svg <- function(src, circuits = FALSE) {
   rpic_svg_(src, circuits)
@@ -32,6 +34,8 @@ rpic_pdf <- function(src, file, circuits = FALSE) {
 #' Compile to a JSON `{svg, animations}` bundle (as a string)
 #' @inheritParams rpic_svg
 #' @return a JSON string.
+#' @examples
+#' rpic_manifest('box; animate last box with "pop"')
 #' @export
 rpic_manifest <- function(src, circuits = FALSE) {
   rpic_manifest_(src, circuits)

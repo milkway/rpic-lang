@@ -17,3 +17,6 @@ an SVG string.
 \description{
 Render pic source to an SVG string
 }
+\examples{
+rpic_svg('box "hi"; arrow; circle "x"')
+}

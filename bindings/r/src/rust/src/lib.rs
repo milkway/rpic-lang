@@ -1,5 +1,9 @@
 use extendr_api::prelude::*;
 
+// Low-level wrappers (no `@export`): they are package-internal and called by the
+// user-facing R functions in R/rpic.R. Keeping them undocumented avoids R CMD
+// check `\usage`/export warnings.
+
 fn with_circuits(src: &str, circuits: bool) -> String {
     if circuits {
         format!("{}\n{}", rpic_core::CIRCUITS, src)
@@ -8,25 +12,24 @@ fn with_circuits(src: &str, circuits: bool) -> String {
     }
 }
 
-/// Render pic source to an SVG string.
-/// @export
 #[extendr]
 fn rpic_svg_(src: &str, circuits: bool) -> std::result::Result<String, Error> {
-    rpic_core::render_svg(&with_circuits(src, circuits)).map_err(|e| Error::Other(e))
+    rpic_core::render_svg(&with_circuits(src, circuits)).map_err(Error::Other)
 }
 
-/// Render pic source to a PNG file. Returns the file path.
-/// @export
 #[extendr]
-fn rpic_png_(src: &str, file: &str, scale: f64, circuits: bool) -> std::result::Result<String, Error> {
+fn rpic_png_(
+    src: &str,
+    file: &str,
+    scale: f64,
+    circuits: bool,
+) -> std::result::Result<String, Error> {
     let svg = rpic_core::render_svg(&with_circuits(src, circuits)).map_err(Error::Other)?;
     let png = rpic_render::to_png(&svg, scale as f32).map_err(Error::Other)?;
     std::fs::write(file, png).map_err(|e| Error::Other(e.to_string()))?;
     Ok(file.to_string())
 }
 
-/// Render pic source to a PDF file. Returns the file path.
-/// @export
 #[extendr]
 fn rpic_pdf_(src: &str, file: &str, circuits: bool) -> std::result::Result<String, Error> {
     let svg = rpic_core::render_svg(&with_circuits(src, circuits)).map_err(Error::Other)?;
@@ -35,8 +38,6 @@ fn rpic_pdf_(src: &str, file: &str, circuits: bool) -> std::result::Result<Strin
     Ok(file.to_string())
 }
 
-/// Compile to a JSON string `{ "svg": ..., "animations": [...] }`.
-/// @export
 #[extendr]
 fn rpic_manifest_(src: &str, circuits: bool) -> String {
     rpic_core::compile_json(&with_circuits(src, circuits))

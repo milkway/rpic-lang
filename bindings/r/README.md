@@ -28,7 +28,7 @@ resistor(A,B)
 ## Build / develop
 
 This package wraps the Rust crates `rpic-core` / `rpic-render` via
-[extendr](https://extendr.github.io/). During monorepo development they are
+[extendr](https://extendr.rs/). During monorepo development they are
 referenced by **path**, so build in place:
 
 ```r

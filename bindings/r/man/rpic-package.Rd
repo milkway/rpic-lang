@@ -4,7 +4,7 @@
 \name{rpic-package}
 \alias{rpic}
 \alias{rpic-package}
-\title{rpic: The pic Graphics Language Rendered to SVG, PNG and PDF}
+\title{rpic: The Pic Graphics Language Rendered to SVG, PNG and PDF}
 \description{
 R bindings to rpic, a Rust reimplementation of the pic picture-drawing language, rendering diagrams to SVG, PNG and PDF, with a native circuit-element library and a knitr language engine.
 }
