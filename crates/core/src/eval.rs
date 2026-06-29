@@ -2241,6 +2241,18 @@ mod tests {
     }
 
     #[test]
+    fn brace_ncount_as_place() {
+        // `{expr}th last box` — a brace-counted ordinal used as a place
+        let d = draw(
+            "box at 0,0\nbox at 2,0\nbox at 4,0\narrow from {2}th last box.e to {1}th last box.w",
+        );
+        let Shape::Path { pts, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!(pts[0].x > 2.0 && pts.last().unwrap().x < 4.0, "{pts:?}");
+    }
+
+    #[test]
     fn dpic_unit_suffix() {
         // `72bp__` == 72 * scale/72 == 1 inch
         let d = draw("box wid 72bp__ ht 0.3");

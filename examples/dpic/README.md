@@ -69,6 +69,6 @@ which pulls in `3d/libdp3D.pic`):
 
 ## Parity status
 
-54 examples render faithfully and are included here (corpus pass rate 65/72).
+55 examples render faithfully and are included here (corpus pass rate 66/72).
 The full pass/fail matrix — and the dpic-specific features rpic does not yet
 implement — is in [`STATUS.md`](STATUS.md).
