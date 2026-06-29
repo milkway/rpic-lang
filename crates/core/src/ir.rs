@@ -56,6 +56,9 @@ pub struct Style {
     /// shape carries arrowheads.
     pub arrow_ht: f64,
     pub arrow_wid: f64,
+    /// Filled (solid triangle, `arrowhead=2`) vs open (two strokes,
+    /// `arrowhead=0`).
+    pub arrow_filled: bool,
 }
 
 impl Default for Style {
@@ -68,6 +71,7 @@ impl Default for Style {
             invis: false,
             arrow_ht: 0.1,
             arrow_wid: 0.05,
+            arrow_filled: true,
         }
     }
 }
