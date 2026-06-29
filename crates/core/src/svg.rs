@@ -213,10 +213,11 @@ impl Svg {
                         num(end.y),
                         self.stroke(style)
                     ));
-                    // arrowheads at the arc tips (approximate tangent)
-                    let p0 = *c + Point::new(a0.cos(), a0.sin()) * *r;
-                    let p1 = *c + Point::new(a1.cos(), a1.sin()) * *r;
-                    self.arrowheads(&[p0, p1], *arrows, style);
+                    // arrowheads oriented along the tangent at each tip: pass
+                    // points stepped slightly inward so the head follows the curve
+                    let pt = |t: f64| *c + Point::new(t.cos(), t.sin()) * *r;
+                    let d = if a1 >= a0 { 0.08 } else { -0.08 };
+                    self.arrowheads(&[pt(*a0), pt(a0 + d), pt(a1 - d), pt(*a1)], *arrows, style);
                 }
                 self.text(*c, text);
             }

@@ -678,31 +678,63 @@ impl State {
         let style = self.style_of(obj)?;
         let text = self.text_of(obj)?;
         let start = self.find_from(obj)?.unwrap_or(self.pos);
-        let r = self
-            .dim(obj, DimKind::Rad)?
-            .unwrap_or(self.env.get(EnvVar::Arcrad));
         let cw = obj.attrs.iter().any(|a| matches!(a, Attr::Cw));
-        let din = dir_unit(self.dir);
-        // center sits a radius to the left (ccw) or right (cw) of the heading
-        let normal = if cw {
-            Point::new(din.y, -din.x)
-        } else {
-            Point::new(-din.y, din.x)
-        };
-        let center = start + normal * r;
-        let a0 = (start - center).y.atan2((start - center).x);
-        let sweep = if cw { -PI / 2.0 } else { PI / 2.0 };
-        let a1 = a0 + sweep;
-        let end = center + Point::new(a1.cos(), a1.sin()) * r;
+        let rad_attr = self.dim(obj, DimKind::Rad)?;
+        let to = self.to_of(obj)?;
 
+        // (center, radius, start angle, end angle)
+        let (center, r, a0, a1) = if let Some(end) = to {
+            // arc from `start` to `to`, optional radius (default: a 90° arc)
+            let chord = end - start;
+            let clen = chord.len();
+            if clen < 1e-9 {
+                return err("degenerate arc: `from` and `to` coincide");
+            }
+            let r = rad_attr
+                .unwrap_or(clen / std::f64::consts::SQRT_2)
+                .max(clen / 2.0);
+            let hd = (r * r - (clen / 2.0) * (clen / 2.0)).max(0.0).sqrt();
+            let u = chord / clen;
+            let perp = Point::new(-u.y, u.x);
+            let mid = (start + end) * 0.5;
+            let center = if cw { mid - perp * hd } else { mid + perp * hd };
+            let a0 = (start - center).y.atan2((start - center).x);
+            let mut a1 = (end - center).y.atan2((end - center).x);
+            // keep the requested handedness (ccw: a1 > a0, cw: a1 < a0)
+            if cw {
+                while a1 > a0 {
+                    a1 -= 2.0 * PI;
+                }
+            } else {
+                while a1 < a0 {
+                    a1 += 2.0 * PI;
+                }
+            }
+            (center, r, a0, a1)
+        } else {
+            // default: a quarter turn from the current heading
+            let r = rad_attr.unwrap_or(self.env.get(EnvVar::Arcrad));
+            let din = dir_unit(self.dir);
+            let normal = if cw {
+                Point::new(din.y, -din.x)
+            } else {
+                Point::new(-din.y, din.x)
+            };
+            let center = start + normal * r;
+            let a0 = (start - center).y.atan2((start - center).x);
+            let sweep = if cw { -PI / 2.0 } else { PI / 2.0 };
+            (center, r, a0, a0 + sweep)
+        };
+
+        let at = |t: f64| center + Point::new(t.cos(), t.sin()) * r;
+        let end = at(a1);
         let arrows = self.arrows_of(obj, false);
 
         let mut bb = Bbox::new();
         bb.add(start);
         bb.add(end);
-        for k in 0..=8 {
-            let t = a0 + sweep * (k as f64 / 8.0);
-            bb.add(center + Point::new(t.cos(), t.sin()) * r);
+        for k in 0..=12 {
+            bb.add(at(a0 + (a1 - a0) * (k as f64 / 12.0)));
         }
         self.bbox.union(&bb);
         self.union_text(center, &text);
@@ -718,9 +750,13 @@ impl State {
             text,
         });
 
-        // new heading is rotated by the sweep
-        let new = din.rotate(sweep);
-        self.dir = nearest_dir(new);
+        // new heading is the tangent at the end point
+        let tang = if a1 >= a0 {
+            Point::new(-a1.sin(), a1.cos())
+        } else {
+            Point::new(a1.sin(), -a1.cos())
+        };
+        self.dir = nearest_dir(tang);
         self.pos = end;
         let sh = self.shapes.len() - 1;
         Ok(self.record(PKind::Arc, center, bb, start, end, 0.0, Some(sh)))
@@ -865,6 +901,15 @@ impl State {
     fn at_of(&mut self, obj: &Object) -> ER<Option<Point>> {
         for a in &obj.attrs {
             if let Attr::At(pos) = a {
+                return Ok(Some(self.eval_pos(pos)?));
+            }
+        }
+        Ok(None)
+    }
+
+    fn to_of(&mut self, obj: &Object) -> ER<Option<Point>> {
+        for a in &obj.attrs {
+            if let Attr::To(pos) = a {
                 return Ok(Some(self.eval_pos(pos)?));
             }
         }
@@ -1517,6 +1562,25 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn arc_from_to_endpoints_and_radius() {
+        // issue #6: `arc from A to B` passes through both endpoints
+        let d = draw("A:(0,0)\nB:(1,1)\narc from A to B");
+        let Shape::Arc { c, r, a0, a1, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let s = *c + Point::new(a0.cos(), a0.sin()) * *r;
+        let e = *c + Point::new(a1.cos(), a1.sin()) * *r;
+        assert!(s.dist(Point::new(0.0, 0.0)) < 1e-9, "start {s:?}");
+        assert!(e.dist(Point::new(1.0, 1.0)) < 1e-9, "end {e:?}");
+        // explicit radius is honored
+        let d2 = draw("A:(0,0)\nB:(1,0)\narc from A to B rad 2");
+        let Shape::Arc { r, .. } = &d2.shapes[0] else {
+            panic!()
+        };
+        assert!((*r - 2.0).abs() < 1e-9, "r = {r}");
     }
 
     #[test]
