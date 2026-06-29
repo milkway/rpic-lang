@@ -1,13 +1,17 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
 PackageIdentifier: milkway.rpic
 PackageVersion: 0.0.2
+MinimumOSVersion: 10.0.0.0
 InstallerType: zip
 NestedInstallerType: portable
 NestedInstallerFiles:
   - RelativeFilePath: rpic.exe
     PortableCommandAlias: rpic
+UpgradeBehavior: install
+ReleaseDate: 2026-06-29
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/milkway/rpic-lang/releases/download/v0.0.2/rpic-x86_64-pc-windows-msvc.zip
     InstallerSha256: 1829EEAB81AC872B5733E23E6E959E94B246BF2360C0FA968B5B2968A7F528B7
 ManifestType: installer
-ManifestVersion: 1.6.0
+ManifestVersion: 1.10.0

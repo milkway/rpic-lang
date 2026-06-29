@@ -1,17 +1,45 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.10.0.schema.json
 PackageIdentifier: milkway.rpic
 PackageVersion: 0.0.2
 PackageLocale: en-US
 Publisher: André Leite
 PublisherUrl: https://github.com/milkway
+PublisherSupportUrl: https://github.com/milkway/rpic-lang/issues
+Author: André Leite
 PackageName: rpic
 PackageUrl: https://github.com/milkway/rpic-lang
 License: BSD-2-Clause
 LicenseUrl: https://github.com/milkway/rpic-lang/blob/main/LICENSE
+Copyright: Copyright (c) 2026 André Leite
+CopyrightUrl: https://github.com/milkway/rpic-lang/blob/main/LICENSE
 ShortDescription: The pic graphics language rendered to SVG, PNG and PDF.
+Description: |-
+  rpic is a modern reimplementation of Brian Kernighan's pic picture-drawing
+  language, written in Rust. You describe a diagram in a small, English-like
+  language and rpic renders it to SVG, PNG or PDF with no system dependencies.
+  It adds a declarative animation layer that plays in the browser via GSAP, and
+  ships a native circuit-element library (resistors, transistors, logic gates,
+  op-amps, meters and more). The same engine powers a CLI, WebAssembly, and
+  Python, R and JavaScript/TypeScript bindings.
+Moniker: rpic
 Tags:
   - pic
   - svg
+  - png
+  - pdf
   - diagram
+  - diagrams
   - graphics
+  - drawing
+  - circuits
+  - schematic
+  - dot
+  - kernighan
+  - cli
+ReleaseNotes: |-
+  pic-to-SVG/PNG/PDF rendering with a faithful engine (relative positioning,
+  corners, ordinals, blocks, macros, chop, scale, same, continue, general arcs),
+  GSAP animation manifests, and a 79-element circuit library (enable with -c).
+ReleaseNotesUrl: https://github.com/milkway/rpic-lang/releases/tag/v0.0.2
 ManifestType: defaultLocale
-ManifestVersion: 1.6.0
+ManifestVersion: 1.10.0
