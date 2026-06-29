@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="503.36" height="84.8" viewBox="0 0 503.36 84.8" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="21.28,52 21.28,4 21.28,4 45.28,4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<path d="M 45.28 4 C 48.108 5.172 58.248 7.032 62.248 11.032 C 66.248 15.032 69.28 22.344 69.28 28 C 69.28 33.656 66.248 40.968 62.248 44.968 C 58.248 48.968 48.108 50.828 45.28 52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="45.28,52 21.28,52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<polyline points="4,13.6 21.28,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<polyline points="4,42.4 21.28,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<polyline points="69.28,28 86.56,28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<path d="M 150.88 4 C 152.8 8 162.4 20 162.4 28 C 162.4 36 152.8 48 150.88 52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<path d="M 150.88 4 C 155.68 4 170.08 0 179.68 4 C 189.28 8 203.68 24 208.48 28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<path d="M 150.88 52 C 155.68 52 170.08 56 179.68 52 C 189.28 48 203.68 32 208.48 28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<polyline points="133.6,13.6 157.6,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<polyline points="133.6,42.4 157.6,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<polyline points="208.48,28 225.76,28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s12">
+<path d="M 277.6 4 C 279.52 8 289.12 20 289.12 28 C 289.12 36 279.52 48 277.6 52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<path d="M 285.28 4 C 287.2 8 296.8 20 296.8 28 C 296.8 36 287.2 48 285.28 52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s14">
+<path d="M 285.28 4 C 290.08 4 304.48 0 314.08 4 C 323.68 8 338.08 24 342.88 28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<path d="M 285.28 52 C 290.08 52 304.48 56 314.08 52 C 323.68 48 338.08 32 342.88 28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s16">
+<polyline points="268,13.6 290.08,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s17">
+<polyline points="268,42.4 290.08,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s18">
+<polyline points="342.88,28 360.16,28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s19">
+<polyline points="424.48,52 424.48,4 424.48,4 448.48,4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s20">
+<path d="M 448.48 4 C 451.308 5.172 461.448 7.032 465.448 11.032 C 469.448 15.032 472.48 22.344 472.48 28 C 472.48 33.656 469.448 40.968 465.448 44.968 C 461.448 48.968 451.308 50.828 448.48 52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s21">
+<polyline points="448.48,52 424.48,52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s22">
+<circle cx="477.28" cy="28" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s23">
+<polyline points="407.2,13.6 424.48,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s24">
+<polyline points="407.2,42.4 424.48,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s25">
+<polyline points="482.08,28 499.36,28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s26">
+<text x="45.28" y="80.8" text-anchor="middle" dominant-baseline="central">AND</text>
+</g>
+<g id="s27">
+<text x="179.68" y="80.8" text-anchor="middle" dominant-baseline="central">OR</text>
+</g>
+<g id="s28">
+<text x="314.08" y="80.8" text-anchor="middle" dominant-baseline="central">XOR</text>
+</g>
+<g id="s29">
+<text x="448.48" y="80.8" text-anchor="middle" dominant-baseline="central">NAND</text>
+</g>
+</svg>

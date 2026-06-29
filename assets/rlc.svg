@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="285.44" height="160.64" viewBox="0 0 285.44 160.64" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="19.36,145.12 19.36,81.28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<polyline points="4,81.28 34.72,81.28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="11.68,74.56 27.04,74.56" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<polyline points="19.36,74.56 19.36,10.72" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<polyline points="19.36,10.72 122.56,10.72 122.56,10.72 126.159,4 126.159,4 133.36,17.44 133.36,17.44 140.561,4 140.561,4 147.759,17.44 147.759,17.44 154.96,4 154.96,4 162.161,17.44 162.161,17.44 165.76,10.72 165.76,10.72 268.96,10.72" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<polyline points="268.96,10.72 268.96,74.56" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<polyline points="281.44,74.56 256.48,74.56" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<polyline points="281.44,81.28 256.48,81.28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<polyline points="268.96,81.28 268.96,145.12" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<polyline points="268.96,145.12 168.16,145.12" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<path d="M 168.16 145.12 C 167.16 147.04 164.16 156.64 162.16 156.64 C 160.16 156.64 158.16 145.12 156.16 145.12 C 154.16 145.12 152.16 156.64 150.16 156.64 C 148.16 156.64 146.16 145.12 144.16 145.12 C 142.16 145.12 140.16 156.64 138.16 156.64 C 136.16 156.64 134.16 145.12 132.16 145.12 C 130.16 145.12 128.16 156.64 126.16 156.64 C 124.16 156.64 121.16 147.04 120.16 145.12" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<polyline points="120.16,145.12 19.36,145.12" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s12">
+<circle cx="19.36" cy="10.72" r="3.36" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<circle cx="268.96" cy="10.72" r="3.36" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s14">
+<circle cx="268.96" cy="145.12" r="3.36" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<circle cx="19.36" cy="145.12" r="3.36" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

@@ -14,7 +14,13 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
     "Topic :: Multimedia :: Graphics",
+    "License :: OSI Approved :: BSD License",
 ]
+
+[project.urls]
+Homepage = "https://github.com/milkway/rpic-lang"
+Repository = "https://github.com/milkway/rpic-lang"
+Issues = "https://github.com/milkway/rpic-lang/issues"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

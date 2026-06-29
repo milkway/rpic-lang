@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="56" viewBox="0 0 560 56" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<ellipse cx="40" cy="28" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="40" y="28" text-anchor="middle" dominant-baseline="central">document</text>
+</g>
+<g id="s1">
+<polyline points="76,28 124,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="124,28 114.4,30.4 114.4,25.6" fill="black"/>
+</g>
+<g id="s2">
+<rect x="124" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="160" y="28" text-anchor="middle" dominant-baseline="central">PIC</text>
+</g>
+<g id="s3">
+<polyline points="196,28 244,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="244,28 234.4,30.4 234.4,25.6" fill="black"/>
+</g>
+<g id="s4">
+<rect x="244" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<text x="280" y="19.2" text-anchor="middle" dominant-baseline="central">TBL/EQN</text>
+<text x="280" y="36.8" text-anchor="middle" dominant-baseline="central">(optional)</text>
+</g>
+<g id="s5">
+<polyline points="316,28 364,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="364,28 354.4,30.4 354.4,25.6" fill="black"/>
+</g>
+<g id="s6">
+<rect x="364" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="400" y="28" text-anchor="middle" dominant-baseline="central">TROFF</text>
+</g>
+<g id="s7">
+<polyline points="436,28 484,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="484,28 474.4,30.4 474.4,25.6" fill="black"/>
+</g>
+<g id="s8">
+<ellipse cx="520" cy="28" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="520" y="28" text-anchor="middle" dominant-baseline="central">typesetter</text>
+</g>
+</svg>
