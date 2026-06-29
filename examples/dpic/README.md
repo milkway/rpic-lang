@@ -64,6 +64,6 @@ A binary tree drawn by a **recursive macro** (`man36`):
 
 ## Parity status
 
-49 examples render faithfully and are included here. The full pass/fail matrix
-for the upstream corpus — and the dpic-specific features rpic does not yet
+52 examples render faithfully and are included here (corpus pass rate 61/72).
+The full pass/fail matrix — and the dpic-specific features rpic does not yet
 implement — is in [`STATUS.md`](STATUS.md).

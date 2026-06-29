@@ -36,7 +36,8 @@ impl From<LexError> for ParseError {
 
 /// Parse a full source string into a [`Picture`].
 pub fn parse(src: &str) -> Result<Picture, ParseError> {
-    let toks = lex(src)?;
+    let src = strip_backend_preamble(src);
+    let toks = lex(&src)?;
     let (toks, macros) = preprocess(toks)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
@@ -57,6 +58,54 @@ pub fn parse_body_tokens(toks: &[Spanned], macros: &Macros) -> Result<Vec<Stmt>,
     let expanded = expand(&input, &mut m, 0)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
+}
+
+// ---- backend preamble filter ----------------------------------------------
+
+/// Drop non-SVG backend snippets commonly embedded in dpic examples.
+///
+/// These TeX/PSTricks preambles are meaningful to other backends, but for rpic's
+/// SVG output they should be tolerated as no-ops. Replacing ignored lines with
+/// empty lines keeps subsequent diagnostics on the original line numbers.
+fn strip_backend_preamble(src: &str) -> String {
+    let mut out = String::with_capacity(src.len());
+    let mut in_verbatimtex = false;
+
+    for line in src.lines() {
+        let trimmed = line.trim_start();
+        if in_verbatimtex {
+            out.push('\n');
+            if starts_word(trimmed, "etex") {
+                in_verbatimtex = false;
+            }
+            continue;
+        }
+
+        if starts_word(trimmed, "verbatimtex") {
+            in_verbatimtex = true;
+            out.push('\n');
+        } else if is_ignored_backend_line(trimmed) {
+            out.push('\n');
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+fn is_ignored_backend_line(trimmed: &str) -> bool {
+    trimmed.starts_with("\\global") || trimmed.starts_with("\\psset")
+}
+
+fn starts_word(s: &str, word: &str) -> bool {
+    let Some(rest) = s.strip_prefix(word) else {
+        return false;
+    };
+    !rest
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_alphanumeric() || c == '_')
 }
 
 // ---- macro preprocessor ----------------------------------------------------
@@ -381,6 +430,19 @@ fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result
 }
 
 type PResult<T> = Result<T, ParseError>;
+
+fn is_assign_op(t: &Token) -> bool {
+    matches!(
+        t,
+        Token::Eq
+            | Token::ColonEq
+            | Token::PlusEq
+            | Token::MinusEq
+            | Token::MultEq
+            | Token::DivEq
+            | Token::RemEq
+    )
+}
 
 struct Parser {
     toks: Vec<Spanned>,
@@ -732,10 +794,7 @@ impl Parser {
     }
 
     fn at_string_start(&self) -> bool {
-        matches!(
-            self.cur(),
-            Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)
-        )
+        self.token_starts_string_at(0)
     }
 
     fn parse_animate(&mut self) -> PResult<Animate> {
@@ -812,23 +871,38 @@ impl Parser {
     }
 
     fn at_assignment_start(&self) -> bool {
-        let assignop = |t: &Token| {
-            matches!(
-                t,
-                Token::Eq
-                    | Token::ColonEq
-                    | Token::PlusEq
-                    | Token::MinusEq
-                    | Token::MultEq
-                    | Token::DivEq
-                    | Token::RemEq
-            )
-        };
         match self.cur() {
-            Token::Name(_) => assignop(self.peek(1)) || matches!(self.peek(1), Token::LeftBrack),
-            Token::EnvVar(_) => assignop(self.peek(1)),
+            Token::Name(_) | Token::Label(_) => self.assignment_op_after_var_ref(),
+            Token::EnvVar(_) => is_assign_op(self.peek(1)),
             _ => false,
         }
+    }
+
+    fn assignment_op_after_var_ref(&self) -> bool {
+        let mut i = self.idx + 1;
+        if matches!(self.toks.get(i).map(|s| &s.tok), Some(Token::LeftBrack)) {
+            i += 1;
+            let mut depth = 1i32;
+            while let Some(tok) = self.toks.get(i).map(|s| &s.tok) {
+                match tok {
+                    Token::LeftBrack => depth += 1,
+                    Token::RightBrack => {
+                        depth -= 1;
+                        if depth == 0 {
+                            i += 1;
+                            break;
+                        }
+                    }
+                    Token::Eof | Token::Newline if depth > 0 => return false,
+                    _ => {}
+                }
+                i += 1;
+            }
+            if depth != 0 {
+                return false;
+            }
+        }
+        self.toks.get(i).is_some_and(|s| is_assign_op(&s.tok))
     }
 
     fn parse_label(&mut self) -> PResult<Label> {
@@ -856,7 +930,7 @@ impl Parser {
 
     fn parse_assignment(&mut self) -> PResult<Assignment> {
         let target = match self.cur().clone() {
-            Token::Name(name) => {
+            Token::Name(name) | Token::Label(name) => {
                 self.bump();
                 let sub = if self.eat(&Token::LeftBrack) {
                     let e = self.parse_expr()?;
@@ -1022,7 +1096,9 @@ impl Parser {
             }
             Token::Kw(Kw::With) => {
                 self.bump();
-                let anchor = if let Token::Corner(c) = self.cur() {
+                let anchor = if self.eat(&Token::Dot) {
+                    WithAnchor::Place(self.parse_place()?)
+                } else if let Token::Corner(c) = self.cur() {
                     let c = *c;
                     self.bump();
                     WithAnchor::Corner(c)
@@ -1103,10 +1179,20 @@ impl Parser {
     }
 
     fn string_after_plus(&self) -> bool {
-        matches!(
-            self.peek(1),
-            Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)
-        )
+        self.token_starts_string_at(1)
+    }
+
+    fn token_starts_string_at(&self, offset: usize) -> bool {
+        match self.toks.get(self.idx + offset).map(|s| &s.tok) {
+            Some(Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)) => true,
+            Some(Token::Name(n)) if n == "svg_font" => {
+                matches!(
+                    self.toks.get(self.idx + offset + 1).map(|s| &s.tok),
+                    Some(Token::Lparen)
+                )
+            }
+            _ => false,
+        }
     }
 
     fn parse_string_atom(&mut self) -> PResult<StringExpr> {
@@ -1129,6 +1215,19 @@ impl Parser {
                 }
                 self.expect(&Token::Rparen)?;
                 Ok(StringExpr::Sprintf(Box::new(fmt), args))
+            }
+            Token::Name(n) if n == "svg_font" && matches!(self.peek(1), Token::Lparen) => {
+                self.bump();
+                self.expect(&Token::Lparen)?;
+                let mut args = Vec::new();
+                if !self.at(&Token::Rparen) {
+                    args.push(self.parse_expr()?);
+                    while self.eat(&Token::Comma) {
+                        args.push(self.parse_expr()?);
+                    }
+                }
+                self.expect(&Token::Rparen)?;
+                Ok(StringExpr::SvgFont(args))
             }
             other => self.err(format!("expected a string, found {other:?}")),
         }
@@ -1489,7 +1588,7 @@ impl Parser {
 
     fn parse_primary(&mut self) -> PResult<Expr> {
         // place-derived scalars: location.x / location.y / place.attr
-        if self.at_place_start() {
+        if self.at_place_start() && self.place_is_scalar_ahead() {
             return self.parse_place_scalar();
         }
         // a string operand (only meaningful as an `==`/`!=` operand)
@@ -1501,14 +1600,16 @@ impl Parser {
                 self.bump();
                 Ok(Expr::Num(v))
             }
-            Token::Name(name) => {
+            Token::Name(name) | Token::Label(name) => {
                 self.bump();
-                // optional subscript suffix is parsed and ignored for now
-                if self.eat(&Token::LeftBrack) {
-                    let _ = self.parse_expr()?;
+                let subscript = if self.eat(&Token::LeftBrack) {
+                    let e = self.parse_expr()?;
                     self.expect(&Token::RightBrack)?;
-                }
-                Ok(Expr::Var(name))
+                    Some(Box::new(e))
+                } else {
+                    None
+                };
+                Ok(Expr::Var(name, subscript))
             }
             Token::EnvVar(v) => {
                 self.bump();
@@ -1517,14 +1618,24 @@ impl Parser {
             Token::Lparen => {
                 self.bump();
                 // embedded assignment `( name = expr )` yields the assigned value
-                if let Token::Name(n) = self.cur().clone()
-                    && matches!(self.peek(1), Token::Eq | Token::ColonEq)
+                if matches!(self.cur(), Token::Name(_) | Token::Label(_))
+                    && self.assignment_op_after_var_ref()
                 {
-                    self.bump(); // name
+                    let name = match self.bump() {
+                        Token::Name(n) | Token::Label(n) => n,
+                        _ => unreachable!(),
+                    };
+                    let subscript = if self.eat(&Token::LeftBrack) {
+                        let e = self.parse_expr()?;
+                        self.expect(&Token::RightBrack)?;
+                        Some(Box::new(e))
+                    } else {
+                        None
+                    };
                     self.bump(); // `=`
                     let v = self.parse_expr()?;
                     self.expect(&Token::Rparen)?;
-                    return Ok(Expr::Assign(n, Box::new(v)));
+                    return Ok(Expr::Assign(name, subscript, Box::new(v)));
                 }
                 let e = self.parse_expr()?;
                 self.expect(&Token::Rparen)?;
@@ -1655,7 +1766,10 @@ ellipse "typesetter"
         // from top of B1
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::From(Position::Place(Location::Place(Place::CornerOf(Corner::N, _))))
+            Attr::From(Position::Place(Location::Place(Place::CornerOf(
+                Corner::N,
+                _
+            ))))
         )));
     }
 
@@ -1676,6 +1790,27 @@ ellipse "typesetter"
         assert_eq!(*anchor, WithAnchor::Corner(Corner::Nw));
         // `last ellipse.se + (0.1,0)` is a position sum
         assert!(matches!(at, Position::Sum(Sign::Plus, _, _)));
+    }
+
+    #[test]
+    fn with_member_anchor_parses() {
+        let p = pic("[ A: box ] with .A.c at Here");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        let with = object
+            .attrs
+            .iter()
+            .find(|a| matches!(a, Attr::With { .. }))
+            .unwrap();
+        let Attr::With { anchor, .. } = with else {
+            panic!()
+        };
+        assert!(matches!(
+            anchor,
+            WithAnchor::Place(Place::Corner(inner, Corner::Center))
+                if matches!(inner.as_ref(), Place::Name { name, .. } if name == "A")
+        ));
     }
 
     #[test]
@@ -1715,6 +1850,29 @@ ellipse "typesetter"
             panic!()
         };
         assert_eq!(a0[0].target, AssignTarget::Env(EnvVar::Boxht));
+    }
+
+    #[test]
+    fn dpic_svg_font_stub_parses_as_string() {
+        let p = pic("print svg_font(\"Times\", 12)");
+        let Stmt::Print(PrintItem::Str(StringExpr::SvgFont(args))) = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(args.len(), 2);
+    }
+
+    #[test]
+    fn subscripted_variable_refs_parse() {
+        let p = pic("P[1] = 2\nx = P[1]");
+        let Stmt::Assign(a0) = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(matches!(&a0[0].target, AssignTarget::Var(name, Some(_)) if name == "P"));
+
+        let Stmt::Assign(a1) = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(&a1[0].value, Expr::Var(name, Some(_)) if name == "P"));
     }
 
     #[test]
@@ -1765,6 +1923,24 @@ ellipse "typesetter"
             a,
             Attr::At(Position::Place(Location::Place(Place::Corner(_, _))))
         )));
+    }
+
+    #[test]
+    fn ignores_non_svg_backend_preambles() {
+        let p = pic(r#".PS
+verbatimtex
+\global\def\foo#1{#1}
+etex
+\global\def\bar#1{#1}
+\psset{arrowsize=4pt}
+box
+.PE
+"#);
+        assert_eq!(p.stmts.len(), 1);
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
     }
 
     #[test]

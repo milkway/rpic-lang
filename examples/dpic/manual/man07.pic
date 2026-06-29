@@ -1,0 +1,50 @@
+.PS
+define bxarrow{[
+  A: arrow up left $1
+  line dotted to (A.start,Here)
+  line dotted from A.start to (A.end,A.start)
+  for x = A.end.x to A.start.x by 0.5 do {
+    line dotted from (x,A.end.y) down }
+  "arrow up left $1" at (A,A.start)+(0,-0.2)
+  ] }
+
+  bxarrow
+  bxarrow(1) with .sw at last [].se+(0.2,0)
+  bxarrow(1.5) with .sw at last [].se+(0.2,0)
+  bxarrow(2) with .sw at last [].se+(0.2,0)
+
+define slantbox { [
+  if "$1"=="" then { w = boxwid } else { w = $1 }
+  if "$2"=="" then { h = boxht } else { h = $2 }
+  if "$3"=="" then { xs = 0 } else { xs = $3 }
+  if "$4"=="" then { ys = 0 } else { ys = $4 }
+  C: Here
+  NE: C+(w,h)/2+(xs,ys)/2
+  SE: C+(w,-h)/2+(-xs,ys)/2
+  SW: C+(-w,-h)/2+(-xs,-ys)/2
+  NW: C+(-w,h)/2+(xs,-ys)/2
+  N: 0.5 between NW and NE
+  E: 0.5 between NE and SE
+  S: 0.5 between SE and SW
+  W: 0.5 between SW and NW
+  line $5 from N to NE then to SE then to SW then to NW then to N
+  ] }
+
+  move to 0,-1.5; right
+  B: slantbox(1.5,,0.1) "\small\tt slantbox(1.5,,0.1)"
+  { move left 0.2 from B.SW }
+  "N" at B.N above 
+  "NE" at B.NE above 
+  "E" at B.E ljust 
+  "SE" at B.SE ljust 
+  "S" at B.S below 
+  "SW" at B.SW rjust 
+  "W" at B.W rjust 
+  "NW" at B.NW rjust 
+
+  C: slantbox(1.5,,,-0.1) \
+    "\small\tt slantbox(1.5,,,-0.1)" with .W at B.E+(0.5,0)
+  D: slantbox(2.3,,-0.2,0.1,fill 0.9) with .W at C.E+(0.5,0)
+    "\small\tt slantbox(2.3,,-0.2,0.1,fill 0.9)" at D
+
+.PE

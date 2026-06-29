@@ -168,7 +168,10 @@ pub enum Attr {
     To(Position),
     At(Position),
     By(Position),
-    With { anchor: WithAnchor, at: Position },
+    With {
+        anchor: WithAnchor,
+        at: Position,
+    },
     Color(Color, StringExpr),
 }
 
@@ -187,6 +190,7 @@ pub enum DimKind {
 pub enum WithAnchor {
     Corner(Corner),
     Pair(Expr, Expr),
+    Place(Place),
     Plain,
 }
 
@@ -270,6 +274,9 @@ pub enum StringExpr {
     Lit(String),
     Concat(Box<StringExpr>, Box<StringExpr>),
     Sprintf(Box<StringExpr>, Vec<Expr>),
+    /// dpic SVG-backend helper. rpic does not emit backend preamble text, so
+    /// this evaluates to a harmless empty string.
+    SvgFont(Vec<Expr>),
     Arg(u32),
 }
 
@@ -280,7 +287,7 @@ pub enum Expr {
     /// A string operand, valid only as an operand of `==`/`!=` (pic compares
     /// strings for equality, e.g. the `"$1"==""` default-argument idiom).
     Str(StringExpr),
-    Var(String),
+    Var(String, Option<Box<Expr>>),
     Env(EnvVar),
     Unary(UnOp, Box<Expr>),
     Bin(BinOp, Box<Expr>, Box<Expr>),
@@ -288,7 +295,7 @@ pub enum Expr {
     Func2(Func2, Box<Expr>, Box<Expr>),
     Rand(Option<Box<Expr>>),
     /// `( name = expr )` — assign and yield the assigned value.
-    Assign(String, Box<Expr>),
+    Assign(String, Option<Box<Expr>>, Box<Expr>),
     DotX(Location),
     DotY(Location),
     PlaceAttr(Place, Param),

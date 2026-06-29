@@ -241,10 +241,12 @@ fn horizontal(d: Dir) -> bool {
 
 impl State {
     fn new() -> Self {
+        let mut vars = HashMap::new();
+        install_dpic_compat_vars(&mut vars);
         State {
             pos: Point::ZERO,
             dir: Dir::Right,
-            vars: HashMap::new(),
+            vars,
             env: EnvVars::new(),
             macros: HashMap::new(),
             shapes: Vec::new(),
@@ -282,6 +284,7 @@ impl State {
             }
             Stmt::Place { label, pos } => {
                 let p = self.eval_pos(pos)?;
+                let key = self.label_key(label)?;
                 let mut bb = Bbox::new();
                 bb.add(p);
                 let idx = self.placed.len();
@@ -295,7 +298,7 @@ impl State {
                     shape: None,
                     members: HashMap::new(),
                 });
-                self.labels.insert(label.name.clone(), idx);
+                self.labels.insert(key, idx);
             }
             Stmt::Group(stmts) => {
                 let (pos, dir) = (self.pos, self.dir);
@@ -306,7 +309,8 @@ impl State {
             Stmt::Object { label, object } => {
                 let idx = self.eval_object(object)?;
                 if let Some(l) = label {
-                    self.labels.insert(l.name.clone(), idx);
+                    let key = self.label_key(l)?;
+                    self.labels.insert(key, idx);
                 }
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
@@ -426,10 +430,11 @@ impl State {
     fn eval_assignment(&mut self, a: &Assignment) -> ER<()> {
         let rhs = self.eval_expr(&a.value)?;
         match &a.target {
-            AssignTarget::Var(name, _sub) => {
-                let cur = *self.vars.get(name).unwrap_or(&0.0);
+            AssignTarget::Var(name, subscript) => {
+                let key = self.indexed_name(name, subscript.as_ref())?;
+                let cur = *self.vars.get(&key).unwrap_or(&0.0);
                 let val = apply_op(a.op, cur, rhs);
-                self.vars.insert(name.clone(), val);
+                self.vars.insert(key, val);
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
@@ -937,7 +942,7 @@ impl State {
 
         let dir = self.dir_of(obj);
         let extent = if horizontal(dir) { w } else { h };
-        let target = self.place_center(obj, dir, extent, w, h)?;
+        let target = self.block_center(obj, dir, extent, w, h, local_center, &mut sub)?;
         let shift = target - local_center;
 
         let first_shape = self.shapes.len();
@@ -1093,6 +1098,38 @@ impl State {
                 let off = match anchor {
                     WithAnchor::Corner(c) => corner_offset(*c, w, h),
                     WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Place(_) => {
+                        return err("`with .label` anchors are only valid on blocks");
+                    }
+                    WithAnchor::Plain => Point::ZERO,
+                };
+                return Ok(ap - off);
+            }
+        }
+        Ok(self.pos + dir_unit(dir) * (extent / 2.0))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn block_center(
+        &mut self,
+        obj: &Object,
+        dir: Dir,
+        extent: f64,
+        w: f64,
+        h: f64,
+        local_center: Point,
+        sub: &mut State,
+    ) -> ER<Point> {
+        if let Some(at) = self.at_of(obj)? {
+            return Ok(at);
+        }
+        for a in &obj.attrs {
+            if let Attr::With { anchor, at } = a {
+                let ap = self.eval_pos(at)?;
+                let off = match anchor {
+                    WithAnchor::Corner(c) => corner_offset(*c, w, h),
+                    WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Place(place) => sub.place_point(place)? - local_center,
                     WithAnchor::Plain => Point::ZERO,
                 };
                 return Ok(ap - off);
@@ -1228,8 +1265,9 @@ impl State {
     fn place_point(&mut self, p: &Place) -> ER<Point> {
         match p {
             Place::Here => Ok(self.pos),
-            Place::Name { name, .. } => {
-                let idx = self.label_index(name)?;
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                let idx = self.label_index(&key)?;
                 Ok(self.placed[idx].center)
             }
             Place::Nth { count, obj } => {
@@ -1252,8 +1290,9 @@ impl State {
     /// block members for `B.A` / `last [].Outer`.
     fn resolve_obj(&mut self, p: &Place) -> ER<Placed> {
         match p {
-            Place::Name { name, .. } => {
-                let idx = self.label_index(name)?;
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                let idx = self.label_index(&key)?;
                 Ok(self.placed[idx].clone())
             }
             Place::Nth { count, obj } => {
@@ -1263,12 +1302,14 @@ impl State {
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.resolve_obj(inner),
             Place::Member(base, sub) => {
                 let b = self.resolve_obj(base)?;
-                let name = match sub.as_ref() {
-                    Place::Name { name, .. } => name.clone(),
+                let key = match sub.as_ref() {
+                    Place::Name { name, subscript } => {
+                        self.indexed_name(name, subscript.as_deref())?
+                    }
                     _ => return err("a block sub-label must be a name"),
                 };
-                b.members.get(&name).cloned().ok_or_else(|| EvalError {
-                    msg: format!("no sub-label `{name}` in that block"),
+                b.members.get(&key).cloned().ok_or_else(|| EvalError {
+                    msg: format!("no sub-label `{key}` in that block"),
                 })
             }
             Place::Here => err("`Here` is a point, not an object"),
@@ -1277,7 +1318,10 @@ impl State {
 
     fn place_index(&mut self, p: &Place) -> ER<usize> {
         match p {
-            Place::Name { name, .. } => self.label_index(name),
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                self.label_index(&key)
+            }
             Place::Nth { count, obj } => self.nth_index(count, obj),
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.place_index(inner),
             Place::Here => err("`Here` is a point, not an object"),
@@ -1289,6 +1333,17 @@ impl State {
         self.labels.get(name).copied().ok_or_else(|| EvalError {
             msg: format!("unknown label `{name}`"),
         })
+    }
+
+    fn label_key(&mut self, label: &Label) -> ER<String> {
+        self.indexed_name(&label.name, label.subscript.as_ref())
+    }
+
+    fn indexed_name(&mut self, name: &str, subscript: Option<&Expr>) -> ER<String> {
+        match subscript {
+            Some(e) => Ok(format!("{name}[{}]", fmt_num(self.eval_expr(e)?))),
+            None => Ok(name.to_string()),
+        }
     }
 
     fn nth_index(&mut self, count: &Nth, obj: &PrimObj) -> ER<usize> {
@@ -1340,11 +1395,24 @@ impl State {
                 let f = self.eval_stringexpr(fmt)?;
                 let mut vals = Vec::with_capacity(args.len());
                 for e in args {
-                    vals.push(self.eval_expr(e)?);
+                    vals.push(self.eval_printf_arg(e)?);
                 }
                 sprintf_fmt(&f, &vals)
             }
+            StringExpr::SvgFont(args) => {
+                for e in args {
+                    self.eval_printf_arg(e)?;
+                }
+                String::new()
+            }
         })
+    }
+
+    fn eval_printf_arg(&mut self, e: &Expr) -> ER<PrintfArg> {
+        match e {
+            Expr::Str(se) => Ok(PrintfArg::Str(self.eval_stringexpr(se)?)),
+            _ => Ok(PrintfArg::Num(self.eval_expr(e)?)),
+        }
     }
 
     // ---- expressions -------------------------------------------------------
@@ -1362,7 +1430,10 @@ impl State {
         Ok(match e {
             Expr::Num(v) => *v,
             Expr::Str(_) => return err("a string is only valid as an `==`/`!=` operand"),
-            Expr::Var(name) => *self.vars.get(name).unwrap_or(&0.0),
+            Expr::Var(name, subscript) => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                *self.vars.get(&key).unwrap_or(&0.0)
+            }
             Expr::Env(v) => self.env.get(*v),
             Expr::Unary(op, a) => {
                 let x = self.eval_expr(a)?;
@@ -1452,9 +1523,10 @@ impl State {
                 }
             }
             Expr::Rand(_) => 0.5, // deterministic placeholder
-            Expr::Assign(name, v) => {
+            Expr::Assign(name, subscript, v) => {
                 let val = self.eval_expr(v)?;
-                self.vars.insert(name.clone(), val);
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                self.vars.insert(key, val);
                 val
             }
             Expr::DotX(loc) => self.eval_loc(loc)?.x,
@@ -1494,6 +1566,29 @@ fn bool_f(b: bool) -> f64 {
 /// Render a number the way pic's `%g`/string contexts do (no trailing zeros).
 fn fmt_num(v: f64) -> String {
     format!("{v}")
+}
+
+fn install_dpic_compat_vars(vars: &mut HashMap<String, f64>) {
+    // dpic backend option constants are zero-based in the order used by dpic's
+    // own `case(dpicopt, ...)` examples. rpic renders SVG.
+    let opts = [
+        ("optMFpic", 0.0),
+        ("optMpost", 1.0),
+        ("optPDF", 2.0),
+        ("optPGF", 3.0),
+        ("optPict2e", 4.0),
+        ("optPS", 5.0),
+        ("optPSfrag", 6.0),
+        ("optPSTricks", 7.0),
+        ("optSVG", 8.0),
+        ("optTeX", 9.0),
+        ("opttTeX", 10.0),
+        ("optxfig", 11.0),
+    ];
+    for (name, val) in opts {
+        vars.insert(name.to_string(), val);
+    }
+    vars.insert("dpicopt".to_string(), 8.0);
 }
 
 fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
@@ -1551,9 +1646,30 @@ fn nearest_dir(v: Point) -> Dir {
     }
 }
 
-/// Minimal printf-style formatter supporting `%d %i %f %e %g %%` with optional
-/// `.precision`. Width/flags are accepted but ignored; arguments are numeric.
-fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
+enum PrintfArg {
+    Num(f64),
+    Str(String),
+}
+
+impl PrintfArg {
+    fn num(&self) -> f64 {
+        match self {
+            PrintfArg::Num(v) => *v,
+            PrintfArg::Str(s) => s.parse::<f64>().unwrap_or(0.0),
+        }
+    }
+
+    fn string(&self) -> String {
+        match self {
+            PrintfArg::Num(v) => fmt_num(*v),
+            PrintfArg::Str(s) => s.clone(),
+        }
+    }
+}
+
+/// Minimal printf-style formatter supporting `%d %i %f %e %g %s %%` with
+/// optional `.precision`. Width/flags are accepted but ignored.
+fn sprintf_fmt(fmt: &str, vals: &[PrintfArg]) -> String {
     let mut out = String::new();
     let mut chars = fmt.chars().peekable();
     let mut ai = 0usize;
@@ -1579,7 +1695,7 @@ fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
             out.push('%');
             continue;
         }
-        let v = vals.get(ai).copied().unwrap_or(0.0);
+        let arg = vals.get(ai);
         ai += 1;
         let prec = spec.split('.').nth(1).and_then(|p| {
             p.chars()
@@ -1589,11 +1705,22 @@ fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
                 .ok()
         });
         match conv {
-            'd' | 'i' => out.push_str(&format!("{}", v.round() as i64)),
-            'f' | 'F' => out.push_str(&format!("{:.*}", prec.unwrap_or(6), v)),
-            'e' | 'E' => out.push_str(&format!("{:.*e}", prec.unwrap_or(6), v)),
-            'g' | 'G' => out.push_str(&format!("{v}")),
-            's' => out.push_str(&format!("{v}")),
+            'd' | 'i' => out.push_str(&format!(
+                "{}",
+                arg.map(PrintfArg::num).unwrap_or(0.0).round() as i64
+            )),
+            'f' | 'F' => out.push_str(&format!(
+                "{:.*}",
+                prec.unwrap_or(6),
+                arg.map(PrintfArg::num).unwrap_or(0.0)
+            )),
+            'e' | 'E' => out.push_str(&format!(
+                "{:.*e}",
+                prec.unwrap_or(6),
+                arg.map(PrintfArg::num).unwrap_or(0.0)
+            )),
+            'g' | 'G' => out.push_str(&format!("{}", arg.map(PrintfArg::num).unwrap_or(0.0))),
+            's' => out.push_str(&arg.map(PrintfArg::string).unwrap_or_default()),
             other => {
                 out.push('%');
                 out.push(other);
@@ -1609,6 +1736,7 @@ fn stringexpr_lit(se: &StringExpr) -> String {
         StringExpr::Concat(a, b) => format!("{}{}", stringexpr_lit(a), stringexpr_lit(b)),
         StringExpr::Arg(n) => format!("${n}"),
         StringExpr::Sprintf(fmt, _) => stringexpr_lit(fmt),
+        StringExpr::SvgFont(_) => String::new(),
     }
 }
 
@@ -1760,6 +1888,30 @@ mod tests {
             panic!()
         };
         assert!((*w0 - 0.5).abs() < 1e-9 && (*w1 - 1.25).abs() < 1e-9);
+    }
+
+    #[test]
+    fn subscripted_variables_store_by_index() {
+        let d = draw("P[1] = 0.4\nP[2] = 0.9\nP[2] += 0.1\nbox wid P[2] ht P[1]");
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9 && (*h - 0.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn subscripted_label_places_resolve_by_index() {
+        let d =
+            draw("for i = 1 to 2 do { A[i]: circle rad 0.01 at (i,0) }\nline from A[1] to A[2]");
+        let Shape::Path { pts, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert!(
+            pts[0].dist(Point::new(1.0, 0.0)) < 1e-9,
+            "start {:?}",
+            pts[0]
+        );
+        assert!(pts[1].dist(Point::new(2.0, 0.0)) < 1e-9, "end {:?}", pts[1]);
     }
 
     #[test]
@@ -1916,7 +2068,25 @@ mod tests {
         };
         // the block is placed with its center at (0.5,0); inner A.ne is then
         // (1.0,0.5), and the small box centers 0.1 beyond that corner.
-        assert!((c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9,
+            "c = {c:?}"
+        );
+    }
+
+    #[test]
+    fn block_can_anchor_on_own_member() {
+        // The block bbox center is not A.c, so this catches the two-pass anchor
+        // resolution rather than accidentally aligning the block center.
+        let d = draw("P:(2,3)\n[ A: box wid 1 ht 1 at 0,0; circle rad 0.1 at 2,0 ] with .A.c at P");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(2.0, 3.0)) < 1e-9, "A center = {c:?}");
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(4.0, 3.0)) < 1e-9, "circle center = {c:?}");
     }
 
     #[test]
@@ -1926,7 +2096,10 @@ mod tests {
         let Shape::Box { c, .. } = &d.shapes[0] else {
             panic!()
         };
-        assert!((c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9,
+            "c = {c:?}"
+        );
     }
 
     #[test]
@@ -1945,6 +2118,21 @@ mod tests {
         assert!(matches!(d1.shapes[0], Shape::Circle { .. }));
         let d2 = draw("if \"\" == \"\" then { box } else { circle }");
         assert!(matches!(d2.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
+    fn dpicopt_defaults_to_svg_backend() {
+        let d = draw("if dpicopt == optSVG then { box } else { circle }");
+        assert!(matches!(d.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
+    fn svg_font_stub_and_string_sprintf_are_harmless() {
+        let d = draw("box sprintf(\"x%s\", svg_font(\"Times\", 12))");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "x");
     }
 
     #[test]
