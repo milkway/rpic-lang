@@ -20,7 +20,7 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -33,7 +33,7 @@ jobs:
         if: runner.os == 'Windows'
         run: Compress-Archive "target/${{ matrix.target }}/release/rpic.exe" "rpic-${{ matrix.target }}.zip"
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             rpic-${{ matrix.target }}.tar.gz
@@ -43,12 +43,12 @@ jobs:
     name: debian package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-deb
       - run: cargo deb -p rpic-cli
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/debian/*.deb
 
@@ -57,13 +57,13 @@ jobs:
     name: windows msi
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-wix
       - run: cargo wix --nocapture -p rpic-cli
         continue-on-error: true
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/wix/*.msi
         continue-on-error: true
