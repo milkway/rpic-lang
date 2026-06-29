@@ -2322,6 +2322,15 @@ mod tests {
     }
 
     #[test]
+    fn macro_token_pasting_concatenates_adjacent_args() {
+        let d = draw("define mark { $1$2: (1,0) }\nmark(A,B)\nbox wid 0.2 ht 0.2 at AB");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(1.0, 0.0)) < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
     fn recursive_macro_terminates() {
         // a self-calling macro bounded by `if`: textual pre-expansion would
         // diverge, but lazy (eval-time) expansion of the taken branch stops it.

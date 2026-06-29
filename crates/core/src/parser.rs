@@ -381,7 +381,15 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
 /// Replace `$k` argument tokens in a macro body with the k-th argument's tokens.
 fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
     let mut out = Vec::new();
-    for s in body {
+    let mut i = 0;
+    while i < body.len() {
+        if let Some((pasted, next)) = paste_adjacent_args(body, args, i) {
+            out.push(pasted.with_arg_frame(args));
+            i = next;
+            continue;
+        }
+
+        let s = &body[i];
         match &s.tok {
             Token::Arg(k) => {
                 if let Some(a) = args.get((*k as usize).wrapping_sub(1)) {
@@ -402,8 +410,76 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
             }
             _ => out.push(s.clone().with_arg_frame(args)),
         }
+        i += 1;
     }
     out
+}
+
+fn paste_adjacent_args(
+    body: &[Spanned],
+    args: &[Vec<Spanned>],
+    start: usize,
+) -> Option<(Spanned, usize)> {
+    let first = body.get(start)?;
+    let Token::Arg(k) = &first.tok else {
+        return None;
+    };
+
+    let mut text = arg_text(*k, args);
+    let mut count = 1usize;
+    let mut end = start + 1;
+    let mut prev = first;
+    while let Some(next) = body.get(end) {
+        let Token::Arg(k) = &next.tok else {
+            break;
+        };
+        if !adjacent_arg_tokens(prev, next) {
+            break;
+        }
+        text.push_str(&arg_text(*k, args));
+        count += 1;
+        prev = next;
+        end += 1;
+    }
+
+    if count < 2 || text.is_empty() {
+        return None;
+    }
+
+    Some((tokenize_pasted_arg_text(&text, first.line, first.col), end))
+}
+
+fn arg_text(k: u32, args: &[Vec<Spanned>]) -> String {
+    args.get((k as usize).wrapping_sub(1))
+        .map(|a| tokens_to_text(a))
+        .unwrap_or_default()
+}
+
+fn adjacent_arg_tokens(left: &Spanned, right: &Spanned) -> bool {
+    left.line == right.line && arg_end_col(left) == Some(right.col)
+}
+
+fn arg_end_col(s: &Spanned) -> Option<u32> {
+    let Token::Arg(k) = &s.tok else {
+        return None;
+    };
+    Some(s.col + 1 + k.to_string().len() as u32)
+}
+
+fn tokenize_pasted_arg_text(text: &str, line: u32, col: u32) -> Spanned {
+    if let Ok(toks) = lex(text)
+        && toks.len() == 2
+        && matches!(toks[1].tok, Token::Eof)
+    {
+        return Spanned::new(toks[0].tok.clone(), line, col);
+    }
+
+    let tok = if text.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+        Token::Label(text.to_string())
+    } else {
+        Token::Name(text.to_string())
+    };
+    Spanned::new(tok, line, col)
 }
 
 /// Replace `$n` references inside a string literal with the textual form of the
