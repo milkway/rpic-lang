@@ -48,8 +48,8 @@
 </g>
 <g id="s16">
 <path d="M 52 394 A 6 6 0 0 0 58 388" fill="none" stroke="customcolor" stroke-width="1.067"/>
-<polygon points="58,388 48.504,390.782 48.312,385.986" fill="customcolor"/>
-<polygon points="52,394 49.986,384.312 54.782,384.504" fill="customcolor"/>
+<polyline points="48.504,390.782 58,388 48.312,385.986" fill="none" stroke="customcolor" stroke-width="1.067"/>
+<polyline points="49.986,384.312 52,394 54.782,384.504" fill="none" stroke="customcolor" stroke-width="1.067"/>
 </g>
 <g id="s17">
 </g>
@@ -57,8 +57,8 @@
 </g>
 <g id="s19">
 <path d="M 76 400 A 12 12 0 0 0 88 388" fill="none" stroke="customcolor" stroke-width="1.067"/>
-<polygon points="88,388 78.504,390.782 78.312,385.986" fill="customcolor"/>
-<polygon points="76,400 73.986,390.312 78.782,390.504" fill="customcolor"/>
+<polyline points="78.504,390.782 88,388 78.312,385.986" fill="none" stroke="customcolor" stroke-width="1.067"/>
+<polyline points="73.986,390.312 76,400 78.782,390.504" fill="none" stroke="customcolor" stroke-width="1.067"/>
 </g>
 <g id="s20">
 </g>
@@ -66,8 +66,8 @@
 </g>
 <g id="s22">
 <path d="M 124 412 A 24 24 0 0 0 148 388" fill="none" stroke="customcolor" stroke-width="1.067"/>
-<polygon points="148,388 138.504,390.782 138.312,385.986" fill="customcolor"/>
-<polygon points="124,412 121.986,402.312 126.782,402.504" fill="customcolor"/>
+<polyline points="138.504,390.782 148,388 138.312,385.986" fill="none" stroke="customcolor" stroke-width="1.067"/>
+<polyline points="121.986,402.312 124,412 126.782,402.504" fill="none" stroke="customcolor" stroke-width="1.067"/>
 </g>
 <g id="s23">
 </g>
@@ -75,8 +75,8 @@
 </g>
 <g id="s25">
 <path d="M 220 436 A 48 48 0 0 0 268 388" fill="none" stroke="customcolor" stroke-width="1.067"/>
-<polygon points="268,388 258.504,390.782 258.312,385.986" fill="customcolor"/>
-<polygon points="220,436 217.986,426.312 222.782,426.504" fill="customcolor"/>
+<polyline points="258.504,390.782 268,388 258.312,385.986" fill="none" stroke="customcolor" stroke-width="1.067"/>
+<polyline points="217.986,426.312 220,436 222.782,426.504" fill="none" stroke="customcolor" stroke-width="1.067"/>
 </g>
 <g id="s26">
 </g>
@@ -84,8 +84,8 @@
 </g>
 <g id="s28">
 <path d="M 412 484 A 96 96 0 0 0 508 388" fill="none" stroke="customcolor" stroke-width="1.067"/>
-<polygon points="508,388 498.504,390.782 498.312,385.986" fill="customcolor"/>
-<polygon points="412,484 409.986,474.312 414.782,474.504" fill="customcolor"/>
+<polyline points="498.504,390.782 508,388 498.312,385.986" fill="none" stroke="customcolor" stroke-width="1.067"/>
+<polyline points="409.986,474.312 412,484 414.782,474.504" fill="none" stroke="customcolor" stroke-width="1.067"/>
 </g>
 <g id="s29">
 </g>
@@ -93,48 +93,48 @@
 </g>
 <g id="s31">
 <path d="M 100 628 A 48 48 0 0 0 148 580" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="148,580 138.504,582.782 138.312,577.986" fill="black"/>
-<polygon points="100,628 97.986,618.312 102.782,618.504" fill="black"/>
+<polyline points="138.504,582.782 148,580 138.312,577.986" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="97.986,618.312 100,628 102.782,618.504" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s32">
 </g>
 <g id="s33">
 <path d="M 244 628 A 48 48 0 0 0 292 580" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="292,580 282.504,582.782 282.312,577.986" fill="black"/>
-<polygon points="244,628 241.986,618.312 246.782,618.504" fill="black"/>
+<polyline points="282.504,582.782 292,580 282.312,577.986" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="241.986,618.312 244,628 246.782,618.504" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s34">
 </g>
 <g id="s35">
 <path d="M 388 628 A 48 48 0 0 0 436 580" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="436,580 426.504,582.782 426.312,577.986" fill="black"/>
-<polygon points="388,628 385.986,618.312 390.782,618.504" fill="black"/>
+<polyline points="426.504,582.782 436,580 426.312,577.986" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="385.986,618.312 388,628 390.782,618.504" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s36">
 </g>
 <g id="s37">
 <path d="M 532 628 A 48 48 0 0 0 580 580" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="580,580 570.504,582.782 570.312,577.986" fill="black"/>
-<polygon points="532,628 529.986,618.312 534.782,618.504" fill="black"/>
+<polyline points="570.504,582.782 580,580 570.312,577.986" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="529.986,618.312 532,628 534.782,618.504" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s38">
 </g>
 <g id="s39">
 <path d="M 652 124 A 48 48 0 0 0 652 76" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="652,76 649.661,85.615 645.412,83.383" fill="black"/>
-<polygon points="652,124 645.412,116.617 649.661,114.385" fill="black"/>
+<polyline points="649.661,85.615 652,76 645.412,83.383" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="645.412,116.617 652,124 649.661,114.385" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s40">
 <polyline points="661.6,66.4 613.6,18.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="661.6,66.4 653.115,61.309 656.509,57.915" fill="black"/>
+<polyline points="653.115,61.309 661.6,66.4 656.509,57.915" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s41">
 <path d="M 652 364 A 48 48 0 0 0 652 316" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="652,316 649.661,325.615 645.412,323.383" fill="black"/>
-<polygon points="652,364 645.412,356.617 649.661,354.385" fill="black"/>
+<polyline points="649.661,325.615 652,316 645.412,323.383" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="645.412,356.617 652,364 649.661,354.385" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s42">
 <polyline points="661.6,306.4 613.6,258.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="661.6,306.4 653.115,301.309 656.509,297.915" fill="black"/>
+<polyline points="653.115,301.309 661.6,306.4 656.509,297.915" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 </svg>

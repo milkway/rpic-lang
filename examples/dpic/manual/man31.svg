@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="339.2" height="219.2" viewBox="0 0 339.2 219.2" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<text x="4" y="138.4" text-anchor="middle" dominant-baseline="central"></text>
+</g>
+<g id="s1">
+<polyline points="4,186.4 100,186.4 100,90.4 4,90.4 4,186.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+</g>
+<g id="s3">
+<text x="124" y="12.8" text-anchor="middle" dominant-baseline="central">.PS</text>
+<text x="124" y="30.4" text-anchor="start" dominant-baseline="central">    x[5] = 1</text>
+<text x="124" y="48" text-anchor="start" dominant-baseline="central">    P[0]: (0,0)</text>
+<text x="124" y="65.6" text-anchor="start" dominant-baseline="central">    P[1]: (x[5],0)</text>
+<text x="124" y="83.2" text-anchor="start" dominant-baseline="central">    P[2]: (x[5],x[5])</text>
+<text x="124" y="100.8" text-anchor="start" dominant-baseline="central">    P[3]: (0,x[5])</text>
+<text x="124" y="118.4" text-anchor="start" dominant-baseline="central">    P[4]: P[0]</text>
+<text x="124" y="136" text-anchor="start" dominant-baseline="central">    line from P[0] to P[1]</text>
+<text x="124" y="153.6" text-anchor="start" dominant-baseline="central">    for i = 2 to 4 do {</text>
+<text x="124" y="171.2" text-anchor="start" dominant-baseline="central">      continue to P[i]</text>
+<text x="124" y="188.8" text-anchor="start" dominant-baseline="central">      }</text>
+<text x="124" y="206.4" text-anchor="start" dominant-baseline="central">.PE</text>
+</g>
+</svg>
