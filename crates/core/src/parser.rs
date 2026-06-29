@@ -697,6 +697,10 @@ impl Parser {
                 attrs.push(Attr::Text(self.continue_string(StringExpr::Lit(s))?));
                 ObjectKind::Text
             }
+            Token::Kw(Kw::Continue) => {
+                self.bump();
+                ObjectKind::Continue
+            }
             other => return self.err(format!("expected an object, found {other:?}")),
         };
         while let Some(a) = self.parse_attr()? {

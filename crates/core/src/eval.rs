@@ -443,7 +443,103 @@ impl State {
             ObjectKind::Text => self.text_obj(obj),
             ObjectKind::Block(stmts) => self.block(stmts, obj),
             ObjectKind::Empty => self.block(&[], obj),
+            ObjectKind::Continue => self.continue_obj(obj),
         }
+    }
+
+    /// `continue`: append another segment to the most recent line/spline,
+    /// extending it from its current end in the current (or given) direction.
+    fn continue_obj(&mut self, obj: &Object) -> ER<usize> {
+        let idx = self
+            .shapes
+            .iter()
+            .rposition(|s| matches!(s, Shape::Path { .. } | Shape::Spline { .. }))
+            .ok_or_else(|| EvalError {
+                msg: "`continue` has no previous line to extend".into(),
+            })?;
+        let start = match &self.shapes[idx] {
+            Shape::Path { pts, .. } | Shape::Spline { pts, .. } => *pts.last().unwrap(),
+            _ => unreachable!(),
+        };
+        let deflen_h = self.env.get(EnvVar::Linewid);
+        let deflen_v = self.env.get(EnvVar::Lineht);
+
+        let mut pts = vec![start];
+        let mut pend = Point::ZERO;
+        let mut any = false;
+        let mut last_dir = self.dir;
+        for a in &obj.attrs {
+            match a {
+                Attr::Direction(d, opt) => {
+                    let dist = match opt {
+                        Some(e) => self.eval_expr(e)?,
+                        None => {
+                            if horizontal(*d) {
+                                deflen_h
+                            } else {
+                                deflen_v
+                            }
+                        }
+                    };
+                    pend = pend + dir_unit(*d) * dist;
+                    last_dir = *d;
+                    any = true;
+                }
+                Attr::Then => {
+                    let np = *pts.last().unwrap() + pend;
+                    pts.push(np);
+                    pend = Point::ZERO;
+                }
+                Attr::To(pos) => {
+                    if pend != Point::ZERO {
+                        let np = *pts.last().unwrap() + pend;
+                        pts.push(np);
+                        pend = Point::ZERO;
+                    }
+                    pts.push(self.eval_pos(pos)?);
+                    any = true;
+                }
+                Attr::By(pos) => {
+                    let dp = self.eval_pos(pos)?;
+                    pend = pend + (dp - Point::ZERO);
+                    any = true;
+                }
+                _ => {}
+            }
+        }
+        if pend != Point::ZERO {
+            let np = *pts.last().unwrap() + pend;
+            pts.push(np);
+        }
+        if pts.len() == 1 && !any {
+            let dist = if horizontal(self.dir) {
+                deflen_h
+            } else {
+                deflen_v
+            };
+            pts.push(start + dir_unit(self.dir) * dist);
+            last_dir = self.dir;
+        }
+
+        let new: Vec<Point> = pts[1..].to_vec();
+        match &mut self.shapes[idx] {
+            Shape::Path { pts: p, .. } | Shape::Spline { pts: p, .. } => p.extend_from_slice(&new),
+            _ => unreachable!(),
+        }
+        let end = *pts.last().unwrap();
+        for q in &new {
+            self.bbox.add(*q);
+        }
+        self.pos = end;
+        self.dir = last_dir;
+
+        let pidx = self.placed.iter().position(|pl| pl.shape == Some(idx));
+        if let Some(pi) = pidx {
+            self.placed[pi].end = end;
+            self.placed[pi].bbox.add(end);
+            self.placed[pi].center = (self.placed[pi].start + end) * 0.5;
+        }
+        Ok(pidx.unwrap_or(idx))
     }
 
     fn closed(&mut self, p: Prim, obj: &Object) -> ER<usize> {
@@ -1563,6 +1659,24 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn continue_extends_previous_line() {
+        // issue #7: `continue` appends a segment to the last line (no new shape)
+        let d = draw("line right 1\ncontinue down 0.5");
+        assert_eq!(d.shapes.len(), 1, "should extend, not add a shape");
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(pts.len(), 3);
+        assert!(pts[2].dist(Point::new(1.0, -0.5)) < 1e-9, "{:?}", pts[2]);
+        // bare continue extends in the current direction by linewid
+        let d2 = draw("line right 1\ncontinue");
+        let Shape::Path { pts, .. } = &d2.shapes[0] else {
+            panic!()
+        };
+        assert!((pts.last().unwrap().x - 1.5).abs() < 1e-9);
     }
 
     #[test]

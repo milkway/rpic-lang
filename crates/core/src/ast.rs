@@ -130,6 +130,8 @@ pub enum ObjectKind {
     Empty,
     /// A bare quoted string places a text-only object.
     Text,
+    /// `continue` — extend the previous line with another segment.
+    Continue,
 }
 
 /// An object attribute (applied left to right).
