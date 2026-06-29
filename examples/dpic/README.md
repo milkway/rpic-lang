@@ -58,8 +58,12 @@ A trellis of shapes (`trellis`):
 
 ![trellis](shapes/trellis.svg)
 
+A binary tree drawn by a **recursive macro** (`man36`):
+
+![man36](manual/man36.svg)
+
 ## Parity status
 
-47 examples render faithfully and are included here. The full pass/fail matrix
+49 examples render faithfully and are included here. The full pass/fail matrix
 for the upstream corpus — and the dpic-specific features rpic does not yet
 implement — is in [`STATUS.md`](STATUS.md).

@@ -1,0 +1,17 @@
+.PS
+  circlerad = 0.2
+
+  define tree {[
+    if $1 <= 1 then {
+      N: circle sprintf("%g",$2)
+    } else {
+      L: tree($1-1, int(($2)/10))
+	  R: tree($1-1, ($2)-11) with .w at L.e+(0.1,0)
+	  N: circle sprintf("%g",$2) with .s at 0.5<L.ne,R.nw>+(0,0.1)
+	  line from N to L.N chop
+	  line from N to R.N chop
+	}
+  ]}
+
+  tree(4,1000)
+.PE

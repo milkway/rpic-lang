@@ -1,0 +1,46 @@
+.PS
+# a three-dimensional block
+#
+# slantbox(width, height, x offset, y offset, attributes)
+define slantbox { [
+  if "$1"=="" then { w = boxwid } else { w = $1 }
+  if "$2"=="" then { h = boxht } else { h = $2 }
+  if "$3"=="" then { xs = 0 } else { xs = $3 }
+  if "$4"=="" then { ys = 0 } else { ys = $4 }
+  NE: (w+xs,h+ys)/2
+  SE: (w-xs,-h+ys)/2
+  SW: (-w-xs,-h-ys)/2
+  NW: (-w+xs,h-ys)/2
+  N: 0.5 between NW and NE
+  E: 0.5 between NE and SE
+  S: 0.5 between SE and SW
+  W: 0.5 between SW and NW
+  C: 0.5 between SW and NE
+  line from N to NE then to SE then to SW then to NW then to N $5
+  ] }
+
+# Goldenrod is a predefined SVG color
+# Goldenrod = 0.855, 0.648, 0.125
+# Dandelion = 1,0.71,0.16
+#efine(`Dandelion',`1,0.71,0.16')
+if (dpicopt == optPSfrag) || (dpicopt == optPS) then {
+command "/Goldenrod { 0.855 0.648 0.125 } def
+/Dandelion { 1 0.71 0.16 } def
+/black { 0 0 0 } def
+/yellow { 1 1 0 } def" }
+
+# tblock(<width>, <height>, <text>)
+define tblock { [
+  box ht $2 wid $1 color "Goldenrod" outlined "black" $3
+  slantbox($1,0.1,0.1,0,shaded "yellow" outlined "black") \
+    with .sw at last box .nw
+  slantbox(0.1,$2,0,0.1,shaded "Dandelion" outlined "black") \
+    with .ne at last [] .ne;
+  ] }
+
+x = 0.5
+  tblock(1, 0.5, "Master" "1");
+  move -0.1
+  tblock(0.5, 1, "Slave");
+
+.PE

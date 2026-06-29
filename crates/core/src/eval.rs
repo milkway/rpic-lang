@@ -40,6 +40,7 @@ fn err<T>(msg: impl Into<String>) -> ER<T> {
 /// Evaluate a parsed picture into a [`Drawing`].
 pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut st = State::new();
+    st.macros = pic.macros.clone();
     st.eval_stmts(&pic.stmts)?;
     let want_w = match &pic.width {
         Some(e) => Some(st.eval_expr(e)?),
@@ -213,6 +214,7 @@ struct State {
     dir: Dir,
     vars: HashMap<String, f64>,
     env: EnvVars,
+    macros: Macros,
     shapes: Vec<Shape>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
@@ -244,6 +246,7 @@ impl State {
             dir: Dir::Right,
             vars: HashMap::new(),
             env: EnvVars::new(),
+            macros: HashMap::new(),
             shapes: Vec::new(),
             placed: Vec::new(),
             labels: HashMap::new(),
@@ -259,6 +262,12 @@ impl State {
             self.eval_stmt(s)?;
         }
         Ok(())
+    }
+
+    /// Parse a deferred `if`/`for` body now, expanding macros along this path.
+    fn parse_body(&self, body: &Body) -> ER<Vec<Stmt>> {
+        crate::parser::parse_body_tokens(body, &self.macros)
+            .map_err(|e| EvalError { msg: e.to_string() })
     }
 
     fn eval_stmt(&mut self, s: &Stmt) -> ER<()> {
@@ -306,10 +315,14 @@ impl State {
                 then_body,
                 else_body,
             } => {
+                // only the taken branch is parsed (dead branches may be
+                // syntactically invalid, e.g. an empty default-argument body)
                 if self.eval_expr(cond)? != 0.0 {
-                    self.eval_stmts(then_body)?;
+                    let stmts = self.parse_body(then_body)?;
+                    self.eval_stmts(&stmts)?;
                 } else if let Some(e) = else_body {
-                    self.eval_stmts(e)?;
+                    let stmts = self.parse_body(e)?;
+                    self.eval_stmts(&stmts)?;
                 }
             }
             Stmt::For {
@@ -320,6 +333,7 @@ impl State {
                 mult,
                 body,
             } => {
+                let body = self.parse_body(body)?;
                 let from = self.eval_expr(from)?;
                 let to = self.eval_expr(to)?;
                 let by = self.eval_expr(by)?;
@@ -342,7 +356,7 @@ impl State {
                         break;
                     }
                     self.vars.insert(var.clone(), v);
-                    self.eval_stmts(body)?;
+                    self.eval_stmts(&body)?;
                     let prev = v;
                     v = if *mult { v * by } else { v + by };
                     if (v - prev).abs() < f64::EPSILON {
@@ -907,6 +921,7 @@ impl State {
         let mut sub = State::new();
         sub.env = self.env.clone();
         sub.vars = self.vars.clone();
+        sub.macros = self.macros.clone();
         sub.eval_stmts(stmts)?;
 
         let sub_bb = if sub.bbox.is_empty() {
@@ -1954,6 +1969,47 @@ mod tests {
             panic!()
         };
         assert!((*w - 3.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
+    fn recursive_macro_terminates() {
+        // a self-calling macro bounded by `if`: textual pre-expansion would
+        // diverge, but lazy (eval-time) expansion of the taken branch stops it.
+        let d = draw(
+            "define rec { if $1 <= 0 then { circle } else { box; rec($1-1) } }\nrec(3)",
+        );
+        let boxes = d
+            .shapes
+            .iter()
+            .filter(|s| matches!(s, Shape::Box { .. }))
+            .count();
+        let circles = d
+            .shapes
+            .iter()
+            .filter(|s| matches!(s, Shape::Circle { .. }))
+            .count();
+        assert_eq!((boxes, circles), (3, 1), "shapes = {:?}", d.shapes.len());
+    }
+
+    #[test]
+    fn default_argument_idiom() {
+        // empty argument: the dead `else { w = $1 }` becomes `w =`, which must
+        // not be parsed because the then-branch is taken.
+        let d = draw(
+            "define b { if \"$1\"==\"\" then { w = 1 } else { w = $1 }\n box wid w ht 0.2 }\nb()",
+        );
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9, "w = {w}");
+        // and with an argument supplied, the else-branch value is used
+        let d2 = draw(
+            "define b { if \"$1\"==\"\" then { w = 1 } else { w = $1 }\n box wid w ht 0.2 }\nb(2.5)",
+        );
+        let Shape::Box { w, .. } = &d2.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 2.5).abs() < 1e-9, "w = {w}");
     }
 
     #[test]

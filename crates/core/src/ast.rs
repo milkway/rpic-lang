@@ -5,9 +5,19 @@
 //! blocks, assignments). Control constructs (`if`/`for`/`define`/`print`/…) have
 //! AST slots reserved but are wired up in a later milestone.
 
+use crate::lexer::Spanned;
 use crate::token::{
     Arrow, Color, Corner, Dir, EnvVar, Func1, Func2, LineType, Param, Prim, TextPos,
 };
+
+/// Macro definitions (name → body tokens), carried from parse to eval so that
+/// `if`/`for` bodies can be expanded lazily along the executed path.
+pub type Macros = std::collections::HashMap<String, Vec<Spanned>>;
+
+/// A deferred block of statements, kept as raw tokens until the branch/iteration
+/// that contains it actually runs (so dead branches and recursive macro calls
+/// are never parsed). Parsed on demand by the evaluator.
+pub type Body = Vec<Spanned>;
 
 /// A complete picture: optional `.PS <w> <h>` dimensions plus a list of elements.
 #[derive(Debug, Clone, PartialEq)]
@@ -15,6 +25,7 @@ pub struct Picture {
     pub width: Option<Expr>,
     pub height: Option<Expr>,
     pub stmts: Vec<Stmt>,
+    pub macros: Macros,
 }
 
 /// A label with an optional `[subscript]` suffix.
@@ -42,13 +53,13 @@ pub enum Stmt {
     Group(Vec<Stmt>),
     /// rpic animation directive (extension; see [`Animate`]).
     Animate(Animate),
-    /// `if <cond> then { … } [else { … }]`.
+    /// `if <cond> then { … } [else { … }]`. Bodies are deferred raw tokens.
     If {
         cond: Expr,
-        then_body: Vec<Stmt>,
-        else_body: Option<Vec<Stmt>>,
+        then_body: Body,
+        else_body: Option<Body>,
     },
-    /// `for v = from to to [by [*] step] do { … }`.
+    /// `for v = from to to [by [*] step] do { … }`. Body is deferred raw tokens.
     For {
         var: String,
         from: Expr,
@@ -56,7 +67,7 @@ pub enum Stmt {
         by: Expr,
         /// `by *` multiplies instead of adds.
         mult: bool,
-        body: Vec<Stmt>,
+        body: Body,
     },
     /// `print …` (evaluated for diagnostics; no drawing effect).
     Print(PrintItem),
