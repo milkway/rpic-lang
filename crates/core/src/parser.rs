@@ -699,11 +699,8 @@ impl Parser {
             }
             other => return self.err(format!("expected an object, found {other:?}")),
         };
-        loop {
-            match self.parse_attr()? {
-                Some(a) => attrs.push(a),
-                None => break,
-            }
+        while let Some(a) = self.parse_attr()? {
+            attrs.push(a);
         }
         Ok(Object { kind, attrs })
     }
@@ -989,11 +986,7 @@ impl Parser {
     fn place_is_scalar_ahead(&mut self) -> bool {
         let save = self.idx;
         let parsed = self.parse_place().is_ok();
-        let scalar = parsed
-            && matches!(
-                self.cur(),
-                Token::DotX | Token::DotY | Token::Param(_)
-            );
+        let scalar = parsed && matches!(self.cur(), Token::DotX | Token::DotY | Token::Param(_));
         self.idx = save;
         scalar
     }
@@ -1497,10 +1490,12 @@ ellipse "typesetter"
         let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()
         };
-        assert!(object.attrs.iter().any(|a| matches!(
-            a,
-            Attr::At(Position::Place(Location::Paren(_), _))
-        )));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::At(Position::Place(Location::Paren(_), _))))
+        );
         // a plain point place still parses as a place position
         let q = pic("A: box\nbox at A.ne");
         let Stmt::Object { object, .. } = &q.stmts[1] else {

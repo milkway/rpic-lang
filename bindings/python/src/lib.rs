@@ -32,6 +32,11 @@ fn render_png<'py>(
     scale: f32,
     circuits: bool,
 ) -> PyResult<Bound<'py, PyBytes>> {
+    if !(scale > 0.0) {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "scale must be a positive number",
+        ));
+    }
     let svg = rpic_core::render_svg(&with_circuits(src, circuits)).map_err(err)?;
     let png = rpic_render::to_png(&svg, scale).map_err(err)?;
     Ok(PyBytes::new(py, &png))

@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-wix
-      - run: cargo wix --no-build --nocapture -p rpic-cli
+      - run: cargo wix --nocapture -p rpic-cli
         continue-on-error: true
       - name: Upload to release
         uses: softprops/action-gh-release@v2

@@ -227,7 +227,7 @@ impl Svg {
     // ---- painting ----------------------------------------------------------
 
     fn stroke(&self, style: &Style) -> String {
-        let color = style.stroke.clone().unwrap_or_else(|| "black".into());
+        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
         let mut s = format!(
             "stroke=\"{}\" stroke-width=\"{}\"",
             color,
@@ -249,7 +249,7 @@ impl Svg {
                 let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
                 format!("rgb({v},{v},{v})")
             }
-            Some(Fill::Color(c)) => c.clone(),
+            Some(Fill::Color(c)) => attr(c),
         };
         format!("fill=\"{}\" {}", fill, self.stroke(style))
     }
@@ -258,7 +258,7 @@ impl Svg {
         if pts.len() < 2 {
             return;
         }
-        let color = style.stroke.clone().unwrap_or_else(|| "black".into());
+        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
         let head = |tip: Point, from: Point, out: &mut String| {
             let t = self.p(tip);
             let f = self.p(from);
@@ -362,8 +362,13 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
     }
 }
 
-/// Format a float compactly (up to 3 decimals, no trailing zeros).
+/// Format a float compactly (up to 3 decimals, no trailing zeros). Non-finite
+/// values (NaN/Inf, e.g. from a zero-length element) become `0` so the SVG stays
+/// well-formed instead of emitting a literal `NaN`.
 fn num(x: f64) -> String {
+    if !x.is_finite() {
+        return "0".to_string();
+    }
     let r = (x * 1000.0).round() / 1000.0;
     let r = if r == 0.0 { 0.0 } else { r }; // normalise -0
     let mut s = format!("{r:.3}");
@@ -373,10 +378,16 @@ fn num(x: f64) -> String {
     s
 }
 
+/// Escape text content (`&`, `<`, `>`).
 fn escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+/// Escape a string for embedding inside a double-quoted SVG attribute.
+fn attr(s: &str) -> String {
+    escape(s).replace('"', "&quot;")
 }
 
 #[cfg(test)]
@@ -417,5 +428,17 @@ mod tests {
     fn xml_is_escaped() {
         let s = svg("box \"a < b & c\"");
         assert!(s.contains("a &lt; b &amp; c"));
+    }
+
+    #[test]
+    fn num_guards_non_finite() {
+        assert_eq!(num(f64::NAN), "0");
+        assert_eq!(num(f64::INFINITY), "0");
+        assert_eq!(num(-0.0), "0");
+    }
+
+    #[test]
+    fn attr_escapes_quotes_and_markup() {
+        assert_eq!(attr("a\"<b&"), "a&quot;&lt;b&amp;");
     }
 }

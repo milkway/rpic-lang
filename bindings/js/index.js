@@ -7,17 +7,23 @@ import initWasm, {
   compile_circuits as wasmCompileCircuits,
 } from './pkg/rpic_wasm.js';
 
+let initPromise = null;
 let initialized = false;
 
 /**
- * Initialize the WebAssembly module. In the browser, call with no argument
- * (the .wasm is fetched relative to the module). In Node, pass the wasm bytes
- * or a file URL.
+ * Initialize the WebAssembly module (idempotent; concurrent calls share one
+ * init). In the browser, call with no argument (the .wasm is fetched relative
+ * to the module). In Node, pass the wasm bytes or a file URL.
  */
-export async function ready(wasmInput) {
-  if (initialized) return;
-  await initWasm(wasmInput === undefined ? undefined : { module_or_path: wasmInput });
-  initialized = true;
+export function ready(wasmInput) {
+  if (!initPromise) {
+    initPromise = initWasm(
+      wasmInput === undefined ? undefined : { module_or_path: wasmInput }
+    ).then(() => {
+      initialized = true;
+    });
+  }
+  return initPromise;
 }
 
 function ensure() {
@@ -55,7 +61,9 @@ export function renderSvg(src, opts) {
 export function animate(root, animations, gsap) {
   const tl = gsap.timeline();
   for (const a of animations) {
-    const el = root.querySelector('#' + (window.CSS ? CSS.escape(a.id) : a.id));
+    const sel =
+      typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.id) : `[id="${a.id}"]`;
+    const el = root.querySelector(sel);
     if (!el) continue;
     switch (a.effect) {
       case 'fade':

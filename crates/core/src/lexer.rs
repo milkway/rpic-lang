@@ -193,7 +193,10 @@ impl Lexer {
         if n.is_empty() {
             return self.err("expected digit after `$`");
         }
-        Ok(Token::Arg(n.parse().unwrap()))
+        match n.parse() {
+            Ok(v) => Ok(Token::Arg(v)),
+            Err(_) => self.err(format!("macro argument `${n}` is too large")),
+        }
     }
 
     fn lex_number(&mut self) -> Result<Token, LexError> {

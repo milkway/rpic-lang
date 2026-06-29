@@ -483,7 +483,7 @@ impl State {
         };
 
         // starting point
-        let start = self.from_of(obj)?.unwrap_or(self.pos);
+        let start = self.find_from(obj)?.unwrap_or(self.pos);
         let mut pts = vec![start];
         let mut pend = Point::ZERO;
         let mut any = false;
@@ -589,7 +589,7 @@ impl State {
     fn arc(&mut self, obj: &Object) -> ER<usize> {
         let style = self.style_of(obj)?;
         let text = self.text_of(obj)?;
-        let start = self.from_of(obj)?.unwrap_or(self.pos);
+        let start = self.find_from(obj)?.unwrap_or(self.pos);
         let r = self
             .dim(obj, DimKind::Rad)?
             .unwrap_or(self.env.get(EnvVar::Arcrad));
@@ -722,10 +722,10 @@ impl State {
 
     fn dim(&mut self, obj: &Object, kind: DimKind) -> ER<Option<f64>> {
         for a in &obj.attrs {
-            if let Attr::Dim(k, e) = a {
-                if *k == kind {
-                    return Ok(Some(self.eval_expr(e)?));
-                }
+            if let Attr::Dim(k, e) = a
+                && *k == kind
+            {
+                return Ok(Some(self.eval_expr(e)?));
             }
         }
         Ok(None)
@@ -746,7 +746,7 @@ impl State {
             .unwrap_or(self.dir)
     }
 
-    fn from_of(&mut self, obj: &Object) -> ER<Option<Point>> {
+    fn find_from(&mut self, obj: &Object) -> ER<Option<Point>> {
         for a in &obj.attrs {
             if let Attr::From(pos) = a {
                 return Ok(Some(self.eval_pos(pos)?));
@@ -1014,8 +1014,18 @@ impl State {
                     BinOp::Add => x + y,
                     BinOp::Sub => x - y,
                     BinOp::Mul => x * y,
-                    BinOp::Div => x / y,
-                    BinOp::Mod => x % y,
+                    BinOp::Div => {
+                        if y == 0.0 {
+                            return err("division by zero");
+                        }
+                        x / y
+                    }
+                    BinOp::Mod => {
+                        if y == 0.0 {
+                            return err("modulo by zero");
+                        }
+                        x % y
+                    }
                     BinOp::Pow => x.powf(y),
                     BinOp::Eq => bool_f(x == y),
                     BinOp::Ne => bool_f(x != y),
@@ -1343,13 +1353,23 @@ mod tests {
     }
 
     #[test]
+    fn division_by_zero_errors() {
+        // a zero divisor must error rather than silently produce NaN coordinates
+        assert!(eval(&parse("box wid 1/0").unwrap()).is_err());
+        assert!(eval(&parse("A:(0,0)\nB:(0,0)\nx = (B.x-A.x)/(B.y-A.y)").unwrap()).is_err());
+    }
+
+    #[test]
     fn place_dot_in_coordinate_pair() {
         // (A.x, A.y - 1) — place scalar accessors inside a coordinate pair (issue #3)
         let d = draw("A: box wid 1 ht 1 at 2,3\nbox wid 0.2 ht 0.2 at (A.x, A.y - 1)");
         let Shape::Box { c, .. } = &d.shapes[1] else {
             panic!()
         };
-        assert!((c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9,
+            "c = {c:?}"
+        );
     }
 
     #[test]

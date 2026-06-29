@@ -142,6 +142,6 @@ pub unsafe extern "C" fn rpic_free_string(p: *mut c_char) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpic_free_bytes(p: *mut u8, len: usize) {
     if !p.is_null() {
-        drop(unsafe { Box::from_raw(std::slice::from_raw_parts_mut(p, len)) });
+        drop(unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(p, len)) });
     }
 }

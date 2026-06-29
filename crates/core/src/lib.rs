@@ -72,6 +72,23 @@ pub fn compile_json(src: &str) -> String {
     }
 }
 
+/// Escape a string for embedding inside a JSON string literal.
+fn json_str(s: &str) -> String {
+    let mut o = String::with_capacity(s.len() + 8);
+    for c in s.chars() {
+        match c {
+            '"' => o.push_str("\\\""),
+            '\\' => o.push_str("\\\\"),
+            '\n' => o.push_str("\\n"),
+            '\r' => o.push_str("\\r"),
+            '\t' => o.push_str("\\t"),
+            c if (c as u32) < 0x20 => o.push_str(&format!("\\u{:04x}", c as u32)),
+            c => o.push(c),
+        }
+    }
+    o
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,21 +135,4 @@ mod tests {
         let d = compile(&src).expect("circuit library should compile");
         assert!(!d.shapes.is_empty());
     }
-}
-
-/// Escape a string for embedding inside a JSON string literal.
-fn json_str(s: &str) -> String {
-    let mut o = String::with_capacity(s.len() + 8);
-    for c in s.chars() {
-        match c {
-            '"' => o.push_str("\\\""),
-            '\\' => o.push_str("\\\\"),
-            '\n' => o.push_str("\\n"),
-            '\r' => o.push_str("\\r"),
-            '\t' => o.push_str("\\t"),
-            c if (c as u32) < 0x20 => o.push_str(&format!("\\u{:04x}", c as u32)),
-            c => o.push(c),
-        }
-    }
-    o
 }
