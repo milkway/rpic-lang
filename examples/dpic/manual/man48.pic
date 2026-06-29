@@ -1,0 +1,29 @@
+.PS
+define Cross {
+A: [
+    circle;
+    line up 1 from last circle .n;
+    line down 1 from last circle .s;
+    line right 1 from last circle .e;
+    line left 1 from last circle .w;
+    box dashed with .nw at last circle .se + (0.2, -0.2);
+    Caption: .center of last box;
+] }
+  Cross
+  move
+  Cross
+  { move right 0.2 }
+
+define label { circle rad 0.02 fill at A$1
+  "$1" at last circle $1 $2 }
+
+  label(.n,above)
+  label(.ne,above)
+  label(.nw,above)
+  label(.w,rjust)
+  label(.e,ljust)
+  label(.sw,below)
+  label(.s,below)
+  label(.se,below)
+  label(.c,ljust)
+.PE

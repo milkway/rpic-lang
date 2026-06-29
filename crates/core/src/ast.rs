@@ -139,6 +139,9 @@ pub enum ObjectKind {
 pub enum Attr {
     Dim(DimKind, Expr),
     Direction(Dir, Option<Expr>),
+    /// A bare distance with no direction word (e.g. `move 1`): advance by this
+    /// much along the prevailing direction.
+    Dist(Expr),
     LineStyle(LineType, Option<Expr>),
     Chop(Option<Expr>),
     Fill(Option<Expr>),
@@ -176,13 +179,14 @@ pub enum WithAnchor {
     Plain,
 }
 
-/// A position (point) expression.
+/// A position (point) expression. Positions support full vector arithmetic
+/// (dpic): `p + q`, `p - q`, `p * s`, `p / s` with the usual precedence.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Position {
     /// Explicit `x , y`.
     Pair(Expr, Expr),
-    /// A location plus zero or more `± location` shifts.
-    Place(Location, Vec<Shift>),
+    /// A bare location.
+    Place(Location),
     /// `frac [of the way] between A and B`.
     Between {
         frac: Box<Expr>,
@@ -190,12 +194,10 @@ pub enum Position {
         b: Box<Position>,
         of_the_way: bool,
     },
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Shift {
-    pub sign: Sign,
-    pub loc: Location,
+    /// `p + q` / `p - q`.
+    Sum(Sign, Box<Position>, Box<Position>),
+    /// `p * s` (or `p / s` when `div`), scaling a position by a scalar.
+    Scale(Box<Position>, Expr, bool),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -264,6 +266,9 @@ pub enum StringExpr {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Num(f64),
+    /// A string operand, valid only as an operand of `==`/`!=` (pic compares
+    /// strings for equality, e.g. the `"$1"==""` default-argument idiom).
+    Str(StringExpr),
     Var(String),
     Env(EnvVar),
     Unary(UnOp, Box<Expr>),
@@ -271,6 +276,8 @@ pub enum Expr {
     Func1(Func1, Box<Expr>),
     Func2(Func2, Box<Expr>, Box<Expr>),
     Rand(Option<Box<Expr>>),
+    /// `( name = expr )` — assign and yield the assigned value.
+    Assign(String, Box<Expr>),
     DotX(Location),
     DotY(Location),
     PlaceAttr(Place, Param),

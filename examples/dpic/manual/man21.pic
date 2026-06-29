@@ -1,0 +1,16 @@
+.PS
+[
+   line dashed                    \
+      right 1 then down .5 left 1 then right 1
+   spline from start of last line \
+      right 1 then down .5 left 1 then right 1
+   ]
+  move right 0.25 from last [].se
+  arrow right 1 "ljust above" ljust above
+  move right 0.5
+  spline right then up then left then down ->
+  move right 1.1
+  spline right then up left then down ->
+  move right 1.5
+  spline left then up right then down right ->
+.PE

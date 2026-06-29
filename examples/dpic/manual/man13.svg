@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="629.6" height="173.6" viewBox="0 0 629.6 173.6" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<text x="145.6" y="80" text-anchor="middle" dominant-baseline="central">+</text>
+</g>
+<g id="s1">
+</g>
+<g id="s2">
+<text x="145.6" y="80" text-anchor="middle" dominant-baseline="central">0,0</text>
+</g>
+<g id="s3">
+<path d="M 193.6 80 A 48 48 0 0 1 145.6 32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="145.6,32 155.288,29.986 155.096,34.782" fill="black"/>
+</g>
+<g id="s4">
+<text x="198.4" y="80" text-anchor="middle" dominant-baseline="central">{\tt arc -&gt; from 0.5,0 to 0,0.5}</text>
+</g>
+<g id="s5">
+<path d="M 145.6 80 A 75.895 75.895 0 0 0 241.6 32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="241.6,32 231.711,31.636 233.046,27.025" fill="black"/>
+</g>
+<g id="s6">
+<text x="232" y="12.8" text-anchor="middle" dominant-baseline="central">{\tt arc -&gt; cw from 0,0 to 1,0.5}</text>
+</g>
+<g id="s7">
+<text x="385.6" y="47.2" text-anchor="middle" dominant-baseline="central">With dpic the radius is half the chord</text>
+<text x="385.6" y="64.8" text-anchor="start" dominant-baseline="central">if the default radius is too small</text>
+</g>
+<g id="s8">
+</g>
+<g id="s9">
+<path d="M 198 160.8 A 48 48 0 0 1 150 112.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="150,112.8 159.688,110.786 159.496,115.582" fill="black"/>
+</g>
+<g id="s10">
+<text x="150" y="160.8" text-anchor="middle" dominant-baseline="central">+</text>
+</g>
+<g id="s11">
+<text x="198" y="160.8" text-anchor="middle" dominant-baseline="central">A</text>
+</g>
+<g id="s12">
+<text x="150" y="112.8" text-anchor="middle" dominant-baseline="central">B</text>
+</g>
+<g id="s13">
+<path d="M 198 160.8 A 48 48 0 0 1 150 112.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<polygon points="150,112.8 159.688,110.786 159.496,115.582" fill="black"/>
+</g>
+<g id="s14">
+<text x="150" y="160.8" text-anchor="middle" dominant-baseline="central">+</text>
+</g>
+<g id="s15">
+<text x="250.4" y="128" text-anchor="middle" dominant-baseline="central">Possible arcs {\tt \"arc from A to B\"}</text>
+<text x="250.4" y="145.6" text-anchor="start" dominant-baseline="central">Add {\tt \"with .c at ...\"} to specify the arc uniquely</text>
+</g>
+</svg>

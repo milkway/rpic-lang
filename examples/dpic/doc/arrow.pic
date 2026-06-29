@@ -1,0 +1,16 @@
+% arrow.pic
+.PS
+arrowhead = 0
+arrowwid *= 1.5
+arrowht *= 1.5
+linethick *= 1.5
+
+arrow right
+"\tt arrowhead = 0" rjust at last arrow.start
+arrowhead = 3
+arrow right from last arrow.start+(0,-0.15)
+"\tt arrowhead = 3" rjust at last arrow.start
+arrowhead = 2
+arrow right from last arrow.start+(0,-0.15)
+"default" rjust at last arrow.start
+.PE

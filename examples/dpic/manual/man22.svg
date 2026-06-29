@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="235.2" height="113.6" viewBox="0 0 235.2 113.6" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="99.2" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="135.2" y="28" text-anchor="middle" dominant-baseline="central">1</text>
+</g>
+<g id="s1">
+<rect x="39.2" y="61.6" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="75.2" y="85.6" text-anchor="middle" dominant-baseline="central">2</text>
+</g>
+<g id="s2">
+<polyline points="111.2,85.6 159.2,85.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="159.2,85.6 149.6,88 149.6,83.2" fill="black"/>
+<text x="135.2" y="85.6" text-anchor="middle" dominant-baseline="central">3</text>
+</g>
+<g id="s3">
+<rect x="159.2" y="61.6" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="195.2" y="85.6" text-anchor="middle" dominant-baseline="central">4</text>
+</g>
+<g id="s4">
+<text x="39.2" y="85.6" text-anchor="middle" dominant-baseline="central">Thing 2:</text>
+</g>
+</svg>

@@ -1,0 +1,63 @@
+.PS
+define filter {box ht 0.25 rad 0.125}
+lineht = 0.25;
+Top: [
+    right;
+    box "{\bf ms}" "sources";
+    move;
+    box "{\bf HTML}" "sources";
+    move;
+    box "{\bf linuxdoc-sgml}" "sources" wid 1.5;
+    move;
+    box "{\bf Texinfo}" "sources";
+    #dpic requires down <distance>
+    #line down from 1st box .s lineht;
+    line down lineht from 1st box .s;
+    A: line down;
+    line down from 2nd box .s; filter "{\bf html2ms}";
+    B: line down;
+    line down from 3rd box .s; filter "{\bf format}";
+    C: line down;
+    line down from 4th box .s; filter "{\bf texi2roff}";
+    D: line down;
+]
+move down 1 from last [] .s;
+Anchor: box wid 1 ht 0.75 "{\bf ms}" "intermediate" "form";
+arrow from Top.A.end to Anchor.nw;
+arrow from Top.B.end to 1/3 of the way between Anchor.nw and Anchor.ne;
+arrow from Top.C.end to 2/3 of the way between Anchor.nw and Anchor.ne;
+arrow from Top.D.end to Anchor.ne
+{
+    #PostScript column
+    move to Anchor .sw;
+    line down left then down ->;
+    filter "{\bf pic}";
+    arrow;
+    filter "{\bf eqn}";
+    arrow;
+    filter "{\bf tbl}";
+    arrow;
+    filter "{\bf groff}";
+    arrow;
+    box "PostScript";
+
+    #HTML column
+    move to Anchor .se;
+    line down right then down ->;
+    A: filter dotted "{\bf pic2img}";
+    arrow;
+    B: filter dotted "{\bf eqn2html}";
+    arrow;
+    C: filter dotted "{\bf tbl2html}";
+    arrow;
+    filter "{\bf ms2html}";
+    arrow;
+    box "HTML";
+
+    #Nonexistence caption
+    box dashed wid 1 at B + (2, 0) "These tools" "don't yet exist";
+    line chop 0 chop 0.1 dashed from last box .nw to A.e ->;
+    line chop 0 chop 0.1 dashed from last box .w to B.e ->;
+    line chop 0 chop 0.1 dashed from last box .sw to C.e ->;
+}
+.PE

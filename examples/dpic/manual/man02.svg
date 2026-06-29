@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="566.8" height="250.4" viewBox="0 0 566.8 250.4" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="10.8" y="12.8" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="46.8" y="36.8" text-anchor="middle" dominant-baseline="central">box</text>
+</g>
+<g id="s1">
+</g>
+<g id="s2">
+<polyline points="130.8,36.8 178.8,36.8" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="154.8" y="36.8" text-anchor="middle" dominant-baseline="central">line</text>
+</g>
+<g id="s3">
+</g>
+<g id="s4">
+<polyline points="226.8,36.8 274.8,36.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="274.8,36.8 265.2,39.2 265.2,34.4" fill="black"/>
+<text x="250.8" y="36.8" text-anchor="middle" dominant-baseline="central">arrow</text>
+</g>
+<g id="s5">
+</g>
+<g id="s6">
+<circle cx="346.8" cy="36.8" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="346.8" y="36.8" text-anchor="middle" dominant-baseline="central">circle</text>
+</g>
+<g id="s7">
+</g>
+<g id="s8">
+<ellipse cx="454.8" cy="36.8" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="454.8" y="36.8" text-anchor="middle" dominant-baseline="central">ellipse</text>
+</g>
+<g id="s9">
+</g>
+<g id="s10">
+<path d="M 538.8 36.8 A 24 24 0 0 1 562.8 12.8" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="538.8" y="12.8" text-anchor="middle" dominant-baseline="central">arc</text>
+</g>
+<g id="s11">
+</g>
+<g id="s12">
+<rect x="10.8" y="108.8" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="46.8" y="124" text-anchor="middle" dominant-baseline="central">this is</text>
+<text x="46.8" y="141.6" text-anchor="middle" dominant-baseline="central">a box</text>
+</g>
+<g id="s13">
+</g>
+<g id="s14">
+<circle cx="154.8" cy="132.8" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="154.8" y="124" text-anchor="middle" dominant-baseline="central">this is</text>
+<text x="154.8" y="141.6" text-anchor="middle" dominant-baseline="central">a box</text>
+</g>
+<g id="s15">
+</g>
+<g id="s16">
+<ellipse cx="262.8" cy="132.8" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="262.8" y="124" text-anchor="middle" dominant-baseline="central">this is</text>
+<text x="262.8" y="141.6" text-anchor="middle" dominant-baseline="central">a box</text>
+</g>
+<g id="s17">
+</g>
+<g id="s18">
+<polyline points="10.8,228.8 58.8,228.8" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="34.8" y="220" text-anchor="middle" dominant-baseline="central">this is</text>
+<text x="34.8" y="237.6" text-anchor="middle" dominant-baseline="central">a line</text>
+</g>
+<g id="s19">
+</g>
+<g id="s20">
+<polyline points="106.8,228.8 154.8,228.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="154.8,228.8 145.2,231.2 145.2,226.4" fill="black"/>
+<text x="130.8" y="220" text-anchor="middle" dominant-baseline="central">this is</text>
+<text x="130.8" y="237.6" text-anchor="middle" dominant-baseline="central">an arrow</text>
+</g>
+<g id="s21">
+</g>
+<g id="s22">
+<polyline points="202.8,228.8 250.8,228.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<text x="226.8" y="220" text-anchor="middle" dominant-baseline="central">dashed</text>
+<text x="226.8" y="237.6" text-anchor="middle" dominant-baseline="central">line</text>
+</g>
+<g id="s23">
+</g>
+</svg>

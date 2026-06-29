@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300.8" height="75.2" viewBox="0 0 300.8 75.2" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="4" y="23.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<polyline points="76,39.2 124,39.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="124,39.2 114.4,41.6 114.4,36.8" fill="black"/>
+</g>
+<g id="s2">
+<polyline points="76,55.2 124,55.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="124,55.2 114.4,57.6 114.4,52.8" fill="black"/>
+</g>
+<g id="s3">
+</g>
+<g id="s4">
+<ellipse cx="232" cy="47.2" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<ellipse cx="181.6" cy="13.6" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<ellipse cx="282.4" cy="13.6" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<circle cx="214" cy="35.2" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<circle cx="250" cy="35.2" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<path d="M 214 47.2 A 28.8 28.8 0 0 1 250 47.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

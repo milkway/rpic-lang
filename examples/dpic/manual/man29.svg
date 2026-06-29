@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="488" height="304.608" viewBox="0 0 488 304.608" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="6.807,259.439 62.947,259.439" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="62.947,259.439 53.347,261.839 53.347,257.039" fill="black"/>
+<text x="34.877" y="250.639" text-anchor="middle" dominant-baseline="central">source</text>
+<text x="34.877" y="268.239" text-anchor="middle" dominant-baseline="central">code</text>
+</g>
+<g id="s1">
+<rect x="62.947" y="231.368" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="105.053" y="250.639" text-anchor="middle" dominant-baseline="central">lexical</text>
+<text x="105.053" y="268.239" text-anchor="middle" dominant-baseline="central">analyzer</text>
+</g>
+<g id="s2">
+<polyline points="147.158,259.439 203.298,259.439" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="203.298,259.439 193.698,261.839 193.698,257.039" fill="black"/>
+<text x="175.228" y="259.439" text-anchor="middle" dominant-baseline="central">tokens</text>
+</g>
+<g id="s3">
+<rect x="203.298" y="231.368" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.404" y="259.439" text-anchor="middle" dominant-baseline="central">parser</text>
+</g>
+<g id="s4">
+<polyline points="287.509,259.439 343.649,259.439" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="343.649,259.439 334.049,261.839 334.049,257.039" fill="black"/>
+<text x="315.579" y="233.039" text-anchor="middle" dominant-baseline="central">inter-</text>
+<text x="315.579" y="250.639" text-anchor="middle" dominant-baseline="central">mediate\strut</text>
+<text x="315.579" y="268.239" text-anchor="middle" dominant-baseline="central">code</text>
+<text x="315.579" y="285.839" text-anchor="middle" dominant-baseline="central">\strut</text>
+</g>
+<g id="s5">
+<rect x="343.649" y="231.368" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="385.754" y="250.639" text-anchor="middle" dominant-baseline="central">semantic</text>
+<text x="385.754" y="268.239" text-anchor="middle" dominant-baseline="central">checker</text>
+</g>
+<g id="s6">
+<polyline points="427.86,259.439 484,259.439" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="484,259.439 474.4,261.839 474.4,257.039" fill="black"/>
+</g>
+<g id="s7">
+<polyline points="105.053,231.368 105.053,175.228" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="105.053,175.228 107.453,184.828 102.653,184.828" fill="black"/>
+<polygon points="105.053,231.368 102.653,221.768 107.453,221.768" fill="black"/>
+</g>
+<g id="s8">
+<rect x="62.947" y="119.088" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="105.053" y="138.358" text-anchor="middle" dominant-baseline="central">lexical</text>
+<text x="105.053" y="155.958" text-anchor="middle" dominant-baseline="central">corrector</text>
+</g>
+<g id="s9">
+<polyline points="245.404,231.368 245.404,175.228" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="245.404,175.228 247.804,184.828 243.004,184.828" fill="black"/>
+<polygon points="245.404,231.368 243.004,221.768 247.804,221.768" fill="black"/>
+</g>
+<g id="s10">
+<rect x="203.298" y="119.088" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.404" y="138.358" text-anchor="middle" dominant-baseline="central">syntactic</text>
+<text x="245.404" y="155.958" text-anchor="middle" dominant-baseline="central">corrector</text>
+</g>
+<g id="s11">
+<polyline points="245.404,119.088 245.404,62.947" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="245.404,62.947 247.804,72.547 243.004,72.547" fill="black"/>
+</g>
+<g id="s12">
+<rect x="203.298" y="6.807" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.404" y="17.277" text-anchor="middle" dominant-baseline="central">diagnostic</text>
+<text x="245.404" y="34.877" text-anchor="middle" dominant-baseline="central">message</text>
+<text x="245.404" y="52.477" text-anchor="middle" dominant-baseline="central">printer</text>
+</g>
+<g id="s13">
+<polyline points="287.509,34.877 343.649,34.877" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="343.649,34.877 334.049,37.277 334.049,32.477" fill="black"/>
+<polygon points="287.509,34.877 297.109,32.477 297.109,37.277" fill="black"/>
+</g>
+<g id="s14">
+<rect x="343.649" y="6.807" width="84.211" height="56.14" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="385.754" y="26.077" text-anchor="middle" dominant-baseline="central">symbol</text>
+<text x="385.754" y="43.677" text-anchor="middle" dominant-baseline="central">table</text>
+</g>
+<g id="s15">
+<polyline points="147.158,119.088 203.298,62.947" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="203.298,62.947 198.207,71.433 194.813,68.039" fill="black"/>
+</g>
+<g id="s16">
+<polyline points="343.649,231.368 287.509,62.947" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="287.509,62.947 292.821,71.296 288.268,72.814" fill="black"/>
+</g>
+<g id="s17">
+<polyline points="385.754,231.368 385.754,62.947" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="385.754,62.947 388.154,72.547 383.354,72.547" fill="black"/>
+<polygon points="385.754,231.368 383.354,221.768 388.154,221.768" fill="black"/>
+</g>
+</svg>

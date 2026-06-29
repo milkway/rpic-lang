@@ -1,0 +1,61 @@
+.PS
+textoffset = 1.5/72
+define Dot { circle rad 0.02 fill 0 }
+
+  B: box ht 1 wid 1.5; { move left 0.4 from B.w }
+  Dot at B.e ; " .e" above ljust
+  Dot at B.ne; " .ne" ljust
+  Dot at B.se; " .se" ljust
+  Dot at B.s ; ".s" below
+  Dot at B.n ; ".n" above
+  Dot at B.sw; ".sw " rjust
+  Dot at B.w ; ".w " rjust
+  Dot at B.nw; ".nw " rjust
+  Dot at B.c ; ".c" below
+
+  C: circle diameter 1 with .w at B.e+(0.5,0)
+  Dot at C.e ; " .e" ljust
+  Dot at C.ne; " .ne" ljust
+  Dot at C.se; " .se" ljust
+  Dot at C.s ; ".s" below
+  Dot at C.n ; ".n" above
+  Dot at C.sw; ".sw " rjust
+  Dot at C.w ; ".w " rjust
+  Dot at C.nw; ".nw " rjust
+  Dot at C.c ; ".c" below
+
+  E: ellipse ht 1 wid 1.5 with .w at C.e+(0.5,0)
+  Dot at E.e ; " .e" ljust
+  Dot at E.ne; " .ne" ljust
+  Dot at E.se; " .se" ljust
+  Dot at E.s ; ".s" below
+  Dot at E.n ; ".n" above
+  Dot at E.sw; ".sw " rjust
+  Dot at E.w ; ".w " rjust
+  Dot at E.nw; ".nw " rjust
+  Dot at E.c ; ".c" below
+
+  L: line right 1 up 0.5 from B.sw+(0,-0.85)
+   Dot at L.start; ".start" above rjust
+   Dot at L.center; ".center" above rjust
+   Dot at L.end; ".end" above rjust
+
+  move to L.end+(0.25,0); right
+  L2: line right 1 then down 0.5 left 1 then right 1
+   Dot at L2.start; ".start" above ljust
+   Dot at L2.center; ".center" above rjust
+   Dot at L2.end; ".end" above rjust
+
+  move to L2.end+(1,0); up
+  A: arc rad 0.5
+   Dot at A.end; ".end" rjust
+   Dot at A.start; ".start" above rjust
+   Dot at A.center; ".center" below
+   Dot at A.ne; " .ne" above ljust
+
+  move to A.end+(1,0)
+  S: spline right 1.5 then down 0.2 then down 0.3 left 0.5 then left 1
+   Dot at S.start; ".start" above rjust
+   Dot at S.center; ".center" above rjust
+   Dot at S.end; ".end" above rjust
+.PE

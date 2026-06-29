@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn json_reports_errors() {
-        let j = compile_json("sh \"oops\"");
+        let j = compile_json("copy \"oops\"");
         assert!(j.contains("\"error\""));
     }
 

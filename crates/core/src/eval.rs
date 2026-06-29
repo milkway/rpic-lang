@@ -181,6 +181,9 @@ struct Placed {
     thick: f64,
     /// Index of the primary shape in `shapes` (None for point-only labels).
     shape: Option<usize>,
+    /// For blocks: inner labels (sub-objects), translated into parent
+    /// coordinates, so `B.A` / `last [].Outer` resolve. Empty otherwise.
+    members: HashMap<String, Placed>,
 }
 
 impl Placed {
@@ -281,6 +284,7 @@ impl State {
                     end: p,
                     thick: 0.0,
                     shape: None,
+                    members: HashMap::new(),
                 });
                 self.labels.insert(label.name.clone(), idx);
             }
@@ -504,6 +508,11 @@ impl State {
                     pend = pend + (dp - Point::ZERO);
                     any = true;
                 }
+                Attr::Dist(e) => {
+                    let dist = self.eval_expr(e)?;
+                    pend = pend + dir_unit(last_dir) * dist;
+                    any = true;
+                }
                 _ => {}
             }
         }
@@ -689,6 +698,11 @@ impl State {
                 Attr::By(pos) => {
                     let d = self.eval_pos(pos)?;
                     pend = pend + (d - Point::ZERO);
+                    any = true;
+                }
+                Attr::Dist(e) => {
+                    let dist = self.eval_expr(e)?;
+                    pend = pend + dir_unit(last_dir) * dist;
                     any = true;
                 }
                 _ => {}
@@ -912,6 +926,14 @@ impl State {
         let shift = target - local_center;
 
         let first_shape = self.shapes.len();
+        // capture inner labels (translated into parent space) before the block's
+        // shapes are moved out, so `B.A` / `last [].Outer` can resolve.
+        let mut members: HashMap<String, Placed> = HashMap::new();
+        for (name, &i) in &sub.labels {
+            let mut pl = sub.placed[i].clone();
+            rebase_placed(&mut pl, shift, first_shape);
+            members.insert(name.clone(), pl);
+        }
         for mut sh in sub.shapes.into_iter() {
             translate_shape(&mut sh, shift);
             self.shapes.push(sh);
@@ -931,7 +953,9 @@ impl State {
         let end = target + half;
         self.pos = end;
         self.dir = dir;
-        Ok(self.record(PKind::Block, target, bb, start, end, 0.0, shape))
+        let idx = self.record(PKind::Block, target, bb, start, end, 0.0, shape);
+        self.placed[idx].members = members;
+        Ok(idx)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -954,6 +978,7 @@ impl State {
             end,
             thick,
             shape,
+            members: HashMap::new(),
         });
         idx
     }
@@ -1145,22 +1170,32 @@ impl State {
     fn eval_pos(&mut self, pos: &Position) -> ER<Point> {
         match pos {
             Position::Pair(x, y) => Ok(Point::new(self.eval_expr(x)?, self.eval_expr(y)?)),
-            Position::Place(loc, shifts) => {
-                let mut p = self.eval_loc(loc)?;
-                for s in shifts {
-                    let d = self.eval_loc(&s.loc)?;
-                    p = match s.sign {
-                        Sign::Plus => p + d,
-                        Sign::Minus => p - d,
-                    };
-                }
-                Ok(p)
-            }
+            Position::Place(loc) => self.eval_loc(loc),
             Position::Between { frac, a, b, .. } => {
                 let f = self.eval_expr(frac)?;
                 let pa = self.eval_pos(a)?;
                 let pb = self.eval_pos(b)?;
                 Ok(pa.lerp(pb, f))
+            }
+            Position::Sum(sign, a, b) => {
+                let pa = self.eval_pos(a)?;
+                let pb = self.eval_pos(b)?;
+                Ok(match sign {
+                    Sign::Plus => pa + pb,
+                    Sign::Minus => pa - pb,
+                })
+            }
+            Position::Scale(p, s, div) => {
+                let pp = self.eval_pos(p)?;
+                let sv = self.eval_expr(s)?;
+                if *div {
+                    if sv == 0.0 {
+                        return err("division by zero in position");
+                    }
+                    Ok(pp / sv)
+                } else {
+                    Ok(pp * sv)
+                }
             }
         }
     }
@@ -1187,14 +1222,41 @@ impl State {
                 Ok(self.placed[idx].center)
             }
             Place::Corner(inner, c) => {
-                let idx = self.place_index(inner)?;
-                Ok(self.placed[idx].corner(*c))
+                let pl = self.resolve_obj(inner)?;
+                Ok(pl.corner(*c))
             }
             Place::CornerOf(c, inner) => {
-                let idx = self.place_index(inner)?;
-                Ok(self.placed[idx].corner(*c))
+                let pl = self.resolve_obj(inner)?;
+                Ok(pl.corner(*c))
             }
-            Place::Member(_, _) => err("block sub-labels (B.A) are not supported yet"),
+            Place::Member(..) => Ok(self.resolve_obj(p)?.center),
+        }
+    }
+
+    /// Resolve an object-valued place to its [`Placed`] record, descending into
+    /// block members for `B.A` / `last [].Outer`.
+    fn resolve_obj(&mut self, p: &Place) -> ER<Placed> {
+        match p {
+            Place::Name { name, .. } => {
+                let idx = self.label_index(name)?;
+                Ok(self.placed[idx].clone())
+            }
+            Place::Nth { count, obj } => {
+                let idx = self.nth_index(count, obj)?;
+                Ok(self.placed[idx].clone())
+            }
+            Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.resolve_obj(inner),
+            Place::Member(base, sub) => {
+                let b = self.resolve_obj(base)?;
+                let name = match sub.as_ref() {
+                    Place::Name { name, .. } => name.clone(),
+                    _ => return err("a block sub-label must be a name"),
+                };
+                b.members.get(&name).cloned().ok_or_else(|| EvalError {
+                    msg: format!("no sub-label `{name}` in that block"),
+                })
+            }
+            Place::Here => err("`Here` is a point, not an object"),
         }
     }
 
@@ -1272,9 +1334,19 @@ impl State {
 
     // ---- expressions -------------------------------------------------------
 
+    /// Evaluate an operand to its string form (for `==`/`!=`); a numeric operand
+    /// is rendered textually so `"$1" == "2"` style comparisons work uniformly.
+    fn expr_str(&mut self, e: &Expr) -> ER<String> {
+        match e {
+            Expr::Str(se) => self.eval_stringexpr(se),
+            _ => Ok(fmt_num(self.eval_expr(e)?)),
+        }
+    }
+
     fn eval_expr(&mut self, e: &Expr) -> ER<f64> {
         Ok(match e {
             Expr::Num(v) => *v,
+            Expr::Str(_) => return err("a string is only valid as an `==`/`!=` operand"),
             Expr::Var(name) => *self.vars.get(name).unwrap_or(&0.0),
             Expr::Env(v) => self.env.get(*v),
             Expr::Unary(op, a) => {
@@ -1286,6 +1358,18 @@ impl State {
                 }
             }
             Expr::Bin(op, a, b) => {
+                // string equality: pic compares string operands with `==`/`!=`
+                if matches!(op, BinOp::Eq | BinOp::Ne)
+                    && (matches!(a.as_ref(), Expr::Str(_)) || matches!(b.as_ref(), Expr::Str(_)))
+                {
+                    let sa = self.expr_str(a)?;
+                    let sb = self.expr_str(b)?;
+                    return Ok(bool_f(if matches!(op, BinOp::Eq) {
+                        sa == sb
+                    } else {
+                        sa != sb
+                    }));
+                }
                 let x = self.eval_expr(a)?;
                 let y = self.eval_expr(b)?;
                 match op {
@@ -1353,11 +1437,15 @@ impl State {
                 }
             }
             Expr::Rand(_) => 0.5, // deterministic placeholder
+            Expr::Assign(name, v) => {
+                let val = self.eval_expr(v)?;
+                self.vars.insert(name.clone(), val);
+                val
+            }
             Expr::DotX(loc) => self.eval_loc(loc)?.x,
             Expr::DotY(loc) => self.eval_loc(loc)?.y,
             Expr::PlaceAttr(place, param) => {
-                let idx = self.place_index(place)?;
-                let pl = &self.placed[idx];
+                let pl = self.resolve_obj(place)?;
                 match param {
                     token::Param::Width => pl.bbox.width(),
                     token::Param::Height => pl.bbox.height(),
@@ -1386,6 +1474,11 @@ fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> f64 {
 
 fn bool_f(b: bool) -> f64 {
     if b { 1.0 } else { 0.0 }
+}
+
+/// Render a number the way pic's `%g`/string contexts do (no trailing zeros).
+fn fmt_num(v: f64) -> String {
+    format!("{v}")
 }
 
 fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
@@ -1501,6 +1594,24 @@ fn stringexpr_lit(se: &StringExpr) -> String {
         StringExpr::Concat(a, b) => format!("{}{}", stringexpr_lit(a), stringexpr_lit(b)),
         StringExpr::Arg(n) => format!("${n}"),
         StringExpr::Sprintf(fmt, _) => stringexpr_lit(fmt),
+    }
+}
+
+/// Shift a [`Placed`] (and its block members) by `d` and re-index its shape
+/// references by `shape_off`, mapping a block's local records into the parent.
+fn rebase_placed(pl: &mut Placed, d: Point, shape_off: usize) {
+    pl.center = pl.center + d;
+    pl.start = pl.start + d;
+    pl.end = pl.end + d;
+    let mut bb = Bbox::new();
+    bb.add(pl.bbox.min + d);
+    bb.add(pl.bbox.max + d);
+    pl.bbox = bb;
+    if let Some(s) = pl.shape {
+        pl.shape = Some(s + shape_off);
+    }
+    for m in pl.members.values_mut() {
+        rebase_placed(m, d, shape_off);
     }
 }
 
@@ -1779,6 +1890,70 @@ mod tests {
             (c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9,
             "c = {c:?}"
         );
+    }
+
+    #[test]
+    fn block_sub_labels_resolve() {
+        // `B.A` and `B.A.corner` reach a labelled object inside a block
+        let d = draw("B: [ A: box wid 1 ht 1 at 0,0 ]\nbox wid 0.2 ht 0.2 with .sw at B.A.ne");
+        let Shape::Box { c, .. } = &d.shapes.last().unwrap() else {
+            panic!()
+        };
+        // the block is placed with its center at (0.5,0); inner A.ne is then
+        // (1.0,0.5), and the small box centers 0.1 beyond that corner.
+        assert!((c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
+    fn position_vector_arithmetic() {
+        // (w,h)/2 and p + q with correct precedence
+        let d = draw("box wid 0.2 ht 0.2 at (2,4)/2 + (1,0)");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
+    fn interpolation_angle_brackets() {
+        let d = draw("A:(0,0)\nB:(2,0)\nbox wid 0.1 ht 0.1 at 0.5 <A,B>");
+        let Shape::Box { c, .. } = &d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((c.x - 1.0).abs() < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
+    fn string_equality_in_if() {
+        // the `"$1"==""` default-argument idiom (here without a macro)
+        let d1 = draw("if \"a\" == \"\" then { box } else { circle }");
+        assert!(matches!(d1.shapes[0], Shape::Circle { .. }));
+        let d2 = draw("if \"\" == \"\" then { box } else { circle }");
+        assert!(matches!(d2.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
+    fn inch_suffix_and_bare_distance() {
+        // `.5i` is half an inch; `move 1` / `move -0.1` advance the pen
+        let d = draw("box wid .5i ht .5i");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 0.5).abs() < 1e-9, "w = {w}");
+        let d2 = draw("right\nmove 1\nbox at Here");
+        let Shape::Box { c, .. } = &d2.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!(c.x > 0.9, "moved to {c:?}");
+    }
+
+    #[test]
+    fn embedded_assignment_returns_value() {
+        let d = draw("if (s = 3) > 1 then { box wid s ht 0.1 }");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 3.0).abs() < 1e-9, "w = {w}");
     }
 
     #[test]
