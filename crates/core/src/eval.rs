@@ -431,6 +431,7 @@ impl State {
         let mut bb = Bbox::new();
         bb.add(center - Point::new(w / 2.0, h / 2.0));
         bb.add(center + Point::new(w / 2.0, h / 2.0));
+        self.union_text(center, &text);
 
         let shape = match p {
             Prim::Circle => Shape::Circle {
@@ -554,6 +555,7 @@ impl State {
 
         let end = *pts.last().unwrap();
         let center = (pts[0] + end) * 0.5;
+        self.union_text(center, &text);
         let kind = match p {
             Prim::Spline => PKind::Spline,
             Prim::Move => PKind::Move,
@@ -617,6 +619,7 @@ impl State {
             bb.add(center + Point::new(t.cos(), t.sin()) * r);
         }
         self.bbox.union(&bb);
+        self.union_text(center, &text);
 
         self.shapes.push(Shape::Arc {
             c: center,
@@ -643,9 +646,27 @@ impl State {
         let mut bb = Bbox::new();
         bb.add(at);
         self.bbox.union(&bb);
+        self.union_text(at, &text);
         self.shapes.push(Shape::Text { at, text });
         let sh = self.shapes.len() - 1;
         Ok(self.record(PKind::Text, at, bb, at, at, 0.0, Some(sh)))
+    }
+
+    /// Union an estimated text extent (centered at `center`) into the drawing
+    /// bbox, so wide labels and bare text objects aren't clipped by the SVG
+    /// viewBox. Uses the same 11pt font the SVG backend renders with; the
+    /// average glyph width is approximated (slightly generous to avoid clipping).
+    fn union_text(&mut self, center: Point, lines: &[TextLine]) {
+        if lines.is_empty() {
+            return;
+        }
+        const EM: f64 = 11.0 / 72.0; // font height in inches (matches svg FONT_PT)
+        let char_w = 0.6 * EM;
+        let line_h = 1.2 * EM;
+        let cols = lines.iter().map(|l| l.s.chars().count()).max().unwrap_or(0) as f64;
+        let half = Point::new(cols * char_w / 2.0, lines.len() as f64 * line_h / 2.0);
+        self.bbox.add(center + half);
+        self.bbox.add(center - half);
     }
 
     fn block(&mut self, stmts: &[Stmt], obj: &Object) -> ER<usize> {
@@ -1350,6 +1371,17 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn text_extent_in_bbox() {
+        // issue #5: a bare label must yield a non-degenerate bbox (no clipping)
+        let d = draw("\"a long label here\"");
+        assert!(d.bbox.width() > 0.5, "w = {}", d.bbox.width());
+        assert!(d.bbox.height() > 0.1, "h = {}", d.bbox.height());
+        // text wider than its box widens the bbox beyond the box
+        let d2 = draw("box wid 0.2 ht 0.2 \"a very wide label\"");
+        assert!(d2.bbox.width() > 0.3, "w = {}", d2.bbox.width());
     }
 
     #[test]
