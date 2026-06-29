@@ -217,6 +217,10 @@ struct State {
     env: EnvVars,
     macros: Macros,
     base_dir: Option<std::path::PathBuf>,
+    /// Labels visible from an enclosing scope (read-only, in absolute parent
+    /// coordinates). A block may reference outer labels but must not let them
+    /// affect its own `last`/nth/bbox, so they live here, not in `placed`.
+    outer_labels: HashMap<String, Placed>,
     shapes: Vec<Shape>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
@@ -252,6 +256,7 @@ impl State {
             env: EnvVars::new(),
             macros: HashMap::new(),
             base_dir: None,
+            outer_labels: HashMap::new(),
             shapes: Vec::new(),
             placed: Vec::new(),
             labels: HashMap::new(),
@@ -931,6 +936,11 @@ impl State {
         sub.vars = self.vars.clone();
         sub.macros = self.macros.clone();
         sub.base_dir = self.base_dir.clone();
+        // expose this scope's labels (read-only, absolute coords) to the block
+        sub.outer_labels = self.outer_labels.clone();
+        for (name, &i) in &self.labels {
+            sub.outer_labels.insert(name.clone(), self.placed[i].clone());
+        }
         sub.eval_stmts(stmts)?;
 
         let sub_bb = if sub.bbox.is_empty() {
@@ -1279,8 +1289,7 @@ impl State {
             Place::Here => Ok(self.pos),
             Place::Name { name, subscript } => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                let idx = self.label_index(&key)?;
-                Ok(self.placed[idx].center)
+                Ok(self.resolve_label(&key)?.center)
             }
             Place::Nth { count, obj } => {
                 let idx = self.nth_index(count, obj)?;
@@ -1304,8 +1313,7 @@ impl State {
         match p {
             Place::Name { name, subscript } => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                let idx = self.label_index(&key)?;
-                Ok(self.placed[idx].clone())
+                self.resolve_label(&key)
             }
             Place::Nth { count, obj } => {
                 let idx = self.nth_index(count, obj)?;
@@ -1345,6 +1353,18 @@ impl State {
         self.labels.get(name).copied().ok_or_else(|| EvalError {
             msg: format!("unknown label `{name}`"),
         })
+    }
+
+    /// Resolve a label to its [`Placed`], falling back to enclosing-scope labels
+    /// (absolute coordinates) so a block can reference outer labels.
+    fn resolve_label(&self, key: &str) -> ER<Placed> {
+        if let Some(&idx) = self.labels.get(key) {
+            Ok(self.placed[idx].clone())
+        } else if let Some(pl) = self.outer_labels.get(key) {
+            Ok(pl.clone())
+        } else {
+            err(format!("unknown label `{key}`"))
+        }
     }
 
     fn label_key(&mut self, label: &Label) -> ER<String> {
@@ -2218,6 +2238,29 @@ mod tests {
             panic!()
         };
         assert!(!style.arrow_filled, "arrowhead=0 should be open");
+    }
+
+    #[test]
+    fn dpic_unit_suffix() {
+        // `72bp__` == 72 * scale/72 == 1 inch
+        let d = draw("box wid 72bp__ ht 0.3");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
+    fn block_sees_outer_labels() {
+        // a label defined before a block is visible (read-only) inside it
+        let d = draw("A: (0,0)\n[ line from A to (2,0) ]");
+        assert!(
+            d.shapes.iter().any(|s| matches!(s, Shape::Path { .. })),
+            "block should draw a line referencing the outer label A"
+        );
+        // outer labels must not pollute the block's `last`/nth: a box drawn
+        // before the block isn't the block's `last box`.
+        assert!(eval(&parse("box\n[ circle; \"x\" at last box ]").unwrap()).is_err());
     }
 
     #[test]

@@ -131,9 +131,32 @@ use std::collections::HashMap;
 use std::path::Path;
 
 fn preprocess(input: Vec<Spanned>, base: Option<&Path>) -> Result<(Vec<Spanned>, Macros), ParseError> {
-    let mut macros: Macros = HashMap::new();
+    let mut macros: Macros = builtin_unit_macros();
     let out = expand(&input, &mut macros, 0, base)?;
     Ok((out, macros))
+}
+
+/// dpic's absolute-unit suffix macros (`11bp__` → `11*(scale/72)`), predefined so
+/// examples that use them without `copy`ing dpictools still work. A user
+/// `define` of the same name overrides these.
+fn builtin_unit_macros() -> Macros {
+    let defs = [
+        ("bp__", "*(scale/72)"),       // Adobe big point
+        ("pt__", "*(scale/72.27)"),    // TeX point
+        ("pc__", "*(12*scale/72.27)"), // pica
+        ("in__", "*scale"),            // inch
+        ("cm__", "*(scale/2.54)"),     // centimetre
+        ("mm__", "*(scale/25.4)"),     // millimetre
+        ("px__", "*(scale/96)"),       // pixel (96 dpi)
+    ];
+    let mut m = Macros::new();
+    for (name, body) in defs {
+        if let Ok(toks) = lex(body) {
+            let body_toks: Vec<Spanned> = toks.into_iter().filter(|s| s.tok != Token::Eof).collect();
+            m.insert(name.to_string(), body_toks);
+        }
+    }
+    m
 }
 
 fn loc(toks: &[Spanned], i: usize) -> (u32, u32) {

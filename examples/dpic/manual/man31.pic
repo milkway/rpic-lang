@@ -1,0 +1,47 @@
+.PS
+# man31.src
+if dpicopt == optSVG then { svg_font(monospace,11bp__) }
+  x[5] = 1
+  P[0]: (0,0)
+  P[1]: (x[5],0)
+  P[2]: (x[5],x[5])
+  P[3]: (0,x[5])
+  P[4]: P[0]
+[
+  line from P[0] to P[1]
+  for i = 2 to 4 do {
+    continue to P[i]
+    }
+  ]
+
+    if (dpicopt==optPS) || (dpicopt==optPDF) || (dpicopt==optSVG) then {
+      box invis wid 2.2 ht 1.6 with .sw at last [].se+(0.25,0)
+      ".PS" ljust at last box.w \
+      "    x[5] = 1" ljust \
+      "    P[0]: (0,0)" ljust \
+      "    P[1]: (x[5],0)" ljust \
+      "    P[2]: (x[5],x[5])" ljust \
+      "    P[3]: (0,x[5])" ljust \
+      "    P[4]: P[0]" ljust \
+      "    line from P[0] to P[1]" ljust \
+      "    for i = 2 to 4 do {" ljust \
+      "      continue to P[i]" ljust \
+      "      }" ljust \
+      ".PE" ljust
+    } else {
+      "{\tt\shortstack[l]{
+      .PS \\
+          x[5] = 1 \\
+          P[0]: (0,0) \\
+          P[1]: (x[5],0) \\
+          P[2]: (x[5],x[5]) \\
+          P[3]: (0,x[5]) \\
+          P[4]: P[0] \\
+          line from P[0] to P[1] \\
+          for i = 2 to 4 do \{ \\
+          $\;\;$    continue to P[i] \\
+            \} \\
+      .PE}}" wid 1.7 ht 1.95 with .sw at last [].se+(0.25,0)
+  }
+if dpicopt == optSVG then { command "</g>" } # font
+.PE
