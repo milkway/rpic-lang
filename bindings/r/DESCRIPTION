@@ -1,0 +1,19 @@
+Package: rpic
+Title: The pic Graphics Language Rendered to SVG, PNG and PDF
+Version: 0.0.1
+Authors@R:
+    person("André", "Leite", email = "leite@de.ufpe.br", role = c("aut", "cre"))
+Description: R bindings to rpic, a Rust reimplementation of the pic
+    picture-drawing language, rendering diagrams to SVG, PNG and PDF, with a
+    native circuit-element library and a knitr language engine.
+License: BSD_2_clause + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+SystemRequirements: Cargo (Rust's package manager), rustc
+Suggests:
+    knitr
+URL: https://github.com/milkway/rpic-lang
+Config/rextendr/version: 0.5.0
+Depends: 
+    R (>= 4.2)
+Config/roxygen2/version: 8.0.0
