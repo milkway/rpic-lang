@@ -65,6 +65,7 @@ pub enum Stmt {
     /// `for v = from to to [by [*] step] do { … }`. Body is deferred raw tokens.
     For {
         var: String,
+        subscript: Option<Expr>,
         from: Expr,
         to: Expr,
         by: Expr,
@@ -74,6 +75,11 @@ pub enum Stmt {
     },
     /// `print …` (evaluated for diagnostics; no drawing effect).
     Print(PrintItem),
+    /// `exec <string>` — evaluate generated pic source in the current state.
+    Exec {
+        command: StringExpr,
+        arg_frame: Option<Vec<Vec<Spanned>>>,
+    },
     /// `reset` (all) or `reset a, b, …` — restore environment variables.
     Reset(Vec<EnvVar>),
 }
@@ -290,6 +296,8 @@ pub enum Expr {
     /// A string operand, valid only as an operand of `==`/`!=` (pic compares
     /// strings for equality, e.g. the `"$1"==""` default-argument idiom).
     Str(StringExpr),
+    /// Comma-separated array subscript, valid only inside `name[...]`.
+    Index(Vec<Expr>),
     Var(String, Option<Box<Expr>>),
     Env(EnvVar),
     Unary(UnOp, Box<Expr>),

@@ -62,12 +62,26 @@ pub fn parse_body_tokens(
 ) -> Result<Vec<Stmt>, ParseError> {
     let mut m = macros.clone();
     let mut input = toks.to_vec();
-    input.push(Spanned {
-        tok: Token::Eof,
-        line: 0,
-        col: 0,
-    });
+    input.push(Spanned::new(Token::Eof, 0, 0));
     let expanded = expand(&input, &mut m, 0, base)?;
+    let mut p = Parser::new(expanded);
+    p.parse_elementlist(&[])
+}
+
+/// Parse pic source produced by `exec`, applying the caller's macro argument
+/// frame before normal macro expansion.
+pub(crate) fn parse_exec_source(
+    src: &str,
+    macros: &Macros,
+    base: Option<&Path>,
+    arg_frame: Option<&[Vec<Spanned>]>,
+) -> Result<Vec<Stmt>, ParseError> {
+    let mut toks = lex(src)?;
+    if let Some(args) = arg_frame {
+        toks = substitute(&toks, args);
+    }
+    let mut m = macros.clone();
+    let expanded = expand(&toks, &mut m, 0, base)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
 }
@@ -82,6 +96,8 @@ pub fn parse_body_tokens(
 fn strip_backend_preamble(src: &str) -> String {
     let mut out = String::with_capacity(src.len());
     let mut in_verbatimtex = false;
+    let mut in_string = false;
+    let mut in_raw_sh = false;
 
     for line in src.lines() {
         let trimmed = line.trim_start();
@@ -93,17 +109,48 @@ fn strip_backend_preamble(src: &str) -> String {
             continue;
         }
 
-        if starts_word(trimmed, "verbatimtex") {
+        if in_raw_sh {
+            out.push_str(line);
+            out.push('\n');
+            in_raw_sh = line_continues(line);
+            continue;
+        }
+
+        if !in_string && starts_word(trimmed, "verbatimtex") {
             in_verbatimtex = true;
             out.push('\n');
-        } else if is_ignored_backend_line(trimmed) {
+        } else if !in_string && is_ignored_backend_line(trimmed) {
             out.push('\n');
         } else {
             out.push_str(line);
             out.push('\n');
+            if starts_word(trimmed, "sh") {
+                in_raw_sh = line_continues(line);
+            } else {
+                in_string = update_string_state(line, in_string);
+            }
         }
     }
     out
+}
+
+fn line_continues(line: &str) -> bool {
+    line.trim_end_matches([' ', '\t', '\r']).ends_with('\\')
+}
+
+fn update_string_state(line: &str, mut in_string: bool) -> bool {
+    let mut slashes = 0usize;
+    for c in line.chars() {
+        if c == '\\' {
+            slashes += 1;
+            continue;
+        }
+        if c == '"' && slashes.is_multiple_of(2) {
+            in_string = !in_string;
+        }
+        slashes = 0;
+    }
+    in_string
 }
 
 fn is_ignored_backend_line(trimmed: &str) -> bool {
@@ -130,7 +177,10 @@ fn starts_word(s: &str, word: &str) -> bool {
 use std::collections::HashMap;
 use std::path::Path;
 
-fn preprocess(input: Vec<Spanned>, base: Option<&Path>) -> Result<(Vec<Spanned>, Macros), ParseError> {
+fn preprocess(
+    input: Vec<Spanned>,
+    base: Option<&Path>,
+) -> Result<(Vec<Spanned>, Macros), ParseError> {
     let mut macros: Macros = builtin_unit_macros();
     let out = expand(&input, &mut macros, 0, base)?;
     Ok((out, macros))
@@ -246,12 +296,44 @@ fn expand(
             // along the branch/iteration that actually runs. The condition/range
             // is still expanded so macros there work.
             Token::Kw(Kw::If) => {
+                let if_tok = toks[i].clone();
                 out.push(toks[i].clone());
                 i += 1;
                 let Some(te) = find_kw_depth0(toks, i, Kw::Then) else {
                     continue; // malformed; let the parser report it
                 };
-                out.extend(expand(&toks[i..te], macros, depth + 1, base)?);
+                let cond = expand(&toks[i..te], macros, depth + 1, base)?;
+                if let Some((then_body, after_then)) = read_braced_body(toks, te + 1)? {
+                    let mut j = after_then;
+                    while matches!(toks.get(j).map(|s| &s.tok), Some(Token::Newline)) {
+                        j += 1;
+                    }
+                    let else_body =
+                        if matches!(toks.get(j).map(|s| &s.tok), Some(Token::Kw(Kw::Else))) {
+                            read_braced_body(toks, j + 1)?
+                        } else {
+                            None
+                        };
+                    if let Some(take_then) = static_truth(&cond) {
+                        let after_static = else_body
+                            .as_ref()
+                            .map(|(_, after)| *after)
+                            .unwrap_or(after_then);
+                        out.pop(); // discard the speculative `if`
+                        if take_then {
+                            out.extend(expand(&then_body, macros, depth + 1, base)?);
+                            i = after_static;
+                        } else if let Some((body, after)) = else_body {
+                            out.extend(expand(&body, macros, depth + 1, base)?);
+                            i = after;
+                        } else {
+                            i = after_then;
+                        }
+                        continue;
+                    }
+                }
+                *out.last_mut().unwrap() = if_tok;
+                out.extend(cond);
                 out.push(toks[te].clone()); // `then`
                 i = copy_braced(toks, te + 1, &mut out)?;
                 // optional `else { … }` (possibly across newlines)
@@ -295,8 +377,9 @@ fn expand(
                 i += 1;
                 let Some(Token::Str(fname)) = toks.get(i).map(|s| &s.tok) else {
                     return Err(ParseError {
-                        msg: "copy: expected a quoted file name (only `copy \"file\"` is supported)"
-                            .into(),
+                        msg:
+                            "copy: expected a quoted file name (only `copy \"file\"` is supported)"
+                                .into(),
                         line: l,
                         col: c,
                     });
@@ -363,32 +446,105 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
 /// Replace `$k` argument tokens in a macro body with the k-th argument's tokens.
 fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
     let mut out = Vec::new();
-    for s in body {
+    let mut i = 0;
+    while i < body.len() {
+        if let Some((pasted, next)) = paste_adjacent_args(body, args, i) {
+            out.push(pasted.with_arg_frame(args));
+            i = next;
+            continue;
+        }
+
+        let s = &body[i];
         match &s.tok {
             Token::Arg(k) => {
                 if let Some(a) = args.get((*k as usize).wrapping_sub(1)) {
-                    out.extend(a.iter().cloned());
+                    out.extend(a.iter().cloned().map(|s| s.with_arg_frame(args)));
                 }
             }
             // `$+` is the number of arguments passed to this macro
-            Token::ArgCount => out.push(Spanned {
-                tok: Token::Float(args.len() as f64),
-                line: s.line,
-                col: s.col,
-            }),
+            Token::ArgCount => out.push(
+                Spanned::new(Token::Float(args.len() as f64), s.line, s.col).with_arg_frame(args),
+            ),
             // `$n` is also substituted inside string literals (the `"$1"==""`
             // default-argument idiom, sprintf templates like `"$2%g"`, …).
             Token::Str(text) if text.contains('$') => {
-                out.push(Spanned {
-                    tok: Token::Str(subst_in_string(text, args)),
-                    line: s.line,
-                    col: s.col,
-                });
+                out.push(
+                    Spanned::new(Token::Str(subst_in_string(text, args)), s.line, s.col)
+                        .with_arg_frame(args),
+                );
             }
-            _ => out.push(s.clone()),
+            _ => out.push(s.clone().with_arg_frame(args)),
         }
+        i += 1;
     }
     out
+}
+
+fn paste_adjacent_args(
+    body: &[Spanned],
+    args: &[Vec<Spanned>],
+    start: usize,
+) -> Option<(Spanned, usize)> {
+    let first = body.get(start)?;
+    let Token::Arg(k) = &first.tok else {
+        return None;
+    };
+
+    let mut text = arg_text(*k, args);
+    let mut count = 1usize;
+    let mut end = start + 1;
+    let mut prev = first;
+    while let Some(next) = body.get(end) {
+        let Token::Arg(k) = &next.tok else {
+            break;
+        };
+        if !adjacent_arg_tokens(prev, next) {
+            break;
+        }
+        text.push_str(&arg_text(*k, args));
+        count += 1;
+        prev = next;
+        end += 1;
+    }
+
+    if count < 2 || text.is_empty() {
+        return None;
+    }
+
+    Some((tokenize_pasted_arg_text(&text, first.line, first.col), end))
+}
+
+fn arg_text(k: u32, args: &[Vec<Spanned>]) -> String {
+    args.get((k as usize).wrapping_sub(1))
+        .map(|a| tokens_to_text(a))
+        .unwrap_or_default()
+}
+
+fn adjacent_arg_tokens(left: &Spanned, right: &Spanned) -> bool {
+    left.line == right.line && arg_end_col(left) == Some(right.col)
+}
+
+fn arg_end_col(s: &Spanned) -> Option<u32> {
+    let Token::Arg(k) = &s.tok else {
+        return None;
+    };
+    Some(s.col + 1 + k.to_string().len() as u32)
+}
+
+fn tokenize_pasted_arg_text(text: &str, line: u32, col: u32) -> Spanned {
+    if let Ok(toks) = lex(text)
+        && toks.len() == 2
+        && matches!(toks[1].tok, Token::Eof)
+    {
+        return Spanned::new(toks[0].tok.clone(), line, col);
+    }
+
+    let tok = if text.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+        Token::Label(text.to_string())
+    } else {
+        Token::Name(text.to_string())
+    };
+    Spanned::new(tok, line, col)
 }
 
 /// Replace `$n` references inside a string literal with the textual form of the
@@ -424,7 +580,7 @@ fn subst_in_string(text: &str, args: &[Vec<Spanned>]) -> String {
 }
 
 /// Best-effort textual rendering of an argument token list, for `$n` splicing
-/// inside string literals (numbers, names and strings; other tokens elide).
+/// inside string literals.
 fn tokens_to_text(toks: &[Spanned]) -> String {
     let mut s = String::new();
     for t in toks {
@@ -432,6 +588,20 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
             Token::Float(v) => s.push_str(&format!("{v}")),
             Token::Str(t) => s.push_str(t),
             Token::Name(n) | Token::Label(n) => s.push_str(n),
+            Token::Lparen => s.push('('),
+            Token::Rparen => s.push(')'),
+            Token::LeftBrack => s.push('['),
+            Token::RightBrack => s.push(']'),
+            Token::LeftBrace => s.push('{'),
+            Token::RightBrace => s.push('}'),
+            Token::Comma => s.push(','),
+            Token::Colon => s.push(':'),
+            Token::Dot => s.push('.'),
+            Token::Plus => s.push('+'),
+            Token::Minus => s.push('-'),
+            Token::Mult => s.push('*'),
+            Token::Div => s.push('/'),
+            Token::Percent => s.push('%'),
             _ => {}
         }
     }
@@ -449,7 +619,11 @@ fn include_file(
     l: u32,
     c: u32,
 ) -> Result<Vec<Spanned>, ParseError> {
-    let mkerr = |msg: String| ParseError { msg, line: l, col: c };
+    let mkerr = |msg: String| ParseError {
+        msg,
+        line: l,
+        col: c,
+    };
     let p = Path::new(fname);
     let path = if p.is_absolute() {
         p.to_path_buf()
@@ -463,7 +637,8 @@ fn include_file(
             }
         }
     };
-    let content = std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
     let toks = lex(&content)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
     let mut expanded = expand(&toks, macros, depth + 1, inc_base.as_deref())?;
@@ -494,7 +669,11 @@ fn find_kw_depth0(toks: &[Spanned], start: usize, kw: Kw) -> Option<usize> {
 
 /// Copy a brace-delimited block verbatim into `out` (including any nested
 /// braces), skipping/copying leading newlines. Returns the index past the `}`.
-fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result<usize, ParseError> {
+fn copy_braced(
+    toks: &[Spanned],
+    mut i: usize,
+    out: &mut Vec<Spanned>,
+) -> Result<usize, ParseError> {
     while matches!(toks.get(i).map(|s| &s.tok), Some(Token::Newline)) {
         out.push(toks[i].clone());
         i += 1;
@@ -525,6 +704,95 @@ fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result
         line: 0,
         col: 0,
     })
+}
+
+fn read_braced_body(
+    toks: &[Spanned],
+    mut i: usize,
+) -> Result<Option<(Vec<Spanned>, usize)>, ParseError> {
+    while matches!(toks.get(i).map(|s| &s.tok), Some(Token::Newline)) {
+        i += 1;
+    }
+    if !matches!(toks.get(i).map(|s| &s.tok), Some(Token::LeftBrace)) {
+        return Ok(None);
+    }
+    i += 1;
+    let start = i;
+    let mut depth = 1i32;
+    while let Some(s) = toks.get(i) {
+        match &s.tok {
+            Token::LeftBrace => depth += 1,
+            Token::RightBrace => {
+                depth -= 1;
+                if depth == 0 {
+                    return Ok(Some((toks[start..i].to_vec(), i + 1)));
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    Err(ParseError {
+        msg: "unterminated `{` body".into(),
+        line: 0,
+        col: 0,
+    })
+}
+
+fn static_truth(toks: &[Spanned]) -> Option<bool> {
+    let toks = trim_trailing_eof(toks);
+    match toks {
+        [
+            Spanned {
+                tok: Token::Float(v),
+                ..
+            },
+        ] => Some(*v != 0.0),
+        [
+            Spanned {
+                tok: Token::Not, ..
+            },
+            Spanned {
+                tok: Token::Float(v),
+                ..
+            },
+        ] => Some(*v == 0.0),
+        [a, op, b] => {
+            let lhs = static_string(a)?;
+            let rhs = static_string(b)?;
+            match op.tok {
+                Token::EqEq => Some(lhs == rhs),
+                Token::Neq => Some(lhs != rhs),
+                _ => None,
+            }
+        }
+        [a, op, b, op2, c] if matches!(op2.tok, Token::Plus) => {
+            let lhs = static_string(a)?;
+            let mut rhs = static_string(b)?;
+            rhs.push_str(&static_string(c)?);
+            match op.tok {
+                Token::EqEq => Some(lhs == rhs),
+                Token::Neq => Some(lhs != rhs),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
+fn trim_trailing_eof(toks: &[Spanned]) -> &[Spanned] {
+    if matches!(toks.last().map(|s| &s.tok), Some(Token::Eof)) {
+        &toks[..toks.len() - 1]
+    } else {
+        toks
+    }
+}
+
+fn static_string(s: &Spanned) -> Option<String> {
+    match &s.tok {
+        Token::Str(v) => Some(v.clone()),
+        _ => None,
+    }
 }
 
 type PResult<T> = Result<T, ParseError>;
@@ -708,6 +976,7 @@ impl Parser {
             Token::Kw(Kw::If) => return self.parse_if(),
             Token::Kw(Kw::For) => return self.parse_for(),
             Token::Kw(Kw::Print) => return self.parse_print(),
+            Token::Kw(Kw::Exec) => return self.parse_exec(),
             Token::Kw(Kw::Reset) => return self.parse_reset(),
             _ => {}
         }
@@ -719,14 +988,11 @@ impl Parser {
                 Kw::Define | Kw::Undef => {
                     return self.err("only the `define name { body }` macro form is supported");
                 }
-                // `command`/`sh`/`exec` emit raw backend (troff/PostScript/TeX)
-                // text or run a shell; none affect SVG geometry, so consume the
-                // rest of the line and treat them as no-ops.
-                Kw::Command | Kw::Sh | Kw::Exec => {
+                // `command`/`sh` emit raw backend text or run a shell; neither
+                // affects SVG geometry. The lexer already skipped their raw
+                // argument text while preserving structural delimiters.
+                Kw::Command | Kw::Sh => {
                     self.bump();
-                    while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
-                        self.bump();
-                    }
                     return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
                 }
                 Kw::Copy => {
@@ -754,7 +1020,7 @@ impl Parser {
                     object,
                 });
             } else {
-                let pos = self.parse_position()?;
+                let pos = self.parse_label_position()?;
                 return Ok(Stmt::Place { label, pos });
             }
         }
@@ -807,8 +1073,15 @@ impl Parser {
     fn parse_for(&mut self) -> PResult<Stmt> {
         self.expect_kw(Kw::For)?;
         let var = match self.bump() {
-            Token::Name(s) => s,
+            Token::Name(s) | Token::Label(s) => s,
             other => return self.err(format!("expected loop variable, found {other:?}")),
+        };
+        let subscript = if self.eat(&Token::LeftBrack) {
+            let e = self.parse_subscript()?;
+            self.expect(&Token::RightBrack)?;
+            Some(e)
+        } else {
+            None
         };
         match self.bump() {
             Token::Eq | Token::ColonEq => {}
@@ -827,6 +1100,7 @@ impl Parser {
         let body = self.capture_braced()?;
         Ok(Stmt::For {
             var,
+            subscript,
             from,
             to,
             by,
@@ -869,6 +1143,13 @@ impl Parser {
             PrintItem::Expr(self.parse_expr()?)
         };
         Ok(Stmt::Print(item))
+    }
+
+    fn parse_exec(&mut self) -> PResult<Stmt> {
+        let arg_frame = self.toks[self.idx].arg_frame.clone();
+        self.expect_kw(Kw::Exec)?;
+        let command = self.parse_stringexpr()?;
+        Ok(Stmt::Exec { command, arg_frame })
     }
 
     fn parse_reset(&mut self) -> PResult<Stmt> {
@@ -1010,7 +1291,7 @@ impl Parser {
             other => return self.err(format!("expected label, found {other:?}")),
         };
         let subscript = if self.eat(&Token::LeftBrack) {
-            let e = self.parse_expr()?;
+            let e = self.parse_subscript()?;
             self.expect(&Token::RightBrack)?;
             Some(e)
         } else {
@@ -1032,7 +1313,7 @@ impl Parser {
             Token::Name(name) | Token::Label(name) => {
                 self.bump();
                 let sub = if self.eat(&Token::LeftBrack) {
-                    let e = self.parse_expr()?;
+                    let e = self.parse_subscript()?;
                     self.expect(&Token::RightBrack)?;
                     Some(e)
                 } else {
@@ -1057,6 +1338,18 @@ impl Parser {
         };
         let value = self.parse_expr()?;
         Ok(Assignment { target, op, value })
+    }
+
+    fn parse_subscript(&mut self) -> PResult<Expr> {
+        let mut items = vec![self.parse_expr()?];
+        while self.eat(&Token::Comma) {
+            items.push(self.parse_expr()?);
+        }
+        if items.len() == 1 {
+            Ok(items.pop().unwrap())
+        } else {
+            Ok(Expr::Index(items))
+        }
     }
 
     // ---- objects & attributes ---------------------------------------------
@@ -1334,6 +1627,18 @@ impl Parser {
 
     // ---- positions ---------------------------------------------------------
 
+    fn parse_label_position(&mut self) -> PResult<Position> {
+        let save = self.idx;
+        if let Ok(x) = self.parse_expr()
+            && self.eat(&Token::Comma)
+        {
+            let y = self.parse_expr()?;
+            return Ok(Position::Pair(x, y));
+        }
+        self.idx = save;
+        self.parse_position()
+    }
+
     /// Positions support vector arithmetic; `+`/`-` are the lowest precedence.
     fn parse_position(&mut self) -> PResult<Position> {
         let mut left = self.parse_pos_mul()?;
@@ -1518,7 +1823,7 @@ impl Parser {
             Token::Label(name) => {
                 self.bump();
                 let subscript = if self.eat(&Token::LeftBrack) {
-                    let e = self.parse_expr()?;
+                    let e = self.parse_subscript()?;
                     self.expect(&Token::RightBrack)?;
                     Some(Box::new(e))
                 } else {
@@ -1761,7 +2066,7 @@ impl Parser {
             Token::Name(name) | Token::Label(name) => {
                 self.bump();
                 let subscript = if self.eat(&Token::LeftBrack) {
-                    let e = self.parse_expr()?;
+                    let e = self.parse_subscript()?;
                     self.expect(&Token::RightBrack)?;
                     Some(Box::new(e))
                 } else {
@@ -1784,7 +2089,7 @@ impl Parser {
                         _ => unreachable!(),
                     };
                     let subscript = if self.eat(&Token::LeftBrack) {
-                        let e = self.parse_expr()?;
+                        let e = self.parse_subscript()?;
                         self.expect(&Token::RightBrack)?;
                         Some(Box::new(e))
                     } else {
@@ -2117,6 +2422,42 @@ box
 "#);
         assert_eq!(p.stmts.len(), 1);
         let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
+    }
+
+    #[test]
+    fn backend_filter_keeps_global_lines_inside_strings() {
+        let p = pic(
+            "sh \"echo -n \\\"print \\\\\"\\\" > x\"\nif dpicopt==optPGF then { command \"cycle; \\\n\\global\\let\\dpicdraw=x\" } else { box }",
+        );
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[1], Stmt::If { .. }));
+    }
+
+    #[test]
+    fn static_if_copy_defines_macros_before_following_statements() {
+        let dir = std::env::temp_dir().join(format!("rpic_static_if_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("macros.pic"), "define makebox { box wid $1 }\n").unwrap();
+        std::fs::write(
+            dir.join("inc.pic"),
+            "define makecircle { circle rad 0.1 }\n",
+        )
+        .unwrap();
+        let p = parse_in_dir(
+            "if \"plotlib\" != \"1\" then { copy \"macros.pic\" }\ndefine choose { if \"$1\"==\"\" then { box } else { copy \"$1/inc.pic\" } }\nchoose(.)\nmakecircle()\nmakebox(0.4)",
+            Some(dir.as_path()),
+        )
+        .unwrap_or_else(|e| panic!("parse error: {e}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(p.stmts.len(), 2);
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Circle));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()
         };
         assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));

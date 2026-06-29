@@ -12,6 +12,25 @@ pub struct Spanned {
     pub tok: Token,
     pub line: u32,
     pub col: u32,
+    /// Macro arguments that were in scope when this token was produced by
+    /// macro substitution. Used by eval-time `exec` expansion.
+    pub arg_frame: Option<Vec<Vec<Spanned>>>,
+}
+
+impl Spanned {
+    pub fn new(tok: Token, line: u32, col: u32) -> Self {
+        Self {
+            tok,
+            line,
+            col,
+            arg_frame: None,
+        }
+    }
+
+    pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
+        self.arg_frame = Some(args.to_vec());
+        self
+    }
 }
 
 /// A lexing error with location.
@@ -142,7 +161,11 @@ impl Lexer {
             } else if c == '.' {
                 self.lex_dot()?
             } else if c.is_alphabetic() || c == '_' {
-                self.lex_word()
+                let tok = self.lex_word();
+                if matches!(tok, Token::Kw(Kw::Sh | Kw::Command)) {
+                    self.skip_raw_command_arg();
+                }
+                tok
             } else {
                 match self.lex_operator()? {
                     Some(t) => t,
@@ -154,7 +177,7 @@ impl Lexer {
     }
 
     fn push(&mut self, tok: Token, line: u32, col: u32) {
-        self.out.push(Spanned { tok, line, col });
+        self.out.push(Spanned::new(tok, line, col));
     }
 
     fn lex_string(&mut self) -> Result<Token, LexError> {
@@ -177,6 +200,114 @@ impl Lexer {
             }
         }
         Ok(Token::Str(s))
+    }
+
+    fn skip_raw_command_arg(&mut self) {
+        while matches!(self.peek(), Some(' ') | Some('\t') | Some('\r')) {
+            self.bump();
+        }
+        if self.peek() == Some('"') {
+            self.skip_raw_quoted();
+        } else if self.starts_word_here("sprintf") {
+            for _ in 0.."sprintf".len() {
+                self.bump();
+            }
+            while matches!(self.peek(), Some(' ') | Some('\t') | Some('\r')) {
+                self.bump();
+            }
+            if self.peek() == Some('(') {
+                self.skip_raw_parens();
+            }
+        } else {
+            self.skip_raw_line_tail();
+        }
+    }
+
+    fn starts_word_here(&self, word: &str) -> bool {
+        for (i, want) in word.chars().enumerate() {
+            if self.peek_at(i) != Some(want) {
+                return false;
+            }
+        }
+        !self
+            .peek_at(word.len())
+            .is_some_and(|c| c.is_alphanumeric() || c == '_')
+    }
+
+    fn skip_raw_quoted(&mut self) {
+        if self.peek() != Some('"') {
+            return;
+        }
+        self.bump();
+        while let Some(c) = self.bump() {
+            match c {
+                '\\' => {
+                    self.bump();
+                }
+                '"' if self.raw_quote_is_followed_by(&['\n', ';', '}']) => break,
+                _ => {}
+            }
+        }
+    }
+
+    fn skip_raw_parens(&mut self) {
+        let mut depth = 0i32;
+        while let Some(c) = self.bump() {
+            match c {
+                '"' => self.skip_raw_quoted_tail(),
+                '(' => depth += 1,
+                ')' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn skip_raw_quoted_tail(&mut self) {
+        while let Some(c) = self.bump() {
+            match c {
+                '\\' => {
+                    self.bump();
+                }
+                '"' if self.raw_quote_is_followed_by(&['\n', ';', '}', ',', ')']) => break,
+                _ => {}
+            }
+        }
+    }
+
+    fn raw_quote_is_followed_by(&self, stops: &[char]) -> bool {
+        let mut off = 0;
+        loop {
+            match self.peek_at(off) {
+                Some(' ' | '\t' | '\r') => off += 1,
+                Some(c) => return stops.contains(&c),
+                None => return true,
+            }
+        }
+    }
+
+    fn skip_raw_line_tail(&mut self) {
+        loop {
+            let mut last_non_ws = None;
+            while let Some(c) = self.peek() {
+                if c == '\n' {
+                    break;
+                }
+                if !matches!(c, ' ' | '\t' | '\r') {
+                    last_non_ws = Some(c);
+                }
+                self.bump();
+            }
+            if self.peek() == Some('\n') && last_non_ws == Some('\\') {
+                self.bump();
+                continue;
+            }
+            break;
+        }
     }
 
     fn lex_arg(&mut self) -> Result<Token, LexError> {
@@ -674,6 +805,59 @@ mod tests {
                 Token::Prim(Prim::Circle),
                 Token::Newline,
                 Token::Prim(Prim::Arc),
+                Token::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn shell_commands_skip_raw_line_tail() {
+        assert_eq!(
+            toks("sh \"echo -n \\\"print \\\\\\\"\\\" > $1_prow\"\nbox"),
+            vec![
+                Token::Kw(Kw::Sh),
+                Token::Newline,
+                Token::Prim(Prim::Box),
+                Token::Eof
+            ]
+        );
+        assert_eq!(
+            toks("command \\foo $bad \"unterminated\ncircle"),
+            vec![
+                Token::Kw(Kw::Command),
+                Token::Newline,
+                Token::Prim(Prim::Circle),
+                Token::Eof
+            ]
+        );
+        assert_eq!(
+            toks("sh \"sed something \\\n  > tmp\"\narc"),
+            vec![
+                Token::Kw(Kw::Sh),
+                Token::Newline,
+                Token::Prim(Prim::Arc),
+                Token::Eof
+            ]
+        );
+        assert_eq!(
+            toks("sh \"rm\";}\ncommand sprintf(\"x\", y) }\n"),
+            vec![
+                Token::Kw(Kw::Sh),
+                Token::Newline,
+                Token::RightBrace,
+                Token::Newline,
+                Token::Kw(Kw::Command),
+                Token::RightBrace,
+                Token::Newline,
+                Token::Eof
+            ]
+        );
+        assert_eq!(
+            toks("sh \"echo -n \\\"print \\\\\"\\\" > $1_prow\"\nbox"),
+            vec![
+                Token::Kw(Kw::Sh),
+                Token::Newline,
+                Token::Prim(Prim::Box),
                 Token::Eof
             ]
         );
