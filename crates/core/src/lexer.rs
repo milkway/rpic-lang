@@ -181,6 +181,11 @@ impl Lexer {
 
     fn lex_arg(&mut self) -> Result<Token, LexError> {
         self.bump(); // '$'
+        // `$+` is the count of arguments to the current macro
+        if self.peek() == Some('+') {
+            self.bump();
+            return Ok(Token::ArgCount);
+        }
         let mut n = String::new();
         while let Some(c) = self.peek() {
             if c.is_ascii_digit() {

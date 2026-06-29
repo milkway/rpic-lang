@@ -270,8 +270,8 @@ impl Svg {
             }
             u = u / len;
             let perp = Point::new(-u.y, u.x);
-            let hl = 0.1 * PPI; // arrowht
-            let hw = 0.025 * PPI; // half of arrowwid (0.05)
+            let hl = style.arrow_ht * PPI; // arrowht
+            let hw = style.arrow_wid / 2.0 * PPI; // half of arrowwid
             let base = t - u * hl;
             let l = base + perp * hw;
             let r = base - perp * hw;
