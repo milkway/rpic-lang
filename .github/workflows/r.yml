@@ -10,6 +10,10 @@ permissions:
 jobs:
   check:
     name: R CMD check (${{ matrix.os }})
+    # Non-blocking until rpic-core/rpic-render are on crates.io: R CMD check
+    # copies the package out of tree, which breaks the local path dependencies
+    # (cargo cannot vendor path deps). See cran-comments.md / issue #1.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
