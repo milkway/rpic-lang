@@ -1,7 +1,0 @@
-^src/\.cargo$
-^src/rust/vendor$
-^src/rust/target$
-^src/Makevars$
-^src/Makevars\.win$
-^cran-comments\.md$
-^\.github$

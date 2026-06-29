@@ -1,5 +1,5 @@
 TARGET_DIR = ./rust/target
-LIBDIR = $(TARGET_DIR)/@LIBDIR@
+LIBDIR = $(TARGET_DIR)/debug
 STATLIB = $(LIBDIR)/librpic.a
 PKG_LIBS = -L$(LIBDIR) -lrpic
 
@@ -36,17 +36,17 @@ $(STATLIB):
 
 	export CARGO_HOME=$(CARGOTMP) && \
 	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
-	@PANIC_EXPORTS@RUSTFLAGS="$(RUSTFLAGS) --print=native-static-libs" cargo build @CRAN_FLAGS@ --lib @PROFILE@ --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR) @TARGET@
+	RUSTFLAGS="$(RUSTFLAGS) --print=native-static-libs" cargo build  --lib  --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR) 
 
 	export CARGO_HOME=$(CARGOTMP) && \
 	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
-	cargo run @CRAN_FLAGS@ --bin document --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR) @TARGET@
+	cargo run  --bin document --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR) 
 
 	# Always clean up CARGOTMP
 	rm -Rf $(CARGOTMP);
 
 rust_clean: $(SHLIB)
-	rm -Rf $(CARGOTMP) $(VENDOR_DIR) @CLEAN_TARGET@
+	rm -Rf $(CARGOTMP) $(VENDOR_DIR) 
 
 clean:
 	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) $(TARGET_DIR) $(VENDOR_DIR)

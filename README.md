@@ -145,11 +145,12 @@ open("out.png", "wb").write(rpic.render_png('box "hi"', scale=2.0))
 bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
 ```
 
-### R — [`bindings/r`](bindings/r)
+### R — [milkway/rpic-r](https://github.com/milkway/rpic-r) (separate repo)
 
 ```r
+remotes::install_github("milkway/rpic-r")
 rpic::rpic_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits = TRUE)
-rpic::rpic_register_knitr()        # then use ```{rpic} chunks in R Markdown / Quarto
+rpic::rpic_register_knitr()        # ```{rpic} chunks in R Markdown / Quarto
 ```
 
 ### JavaScript / TypeScript — [`bindings/js`](bindings/js)
@@ -175,7 +176,7 @@ cargo test                 # full test suite
 | `crates/cli` | the `rpic` binary |
 | `crates/capi` | stable C ABI (`rpic.h`) |
 | `crates/wasm` | WebAssembly bindings |
-| `bindings/{python,r,js}` | language bindings |
+| `bindings/{python,js}` | Python & JS/TS bindings (R lives at [milkway/rpic-r](https://github.com/milkway/rpic-r)) |
 | `web/` | browser playground (GSAP) |
 | `packaging/` | deb / Homebrew / Scoop config |
 
