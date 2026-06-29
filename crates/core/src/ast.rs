@@ -74,6 +74,11 @@ pub enum Stmt {
     },
     /// `print …` (evaluated for diagnostics; no drawing effect).
     Print(PrintItem),
+    /// `exec <string>` — evaluate generated pic source in the current state.
+    Exec {
+        command: StringExpr,
+        arg_frame: Option<Vec<Vec<Spanned>>>,
+    },
     /// `reset` (all) or `reset a, b, …` — restore environment variables.
     Reset(Vec<EnvVar>),
 }

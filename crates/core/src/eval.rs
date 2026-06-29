@@ -386,6 +386,17 @@ impl State {
                 }
                 PrintItem::Str(_) => {}
             },
+            Stmt::Exec { command, arg_frame } => {
+                let src = self.eval_stringexpr(command)?;
+                let stmts = crate::parser::parse_exec_source(
+                    &src,
+                    &self.macros,
+                    self.base_dir.as_deref(),
+                    arg_frame.as_deref(),
+                )
+                .map_err(|e| EvalError { msg: e.to_string() })?;
+                self.eval_stmts(&stmts)?;
+            }
             Stmt::Reset(list) => {
                 if list.is_empty() {
                     self.env = EnvVars::new();
@@ -2211,7 +2222,10 @@ mod tests {
         let Shape::Box { w, h, .. } = &d.shapes[0] else {
             panic!()
         };
-        assert!((*w - 3.0).abs() < 1e-9 && (*h - 1.0).abs() < 1e-9, "{w} x {h}");
+        assert!(
+            (*w - 3.0).abs() < 1e-9 && (*h - 1.0).abs() < 1e-9,
+            "{w} x {h}"
+        );
     }
 
     #[test]
@@ -2221,8 +2235,16 @@ mod tests {
         let Shape::Path { style, .. } = &d.shapes[0] else {
             panic!()
         };
-        assert!((style.arrow_ht - 0.3).abs() < 1e-9, "ht = {}", style.arrow_ht);
-        assert!((style.arrow_wid - 0.2).abs() < 1e-9, "wid = {}", style.arrow_wid);
+        assert!(
+            (style.arrow_ht - 0.3).abs() < 1e-9,
+            "ht = {}",
+            style.arrow_ht
+        );
+        assert!(
+            (style.arrow_wid - 0.2).abs() < 1e-9,
+            "wid = {}",
+            style.arrow_wid
+        );
     }
 
     #[test]
@@ -2300,12 +2322,24 @@ mod tests {
     }
 
     #[test]
+    fn exec_evaluates_generated_pic_in_macro_arg_scope() {
+        let d = draw(
+            "define array { for i_array=2 to $+ do { exec sprintf(\"$1[%g] = $%g\", i_array-1, i_array) } }\narray(a, 0, 1, 3)\nbox wid a[2] ht a[3]",
+        );
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (*w - 1.0).abs() < 1e-9 && (*h - 3.0).abs() < 1e-9,
+            "{w} x {h}"
+        );
+    }
+
+    #[test]
     fn recursive_macro_terminates() {
         // a self-calling macro bounded by `if`: textual pre-expansion would
         // diverge, but lazy (eval-time) expansion of the taken branch stops it.
-        let d = draw(
-            "define rec { if $1 <= 0 then { circle } else { box; rec($1-1) } }\nrec(3)",
-        );
+        let d = draw("define rec { if $1 <= 0 then { circle } else { box; rec($1-1) } }\nrec(3)");
         let boxes = d
             .shapes
             .iter()

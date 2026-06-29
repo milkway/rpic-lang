@@ -12,6 +12,25 @@ pub struct Spanned {
     pub tok: Token,
     pub line: u32,
     pub col: u32,
+    /// Macro arguments that were in scope when this token was produced by
+    /// macro substitution. Used by eval-time `exec` expansion.
+    pub arg_frame: Option<Vec<Vec<Spanned>>>,
+}
+
+impl Spanned {
+    pub fn new(tok: Token, line: u32, col: u32) -> Self {
+        Self {
+            tok,
+            line,
+            col,
+            arg_frame: None,
+        }
+    }
+
+    pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
+        self.arg_frame = Some(args.to_vec());
+        self
+    }
 }
 
 /// A lexing error with location.
@@ -154,7 +173,7 @@ impl Lexer {
     }
 
     fn push(&mut self, tok: Token, line: u32, col: u32) {
-        self.out.push(Spanned { tok, line, col });
+        self.out.push(Spanned::new(tok, line, col));
     }
 
     fn lex_string(&mut self) -> Result<Token, LexError> {
