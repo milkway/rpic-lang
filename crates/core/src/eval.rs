@@ -957,6 +957,11 @@ impl State {
             sub.outer_labels.insert(name.clone(), self.placed[i].clone());
         }
         sub.eval_stmts(stmts)?;
+        // pic variables and environment parameters are global: assignments made
+        // inside a block propagate out (e.g. library macros that return values
+        // by assigning to a caller-named variable from within a `[ … ]`).
+        self.vars = sub.vars.clone();
+        self.env = sub.env.clone();
 
         let sub_bb = if sub.bbox.is_empty() {
             let mut b = Bbox::new();
@@ -2333,6 +2338,18 @@ mod tests {
             panic!()
         };
         assert!(!style.arrow_filled, "arrowhead=0 should be open");
+    }
+
+    #[test]
+    fn block_variable_assignments_are_global() {
+        // pic variables (and env params) are global: a value set inside a block
+        // is visible after it — needed by library macros that return values by
+        // assigning to a caller-named variable from within a `[ … ]`.
+        let d = draw("x = 0\n[ x = 5 ]\nbox wid x ht 0.3");
+        let Shape::Box { w, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((*w - 5.0).abs() < 1e-9, "w = {w}");
     }
 
     #[test]
