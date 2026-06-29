@@ -284,6 +284,7 @@ impl State {
             }
             Stmt::Place { label, pos } => {
                 let p = self.eval_pos(pos)?;
+                let key = self.label_key(label)?;
                 let mut bb = Bbox::new();
                 bb.add(p);
                 let idx = self.placed.len();
@@ -297,7 +298,7 @@ impl State {
                     shape: None,
                     members: HashMap::new(),
                 });
-                self.labels.insert(label.name.clone(), idx);
+                self.labels.insert(key, idx);
             }
             Stmt::Group(stmts) => {
                 let (pos, dir) = (self.pos, self.dir);
@@ -308,7 +309,8 @@ impl State {
             Stmt::Object { label, object } => {
                 let idx = self.eval_object(object)?;
                 if let Some(l) = label {
-                    self.labels.insert(l.name.clone(), idx);
+                    let key = self.label_key(l)?;
+                    self.labels.insert(key, idx);
                 }
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
@@ -428,10 +430,11 @@ impl State {
     fn eval_assignment(&mut self, a: &Assignment) -> ER<()> {
         let rhs = self.eval_expr(&a.value)?;
         match &a.target {
-            AssignTarget::Var(name, _sub) => {
-                let cur = *self.vars.get(name).unwrap_or(&0.0);
+            AssignTarget::Var(name, subscript) => {
+                let key = self.indexed_name(name, subscript.as_ref())?;
+                let cur = *self.vars.get(&key).unwrap_or(&0.0);
                 let val = apply_op(a.op, cur, rhs);
-                self.vars.insert(name.clone(), val);
+                self.vars.insert(key, val);
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
@@ -1261,8 +1264,9 @@ impl State {
     fn place_point(&mut self, p: &Place) -> ER<Point> {
         match p {
             Place::Here => Ok(self.pos),
-            Place::Name { name, .. } => {
-                let idx = self.label_index(name)?;
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                let idx = self.label_index(&key)?;
                 Ok(self.placed[idx].center)
             }
             Place::Nth { count, obj } => {
@@ -1285,8 +1289,9 @@ impl State {
     /// block members for `B.A` / `last [].Outer`.
     fn resolve_obj(&mut self, p: &Place) -> ER<Placed> {
         match p {
-            Place::Name { name, .. } => {
-                let idx = self.label_index(name)?;
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                let idx = self.label_index(&key)?;
                 Ok(self.placed[idx].clone())
             }
             Place::Nth { count, obj } => {
@@ -1296,12 +1301,14 @@ impl State {
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.resolve_obj(inner),
             Place::Member(base, sub) => {
                 let b = self.resolve_obj(base)?;
-                let name = match sub.as_ref() {
-                    Place::Name { name, .. } => name.clone(),
+                let key = match sub.as_ref() {
+                    Place::Name { name, subscript } => {
+                        self.indexed_name(name, subscript.as_deref())?
+                    }
                     _ => return err("a block sub-label must be a name"),
                 };
-                b.members.get(&name).cloned().ok_or_else(|| EvalError {
-                    msg: format!("no sub-label `{name}` in that block"),
+                b.members.get(&key).cloned().ok_or_else(|| EvalError {
+                    msg: format!("no sub-label `{key}` in that block"),
                 })
             }
             Place::Here => err("`Here` is a point, not an object"),
@@ -1310,7 +1317,10 @@ impl State {
 
     fn place_index(&mut self, p: &Place) -> ER<usize> {
         match p {
-            Place::Name { name, .. } => self.label_index(name),
+            Place::Name { name, subscript } => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                self.label_index(&key)
+            }
             Place::Nth { count, obj } => self.nth_index(count, obj),
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.place_index(inner),
             Place::Here => err("`Here` is a point, not an object"),
@@ -1322,6 +1332,17 @@ impl State {
         self.labels.get(name).copied().ok_or_else(|| EvalError {
             msg: format!("unknown label `{name}`"),
         })
+    }
+
+    fn label_key(&mut self, label: &Label) -> ER<String> {
+        self.indexed_name(&label.name, label.subscript.as_ref())
+    }
+
+    fn indexed_name(&mut self, name: &str, subscript: Option<&Expr>) -> ER<String> {
+        match subscript {
+            Some(e) => Ok(format!("{name}[{}]", fmt_num(self.eval_expr(e)?))),
+            None => Ok(name.to_string()),
+        }
     }
 
     fn nth_index(&mut self, count: &Nth, obj: &PrimObj) -> ER<usize> {
@@ -1408,7 +1429,10 @@ impl State {
         Ok(match e {
             Expr::Num(v) => *v,
             Expr::Str(_) => return err("a string is only valid as an `==`/`!=` operand"),
-            Expr::Var(name) => *self.vars.get(name).unwrap_or(&0.0),
+            Expr::Var(name, subscript) => {
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                *self.vars.get(&key).unwrap_or(&0.0)
+            }
             Expr::Env(v) => self.env.get(*v),
             Expr::Unary(op, a) => {
                 let x = self.eval_expr(a)?;
@@ -1498,9 +1522,10 @@ impl State {
                 }
             }
             Expr::Rand(_) => 0.5, // deterministic placeholder
-            Expr::Assign(name, v) => {
+            Expr::Assign(name, subscript, v) => {
                 let val = self.eval_expr(v)?;
-                self.vars.insert(name.clone(), val);
+                let key = self.indexed_name(name, subscript.as_deref())?;
+                self.vars.insert(key, val);
                 val
             }
             Expr::DotX(loc) => self.eval_loc(loc)?.x,
@@ -1862,6 +1887,30 @@ mod tests {
             panic!()
         };
         assert!((*w0 - 0.5).abs() < 1e-9 && (*w1 - 1.25).abs() < 1e-9);
+    }
+
+    #[test]
+    fn subscripted_variables_store_by_index() {
+        let d = draw("P[1] = 0.4\nP[2] = 0.9\nP[2] += 0.1\nbox wid P[2] ht P[1]");
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9 && (*h - 0.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn subscripted_label_places_resolve_by_index() {
+        let d =
+            draw("for i = 1 to 2 do { A[i]: circle rad 0.01 at (i,0) }\nline from A[1] to A[2]");
+        let Shape::Path { pts, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert!(
+            pts[0].dist(Point::new(1.0, 0.0)) < 1e-9,
+            "start {:?}",
+            pts[0]
+        );
+        assert!(pts[1].dist(Point::new(2.0, 0.0)) < 1e-9, "end {:?}", pts[1]);
     }
 
     #[test]

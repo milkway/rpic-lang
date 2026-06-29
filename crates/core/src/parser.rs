@@ -431,6 +431,19 @@ fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result
 
 type PResult<T> = Result<T, ParseError>;
 
+fn is_assign_op(t: &Token) -> bool {
+    matches!(
+        t,
+        Token::Eq
+            | Token::ColonEq
+            | Token::PlusEq
+            | Token::MinusEq
+            | Token::MultEq
+            | Token::DivEq
+            | Token::RemEq
+    )
+}
+
 struct Parser {
     toks: Vec<Spanned>,
     idx: usize,
@@ -858,23 +871,38 @@ impl Parser {
     }
 
     fn at_assignment_start(&self) -> bool {
-        let assignop = |t: &Token| {
-            matches!(
-                t,
-                Token::Eq
-                    | Token::ColonEq
-                    | Token::PlusEq
-                    | Token::MinusEq
-                    | Token::MultEq
-                    | Token::DivEq
-                    | Token::RemEq
-            )
-        };
         match self.cur() {
-            Token::Name(_) => assignop(self.peek(1)) || matches!(self.peek(1), Token::LeftBrack),
-            Token::EnvVar(_) => assignop(self.peek(1)),
+            Token::Name(_) | Token::Label(_) => self.assignment_op_after_var_ref(),
+            Token::EnvVar(_) => is_assign_op(self.peek(1)),
             _ => false,
         }
+    }
+
+    fn assignment_op_after_var_ref(&self) -> bool {
+        let mut i = self.idx + 1;
+        if matches!(self.toks.get(i).map(|s| &s.tok), Some(Token::LeftBrack)) {
+            i += 1;
+            let mut depth = 1i32;
+            while let Some(tok) = self.toks.get(i).map(|s| &s.tok) {
+                match tok {
+                    Token::LeftBrack => depth += 1,
+                    Token::RightBrack => {
+                        depth -= 1;
+                        if depth == 0 {
+                            i += 1;
+                            break;
+                        }
+                    }
+                    Token::Eof | Token::Newline if depth > 0 => return false,
+                    _ => {}
+                }
+                i += 1;
+            }
+            if depth != 0 {
+                return false;
+            }
+        }
+        self.toks.get(i).is_some_and(|s| is_assign_op(&s.tok))
     }
 
     fn parse_label(&mut self) -> PResult<Label> {
@@ -902,7 +930,7 @@ impl Parser {
 
     fn parse_assignment(&mut self) -> PResult<Assignment> {
         let target = match self.cur().clone() {
-            Token::Name(name) => {
+            Token::Name(name) | Token::Label(name) => {
                 self.bump();
                 let sub = if self.eat(&Token::LeftBrack) {
                     let e = self.parse_expr()?;
@@ -1560,7 +1588,7 @@ impl Parser {
 
     fn parse_primary(&mut self) -> PResult<Expr> {
         // place-derived scalars: location.x / location.y / place.attr
-        if self.at_place_start() {
+        if self.at_place_start() && self.place_is_scalar_ahead() {
             return self.parse_place_scalar();
         }
         // a string operand (only meaningful as an `==`/`!=` operand)
@@ -1572,14 +1600,16 @@ impl Parser {
                 self.bump();
                 Ok(Expr::Num(v))
             }
-            Token::Name(name) => {
+            Token::Name(name) | Token::Label(name) => {
                 self.bump();
-                // optional subscript suffix is parsed and ignored for now
-                if self.eat(&Token::LeftBrack) {
-                    let _ = self.parse_expr()?;
+                let subscript = if self.eat(&Token::LeftBrack) {
+                    let e = self.parse_expr()?;
                     self.expect(&Token::RightBrack)?;
-                }
-                Ok(Expr::Var(name))
+                    Some(Box::new(e))
+                } else {
+                    None
+                };
+                Ok(Expr::Var(name, subscript))
             }
             Token::EnvVar(v) => {
                 self.bump();
@@ -1588,14 +1618,24 @@ impl Parser {
             Token::Lparen => {
                 self.bump();
                 // embedded assignment `( name = expr )` yields the assigned value
-                if let Token::Name(n) = self.cur().clone()
-                    && matches!(self.peek(1), Token::Eq | Token::ColonEq)
+                if matches!(self.cur(), Token::Name(_) | Token::Label(_))
+                    && self.assignment_op_after_var_ref()
                 {
-                    self.bump(); // name
+                    let name = match self.bump() {
+                        Token::Name(n) | Token::Label(n) => n,
+                        _ => unreachable!(),
+                    };
+                    let subscript = if self.eat(&Token::LeftBrack) {
+                        let e = self.parse_expr()?;
+                        self.expect(&Token::RightBrack)?;
+                        Some(Box::new(e))
+                    } else {
+                        None
+                    };
                     self.bump(); // `=`
                     let v = self.parse_expr()?;
                     self.expect(&Token::Rparen)?;
-                    return Ok(Expr::Assign(n, Box::new(v)));
+                    return Ok(Expr::Assign(name, subscript, Box::new(v)));
                 }
                 let e = self.parse_expr()?;
                 self.expect(&Token::Rparen)?;
@@ -1819,6 +1859,20 @@ ellipse "typesetter"
             panic!()
         };
         assert_eq!(args.len(), 2);
+    }
+
+    #[test]
+    fn subscripted_variable_refs_parse() {
+        let p = pic("P[1] = 2\nx = P[1]");
+        let Stmt::Assign(a0) = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(matches!(&a0[0].target, AssignTarget::Var(name, Some(_)) if name == "P"));
+
+        let Stmt::Assign(a1) = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(&a1[0].value, Expr::Var(name, Some(_)) if name == "P"));
     }
 
     #[test]

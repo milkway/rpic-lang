@@ -287,7 +287,7 @@ pub enum Expr {
     /// A string operand, valid only as an operand of `==`/`!=` (pic compares
     /// strings for equality, e.g. the `"$1"==""` default-argument idiom).
     Str(StringExpr),
-    Var(String),
+    Var(String, Option<Box<Expr>>),
     Env(EnvVar),
     Unary(UnOp, Box<Expr>),
     Bin(BinOp, Box<Expr>, Box<Expr>),
@@ -295,7 +295,7 @@ pub enum Expr {
     Func2(Func2, Box<Expr>, Box<Expr>),
     Rand(Option<Box<Expr>>),
     /// `( name = expr )` — assign and yield the assigned value.
-    Assign(String, Box<Expr>),
+    Assign(String, Option<Box<Expr>>, Box<Expr>),
     DotX(Location),
     DotY(Location),
     PlaceAttr(Place, Param),
