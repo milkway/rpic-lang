@@ -1,6 +1,6 @@
 Package: rpic
 Title: The pic Graphics Language Rendered to SVG, PNG and PDF
-Version: 0.0.1
+Version: 0.0.2
 Authors@R:
     person("André", "Leite", email = "leite@de.ufpe.br", role = c("aut", "cre"))
 Description: R bindings to rpic, a Rust reimplementation of the pic
