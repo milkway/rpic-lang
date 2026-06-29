@@ -18,7 +18,9 @@ jobs:
   publish:
     runs-on: windows-latest
     steps:
-      - uses: vedantmgoyal9/winget-releaser@main
+      # Pinned to a full commit SHA (supply-chain safety: this job has the
+      # WINGET_TOKEN). Bump deliberately / via Dependabot.
+      - uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: milkway.rpic
           installers-regex: 'pc-windows-msvc\.zip$'
