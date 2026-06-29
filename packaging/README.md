@@ -35,10 +35,31 @@ Updating Homebrew on a new release: run `update-hashes.sh <ver>`, copy
 `packaging/dist/rpic.rb` to `Formula/rpic.rb` in the tap repo, and push. The
 Scoop manifest auto-updates via its `checkver`/`autoupdate` block.
 
-The winget manifests in `winget/` are submitted by opening a PR to
-[microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) (e.g. with
-[`wingetcreate`](https://github.com/microsoft/winget-create)); this is a manual,
-externally-reviewed step.
+### winget (no Windows required)
+
+The winget PR is just YAML added to
+[microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs); validation and
+the sandbox install test run on Microsoft's CI, not your machine. Two ways, both
+cross-platform:
+
+1. **Automated** — `.github/workflows/winget.yml` runs the
+   [WinGet Releaser](https://github.com/marketplace/actions/winget-releaser)
+   action (Komac, on a GitHub-hosted Windows runner) on each published release.
+   One-time setup: create a GitHub **PAT** (classic `public_repo`, or
+   fine-grained with fork + PR) and add it as the repo secret **`WINGET_TOKEN`**.
+   Then it auto-opens the PR; trigger it for v0.0.2 via *Actions → winget → Run
+   workflow* (tag `v0.0.2`).
+2. **From your Mac/Linux** — [Komac](https://github.com/russellbanks/Komac) is
+   cross-platform:
+   ```sh
+   brew install komac
+   komac update milkway.rpic --version 0.0.2 \
+     --urls https://github.com/milkway/rpic-lang/releases/download/v0.0.2/rpic-x86_64-pc-windows-msvc.zip \
+     --submit --token <YOUR_GITHUB_PAT>
+   ```
+   (Use `komac new milkway.rpic ...` for the very first submission.)
+
+The `winget/` manifests here are a hand-written reference/fallback.
 
 ## Manual checks
 

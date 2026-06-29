@@ -1,0 +1,26 @@
+name: winget
+
+# Submits/updates the winget manifest on each published release, using the
+# WinGet Releaser action (which runs Komac on a GitHub-hosted Windows runner —
+# no local Windows machine needed). Requires a repo secret `WINGET_TOKEN`: a
+# GitHub PAT (classic `public_repo`, or fine-grained with fork + PR rights) that
+# can fork microsoft/winget-pkgs and open a PR.
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v0.0.2)"
+        required: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: milkway.rpic
+          installers-regex: 'pc-windows-msvc\.zip$'
+          release-tag: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+          token: ${{ secrets.WINGET_TOKEN }}
