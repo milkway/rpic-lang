@@ -33,7 +33,7 @@ jobs:
         if: runner.os == 'Windows'
         run: Compress-Archive "target/${{ matrix.target }}/release/rpic.exe" "rpic-${{ matrix.target }}.zip"
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             rpic-${{ matrix.target }}.tar.gz
@@ -48,7 +48,7 @@ jobs:
       - run: cargo install cargo-deb
       - run: cargo deb -p rpic-cli
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/debian/*.deb
 
@@ -63,7 +63,7 @@ jobs:
       - run: cargo wix --nocapture -p rpic-cli
         continue-on-error: true
       - name: Upload to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/wix/*.msi
         continue-on-error: true
