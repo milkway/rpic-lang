@@ -190,6 +190,7 @@ pub enum DimKind {
 pub enum WithAnchor {
     Corner(Corner),
     Pair(Expr, Expr),
+    Place(Place),
     Plain,
 }
 

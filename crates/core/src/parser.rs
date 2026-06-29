@@ -1068,7 +1068,9 @@ impl Parser {
             }
             Token::Kw(Kw::With) => {
                 self.bump();
-                let anchor = if let Token::Corner(c) = self.cur() {
+                let anchor = if self.eat(&Token::Dot) {
+                    WithAnchor::Place(self.parse_place()?)
+                } else if let Token::Corner(c) = self.cur() {
                     let c = *c;
                     self.bump();
                     WithAnchor::Corner(c)
@@ -1748,6 +1750,27 @@ ellipse "typesetter"
         assert_eq!(*anchor, WithAnchor::Corner(Corner::Nw));
         // `last ellipse.se + (0.1,0)` is a position sum
         assert!(matches!(at, Position::Sum(Sign::Plus, _, _)));
+    }
+
+    #[test]
+    fn with_member_anchor_parses() {
+        let p = pic("[ A: box ] with .A.c at Here");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        let with = object
+            .attrs
+            .iter()
+            .find(|a| matches!(a, Attr::With { .. }))
+            .unwrap();
+        let Attr::With { anchor, .. } = with else {
+            panic!()
+        };
+        assert!(matches!(
+            anchor,
+            WithAnchor::Place(Place::Corner(inner, Corner::Center))
+                if matches!(inner.as_ref(), Place::Name { name, .. } if name == "A")
+        ));
     }
 
     #[test]

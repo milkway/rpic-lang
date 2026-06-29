@@ -939,7 +939,7 @@ impl State {
 
         let dir = self.dir_of(obj);
         let extent = if horizontal(dir) { w } else { h };
-        let target = self.place_center(obj, dir, extent, w, h)?;
+        let target = self.block_center(obj, dir, extent, w, h, local_center, &mut sub)?;
         let shift = target - local_center;
 
         let first_shape = self.shapes.len();
@@ -1095,6 +1095,37 @@ impl State {
                 let off = match anchor {
                     WithAnchor::Corner(c) => corner_offset(*c, w, h),
                     WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Place(_) => {
+                        return err("`with .label` anchors are only valid on blocks");
+                    }
+                    WithAnchor::Plain => Point::ZERO,
+                };
+                return Ok(ap - off);
+            }
+        }
+        Ok(self.pos + dir_unit(dir) * (extent / 2.0))
+    }
+
+    fn block_center(
+        &mut self,
+        obj: &Object,
+        dir: Dir,
+        extent: f64,
+        w: f64,
+        h: f64,
+        local_center: Point,
+        sub: &mut State,
+    ) -> ER<Point> {
+        if let Some(at) = self.at_of(obj)? {
+            return Ok(at);
+        }
+        for a in &obj.attrs {
+            if let Attr::With { anchor, at } = a {
+                let ap = self.eval_pos(at)?;
+                let off = match anchor {
+                    WithAnchor::Corner(c) => corner_offset(*c, w, h),
+                    WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Place(place) => sub.place_point(place)? - local_center,
                     WithAnchor::Plain => Point::ZERO,
                 };
                 return Ok(ap - off);
@@ -1991,6 +2022,21 @@ mod tests {
             (c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9,
             "c = {c:?}"
         );
+    }
+
+    #[test]
+    fn block_can_anchor_on_own_member() {
+        // The block bbox center is not A.c, so this catches the two-pass anchor
+        // resolution rather than accidentally aligning the block center.
+        let d = draw("P:(2,3)\n[ A: box wid 1 ht 1 at 0,0; circle rad 0.1 at 2,0 ] with .A.c at P");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(2.0, 3.0)) < 1e-9, "A center = {c:?}");
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(4.0, 3.0)) < 1e-9, "circle center = {c:?}");
     }
 
     #[test]
