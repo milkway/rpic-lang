@@ -1,0 +1,72 @@
+.PS
+#   dpicopt = 7; optPS=8; optPDF=5; optMFpic=7; optSVG=11; optMpost = 10;
+    r = 0; g = 0; b = 0.6
+
+B: box invis ht 8 wid 7.5 with .sw at 0,0
+if 1 then {
+  move to B.nw+(0.5,-1.4)
+for i = 1 to 2 do {
+  linethick = 0.8
+  for s = 0.0625 to 1.01 by *2 do {
+    b = min(s,1)
+#                           Could copy dpictools.pic and use DefineRGBColor:
+    if (dpicopt==optPS) || (dpicopt==optPDF) then {
+       define customcolor {sprintf("%g %g %g",r,g,b)}
+       } \
+    else {if dpicopt==optMFpic then {
+       command sprintf("\mfpdefinecolor{color_}{rgb}{%g,%g,%g}",r,g,b)
+       define customcolor {"color_"} } \
+    else {if dpicopt==optSVG then {
+       define customcolor {sprintf("rgb(%g,%g,%g)",\
+         int(r*255),int(g*255),int(b*255))} }\
+    else {if dpicopt==optMpost then {
+       define customcolor {sprintf("(%g,%g,%g)",r,g,b) } }\
+    else {
+       command sprintf("\definecolor{color_}{rgb}{%g,%g,%g}",r,g,b)
+       define customcolor {"color_"} }}}}
+
+    if s > 0.0625 then {move right s}
+    arc cw rad s from Here+(0,-s) to Here+(s,0) \
+      with .c at Here <-> wid s*1.2 ht s*1.2 color customcolor
+    linethick = linethick*2
+    if s < 1 then { move right s } 
+    } # for s 
+  move to B.nw+(0.5,-4)
+  arrowhead = 0
+  } # for i
+} # if
+
+  arrowhead = 0
+  linethick = 4
+  r = 0.5
+  s = 1
+if 1 then {
+  move to B.nw+(1,-6.0)
+ {for i=1 to 4 do {
+    if i > 1 then {move right s}
+    arc cw rad r from Here+(0,-r) to Here+(r,0) \
+      with .c at Here <-> wid .5 ht .5
+    if i < 4 then {linethick = linethick*1.5}
+  }}
+}
+if 0 then {
+  move down 1.5; right
+  {for i=2 to 4 do {
+    move right s
+    arc cw rad r from Here+(0,-r) to Here+(r,0) \
+      with .c at Here <-> wid .5*i ht 1
+  }}
+}
+    
+  linethick = 0.8
+# box wid B.wid ht B.ht at B
+if 1 then {
+  move to B.ne+(-1,-1)
+  arc cw rad 0.5 from Here+(.25,-.25) to Here+(.25,.25) <-> 1
+  { line <- 1 up left from last arc.end+(0.1,0.1) }
+
+  [A: arc cw rad 0.5 from Here+(.25,-.25) to Here+(.25,.25) <-> 0
+   { line <- 0 up left from last arc.end+(0.1,0.1) }
+   ] with .A.c at last arc.c+(0,-2.5)
+  }
+.PE

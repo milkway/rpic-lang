@@ -1109,6 +1109,7 @@ impl State {
         Ok(self.pos + dir_unit(dir) * (extent / 2.0))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn block_center(
         &mut self,
         obj: &Object,
