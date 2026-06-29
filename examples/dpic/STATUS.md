@@ -4,29 +4,34 @@ rpic was run over the upstream dpic example corpus (72 `.pic` files: the pic-man
 reproductions, the source diagnostics, and the doc figures). This page records the
 outcome and the features still missing for full parity.
 
-- **52** examples render faithfully and are included in this gallery.
+- **53** examples render faithfully and are included in this gallery (including
+  the `copy`-assembled 3-D `EscherCube`).
 - A few more parse and render but are *library-definition* files with no drawing
   of their own (`Zalgebra`, `arrowmarks`, `plotlib`), or whose output is not yet
   meaningful (`arrows`, `man25`), so they are excluded from the gallery.
-- **11** still exercise dpic-specific extensions rpic does not yet implement,
+- **9** still exercise dpic-specific extensions rpic does not yet implement,
   grouped below.
 
-Corpus pass rate is now **61 / 72** (was 32 at the first audit).
+Corpus pass rate is now **63 / 72** (was 32 at the first audit).
 
-## Not yet supported — 11
+## Not yet supported — 9
 
 | Feature missing | Examples | Tracking |
 |---|---|---|
-| File inclusion (`copy "file"`, `copy … thru`) | `Spiral`, `EscherCube`, `tgraph` | [#14](https://github.com/milkway/rpic-lang/issues/14) |
-| dpic macro-library metaprogramming (`$+` arg count, `exec`) | `dpictools` (×2), `arrowheads`, `arrowwide`, `quick` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
+| dpic macro-library metaprogramming (`$+` arg count, `exec`) — also pulled in by `copy` | `dpictools` (×2), `arrowheads`, `arrowwide`, `Spiral`, `tgraph` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
+| PSTricks helper macros (`lozenge`, `\dpicshdraw`) | `circles` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
 | dpic unit-suffixed numbers (`11bp__`) | `man31` | [#18](https://github.com/milkway/rpic-lang/issues/18) (partial) |
 | Macro argument used in an expression slot (`{i}th` ncount) | `man35` | [#13](https://github.com/milkway/rpic-lang/issues/13) |
-| PSTricks helper macros (`lozenge`, `\dpicshdraw`) | `circles` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
 
 ## Recently implemented
 
-Pass count over this corpus rose **32 → 61**. Major features:
+Pass count over this corpus rose **32 → 63**. Major features:
 
+- **File inclusion** ([#14](https://github.com/milkway/rpic-lang/issues/14)):
+  `copy "file"` splices another pic file relative to the source's directory
+  (`EscherCube` + `libdp3D.pic`), including `copy`s reached only inside a taken
+  `if` branch. Also fixed parenthesised between-fractions (`(X/Y) between A and B`)
+  and parenthesised scalar coordinates (`((a*g)*cos t, …)`).
 - **Lazy macro expansion** ([#13](https://github.com/milkway/rpic-lang/issues/13)):
   macros expand at evaluation time along the executed path — the default-argument
   idiom (`if "$1"=="" then … else …`) and **recursive macros** (`man36`'s binary

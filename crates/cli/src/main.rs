@@ -84,7 +84,8 @@ fn main() -> ExitCode {
         src
     };
 
-    let result = run(&src, &mode, scale);
+    let base = std::path::Path::new(&path).parent();
+    let result = run(&src, &mode, scale, base);
     match result {
         Ok(Output::Text(s)) => {
             if let Some(o) = out {
@@ -121,7 +122,7 @@ enum Output {
     Bytes(Vec<u8>),
 }
 
-fn run(src: &str, mode: &Mode, scale: f32) -> Result<Output, String> {
+fn run(src: &str, mode: &Mode, scale: f32, base: Option<&std::path::Path>) -> Result<Output, String> {
     match mode {
         Mode::Tokens => {
             let toks = rpic_core::lex(src).map_err(|e| e.to_string())?;
@@ -132,16 +133,16 @@ fn run(src: &str, mode: &Mode, scale: f32) -> Result<Output, String> {
             Ok(Output::Text(s))
         }
         Mode::Ast => {
-            let pic = rpic_core::parse(src).map_err(|e| e.to_string())?;
+            let pic = rpic_core::parse_in_dir(src, base).map_err(|e| e.to_string())?;
             Ok(Output::Text(format!("{pic:#?}\n")))
         }
-        Mode::Svg => Ok(Output::Text(rpic_core::render_svg(src)?)),
+        Mode::Svg => Ok(Output::Text(rpic_core::render_svg_in_dir(src, base)?)),
         Mode::Png => {
-            let svg = rpic_core::render_svg(src)?;
+            let svg = rpic_core::render_svg_in_dir(src, base)?;
             Ok(Output::Bytes(rpic_render::to_png(&svg, scale)?))
         }
         Mode::Pdf => {
-            let svg = rpic_core::render_svg(src)?;
+            let svg = rpic_core::render_svg_in_dir(src, base)?;
             Ok(Output::Bytes(rpic_render::to_pdf(&svg)?))
         }
     }

@@ -26,6 +26,9 @@ pub struct Picture {
     pub height: Option<Expr>,
     pub stmts: Vec<Stmt>,
     pub macros: Macros,
+    /// Directory used to resolve `copy "file"` includes (set by `parse_in_dir`);
+    /// `None` when parsing has no filesystem context (WASM/bindings).
+    pub base_dir: Option<std::path::PathBuf>,
 }
 
 /// A label with an optional `[subscript]` suffix.

@@ -19,7 +19,7 @@ pub mod token;
 pub use eval::{EvalError, eval};
 pub use ir::Drawing;
 pub use lexer::{LexError, lex};
-pub use parser::{ParseError, parse};
+pub use parser::{ParseError, parse, parse_in_dir};
 pub use svg::to_svg;
 pub use token::Token;
 
@@ -29,13 +29,23 @@ pub const CIRCUITS: &str = include_str!("std/circuits.pic");
 
 /// Compile pic source into a placed-primitive [`Drawing`].
 pub fn compile(src: &str) -> Result<Drawing, String> {
-    let picture = parse(src).map_err(|e| e.to_string())?;
+    compile_in_dir(src, None)
+}
+
+/// Compile pic source, resolving `copy "file"` includes relative to `base`.
+pub fn compile_in_dir(src: &str, base: Option<&std::path::Path>) -> Result<Drawing, String> {
+    let picture = parser::parse_in_dir(src, base).map_err(|e| e.to_string())?;
     eval(&picture).map_err(|e| e.to_string())
 }
 
 /// Compile pic source directly to an SVG string.
 pub fn render_svg(src: &str) -> Result<String, String> {
     Ok(to_svg(&compile(src)?))
+}
+
+/// Render pic source to SVG, resolving `copy "file"` includes relative to `base`.
+pub fn render_svg_in_dir(src: &str, base: Option<&std::path::Path>) -> Result<String, String> {
+    Ok(to_svg(&compile_in_dir(src, base)?))
 }
 
 /// Build the JSON animation manifest array (`[{id,effect,start,duration},…]`)
