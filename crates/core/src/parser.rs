@@ -62,12 +62,26 @@ pub fn parse_body_tokens(
 ) -> Result<Vec<Stmt>, ParseError> {
     let mut m = macros.clone();
     let mut input = toks.to_vec();
-    input.push(Spanned {
-        tok: Token::Eof,
-        line: 0,
-        col: 0,
-    });
+    input.push(Spanned::new(Token::Eof, 0, 0));
     let expanded = expand(&input, &mut m, 0, base)?;
+    let mut p = Parser::new(expanded);
+    p.parse_elementlist(&[])
+}
+
+/// Parse pic source produced by `exec`, applying the caller's macro argument
+/// frame before normal macro expansion.
+pub(crate) fn parse_exec_source(
+    src: &str,
+    macros: &Macros,
+    base: Option<&Path>,
+    arg_frame: Option<&[Vec<Spanned>]>,
+) -> Result<Vec<Stmt>, ParseError> {
+    let mut toks = lex(src)?;
+    if let Some(args) = arg_frame {
+        toks = substitute(&toks, args);
+    }
+    let mut m = macros.clone();
+    let expanded = expand(&toks, &mut m, 0, base)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
 }
@@ -130,7 +144,10 @@ fn starts_word(s: &str, word: &str) -> bool {
 use std::collections::HashMap;
 use std::path::Path;
 
-fn preprocess(input: Vec<Spanned>, base: Option<&Path>) -> Result<(Vec<Spanned>, Macros), ParseError> {
+fn preprocess(
+    input: Vec<Spanned>,
+    base: Option<&Path>,
+) -> Result<(Vec<Spanned>, Macros), ParseError> {
     let mut macros: Macros = builtin_unit_macros();
     let out = expand(&input, &mut macros, 0, base)?;
     Ok((out, macros))
@@ -295,8 +312,9 @@ fn expand(
                 i += 1;
                 let Some(Token::Str(fname)) = toks.get(i).map(|s| &s.tok) else {
                     return Err(ParseError {
-                        msg: "copy: expected a quoted file name (only `copy \"file\"` is supported)"
-                            .into(),
+                        msg:
+                            "copy: expected a quoted file name (only `copy \"file\"` is supported)"
+                                .into(),
                         line: l,
                         col: c,
                     });
@@ -367,25 +385,22 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
         match &s.tok {
             Token::Arg(k) => {
                 if let Some(a) = args.get((*k as usize).wrapping_sub(1)) {
-                    out.extend(a.iter().cloned());
+                    out.extend(a.iter().cloned().map(|s| s.with_arg_frame(args)));
                 }
             }
             // `$+` is the number of arguments passed to this macro
-            Token::ArgCount => out.push(Spanned {
-                tok: Token::Float(args.len() as f64),
-                line: s.line,
-                col: s.col,
-            }),
+            Token::ArgCount => out.push(
+                Spanned::new(Token::Float(args.len() as f64), s.line, s.col).with_arg_frame(args),
+            ),
             // `$n` is also substituted inside string literals (the `"$1"==""`
             // default-argument idiom, sprintf templates like `"$2%g"`, …).
             Token::Str(text) if text.contains('$') => {
-                out.push(Spanned {
-                    tok: Token::Str(subst_in_string(text, args)),
-                    line: s.line,
-                    col: s.col,
-                });
+                out.push(
+                    Spanned::new(Token::Str(subst_in_string(text, args)), s.line, s.col)
+                        .with_arg_frame(args),
+                );
             }
-            _ => out.push(s.clone()),
+            _ => out.push(s.clone().with_arg_frame(args)),
         }
     }
     out
@@ -449,7 +464,11 @@ fn include_file(
     l: u32,
     c: u32,
 ) -> Result<Vec<Spanned>, ParseError> {
-    let mkerr = |msg: String| ParseError { msg, line: l, col: c };
+    let mkerr = |msg: String| ParseError {
+        msg,
+        line: l,
+        col: c,
+    };
     let p = Path::new(fname);
     let path = if p.is_absolute() {
         p.to_path_buf()
@@ -463,7 +482,8 @@ fn include_file(
             }
         }
     };
-    let content = std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
     let toks = lex(&content)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
     let mut expanded = expand(&toks, macros, depth + 1, inc_base.as_deref())?;
@@ -494,7 +514,11 @@ fn find_kw_depth0(toks: &[Spanned], start: usize, kw: Kw) -> Option<usize> {
 
 /// Copy a brace-delimited block verbatim into `out` (including any nested
 /// braces), skipping/copying leading newlines. Returns the index past the `}`.
-fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result<usize, ParseError> {
+fn copy_braced(
+    toks: &[Spanned],
+    mut i: usize,
+    out: &mut Vec<Spanned>,
+) -> Result<usize, ParseError> {
     while matches!(toks.get(i).map(|s| &s.tok), Some(Token::Newline)) {
         out.push(toks[i].clone());
         i += 1;
@@ -708,6 +732,7 @@ impl Parser {
             Token::Kw(Kw::If) => return self.parse_if(),
             Token::Kw(Kw::For) => return self.parse_for(),
             Token::Kw(Kw::Print) => return self.parse_print(),
+            Token::Kw(Kw::Exec) => return self.parse_exec(),
             Token::Kw(Kw::Reset) => return self.parse_reset(),
             _ => {}
         }
@@ -719,10 +744,9 @@ impl Parser {
                 Kw::Define | Kw::Undef => {
                     return self.err("only the `define name { body }` macro form is supported");
                 }
-                // `command`/`sh`/`exec` emit raw backend (troff/PostScript/TeX)
-                // text or run a shell; none affect SVG geometry, so consume the
-                // rest of the line and treat them as no-ops.
-                Kw::Command | Kw::Sh | Kw::Exec => {
+                // `command`/`sh` emit raw backend text or run a shell; neither
+                // affects SVG geometry, so consume the rest of the line.
+                Kw::Command | Kw::Sh => {
                     self.bump();
                     while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
                         self.bump();
@@ -869,6 +893,13 @@ impl Parser {
             PrintItem::Expr(self.parse_expr()?)
         };
         Ok(Stmt::Print(item))
+    }
+
+    fn parse_exec(&mut self) -> PResult<Stmt> {
+        let arg_frame = self.toks[self.idx].arg_frame.clone();
+        self.expect_kw(Kw::Exec)?;
+        let command = self.parse_stringexpr()?;
+        Ok(Stmt::Exec { command, arg_frame })
     }
 
     fn parse_reset(&mut self) -> PResult<Stmt> {
