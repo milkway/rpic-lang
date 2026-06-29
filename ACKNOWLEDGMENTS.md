@@ -32,4 +32,12 @@ clean, self-contained, SVG-first tool for the web era — exactly the direction
 
 ---
 
+## Bundled font
+
+The PNG/PDF backends embed the **Go font** by **Bigelow & Holmes**
+(BSD-3-Clause) so text rasterizes identically everywhere, with no dependency on
+installed system fonts. See [`crates/render/fonts/LICENSE`](crates/render/fonts/LICENSE).
+
+---
+
 Any merit in `rpic` is owed to them; any mistakes are ours alone.
