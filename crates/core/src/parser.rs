@@ -36,7 +36,8 @@ impl From<LexError> for ParseError {
 
 /// Parse a full source string into a [`Picture`].
 pub fn parse(src: &str) -> Result<Picture, ParseError> {
-    let toks = lex(src)?;
+    let src = strip_backend_preamble(src);
+    let toks = lex(&src)?;
     let (toks, macros) = preprocess(toks)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
@@ -57,6 +58,54 @@ pub fn parse_body_tokens(toks: &[Spanned], macros: &Macros) -> Result<Vec<Stmt>,
     let expanded = expand(&input, &mut m, 0)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
+}
+
+// ---- backend preamble filter ----------------------------------------------
+
+/// Drop non-SVG backend snippets commonly embedded in dpic examples.
+///
+/// These TeX/PSTricks preambles are meaningful to other backends, but for rpic's
+/// SVG output they should be tolerated as no-ops. Replacing ignored lines with
+/// empty lines keeps subsequent diagnostics on the original line numbers.
+fn strip_backend_preamble(src: &str) -> String {
+    let mut out = String::with_capacity(src.len());
+    let mut in_verbatimtex = false;
+
+    for line in src.lines() {
+        let trimmed = line.trim_start();
+        if in_verbatimtex {
+            out.push('\n');
+            if starts_word(trimmed, "etex") {
+                in_verbatimtex = false;
+            }
+            continue;
+        }
+
+        if starts_word(trimmed, "verbatimtex") {
+            in_verbatimtex = true;
+            out.push('\n');
+        } else if is_ignored_backend_line(trimmed) {
+            out.push('\n');
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+    }
+    out
+}
+
+fn is_ignored_backend_line(trimmed: &str) -> bool {
+    trimmed.starts_with("\\global") || trimmed.starts_with("\\psset")
+}
+
+fn starts_word(s: &str, word: &str) -> bool {
+    let Some(rest) = s.strip_prefix(word) else {
+        return false;
+    };
+    !rest
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_alphanumeric() || c == '_')
 }
 
 // ---- macro preprocessor ----------------------------------------------------
@@ -1655,7 +1704,10 @@ ellipse "typesetter"
         // from top of B1
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::From(Position::Place(Location::Place(Place::CornerOf(Corner::N, _))))
+            Attr::From(Position::Place(Location::Place(Place::CornerOf(
+                Corner::N,
+                _
+            ))))
         )));
     }
 
@@ -1765,6 +1817,24 @@ ellipse "typesetter"
             a,
             Attr::At(Position::Place(Location::Place(Place::Corner(_, _))))
         )));
+    }
+
+    #[test]
+    fn ignores_non_svg_backend_preambles() {
+        let p = pic(r#".PS
+verbatimtex
+\global\def\foo#1{#1}
+etex
+\global\def\bar#1{#1}
+\psset{arrowsize=4pt}
+box
+.PE
+"#);
+        assert_eq!(p.stmts.len(), 1);
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
     }
 
     #[test]
