@@ -241,10 +241,12 @@ fn horizontal(d: Dir) -> bool {
 
 impl State {
     fn new() -> Self {
+        let mut vars = HashMap::new();
+        install_dpic_compat_vars(&mut vars);
         State {
             pos: Point::ZERO,
             dir: Dir::Right,
-            vars: HashMap::new(),
+            vars,
             env: EnvVars::new(),
             macros: HashMap::new(),
             shapes: Vec::new(),
@@ -1340,11 +1342,24 @@ impl State {
                 let f = self.eval_stringexpr(fmt)?;
                 let mut vals = Vec::with_capacity(args.len());
                 for e in args {
-                    vals.push(self.eval_expr(e)?);
+                    vals.push(self.eval_printf_arg(e)?);
                 }
                 sprintf_fmt(&f, &vals)
             }
+            StringExpr::SvgFont(args) => {
+                for e in args {
+                    self.eval_printf_arg(e)?;
+                }
+                String::new()
+            }
         })
+    }
+
+    fn eval_printf_arg(&mut self, e: &Expr) -> ER<PrintfArg> {
+        match e {
+            Expr::Str(se) => Ok(PrintfArg::Str(self.eval_stringexpr(se)?)),
+            _ => Ok(PrintfArg::Num(self.eval_expr(e)?)),
+        }
     }
 
     // ---- expressions -------------------------------------------------------
@@ -1496,6 +1511,29 @@ fn fmt_num(v: f64) -> String {
     format!("{v}")
 }
 
+fn install_dpic_compat_vars(vars: &mut HashMap<String, f64>) {
+    // dpic backend option constants are zero-based in the order used by dpic's
+    // own `case(dpicopt, ...)` examples. rpic renders SVG.
+    let opts = [
+        ("optMFpic", 0.0),
+        ("optMpost", 1.0),
+        ("optPDF", 2.0),
+        ("optPGF", 3.0),
+        ("optPict2e", 4.0),
+        ("optPS", 5.0),
+        ("optPSfrag", 6.0),
+        ("optPSTricks", 7.0),
+        ("optSVG", 8.0),
+        ("optTeX", 9.0),
+        ("opttTeX", 10.0),
+        ("optxfig", 11.0),
+    ];
+    for (name, val) in opts {
+        vars.insert(name.to_string(), val);
+    }
+    vars.insert("dpicopt".to_string(), 8.0);
+}
+
 fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
     let (hw, hh) = (w / 2.0, h / 2.0);
     match c {
@@ -1551,9 +1589,30 @@ fn nearest_dir(v: Point) -> Dir {
     }
 }
 
-/// Minimal printf-style formatter supporting `%d %i %f %e %g %%` with optional
-/// `.precision`. Width/flags are accepted but ignored; arguments are numeric.
-fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
+enum PrintfArg {
+    Num(f64),
+    Str(String),
+}
+
+impl PrintfArg {
+    fn num(&self) -> f64 {
+        match self {
+            PrintfArg::Num(v) => *v,
+            PrintfArg::Str(s) => s.parse::<f64>().unwrap_or(0.0),
+        }
+    }
+
+    fn string(&self) -> String {
+        match self {
+            PrintfArg::Num(v) => fmt_num(*v),
+            PrintfArg::Str(s) => s.clone(),
+        }
+    }
+}
+
+/// Minimal printf-style formatter supporting `%d %i %f %e %g %s %%` with
+/// optional `.precision`. Width/flags are accepted but ignored.
+fn sprintf_fmt(fmt: &str, vals: &[PrintfArg]) -> String {
     let mut out = String::new();
     let mut chars = fmt.chars().peekable();
     let mut ai = 0usize;
@@ -1579,7 +1638,7 @@ fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
             out.push('%');
             continue;
         }
-        let v = vals.get(ai).copied().unwrap_or(0.0);
+        let arg = vals.get(ai);
         ai += 1;
         let prec = spec.split('.').nth(1).and_then(|p| {
             p.chars()
@@ -1589,11 +1648,22 @@ fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
                 .ok()
         });
         match conv {
-            'd' | 'i' => out.push_str(&format!("{}", v.round() as i64)),
-            'f' | 'F' => out.push_str(&format!("{:.*}", prec.unwrap_or(6), v)),
-            'e' | 'E' => out.push_str(&format!("{:.*e}", prec.unwrap_or(6), v)),
-            'g' | 'G' => out.push_str(&format!("{v}")),
-            's' => out.push_str(&format!("{v}")),
+            'd' | 'i' => out.push_str(&format!(
+                "{}",
+                arg.map(PrintfArg::num).unwrap_or(0.0).round() as i64
+            )),
+            'f' | 'F' => out.push_str(&format!(
+                "{:.*}",
+                prec.unwrap_or(6),
+                arg.map(PrintfArg::num).unwrap_or(0.0)
+            )),
+            'e' | 'E' => out.push_str(&format!(
+                "{:.*e}",
+                prec.unwrap_or(6),
+                arg.map(PrintfArg::num).unwrap_or(0.0)
+            )),
+            'g' | 'G' => out.push_str(&format!("{}", arg.map(PrintfArg::num).unwrap_or(0.0))),
+            's' => out.push_str(&arg.map(PrintfArg::string).unwrap_or_default()),
             other => {
                 out.push('%');
                 out.push(other);
@@ -1609,6 +1679,7 @@ fn stringexpr_lit(se: &StringExpr) -> String {
         StringExpr::Concat(a, b) => format!("{}{}", stringexpr_lit(a), stringexpr_lit(b)),
         StringExpr::Arg(n) => format!("${n}"),
         StringExpr::Sprintf(fmt, _) => stringexpr_lit(fmt),
+        StringExpr::SvgFont(_) => String::new(),
     }
 }
 
@@ -1916,7 +1987,10 @@ mod tests {
         };
         // the block is placed with its center at (0.5,0); inner A.ne is then
         // (1.0,0.5), and the small box centers 0.1 beyond that corner.
-        assert!((c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 1.1).abs() < 1e-9 && (c.y - 0.6).abs() < 1e-9,
+            "c = {c:?}"
+        );
     }
 
     #[test]
@@ -1926,7 +2000,10 @@ mod tests {
         let Shape::Box { c, .. } = &d.shapes[0] else {
             panic!()
         };
-        assert!((c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9,
+            "c = {c:?}"
+        );
     }
 
     #[test]
@@ -1945,6 +2022,21 @@ mod tests {
         assert!(matches!(d1.shapes[0], Shape::Circle { .. }));
         let d2 = draw("if \"\" == \"\" then { box } else { circle }");
         assert!(matches!(d2.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
+    fn dpicopt_defaults_to_svg_backend() {
+        let d = draw("if dpicopt == optSVG then { box } else { circle }");
+        assert!(matches!(d.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
+    fn svg_font_stub_and_string_sprintf_are_harmless() {
+        let d = draw("box sprintf(\"x%s\", svg_font(\"Times\", 12))");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "x");
     }
 
     #[test]

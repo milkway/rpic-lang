@@ -781,10 +781,7 @@ impl Parser {
     }
 
     fn at_string_start(&self) -> bool {
-        matches!(
-            self.cur(),
-            Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)
-        )
+        self.token_starts_string_at(0)
     }
 
     fn parse_animate(&mut self) -> PResult<Animate> {
@@ -1152,10 +1149,20 @@ impl Parser {
     }
 
     fn string_after_plus(&self) -> bool {
-        matches!(
-            self.peek(1),
-            Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)
-        )
+        self.token_starts_string_at(1)
+    }
+
+    fn token_starts_string_at(&self, offset: usize) -> bool {
+        match self.toks.get(self.idx + offset).map(|s| &s.tok) {
+            Some(Token::Str(_) | Token::Arg(_) | Token::Kw(Kw::Sprintf)) => true,
+            Some(Token::Name(n)) if n == "svg_font" => {
+                matches!(
+                    self.toks.get(self.idx + offset + 1).map(|s| &s.tok),
+                    Some(Token::Lparen)
+                )
+            }
+            _ => false,
+        }
     }
 
     fn parse_string_atom(&mut self) -> PResult<StringExpr> {
@@ -1178,6 +1185,19 @@ impl Parser {
                 }
                 self.expect(&Token::Rparen)?;
                 Ok(StringExpr::Sprintf(Box::new(fmt), args))
+            }
+            Token::Name(n) if n == "svg_font" && matches!(self.peek(1), Token::Lparen) => {
+                self.bump();
+                self.expect(&Token::Lparen)?;
+                let mut args = Vec::new();
+                if !self.at(&Token::Rparen) {
+                    args.push(self.parse_expr()?);
+                    while self.eat(&Token::Comma) {
+                        args.push(self.parse_expr()?);
+                    }
+                }
+                self.expect(&Token::Rparen)?;
+                Ok(StringExpr::SvgFont(args))
             }
             other => self.err(format!("expected a string, found {other:?}")),
         }
@@ -1767,6 +1787,15 @@ ellipse "typesetter"
             panic!()
         };
         assert_eq!(a0[0].target, AssignTarget::Env(EnvVar::Boxht));
+    }
+
+    #[test]
+    fn dpic_svg_font_stub_parses_as_string() {
+        let p = pic("print svg_font(\"Times\", 12)");
+        let Stmt::Print(PrintItem::Str(StringExpr::SvgFont(args))) = &p.stmts[0] else {
+            panic!()
+        };
+        assert_eq!(args.len(), 2);
     }
 
     #[test]

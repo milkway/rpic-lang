@@ -168,7 +168,10 @@ pub enum Attr {
     To(Position),
     At(Position),
     By(Position),
-    With { anchor: WithAnchor, at: Position },
+    With {
+        anchor: WithAnchor,
+        at: Position,
+    },
     Color(Color, StringExpr),
 }
 
@@ -270,6 +273,9 @@ pub enum StringExpr {
     Lit(String),
     Concat(Box<StringExpr>, Box<StringExpr>),
     Sprintf(Box<StringExpr>, Vec<Expr>),
+    /// dpic SVG-backend helper. rpic does not emit backend preamble text, so
+    /// this evaluates to a harmless empty string.
+    SvgFont(Vec<Expr>),
     Arg(u32),
 }
 
