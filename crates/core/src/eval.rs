@@ -1161,7 +1161,12 @@ impl State {
     }
 
     fn style_of(&mut self, obj: &Object) -> ER<Style> {
-        let mut s = Style::default();
+        // arrowhead dimensions follow the current `arrowht`/`arrowwid` globals
+        let mut s = Style {
+            arrow_ht: self.env.get(EnvVar::Arrowht),
+            arrow_wid: self.env.get(EnvVar::Arrowwid),
+            ..Default::default()
+        };
         for a in &obj.attrs {
             match a {
                 Attr::LineStyle(lt, _) => match lt {
@@ -2174,6 +2179,27 @@ mod tests {
         assert!(d.shapes.iter().any(|s| matches!(s, Shape::Box { .. })));
         assert!(d.shapes.iter().any(|s| matches!(s, Shape::Circle { .. })));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn paren_position_coordinate() {
+        // `.x`/`.y` on a parenthesised position expression
+        let d = draw("A:(0,0)\nB:(3,1)\nbox wid (B-A).x ht (B-A).y at 0,-2");
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 3.0).abs() < 1e-9 && (*h - 1.0).abs() < 1e-9, "{w} x {h}");
+    }
+
+    #[test]
+    fn arrowhead_size_follows_globals() {
+        // arrowht/arrowwid control the rendered arrowhead, not a hardcoded size
+        let d = draw("arrowht = 0.3; arrowwid = 0.2\narrow right 1");
+        let Shape::Path { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((style.arrow_ht - 0.3).abs() < 1e-9, "ht = {}", style.arrow_ht);
+        assert!((style.arrow_wid - 0.2).abs() < 1e-9, "wid = {}", style.arrow_wid);
     }
 
     #[test]

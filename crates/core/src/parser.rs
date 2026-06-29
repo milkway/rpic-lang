@@ -1693,6 +1693,31 @@ impl Parser {
         }
     }
 
+    /// Lookahead from just inside a `(`: is the matching `)` immediately followed
+    /// by `.x` or `.y`? (Used to read `( position ).x` as a coordinate.)
+    fn paren_followed_by_dot_xy(&self) -> bool {
+        let mut depth = 1i32;
+        let mut i = self.idx;
+        while let Some(s) = self.toks.get(i) {
+            match &s.tok {
+                Token::Lparen => depth += 1,
+                Token::Rparen => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return matches!(
+                            self.toks.get(i + 1).map(|t| &t.tok),
+                            Some(Token::DotX | Token::DotY)
+                        );
+                    }
+                }
+                Token::Eof => return false,
+                _ => {}
+            }
+            i += 1;
+        }
+        false
+    }
+
     fn parse_primary(&mut self) -> PResult<Expr> {
         // place-derived scalars: location.x / location.y / place.attr
         if self.at_place_start() && self.place_is_scalar_ahead() {
@@ -1744,6 +1769,22 @@ impl Parser {
                     self.expect(&Token::Rparen)?;
                     return Ok(Expr::Assign(name, subscript, Box::new(v)));
                 }
+                // `( position ).x` / `.y` — a coordinate of a parenthesised
+                // position (e.g. `(A - B).x`, `($1-($2)).y`). Chosen by lookahead
+                // for a trailing `.x`/`.y`, since `(A - B)` alone parses as scalar
+                // (labels read as variables).
+                if self.paren_followed_by_dot_xy() {
+                    let pos = self.parse_position()?;
+                    self.expect(&Token::Rparen)?;
+                    let loc = Location::Paren(Box::new(pos));
+                    return Ok(if self.eat(&Token::DotX) {
+                        Expr::DotX(loc)
+                    } else {
+                        self.expect(&Token::DotY)?;
+                        Expr::DotY(loc)
+                    });
+                }
+                // a plain scalar group `( expr )`
                 let e = self.parse_expr()?;
                 self.expect(&Token::Rparen)?;
                 Ok(e)

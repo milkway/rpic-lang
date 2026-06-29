@@ -18,7 +18,7 @@ Corpus pass rate is now **63 / 72** (was 32 at the first audit).
 
 | Feature missing | Examples | Tracking |
 |---|---|---|
-| dpic m4 metaprogramming: `exec` in the calling macro's argument scope (dynamic `$n`), `(expr).x`/`.y` on parenthesised positions, `\`-continued define bodies — also pulled in by `copy` (`$+` arg count is supported) | `dpictools` (×2), `arrowheads`, `arrowwide`, `Spiral`, `tgraph` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
+| dpic m4 metaprogramming: `exec` run in the calling macro's argument scope (dynamic `$n` — needed to populate arrays via `array(…)`), `sh`-command shell escapes — also pulled in by `copy`. (`$+`, `(expr).x`/`.y`, and arrowhead sizing are now supported; `arrowheads`/`arrowwide` now parse and reach evaluation, failing only because their arrays are never populated.) | `dpictools` (×2), `arrowheads`, `arrowwide`, `Spiral`, `tgraph` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
 | m4 token pasting (`$1$2` → one identifier) + PSTricks helpers | `circles` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
 | dpic unit-suffixed numbers (`11bp__`) | `man31` | [#18](https://github.com/milkway/rpic-lang/issues/18) (partial) |
 | Macro argument used in an expression slot (`{i}th` ncount) | `man35` | [#13](https://github.com/milkway/rpic-lang/issues/13) |
@@ -27,6 +27,10 @@ Corpus pass rate is now **63 / 72** (was 32 at the first audit).
 
 Pass count over this corpus rose **32 → 63**. Major features:
 
+- **Arrowhead sizing & `$+`/`(expr).x` primitives** (partial [#15](https://github.com/milkway/rpic-lang/issues/15)):
+  arrowheads now honour `arrowht`/`arrowwid` (no longer a hardcoded size);
+  `$+` (macro argument count) and `.x`/`.y` on a parenthesised position
+  (`($1-($2)).x`) are supported.
 - **File inclusion** ([#14](https://github.com/milkway/rpic-lang/issues/14)):
   `copy "file"` splices another pic file relative to the source's directory
   (`EscherCube` + `libdp3D.pic`), including `copy`s reached only inside a taken

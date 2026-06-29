@@ -52,6 +52,10 @@ pub struct Style {
     pub thick: Option<f64>,
     /// Invisible (used by `move` and `invis`): geometry counts, nothing drawn.
     pub invis: bool,
+    /// Arrowhead dimensions in inches (`arrowht`/`arrowwid`), used when this
+    /// shape carries arrowheads.
+    pub arrow_ht: f64,
+    pub arrow_wid: f64,
 }
 
 impl Default for Style {
@@ -62,6 +66,8 @@ impl Default for Style {
             dash: Dash::Solid,
             thick: None,
             invis: false,
+            arrow_ht: 0.1,
+            arrow_wid: 0.05,
         }
     }
 }
