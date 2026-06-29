@@ -51,13 +51,45 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         Some(e) => Some(st.eval_expr(e)?),
         None => None,
     };
+    let (maxw, maxh) = (
+        st.env.get(EnvVar::Maxpswid),
+        st.env.get(EnvVar::Maxpsht),
+    );
     let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
         anims: st.anims,
     };
     apply_ps_size(&mut d, want_w, want_h);
+    clamp_to_maxps(&mut d, maxw, maxh);
     Ok(d)
+}
+
+/// Clamp the drawing to the `maxpswid`/`maxpsht` page bounds: if it exceeds
+/// either, scale the whole picture down uniformly to fit (never up), matching
+/// pic's PostScript page-fit behaviour.
+fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
+    if d.bbox.is_empty() {
+        return;
+    }
+    let (w, h) = (d.bbox.width(), d.bbox.height());
+    let mut factor = 1.0_f64;
+    if maxw > 0.0 && w > maxw {
+        factor = factor.min(maxw / w);
+    }
+    if maxh > 0.0 && h > maxh {
+        factor = factor.min(maxh / h);
+    }
+    if factor >= 1.0 - 1e-9 {
+        return;
+    }
+    for sh in &mut d.shapes {
+        scale_shape(sh, factor);
+    }
+    let mut bb = Bbox::new();
+    bb.add(d.bbox.min * factor);
+    bb.add(d.bbox.max * factor);
+    d.bbox = bb;
 }
 
 /// Apply `.PS <width> [<height>]` sizing: uniformly scale the whole drawing so
@@ -2338,6 +2370,24 @@ mod tests {
             panic!()
         };
         assert!(!style.arrow_filled, "arrowhead=0 should be open");
+    }
+
+    #[test]
+    fn maxps_clamps_oversized_drawing() {
+        // larger than the default 8.5x11in page → scaled down to fit
+        let d = draw("box wid 20 ht 30");
+        assert!(
+            d.bbox.width() <= 8.5 + 1e-6 && d.bbox.height() <= 11.0 + 1e-6,
+            "{}x{}",
+            d.bbox.width(),
+            d.bbox.height()
+        );
+        // raising the limits disables the clamp
+        let d2 = draw("maxpsht = 200; maxpswid = 50\nbox wid 20 ht 30");
+        assert!((d2.bbox.height() - 30.0).abs() < 1e-6, "h = {}", d2.bbox.height());
+        // a small drawing is untouched
+        let d3 = draw("box wid 2 ht 1");
+        assert!((d3.bbox.width() - 2.0).abs() < 1e-6);
     }
 
     #[test]
