@@ -339,6 +339,7 @@ impl State {
             }
             Stmt::For {
                 var,
+                subscript,
                 from,
                 to,
                 by,
@@ -367,7 +368,8 @@ impl State {
                     if !cont {
                         break;
                     }
-                    self.vars.insert(var.clone(), v);
+                    let key = self.indexed_name(var, subscript.as_ref())?;
+                    self.vars.insert(key, v);
                     self.eval_stmts(&body)?;
                     let prev = v;
                     v = if *mult { v * by } else { v + by };
@@ -387,7 +389,7 @@ impl State {
                 PrintItem::Str(_) => {}
             },
             Stmt::Exec { command, arg_frame } => {
-                let src = self.eval_stringexpr(command)?;
+                let src = unescape_exec_source(&self.eval_stringexpr(command)?);
                 let stmts = crate::parser::parse_exec_source(
                     &src,
                     &self.macros,
@@ -941,7 +943,9 @@ impl State {
     }
 
     fn block(&mut self, stmts: &[Stmt], obj: &Object) -> ER<usize> {
-        // evaluate the block in a fresh local scope at its own origin
+        // Evaluate the block in a local scope at its own origin. Labels from
+        // the containing scope are visible for references such as `$1.start`
+        // inside macro-generated blocks, but are not captured as new members.
         let mut sub = State::new();
         sub.env = self.env.clone();
         sub.vars = self.vars.clone();
@@ -1384,6 +1388,13 @@ impl State {
 
     fn indexed_name(&mut self, name: &str, subscript: Option<&Expr>) -> ER<String> {
         match subscript {
+            Some(Expr::Index(items)) => {
+                let mut parts = Vec::with_capacity(items.len());
+                for e in items {
+                    parts.push(fmt_num(self.eval_expr(e)?));
+                }
+                Ok(format!("{name}[{}]", parts.join(",")))
+            }
             Some(e) => Ok(format!("{name}[{}]", fmt_num(self.eval_expr(e)?))),
             None => Ok(name.to_string()),
         }
@@ -1473,6 +1484,7 @@ impl State {
         Ok(match e {
             Expr::Num(v) => *v,
             Expr::Str(_) => return err("a string is only valid as an `==`/`!=` operand"),
+            Expr::Index(_) => return err("a comma subscript is only valid inside `name[...]`"),
             Expr::Var(name, subscript) => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
                 *self.vars.get(&key).unwrap_or(&0.0)
@@ -1783,6 +1795,22 @@ fn stringexpr_lit(se: &StringExpr) -> String {
     }
 }
 
+fn unescape_exec_source(src: &str) -> String {
+    let mut out = String::with_capacity(src.len());
+    let mut chars = src.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\'
+            && let Some('"') = chars.clone().next()
+        {
+            chars.next();
+            out.push('"');
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// Shift a [`Placed`] (and its block members) by `d` and re-index its shape
 /// references by `shape_off`, mapping a block's local records into the parent.
 fn rebase_placed(pl: &mut Placed, d: Point, shape_off: usize) {
@@ -1913,6 +1941,15 @@ mod tests {
     }
 
     #[test]
+    fn for_loop_can_assign_subscripted_counter() {
+        let d = draw("i = 1\nfor A[i] = 1 to 3 do { i += 1 }\nbox wid A[1] + A[2] + A[3] ht 0.3");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 6.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
     fn if_else_branches() {
         let d1 = draw("x = 1\nif x > 0 then { box } else { circle }");
         assert!(matches!(d1.shapes[0], Shape::Box { .. }));
@@ -1940,6 +1977,15 @@ mod tests {
             panic!()
         };
         assert!((*w - 1.0).abs() < 1e-9 && (*h - 0.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn multidimensional_variables_store_by_index_tuple() {
+        let d = draw("M[1,2] = 0.7\nj = 2\nM[1,j] += 0.2\nbox wid M[1,2] ht 0.3");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 0.9).abs() < 1e-9, "w = {w}");
     }
 
     #[test]
@@ -2103,6 +2149,15 @@ mod tests {
     }
 
     #[test]
+    fn bare_coordinate_pair_places_label() {
+        let d = draw("P: 1,2\nbox wid 0.2 ht 0.2 at P");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(1.0, 2.0)) < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
     fn block_sub_labels_resolve() {
         // `B.A` and `B.A.corner` reach a labelled object inside a block
         let d = draw("B: [ A: box wid 1 ht 1 at 0,0 ]\nbox wid 0.2 ht 0.2 with .sw at B.A.ne");
@@ -2130,6 +2185,24 @@ mod tests {
             panic!()
         };
         assert!(c.dist(Point::new(4.0, 3.0)) < 1e-9, "circle center = {c:?}");
+    }
+
+    #[test]
+    fn nested_macro_block_can_reference_parent_label() {
+        let d = draw(
+            "define marker { [ P: circle rad 0.01 at $1.start ] with .P at $1.start }\n[ A: arrow from (0,0) to (1,0); marker(A) ]",
+        );
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(
+            c.dist(pts[0]) < 1e-9,
+            "circle = {c:?}, arrow start = {:?}",
+            pts[0]
+        );
     }
 
     #[test]
@@ -2333,6 +2406,15 @@ mod tests {
             (*w - 1.0).abs() < 1e-9 && (*h - 3.0).abs() < 1e-9,
             "{w} x {h}"
         );
+    }
+
+    #[test]
+    fn exec_unescapes_generated_quoted_text() {
+        let d = draw("exec sprintf(\"\\\"x\\\" at Here\")");
+        let Shape::Text { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "x");
     }
 
     #[test]
