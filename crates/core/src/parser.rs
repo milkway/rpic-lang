@@ -37,8 +37,26 @@ impl From<LexError> for ParseError {
 /// Parse a full source string into a [`Picture`].
 pub fn parse(src: &str) -> Result<Picture, ParseError> {
     let toks = lex(src)?;
-    let toks = preprocess(toks)?;
-    Parser::new(toks).parse_picture()
+    let (toks, macros) = preprocess(toks)?;
+    let mut pic = Parser::new(toks).parse_picture()?;
+    pic.macros = macros;
+    Ok(pic)
+}
+
+/// Parse a deferred body (the raw tokens of an `if`/`for` block) with the macro
+/// table in scope, expanding macro calls along this executed path. Used by the
+/// evaluator so dead branches and recursive macros are never parsed.
+pub fn parse_body_tokens(toks: &[Spanned], macros: &Macros) -> Result<Vec<Stmt>, ParseError> {
+    let mut m = macros.clone();
+    let mut input = toks.to_vec();
+    input.push(Spanned {
+        tok: Token::Eof,
+        line: 0,
+        col: 0,
+    });
+    let expanded = expand(&input, &mut m, 0)?;
+    let mut p = Parser::new(expanded);
+    p.parse_elementlist(&[])
 }
 
 // ---- macro preprocessor ----------------------------------------------------
@@ -50,9 +68,10 @@ pub fn parse(src: &str) -> Result<Picture, ParseError> {
 
 use std::collections::HashMap;
 
-fn preprocess(input: Vec<Spanned>) -> Result<Vec<Spanned>, ParseError> {
-    let mut macros: HashMap<String, Vec<Spanned>> = HashMap::new();
-    expand(&input, &mut macros, 0)
+fn preprocess(input: Vec<Spanned>) -> Result<(Vec<Spanned>, Macros), ParseError> {
+    let mut macros: Macros = HashMap::new();
+    let out = expand(&input, &mut macros, 0)?;
+    Ok((out, macros))
 }
 
 fn loc(toks: &[Spanned], i: usize) -> (u32, u32) {
@@ -135,6 +154,39 @@ fn expand(
                     macros.remove(n);
                 }
                 i += 1;
+            }
+            // `if`/`for` bodies are copied verbatim (macro calls inside are not
+            // expanded here): they are expanded lazily, by the evaluator, only
+            // along the branch/iteration that actually runs. The condition/range
+            // is still expanded so macros there work.
+            Token::Kw(Kw::If) => {
+                out.push(toks[i].clone());
+                i += 1;
+                let Some(te) = find_kw_depth0(toks, i, Kw::Then) else {
+                    continue; // malformed; let the parser report it
+                };
+                out.extend(expand(&toks[i..te], macros, depth + 1)?);
+                out.push(toks[te].clone()); // `then`
+                i = copy_braced(toks, te + 1, &mut out)?;
+                // optional `else { … }` (possibly across newlines)
+                let mut j = i;
+                while matches!(toks.get(j).map(|s| &s.tok), Some(Token::Newline)) {
+                    j += 1;
+                }
+                if matches!(toks.get(j).map(|s| &s.tok), Some(Token::Kw(Kw::Else))) {
+                    out.push(toks[j].clone());
+                    i = copy_braced(toks, j + 1, &mut out)?;
+                }
+            }
+            Token::Kw(Kw::For) => {
+                out.push(toks[i].clone());
+                i += 1;
+                let Some(de) = find_kw_depth0(toks, i, Kw::Do) else {
+                    continue;
+                };
+                out.extend(expand(&toks[i..de], macros, depth + 1)?);
+                out.push(toks[de].clone()); // `do`
+                i = copy_braced(toks, de + 1, &mut out)?;
             }
             Token::Name(n) | Token::Label(n) if macros.contains_key(n) => {
                 let body = macros.get(n).unwrap().clone();
@@ -274,6 +326,60 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
     s
 }
 
+/// Find the next occurrence of keyword `kw` at bracket-depth 0 from `start`.
+fn find_kw_depth0(toks: &[Spanned], start: usize, kw: Kw) -> Option<usize> {
+    let mut depth = 0i32;
+    for (off, s) in toks[start..].iter().enumerate() {
+        match &s.tok {
+            Token::Lparen | Token::LeftBrace | Token::LeftBrack => depth += 1,
+            Token::Rparen | Token::RightBrace | Token::RightBrack => {
+                depth -= 1;
+                if depth < 0 {
+                    return None;
+                }
+            }
+            Token::Kw(k) if *k == kw && depth == 0 => return Some(start + off),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Copy a brace-delimited block verbatim into `out` (including any nested
+/// braces), skipping/copying leading newlines. Returns the index past the `}`.
+fn copy_braced(toks: &[Spanned], mut i: usize, out: &mut Vec<Spanned>) -> Result<usize, ParseError> {
+    while matches!(toks.get(i).map(|s| &s.tok), Some(Token::Newline)) {
+        out.push(toks[i].clone());
+        i += 1;
+    }
+    if !matches!(toks.get(i).map(|s| &s.tok), Some(Token::LeftBrace)) {
+        return Ok(i); // no body; the parser will report the problem
+    }
+    let mut depth = 0i32;
+    while let Some(s) = toks.get(i) {
+        match &s.tok {
+            Token::LeftBrace => depth += 1,
+            Token::RightBrace => {
+                out.push(s.clone());
+                i += 1;
+                depth -= 1;
+                if depth == 0 {
+                    return Ok(i);
+                }
+                continue;
+            }
+            _ => {}
+        }
+        out.push(s.clone());
+        i += 1;
+    }
+    Err(ParseError {
+        msg: "unterminated `{` body".into(),
+        line: 0,
+        col: 0,
+    })
+}
+
 type PResult<T> = Result<T, ParseError>;
 
 struct Parser {
@@ -393,6 +499,7 @@ impl Parser {
             width,
             height,
             stmts,
+            macros: HashMap::new(),
         })
     }
 
@@ -518,17 +625,15 @@ impl Parser {
         self.expect_kw(Kw::If)?;
         let cond = self.parse_expr()?;
         self.expect_kw(Kw::Then)?;
+        let then_body = self.capture_braced()?;
+        // optional `else { … }`, possibly across newlines (which otherwise end
+        // the statement)
+        let save = self.idx;
         self.skip_newlines();
-        self.expect(&Token::LeftBrace)?;
-        let then_body = self.parse_elementlist(&[Token::RightBrace])?;
-        self.expect(&Token::RightBrace)?;
         let else_body = if self.eat_kw(Kw::Else) {
-            self.skip_newlines();
-            self.expect(&Token::LeftBrace)?;
-            let b = self.parse_elementlist(&[Token::RightBrace])?;
-            self.expect(&Token::RightBrace)?;
-            Some(b)
+            Some(self.capture_braced()?)
         } else {
+            self.idx = save;
             None
         };
         Ok(Stmt::If {
@@ -558,10 +663,7 @@ impl Parser {
             by = self.parse_expr()?;
         }
         self.expect_kw(Kw::Do)?;
-        self.skip_newlines();
-        self.expect(&Token::LeftBrace)?;
-        let body = self.parse_elementlist(&[Token::RightBrace])?;
-        self.expect(&Token::RightBrace)?;
+        let body = self.capture_braced()?;
         Ok(Stmt::For {
             var,
             from,
@@ -570,6 +672,32 @@ impl Parser {
             mult,
             body,
         })
+    }
+
+    /// Capture a brace-delimited block as raw tokens (excluding the braces),
+    /// for deferred parsing by the evaluator. Assumes the body follows.
+    fn capture_braced(&mut self) -> PResult<Body> {
+        self.skip_newlines();
+        self.expect(&Token::LeftBrace)?;
+        let start = self.idx;
+        let mut depth = 1i32;
+        loop {
+            match self.cur() {
+                Token::LeftBrace => depth += 1,
+                Token::RightBrace => {
+                    depth -= 1;
+                    if depth == 0 {
+                        break;
+                    }
+                }
+                Token::Eof => return self.err("unterminated `{` body"),
+                _ => {}
+            }
+            self.bump();
+        }
+        let body = self.toks[start..self.idx].to_vec();
+        self.expect(&Token::RightBrace)?;
+        Ok(body)
     }
 
     fn parse_print(&mut self) -> PResult<Stmt> {
