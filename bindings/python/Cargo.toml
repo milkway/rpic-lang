@@ -3,7 +3,7 @@
 [package]
 name = "rpic-python"
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 license = "BSD-2-Clause"
 authors = ["André Leite <leite@de.ufpe.br>"]
 
@@ -14,6 +14,6 @@ crate-type = ["cdylib"]
 [dependencies]
 rpic-core = { path = "../../crates/core" }
 rpic-render = { path = "../../crates/render" }
-pyo3 = { version = "0.26", features = ["extension-module", "abi3-py39"] }
+pyo3 = { version = "0.29", features = ["extension-module", "abi3-py39"] }
 
 [workspace]

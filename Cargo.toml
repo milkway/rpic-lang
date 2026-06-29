@@ -11,7 +11,7 @@ members = [
 
 [workspace.package]
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 license = "BSD-2-Clause"
 authors = ["André Leite <leite@de.ufpe.br>"]
 repository = "https://github.com/leite/dpic"

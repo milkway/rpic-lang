@@ -4,7 +4,7 @@
 name = "rpic-wasm"
 description = "WASM bindings for rpic: compile pic source to an SVG + animation-manifest JSON bundle in the browser."
 version = "0.0.1"
-edition = "2021"
+edition = "2024"
 license = "BSD-2-Clause"
 authors = ["André Leite <leite@de.ufpe.br>"]
 
