@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="246.8" height="62.4" viewBox="0 0 246.8 62.4" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="7.6" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="43.6" y="31.2" text-anchor="middle" dominant-baseline="central">Microfone</text>
+</g>
+<g id="s1">
+<polyline points="79.6,31.2 84.4,31.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="84.4,31.2 84.4,24.8 89.2,24.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="89.2,24.8 79.6,27.2 79.6,22.4" fill="black"/>
+</g>
+<g id="s3">
+<polyline points="84.4,31.2 84.4,37.6 89.2,37.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="89.2,37.6 79.6,40 79.6,35.2" fill="black"/>
+</g>
+<g id="s4">
+<rect x="89.2" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="125.2" y="19.2" text-anchor="middle" dominant-baseline="central">Filtro PF</text>
+<text x="125.2" y="36.8" text-anchor="middle" dominant-baseline="central">em $f_0$</text>
+</g>
+<g id="s5">
+<rect x="89.2" y="10.4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="125.2" y="25.6" text-anchor="middle" dominant-baseline="central">Filtro PF</text>
+<text x="125.2" y="43.2" text-anchor="middle" dominant-baseline="central">em $f_1$</text>
+</g>
+<g id="s6">
+<polyline points="161.2,28 166,28 166,34 170.8,34" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="170.8,34 161.2,36.4 161.2,31.6" fill="black"/>
+</g>
+<g id="s7">
+<polyline points="161.2,34.4 166,34.4 166,28.4 170.8,28.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="170.8,28.4 161.2,30.8 161.2,26" fill="black"/>
+</g>
+<g id="s8">
+<rect x="170.8" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="206.8" y="22.4" text-anchor="middle" dominant-baseline="central">Rede</text>
+<text x="206.8" y="40" text-anchor="middle" dominant-baseline="central">Neural</text>
+</g>
+</svg>

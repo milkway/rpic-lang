@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="509.6" height="424.8" viewBox="0 0 509.6 424.8" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="374" cy="276.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<circle cx="374" cy="252.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<circle cx="422" cy="252.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<circle cx="422" cy="228.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<circle cx="470" cy="252.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<circle cx="254" cy="204.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<circle cx="230" cy="252.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<circle cx="254" cy="252.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<circle cx="266" cy="228.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<circle cx="182" cy="240.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<circle cx="254" cy="324.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<circle cx="302" cy="348.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s12">
+<circle cx="350" cy="348.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<circle cx="266" cy="372.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s14">
+<circle cx="326" cy="360.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<polyline points="422,420.8 278,108.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+</g>
+<g id="s16">
+<polyline points="182,348.8 422,156.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+</g>
+<g id="s17">
+<polyline points="158,291.2 470,305.6" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+</g>
+<g id="s18">
+<text x="182" y="204.8" text-anchor="middle" dominant-baseline="central">{\small Classe $0$}</text>
+</g>
+<g id="s19">
+<text x="326" y="396.8" text-anchor="middle" dominant-baseline="central">{\small Classe $1$}</text>
+</g>
+<g id="s20">
+<text x="422" y="204.8" text-anchor="middle" dominant-baseline="central">{\small Classe $2$}</text>
+</g>
+<g id="s21">
+</g>
+<g id="s22">
+<text x="278" y="264.8" text-anchor="middle" dominant-baseline="central">{\tiny Reta de Decisão para nó $1$}</text>
+</g>
+<g id="s23">
+</g>
+<g id="s24">
+<text x="182" y="252.8" text-anchor="middle" dominant-baseline="central">{\tiny Reta de Decisão para nó $0$}</text>
+</g>
+<g id="s25">
+</g>
+<g id="s26">
+<text x="158" y="298.4" text-anchor="middle" dominant-baseline="central">{\tiny Reta de Decisão para nó $2$}</text>
+</g>
+<g id="s27">
+<text x="326" y="12.8" text-anchor="middle" dominant-baseline="central">{ }</text>
+</g>
+</svg>

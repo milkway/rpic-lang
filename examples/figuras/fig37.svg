@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="162" height="65.6" viewBox="0 0 162 65.6" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="26" cy="37.6" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<text x="26" y="37.6" text-anchor="middle" dominant-baseline="central">$a_1$</text>
+</g>
+<g id="s2">
+<polyline points="40.4,37.6 54.8,37.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,37.6 45.2,40 45.2,35.2" fill="black"/>
+<text x="47.6" y="37.6" text-anchor="middle" dominant-baseline="central">$w_{1}$</text>
+</g>
+<g id="s3">
+<circle cx="59.6" cy="37.6" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<text x="59.6" y="37.6" text-anchor="middle" dominant-baseline="central">$\sum$</text>
+</g>
+<g id="s5">
+<circle cx="26" cy="28" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<text x="26" y="28" text-anchor="middle" dominant-baseline="central">$1$</text>
+</g>
+<g id="s7">
+<polyline points="40.4,28 54.8,32.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,32.8 44.934,32.041 46.452,27.487" fill="black"/>
+<text x="47.6" y="30.4" text-anchor="middle" dominant-baseline="central">$w_{0}$</text>
+</g>
+<g id="s8">
+<circle cx="26" cy="47.2" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<text x="26" y="47.2" text-anchor="middle" dominant-baseline="central">$a_2$</text>
+</g>
+<g id="s10">
+<polyline points="40.4,47.2 54.8,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,42.4 46.452,47.713 44.934,43.159" fill="black"/>
+<text x="47.6" y="44.8" text-anchor="middle" dominant-baseline="central">$w_{2}$</text>
+</g>
+<g id="s11">
+<polyline points="64.4,37.6 74,37.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="74,37.6 64.4,40 64.4,35.2" fill="black"/>
+</g>
+<g id="s12">
+<rect x="74" y="13.6" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<polyline points="83.6,52 131.6,52 110,52 110,52 110,4 110,23.2 110,23.2 158,23.2 136.4,23.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

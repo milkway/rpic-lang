@@ -1,0 +1,19 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+X2:line -> right_ dimen_*1; move to X2.w; "{\small entrada}" rjust;
+T:circle radius dimen_/3 with .w at X2.end; "$i$" at T.c
+X1:line -> "$w_{_{ij}}$" below from T.e right_ dimen_*1
+T2:circle radius dimen_/3 with .w at X1.end; "$j$" at T2.c
+X3:line -> from T2.e right_ dimen_*1
+move to T.ne; "$a_i$" ljust
+move to T2.ne;"$a_j$" ljust
+.PE

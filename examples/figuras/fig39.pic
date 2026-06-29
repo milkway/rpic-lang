@@ -1,0 +1,35 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+C1:circle radius dimen_/6 with .c at (0,0)
+C2:circle radius dimen_/6 with .c at (1.5*dimen_,0)
+C3:circle radius dimen_/6 with .c at (3*dimen_,0)
+C4:circle radius dimen_/6 with .c at (0,2*dimen_)
+C5:circle radius dimen_/6 with .c at (1.5*dimen_,2*dimen_)
+C6:circle radius dimen_/6 with .c at (3*dimen_,2*dimen_)
+line from C1.n to C4.s
+line from C2.nw to C4.se
+line from C3.nw to C4.se
+line from C1.ne to C5.sw
+line from C2.n to C5.s
+line from C3.nw to C5.se
+line from C1.ne to C6.sw
+line from C2.ne to C6.sw
+line from C3.n to C6.s
+"$x_0$" at C1.c - (0,.2)
+"$x_1$" at C2.c - (0,.2)
+"Polarização" at C3.c - (0,.2)
+"$y_0$" at C4.c + (0,.2)
+"$y_1$" at C5.c + (0,.2)
+"$y_2$" at C6.c + (0,.2)
+.PE
