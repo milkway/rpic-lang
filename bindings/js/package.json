@@ -1,0 +1,37 @@
+{
+  "name": "@milkway/rpic",
+  "version": "0.0.1",
+  "description": "The pic graphics language compiled to SVG with animation manifests, via WebAssembly. Browser + Node.",
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "pkg/rpic_wasm.js",
+    "pkg/rpic_wasm.d.ts",
+    "pkg/rpic_wasm_bg.wasm",
+    "pkg/rpic_wasm_bg.wasm.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "wasm-pack build ../../crates/wasm --target web --out-dir pkg"
+  },
+  "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits"],
+  "author": "André Leite <leite@de.ufpe.br>",
+  "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/milkway/rpic-lang.git",
+    "directory": "bindings/js"
+  },
+  "sideEffects": false
+}
