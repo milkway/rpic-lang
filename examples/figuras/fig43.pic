@@ -1,0 +1,36 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+B1:box "Agente" "Externo";
+L1:line -> from B1.s down_ dimen_/4 then left_ 1.5*dimen_ then down_ dimen_/4;
+B2:box wid 1 "Sensores" "Digitais";
+L2:line -> from B1.s down_ dimen_/4 then right_ 1.5*dimen_ then down_ dimen_/4;
+B3:box wid 1 "Sensores" "Analógicos";
+L3:line -> from B2.s down_ dimen_/2;
+B4:box wid 1 "Transmissor" "FSK";
+L4:line -> from B3.s down_ dimen_/2;
+B5:box wid 1 "Transmissor" "FM";
+L5:line -> from B4.s down_ dimen_/2;
+B6:box wid 1 "Receptor" "FSK";
+L6:line -> from B5.s down_ dimen_/2;
+B7:box wid 1 "Receptor" "FM";
+L7:line -> from B6.s down_ dimen_ then right_ 4.5*dimen_ then up_ 3*dimen_ then right_ 1*dimen_
+L8:line -> from B7.s down_ .75*dimen_ then right_ 1.25*dimen_ then up_ 2.75*dimen_+boxht/4 then right_ 1.25*dimen_
+B8:box wid 1 "{\tt Rede}" "{\tt Neural}" with .w at L8.e-(0,boxht/8)
+L9:line -> from B8.e right_ dimen_;
+B9:box wid 1 "Sistema de" "Controle" "de Acesso";
+L10:line -> from B8.e+(0,boxht/6) right_ dimen_/2 then up_ dimen_ then right_ dimen_/2;
+B10:box wid 1 "Sistema de" "Alarme";
+L11:line -> from B8.e-(0,boxht/6) right_ dimen_/2 then down_ dimen_ then right_ dimen_/2;
+B11:box wid 1 "Sistema de" "Anúncio";
+.PE

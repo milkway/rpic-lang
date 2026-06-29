@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="194.8" height="70.4" viewBox="0 0 194.8 70.4" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="37.6,42.4 42.4,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="42.4,42.4 32.8,44.8 32.8,40" fill="black"/>
+</g>
+<g id="s1">
+<text x="37.6" y="42.4" text-anchor="middle" dominant-baseline="central">RF</text>
+</g>
+<g id="s2">
+<circle cx="44.8" cy="42.4" r="2.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<polyline points="47.2,42.4 52,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52,42.4 42.4,44.8 42.4,40" fill="black"/>
+</g>
+<g id="s4">
+<rect x="52" y="38.8" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="56.8" y="42.4" text-anchor="middle" dominant-baseline="central"> $A$ </text>
+</g>
+<g id="s5">
+<polyline points="61.6,42.4 71.2,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="71.2,42.4 61.6,44.8 61.6,40" fill="black"/>
+</g>
+<g id="s6">
+<polyline points="66.4,42.4 66.4,52 61.6,52" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="61.6,52 71.2,49.6 71.2,54.4" fill="black"/>
+</g>
+<g id="s7">
+<rect x="52" y="48.4" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="56.8" y="52" text-anchor="middle" dominant-baseline="central">$\beta$</text>
+</g>
+<g id="s8">
+<polyline points="52,52 4,52 4,4 44.8,44.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="44.8,44.8 36.315,39.709 39.709,36.315" fill="black"/>
+</g>
+<g id="s9">
+<text x="44.8" y="42.4" text-anchor="middle" dominant-baseline="central">$+$</text>
+</g>
+<g id="s10">
+<rect x="71.2" y="18.4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="107.2" y="33.6" text-anchor="middle" dominant-baseline="central">{\small Detetor de}</text>
+<text x="107.2" y="51.2" text-anchor="middle" dominant-baseline="central">{\small envelope}</text>
+</g>
+<g id="s11">
+<polyline points="143.2,42.4 148,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="148,42.4 138.4,44.8 138.4,40" fill="black"/>
+</g>
+<g id="s12">
+<text x="148" y="42.4" text-anchor="middle" dominant-baseline="central">BF</text>
+</g>
+<g id="s13">
+<polyline points="56.8,38.8 56.8,34" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="56.8,38.8 54.4,29.2 59.2,29.2" fill="black"/>
+</g>
+<g id="s14">
+<rect x="53.2" y="29.2" width="7.2" height="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="56.8" y="31.6" text-anchor="middle" dominant-baseline="central">oct</text>
+</g>
+</svg>

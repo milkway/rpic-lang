@@ -83,6 +83,9 @@ in [`examples/dpic/`](examples/dpic). Each `.pic` is paired with its rendered
 rpic --svg examples/dpic/manual/man16.pic -o man16.svg
 ```
 
+[`examples/figuras/`](examples/figuras) collects circuit_macros figures from
+**André Leite's** personal collection, rendered by rpic.
+
 ## Animation (GSAP)
 
 A declarative extension, faithful to pic's style:

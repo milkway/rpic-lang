@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="310.8" height="246.4" viewBox="0 0 310.8 246.4" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="30.8" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="66.8" y="19.2" text-anchor="middle" dominant-baseline="central">Agente</text>
+<text x="66.8" y="36.8" text-anchor="middle" dominant-baseline="central">Externo</text>
+</g>
+<g id="s1">
+<polyline points="66.8,52 66.8,54.4 52.4,54.4 52.4,56.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52.4,56.8 50,47.2 54.8,47.2" fill="black"/>
+</g>
+<g id="s2">
+<rect x="4.4" y="56.8" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="52.4" y="72" text-anchor="middle" dominant-baseline="central">Sensores</text>
+<text x="52.4" y="89.6" text-anchor="middle" dominant-baseline="central">Digitais</text>
+</g>
+<g id="s3">
+<polyline points="66.8,52 66.8,54.4 81.2,54.4 81.2,56.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="81.2,56.8 78.8,47.2 83.6,47.2" fill="black"/>
+</g>
+<g id="s4">
+<rect x="33.2" y="56.8" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="81.2" y="72" text-anchor="middle" dominant-baseline="central">Sensores</text>
+<text x="81.2" y="89.6" text-anchor="middle" dominant-baseline="central">Analógicos</text>
+</g>
+<g id="s5">
+<polyline points="52.4,104.8 52.4,109.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52.4,109.6 50,100 54.8,100" fill="black"/>
+</g>
+<g id="s6">
+<rect x="4.4" y="109.6" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="52.4" y="124.8" text-anchor="middle" dominant-baseline="central">Transmissor</text>
+<text x="52.4" y="142.4" text-anchor="middle" dominant-baseline="central">FSK</text>
+</g>
+<g id="s7">
+<polyline points="81.2,104.8 81.2,109.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="81.2,109.6 78.8,100 83.6,100" fill="black"/>
+</g>
+<g id="s8">
+<rect x="33.2" y="109.6" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="81.2" y="124.8" text-anchor="middle" dominant-baseline="central">Transmissor</text>
+<text x="81.2" y="142.4" text-anchor="middle" dominant-baseline="central">FM</text>
+</g>
+<g id="s9">
+<polyline points="52.4,157.6 52.4,162.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52.4,162.4 50,152.8 54.8,152.8" fill="black"/>
+</g>
+<g id="s10">
+<rect x="4.4" y="162.4" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="52.4" y="177.6" text-anchor="middle" dominant-baseline="central">Receptor</text>
+<text x="52.4" y="195.2" text-anchor="middle" dominant-baseline="central">FSK</text>
+</g>
+<g id="s11">
+<polyline points="81.2,157.6 81.2,162.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="81.2,162.4 78.8,152.8 83.6,152.8" fill="black"/>
+</g>
+<g id="s12">
+<rect x="33.2" y="162.4" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="81.2" y="177.6" text-anchor="middle" dominant-baseline="central">Receptor</text>
+<text x="81.2" y="195.2" text-anchor="middle" dominant-baseline="central">FM</text>
+</g>
+<g id="s13">
+<polyline points="52.4,210.4 52.4,220 95.6,220 95.6,191.2 105.2,191.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="105.2,191.2 95.6,193.6 95.6,188.8" fill="black"/>
+</g>
+<g id="s14">
+<polyline points="81.2,210.4 81.2,217.6 93.2,217.6 93.2,179.2 105.2,179.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="105.2,179.2 95.6,181.6 95.6,176.8" fill="black"/>
+</g>
+<g id="s15">
+<rect x="105.2" y="176.8" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="153.2" y="192" text-anchor="middle" dominant-baseline="central">{\tt Rede}</text>
+<text x="153.2" y="209.6" text-anchor="middle" dominant-baseline="central">{\tt Neural}</text>
+</g>
+<g id="s16">
+<polyline points="201.2,200.8 210.8,200.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="210.8,200.8 201.2,203.2 201.2,198.4" fill="black"/>
+</g>
+<g id="s17">
+<rect x="210.8" y="176.8" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="258.8" y="183.2" text-anchor="middle" dominant-baseline="central">Sistema de</text>
+<text x="258.8" y="200.8" text-anchor="middle" dominant-baseline="central">Controle</text>
+<text x="258.8" y="218.4" text-anchor="middle" dominant-baseline="central">de Acesso</text>
+</g>
+<g id="s18">
+<polyline points="201.2,192.8 206,192.8 206,183.2 210.8,183.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="210.8,183.2 201.2,185.6 201.2,180.8" fill="black"/>
+</g>
+<g id="s19">
+<rect x="210.8" y="159.2" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="258.8" y="174.4" text-anchor="middle" dominant-baseline="central">Sistema de</text>
+<text x="258.8" y="192" text-anchor="middle" dominant-baseline="central">Alarme</text>
+</g>
+<g id="s20">
+<polyline points="201.2,208.8 206,208.8 206,218.4 210.8,218.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="210.8,218.4 201.2,220.8 201.2,216" fill="black"/>
+</g>
+<g id="s21">
+<rect x="210.8" y="194.4" width="96" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="258.8" y="209.6" text-anchor="middle" dominant-baseline="central">Sistema de</text>
+<text x="258.8" y="227.2" text-anchor="middle" dominant-baseline="central">Anúncio</text>
+</g>
+</svg>

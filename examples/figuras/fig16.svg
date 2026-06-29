@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236.8" height="3151.494" viewBox="0 0 236.8 3151.494" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="108.8,3138.694 156.8,3138.694" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="156.8,3138.694 147.2,3141.094 147.2,3136.294" fill="black"/>
+</g>
+<g id="s1">
+<text x="156.8" y="3138.694" text-anchor="middle" dominant-baseline="central">$t$</text>
+</g>
+<g id="s2">
+<polyline points="111.2,3141.094 111.2,3112.294" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="111.2,3112.294 113.6,3121.894 108.8,3121.894" fill="black"/>
+</g>
+<g id="s3">
+<text x="111.2" y="3112.294" text-anchor="middle" dominant-baseline="central">$f(t)$</text>
+</g>
+<g id="s4">
+<polyline points="120.8,3138.694 120.8,1602.694 116,1602.694 116,3138.694 120.8,3138.694" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<text x="120.8" y="3138.694" text-anchor="middle" dominant-baseline="central">$2$</text>
+</g>
+<g id="s6">
+<polyline points="125.6,3138.694 125.6,2072.027 120.8,2072.027 120.8,3138.694 125.6,3138.694" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<text x="125.6" y="3138.694" text-anchor="middle" dominant-baseline="central">$3$</text>
+</g>
+<g id="s8">
+<polyline points="130.4,3138.694 130.4,2355.02 125.6,2355.02 125.6,3138.694 130.4,3138.694" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<text x="130.4" y="3138.694" text-anchor="middle" dominant-baseline="central">$4$</text>
+</g>
+<g id="s10">
+<polyline points="144.8,3138.694 144.8,2754.694 140,2754.694 140,3138.694 144.8,3138.694" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<text x="144.8" y="3138.694" text-anchor="middle" dominant-baseline="central">$N$</text>
+</g>
+<g id="s12">
+<polyline points="116,738.694 116,3138.694" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="1,3" stroke-linecap="round"/>
+</g>
+<g id="s13">
+<text x="116" y="3138.694" text-anchor="middle" dominant-baseline="central">$1$</text>
+</g>
+<g id="s14">
+</g>
+<g id="s15">
+<text x="118.4" y="735.494" text-anchor="middle" dominant-baseline="central">$\leftarrow \frac{1}{t^2}$</text>
+</g>
+<g id="s16">
+<text x="135.2" y="2838.694" text-anchor="middle" dominant-baseline="central">$\cdots$</text>
+</g>
+<g id="s17">
+<text x="135.2" y="3138.694" text-anchor="middle" dominant-baseline="central">$\cdots$</text>
+</g>
+<g id="s18">
+<polyline points="113.6,4 114.56,333.727" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s19">
+<polyline points="114.56,333.727 115.52,614.039" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s20">
+<polyline points="115.52,614.039 116.48,854.339" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s21">
+<polyline points="116.48,854.339 117.44,1061.896" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s22">
+<polyline points="117.44,1061.896 118.4,1242.398" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s23">
+<polyline points="118.4,1242.398 119.36,1400.351" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s24">
+<polyline points="119.36,1400.351 120.32,1539.36" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s25">
+<polyline points="120.32,1539.36 121.28,1662.339" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s26">
+<polyline points="121.28,1662.339 122.24,1771.659" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s27">
+<polyline points="122.24,1771.659 123.2,1869.272" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s28">
+<polyline points="123.2,1869.272 124.16,1956.792" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s29">
+<polyline points="124.16,1956.792 125.12,2035.563" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s30">
+<polyline points="125.12,2035.563 126.08,2106.713" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s31">
+<polyline points="126.08,2106.713 127.04,2171.196" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s32">
+<polyline points="127.04,2171.196 128,2229.818" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s33">
+<polyline points="128,2229.818 128.96,2283.27" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s34">
+<polyline points="128.96,2283.27 129.92,2332.141" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s35">
+<polyline points="129.92,2332.141 130.88,2376.94" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s36">
+<polyline points="130.88,2376.94 131.84,2418.108" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s37">
+<polyline points="131.84,2418.108 132.8,2456.027" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s38">
+<polyline points="132.8,2456.027 133.76,2491.03" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s39">
+<polyline points="133.76,2491.03 134.72,2523.408" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s40">
+<polyline points="134.72,2523.408 135.68,2553.417" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s41">
+<polyline points="135.68,2553.417 136.64,2581.284" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s42">
+<polyline points="136.64,2581.284 137.6,2607.206" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s43">
+<polyline points="137.6,2607.206 138.56,2631.361" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s44">
+<polyline points="138.56,2631.361 139.52,2653.907" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s45">
+<polyline points="139.52,2653.907 140.48,2674.982" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s46">
+<polyline points="140.48,2674.982 141.44,2694.712" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s47">
+<polyline points="141.44,2694.712 142.4,2713.209" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s48">
+<polyline points="142.4,2713.209 143.36,2730.574" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s49">
+<polyline points="143.36,2730.574 144.32,2746.897" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s50">
+<polyline points="144.32,2746.897 145.28,2762.26" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s51">
+<polyline points="145.28,2762.26 146.24,2776.737" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s52">
+<polyline points="146.24,2776.737 147.2,2790.395" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s53">
+<polyline points="147.2,2790.395 148.16,2803.293" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s54">
+<polyline points="148.16,2803.293 149.12,2815.489" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s55">
+<polyline points="149.12,2815.489 150.08,2827.031" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s56">
+<polyline points="150.08,2827.031 151.04,2837.966" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s57">
+<polyline points="151.04,2837.966 152,2848.335" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s58">
+<polyline points="152,2848.335 152.96,2858.177" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s59">
+<polyline points="152.96,2858.177 153.92,2867.527" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s60">
+<polyline points="153.92,2867.527 154.88,2876.417" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

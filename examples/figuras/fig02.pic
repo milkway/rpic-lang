@@ -1,0 +1,62 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_*.5
+j=dimen_*sqrt(3)/2
+i=dimen_/2
+define cell {
+move to ($2,$3)
+A:line up_ dimen_*sqrt(3)/2 right_ dimen_/2
+B:line right_ dimen_
+C:line down_ dimen_*sqrt(3)/2 right_ dimen_/2
+D:line down_ dimen_*sqrt(3)/2 left_ dimen_/2
+E:line left_ dimen_
+F:line up_ dimen_*sqrt(3)/2 left_ dimen_/2
+"$1$" at A.start + (dimen_,0)
+move to C.end}
+cell(,0,0)
+cell(B_1,0,2*j)
+cell(C_1,3*i,j)
+cell(D_1,3*i,-j)
+cell(,0,4*j)
+cell(B_2,0,6*j)
+cell(C_2,3*i,5*j)
+cell(D_2,3*i,3*j)
+cell(,6*i,2*j)
+cell(B_3,6*i,4*j)
+cell(C_3,9*i,3*j)
+cell(D_3,9*i,1*j)
+cell(,6*i,-2*j)
+cell(B_4,6*i,0)
+cell(C_4,9*i,-1*j)
+cell(D_4,9*i,-3*j)
+cell(,0,-4*j)
+cell(B_5,0,-2*j)
+cell(C_5,3*i,-3*j)
+cell(D_5,3*i,-5*j)
+cell(,-6*i,-2*j)
+cell(B_6,-6*i,0)
+cell(C_6,-3*i,-1*j)
+cell(D_6,-3*i,-3*j)
+cell(,-6*i,2*j)
+cell(B_7,-6*i,4*j)
+cell(C_7,-3*i,1*j)
+cell(D_7,-3*i,3*j)
+linethick=linethick*(.5)
+A:line dotted from (2*i,0) to (2*i,4*j); "\blue{$_{_{A_1}}$}" at A.start rjust
+B:line dotted from (2*i,0) to (8*i,2*j);"\blue{$_{_{A_2}}$}" at A.end + (0,.1)
+C:line dotted from (2*i,0) to (8*i,-2*j);"\blue{$_{_{A_3}}$}" at B.end ljust
+D:line dotted from (2*i,0) to (2*i,-4*j);"\blue{$_{_{A_4}}$}" at C.end ljust
+E:line dotted from (2*i,0) to (-4*i,-2*j);"\blue{$_{_{A_5}}$}" at D.end + (0,-.1)
+F:line dotted from (2*i,0) to (-4*i,2*j);"\blue{$_{_{A_6}}$}" at E.end rjust
+G:line dotted from (2*i,0) to (-4*i,2*j);"\blue{$_{_{A_7}}$}" at F.end rjust
+"\blue{$_{_{A_7}}$}" at G.end rjust
+.PE

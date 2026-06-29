@@ -2241,6 +2241,20 @@ mod tests {
     }
 
     #[test]
+    fn figuras_examples_compile() {
+        // a few of André Leite's circuit_macros figures (examples/figuras/),
+        // adapted with the compatibility shim — they must keep compiling/drawing.
+        for src in [
+            include_str!("../../../examples/figuras/fig01.pic"),
+            include_str!("../../../examples/figuras/fig36.pic"),
+            include_str!("../../../examples/figuras/fig40.pic"),
+        ] {
+            let d = eval(&parse(src).unwrap()).unwrap();
+            assert!(!d.shapes.is_empty());
+        }
+    }
+
+    #[test]
     fn brace_ncount_as_place() {
         // `{expr}th last box` — a brace-counted ordinal used as a place
         let d = draw(

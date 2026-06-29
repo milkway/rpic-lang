@@ -1,0 +1,26 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+O:(0,0)
+X:line -> from O-(.5*dimen_,0) right_ 3*dimen_; "$t$" below;
+Y:line -> from O-(0,.5*dimen_) up_ 2.5*dimen_; "$f(t)$" rjust;
+"$0$" at O below rjust
+L1:line from O up_ .5*dimen_ then right_ .5*dimen_ then up_ .5*dimen_ then right_ .5*dimen_ then up_ .5*dimen_ then right_ .5*dimen_ then down_ 3*.5*dimen_;
+"${T}$" at O+(3*.5*dimen_,0) below
+"$\frac{2T}{3}$" at O+(2*.5*dimen_,0) below
+"$\frac{T}{3}$" at O+(1*.5*dimen_,0) below
+"$1$" at O+(0,1*.5*dimen_) rjust
+"$2$" at O+(0,2*.5*dimen_) rjust
+"$3$" at O+(0,3*.5*dimen_) rjust
+"$\dots$" at O + (-1*dimen_,1*dimen_)
+"$\dots$" at O + (2*dimen_,1*dimen_)
+.PE

@@ -1,0 +1,39 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+circle radius .05 with .c at (1,.5)/2
+circle radius .05 with .c at (1,1)/2
+circle radius .05 with .c at (2,1)/2
+circle radius .05 with .c at (2,1.5)/2
+circle radius .05 with .c at (3,1)/2
+circle radius .05 with .c at (-1.5,2)/2
+circle radius .05 with .c at (-2,1)/2
+circle radius .05 with .c at (-1.5,1)/2
+circle radius .05 with .c at (-1.25,1.5)/2
+circle radius .05 with .c at (-3,1.25)/2
+circle radius .05 with .c at (-1.5,-.5)/2
+circle radius .05 with .c at (-.5,-1)/2
+circle radius .05 with .c at (.5,-1)/2
+circle radius .05 with .c at (-1.25,-1.5)/2
+circle radius .05 with .c at (0,-1.25)/2
+D1:line dashed from (2,-2.5)/2 to (-1,4)/2
+D2:line dashed from (-3,-1)/2 to (2,3)/2
+D3:line dashed from (-3.5,.2)/2 to (3,-.1)/2
+"{\small Classe $0$}" at (-3,2)/2
+"{\small Classe $1$}" at (0,-2)/2
+"{\small Classe $2$}" at (2,2)/2
+move to D1.w; "{\tiny Reta de Decisão para nó $1$}" ljust
+move to D2.w; "{\tiny Reta de Decisão para nó $0$}" rjust
+move to D3.w; "{\tiny Reta de Decisão para nó $2$}" rjust
+"{ }" at (0,3)
+.PE

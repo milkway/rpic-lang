@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="166.4" height="49.6" viewBox="0 0 166.4 49.6" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="60.8,36.8 108.8,36.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="108.8,36.8 99.2,39.2 99.2,34.4" fill="black"/>
+</g>
+<g id="s1">
+<text x="108.8" y="36.8" text-anchor="middle" dominant-baseline="central">$t$</text>
+</g>
+<g id="s2">
+<polyline points="84.8,41.6 84.8,12.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="84.8,12.8 87.2,22.4 82.4,22.4" fill="black"/>
+</g>
+<g id="s3">
+<text x="84.8" y="12.8" text-anchor="middle" dominant-baseline="central">$f(t)$</text>
+</g>
+<g id="s4">
+<text x="84.8" y="36.8" text-anchor="middle" dominant-baseline="central">$0$</text>
+</g>
+<g id="s5">
+<polyline points="77.6,36.8 77.6,20 92,20 92,36.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<text x="77.6" y="36.8" text-anchor="middle" dominant-baseline="central">$\frac{\tau}{2}$</text>
+</g>
+<g id="s7">
+<text x="92" y="36.8" text-anchor="middle" dominant-baseline="central">$\frac{\tau}{2}$</text>
+</g>
+<g id="s8">
+<text x="84.8" y="20" text-anchor="middle" dominant-baseline="central">$A$</text>
+</g>
+<g id="s9">
+<text x="104" y="36.8" text-anchor="middle" dominant-baseline="central">$\frac{T}{2}$</text>
+</g>
+<g id="s10">
+<text x="65.6" y="36.8" text-anchor="middle" dominant-baseline="central">$-\frac{T}{2}$</text>
+</g>
+<g id="s11">
+<text x="104" y="28.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+</g>
+<g id="s12">
+<text x="65.6" y="28.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+</g>
+</svg>

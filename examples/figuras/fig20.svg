@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="131.6" height="44.8" viewBox="0 0 131.6 44.8" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="51.6,32 80.4,32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="80.4,32 70.8,34.4 70.8,29.6" fill="black"/>
+</g>
+<g id="s1">
+<text x="80.4" y="32" text-anchor="middle" dominant-baseline="central">$t$</text>
+</g>
+<g id="s2">
+<polyline points="56.4,36.8 56.4,12.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="56.4,12.8 58.8,22.4 54,22.4" fill="black"/>
+</g>
+<g id="s3">
+<text x="56.4" y="12.8" text-anchor="middle" dominant-baseline="central">$f(t)$</text>
+</g>
+<g id="s4">
+<text x="56.4" y="32" text-anchor="middle" dominant-baseline="central">$0$</text>
+</g>
+<g id="s5">
+<polyline points="56.4,32 56.4,27.2 61.2,27.2 61.2,22.4 66,22.4 66,17.6 70.8,17.6 70.8,32" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<text x="70.8" y="32" text-anchor="middle" dominant-baseline="central">${T}$</text>
+</g>
+<g id="s7">
+<text x="66" y="32" text-anchor="middle" dominant-baseline="central">$\frac{2T}{3}$</text>
+</g>
+<g id="s8">
+<text x="61.2" y="32" text-anchor="middle" dominant-baseline="central">$\frac{T}{3}$</text>
+</g>
+<g id="s9">
+<text x="56.4" y="27.2" text-anchor="middle" dominant-baseline="central">$1$</text>
+</g>
+<g id="s10">
+<text x="56.4" y="22.4" text-anchor="middle" dominant-baseline="central">$2$</text>
+</g>
+<g id="s11">
+<text x="56.4" y="17.6" text-anchor="middle" dominant-baseline="central">$3$</text>
+</g>
+<g id="s12">
+<text x="46.8" y="22.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+</g>
+<g id="s13">
+<text x="75.6" y="22.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+</g>
+</svg>

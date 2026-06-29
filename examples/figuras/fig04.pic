@@ -1,0 +1,27 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+linethick=linethick*(1.5)
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+L1:line -> right_ dimen_/2; "RF" rjust at L1.w
+C1:circle radius dimen_/4 with .w at L1.e
+L2:line -> from C1.e right_ dimen_/2
+B1:box " $A$ " wid dimen_ ht dimen_*3/4
+L3:line -> right_ dimen_;
+L4:line -> from L3.c down_ dimen_*1 then left_ dimen_/2;
+B4:box "$\beta$" wid dimen_ ht dimen_*3/4
+L7:line -> left_ (B4.w.x-C1.c.x) then up_ to C1.s
+"$+$" at C1.c
+B2:box with .w at L3.e "{\small Detetor de}" "{\small envelope}"
+L5:line -> from B2.e right_ dimen_/2; "BF" ljust
+L6:line <- from B1.n up_ dimen_/2;
+B3:box "oct" ht dimen_/2 wid dimen_*3/4
+.PE

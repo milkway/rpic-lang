@@ -1,0 +1,30 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_*1
+j=dimen_*sqrt(3)/2
+i=dimen_/2
+define cell {
+move to ($2,$3)
+A:line up_ dimen_*sqrt(3)/2 right_ dimen_/2
+B:line right_ dimen_
+C:line down_ dimen_*sqrt(3)/2 right_ dimen_/2
+D:line down_ dimen_*sqrt(3)/2 left_ dimen_/2
+E:line left_ dimen_
+F:line up_ dimen_*sqrt(3)/2 left_ dimen_/2
+"$1$" at A.start + (dimen_,0)
+move to C.end}
+cell(,0,0)
+dimen_=dimen_*.5
+cell(,0,0)
+cell(,3*i/2,j/2)
+cell(,3*i/2,-j/2)
+.PE

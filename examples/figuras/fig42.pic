@@ -1,0 +1,38 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+C1:circle radius dimen_/4 with .c at (0,0)
+C2:circle radius dimen_/4 with .c at (0,dimen_)
+C3:circle radius dimen_/4 with .c at (0,-dimen_)
+C4:circle radius dimen_/4 with .c at (1.5*dimen_,0)
+C5:circle radius dimen_/4 with .c at (3*dimen_,0)
+C6:circle radius dimen_/4 with .c at (3*dimen_,dimen_)
+C7:circle radius dimen_/4 with .c at (3*dimen_,-dimen_)
+line from C1.e to C4.w
+line from C2.se to C4.nw
+line from C3.ne to C4.sw
+line from C4.e to C5.w
+line from C4.ne to C6.sw
+line from C4.se to C7.nw
+"$1$" at C1.c
+"$2$" at C2.c
+"$n$" at C3.c
+"$j$" at C4.c
+"$1$" at C5.c
+"$2$" at C6.c
+"$m$" at C7.c
+"{\small entradas}" at C1.w - (.4,0)
+T1:"{\small saídas}" at C5.e + (.3,0)
+line "{\small unidade de processamento}" above from (T1.e.x+dimen_,-2*dimen_) left_ to (C4.c.x,-2*dimen_);
+line -> up_ to C4.s - (0,.1);
+.PE

@@ -1,0 +1,20 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+O:(0,0); "${\scriptsize 0}$" below rjust
+X:line -> from O-(5*dimen_,0) right_ 10*dimen_; "$t$" below;
+Y:line -> from O-(0,.25*dimen_) up_ 3*dimen_; "$\Lambda(t)$" rjust;
+L4:line dotted from     O+(.5*dimen_,2*dimen_) left_ .5*dimen_; "${\scriptsize 1}$" rjust
+L1: line from O - (.5*dimen_,0) to O+(.5*dimen_,2*dimen_) then to O + (1.5*dimen_,0); "${\scriptsize n=1}$" below
+L2: line from O - (1.5*dimen_,0) to O+(.25*dimen_,2*dimen_) then to O + (2.25*dimen_,0); "${\scriptsize n=2}$" below
+L3: line from O - (3.875*dimen_,0) to O+(.125*dimen_,2*dimen_) then to O + (4.125*dimen_,0);"${\scriptsize n=3}$" below
+.PE

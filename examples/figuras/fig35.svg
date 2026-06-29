@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="122.4" height="56" viewBox="0 0 122.4 56" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="26" cy="28" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<text x="26" y="28" text-anchor="middle" dominant-baseline="central">$a_1$</text>
+</g>
+<g id="s2">
+<polyline points="40.4,28 54.8,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,28 45.2,30.4 45.2,25.6" fill="black"/>
+<text x="47.6" y="28" text-anchor="middle" dominant-baseline="central">$w_{1}$</text>
+</g>
+<g id="s3">
+<circle cx="61.2" cy="28" r="6.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<text x="61.2" y="28" text-anchor="middle" dominant-baseline="central">$\sum + \int$</text>
+</g>
+<g id="s5">
+<circle cx="26" cy="18.4" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<text x="26" y="18.4" text-anchor="middle" dominant-baseline="central">$a_0$</text>
+</g>
+<g id="s7">
+<polyline points="40.4,18.4 54.8,21.6" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,21.6 44.908,21.86 45.949,17.175" fill="black"/>
+<text x="47.6" y="20" text-anchor="middle" dominant-baseline="central">$w_{0}$</text>
+</g>
+<g id="s8">
+<circle cx="26" cy="37.6" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<text x="26" y="37.6" text-anchor="middle" dominant-baseline="central">$a_2$</text>
+</g>
+<g id="s10">
+<polyline points="40.4,37.6 54.8,34.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.8,34.4 45.949,38.825 44.908,34.14" fill="black"/>
+<text x="47.6" y="36" text-anchor="middle" dominant-baseline="central">$w_{2}$</text>
+</g>
+<g id="s11">
+<polyline points="67.6,28 82,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="82,28 72.4,30.4 72.4,25.6" fill="black"/>
+<text x="74.8" y="28" text-anchor="middle" dominant-baseline="central">$x_j$</text>
+</g>
+</svg>

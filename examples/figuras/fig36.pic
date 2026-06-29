@@ -1,0 +1,27 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+X:line -> right_ 3.5; "$a_1$" ljust
+Y:line -> from X.w up_ 3.5; "$a_2$" rjust
+D:line dashed from (-.2,1) to (3.5,2.25)
+circle radius .1 with .c at (1,1)
+circle radius .1 with .c at (1.5,.5)
+circle radius .1 with .c at (2,1)
+circle radius .1 with .c at (2.5,1.5)
+circle radius .1 with .c at (3,.8)
+circle radius .1 with .c at (0,2)
+circle radius .1 with .c at (1,2.5)
+circle radius .1 with .c at (1.5,2.25)
+circle radius .1 with .c at (1.25,1.9)
+circle radius .1 with .c at (2,2.6)
+.PE

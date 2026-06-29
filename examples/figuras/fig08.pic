@@ -1,0 +1,22 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+O:(0,0)
+
+X:line -> from O-(2.5*dimen_,0) right_ 5*dimen_; "$t$" below;
+Y:line -> from O-(0,.5*dimen_) up_ 2*dimen_; "$f(t)=A\cos(20t)$" ljust;
+"${\scriptsize 0}$" at O below rjust
+for i=-2*dimen_ to 1.99*dimen_ by 0.01 do {
+line from (i,.25*cos(2*3.1415*3.18*i)) to (i+0.01,.25*cos(2*3.1415*3.18*(i+0.01)))}
+"${\scriptsize \frac{\pi}{5}}$" at O+(2*dimen_,0) below
+"${\scriptsize \frac{\pi}{5}}$" at O-(2*dimen_,0) below
+.PE

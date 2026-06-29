@@ -1,0 +1,42 @@
+define include {}
+define cct_init {}
+dimen_ = 0.1
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+.PS
+include(libcct.m4); cct_init; linethick=linethick*(1.5)
+dimen_=dimen_; Origem:(0,0)
+C1:circle radius dimen_/6 with .c at (0,0)
+C2:circle radius dimen_/6 with .c at (0,-dimen_)
+C3:circle radius dimen_/6 with .c at (1.5*dimen_,dimen_)
+C4:circle radius dimen_/6 with .c at (1.5*dimen_,0)
+C5:circle radius dimen_/6 with .c at (1.5*dimen_,-dimen_)
+C6:circle radius dimen_/6 with .c at (1.5*dimen_,-2*dimen_)
+C7:circle radius dimen_/6 with .c at (3*dimen_,dimen_)
+C8:circle radius dimen_/6 with .c at (3*dimen_,0)
+C9:circle radius dimen_/6 with .c at (3*dimen_,-dimen_)
+C10:circle radius dimen_/6 with .c at (3*dimen_,-2*dimen_)
+C11:circle radius dimen_/6 with .c at (4.5*dimen_,0)
+C12:circle radius dimen_/6 with .c at (4.5*dimen_,-dimen_)
+line from C1.ne to C3.sw; line from C1.e to C4.w
+line from C1.se to C5.nw; line from C1.se to C6.nw
+line from C2.ne to C3.sw; line from C2.ne to C4.w
+line from C2.e to C5.w; line from C2.se to C6.w
+line from C3.e to C7.w; line from C3.se to C8.nw
+line from C3.se to C9.nw; line from C3.se to C10.nw
+line from C4.ne to C7.sw; line from C4.e to C8.w
+line from C4.se to C9.nw; line from C4.se to C10.nw
+line from C5.ne to C7.sw; line from C5.ne to C8.sw
+line from C5.e to C9.w; line from C5.se to C10.nw
+line from C6.ne to C7.sw; line from C6.ne to C8.sw
+line from C6.ne to C9.sw; line from C6.e to C10.w
+line from C7.se to C11.nw; line from C7.se to C12.nw
+line from C8.e to C11.w; line from C8.se to C12.nw
+line from C9.ne to C11.sw; line from C9.e to C12.w
+line from C10.ne to C11.sw; line from C10.ne to C12.sw
+"{\tiny Camadas Intermediárias}" at C3.c + (.35,.2)
+"{\tiny Camada de Entrada}" at (-.5,(C1.c.y +C2.c.y)/2)
+"{\tiny Camada de Saída}" at (C11.c.x+ .4,(C11.c.y +C12.c.y)/2)
+.PE
