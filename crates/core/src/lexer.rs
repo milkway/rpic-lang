@@ -161,7 +161,11 @@ impl Lexer {
             } else if c == '.' {
                 self.lex_dot()?
             } else if c.is_alphabetic() || c == '_' {
-                self.lex_word()
+                let tok = self.lex_word();
+                if matches!(tok, Token::Kw(Kw::Sh | Kw::Command)) {
+                    self.skip_raw_line_tail();
+                }
+                tok
             } else {
                 match self.lex_operator()? {
                     Some(t) => t,
@@ -196,6 +200,15 @@ impl Lexer {
             }
         }
         Ok(Token::Str(s))
+    }
+
+    fn skip_raw_line_tail(&mut self) {
+        while let Some(c) = self.peek() {
+            if c == '\n' {
+                break;
+            }
+            self.bump();
+        }
     }
 
     fn lex_arg(&mut self) -> Result<Token, LexError> {
@@ -693,6 +706,28 @@ mod tests {
                 Token::Prim(Prim::Circle),
                 Token::Newline,
                 Token::Prim(Prim::Arc),
+                Token::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn shell_commands_skip_raw_line_tail() {
+        assert_eq!(
+            toks("sh \"echo -n \\\"print \\\\\\\"\\\" > $1_prow\"\nbox"),
+            vec![
+                Token::Kw(Kw::Sh),
+                Token::Newline,
+                Token::Prim(Prim::Box),
+                Token::Eof
+            ]
+        );
+        assert_eq!(
+            toks("command \\foo $bad \"unterminated\ncircle"),
+            vec![
+                Token::Kw(Kw::Command),
+                Token::Newline,
+                Token::Prim(Prim::Circle),
                 Token::Eof
             ]
         );
