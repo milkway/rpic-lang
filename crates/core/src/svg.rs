@@ -228,7 +228,11 @@ impl Svg {
 
     fn stroke(&self, style: &Style) -> String {
         let color = style.stroke.clone().unwrap_or_else(|| "black".into());
-        let mut s = format!("stroke=\"{}\" stroke-width=\"{}\"", color, num(thick_px(style)));
+        let mut s = format!(
+            "stroke=\"{}\" stroke-width=\"{}\"",
+            color,
+            num(thick_px(style))
+        );
         match style.dash {
             Dash::Solid => {}
             Dash::Dashed => s.push_str(" stroke-dasharray=\"4,3\""),

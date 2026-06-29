@@ -317,11 +317,9 @@ impl State {
 
     fn eval_animate(&mut self, a: &Animate) -> ER<()> {
         let idx = self.place_index(&a.target)?;
-        let shape = self.placed[idx]
-            .shape
-            .ok_or_else(|| EvalError {
-                msg: "cannot animate a point (no drawn shape)".into(),
-            })?;
+        let shape = self.placed[idx].shape.ok_or_else(|| EvalError {
+            msg: "cannot animate a point (no drawn shape)".into(),
+        })?;
         let dur = match &a.duration {
             Some(e) => self.eval_expr(e)?,
             None => DEFAULT_ANIM_DUR,
@@ -393,25 +391,34 @@ impl State {
         let (mut w, mut h, mut rad);
         match p {
             Prim::Circle => {
-                let r = self.dim(obj, DimKind::Rad)?.unwrap_or(self.env.get(EnvVar::Circlerad));
                 let r = self
-                    .dim(obj, DimKind::Diam)?
-                    .map(|d| d / 2.0)
-                    .unwrap_or(r);
+                    .dim(obj, DimKind::Rad)?
+                    .unwrap_or(self.env.get(EnvVar::Circlerad));
+                let r = self.dim(obj, DimKind::Diam)?.map(|d| d / 2.0).unwrap_or(r);
                 w = 2.0 * r;
                 h = 2.0 * r;
                 rad = r;
             }
             Prim::Ellipse => {
-                w = self.dim(obj, DimKind::Wid)?.unwrap_or(self.env.get(EnvVar::Ellipsewid));
-                h = self.dim(obj, DimKind::Ht)?.unwrap_or(self.env.get(EnvVar::Ellipseht));
+                w = self
+                    .dim(obj, DimKind::Wid)?
+                    .unwrap_or(self.env.get(EnvVar::Ellipsewid));
+                h = self
+                    .dim(obj, DimKind::Ht)?
+                    .unwrap_or(self.env.get(EnvVar::Ellipseht));
                 rad = 0.0;
             }
             _ => {
                 // box
-                w = self.dim(obj, DimKind::Wid)?.unwrap_or(self.env.get(EnvVar::Boxwid));
-                h = self.dim(obj, DimKind::Ht)?.unwrap_or(self.env.get(EnvVar::Boxht));
-                rad = self.dim(obj, DimKind::Rad)?.unwrap_or(self.env.get(EnvVar::Boxrad));
+                w = self
+                    .dim(obj, DimKind::Wid)?
+                    .unwrap_or(self.env.get(EnvVar::Boxwid));
+                h = self
+                    .dim(obj, DimKind::Ht)?
+                    .unwrap_or(self.env.get(EnvVar::Boxht));
+                rad = self
+                    .dim(obj, DimKind::Rad)?
+                    .unwrap_or(self.env.get(EnvVar::Boxrad));
             }
         }
         w *= scale;
@@ -527,7 +534,11 @@ impl State {
         }
         if pts.len() == 1 && !any {
             // bare line/arrow/move in the current direction
-            let dist = if horizontal(self.dir) { deflen_h } else { deflen_v };
+            let dist = if horizontal(self.dir) {
+                deflen_h
+            } else {
+                deflen_v
+            };
             pts.push(start + dir_unit(self.dir) * dist);
             last_dir = self.dir;
         }
@@ -867,9 +878,7 @@ impl State {
                 }
                 Ok(p)
             }
-            Position::Between {
-                frac, a, b, ..
-            } => {
+            Position::Between { frac, a, b, .. } => {
                 let f = self.eval_expr(frac)?;
                 let pa = self.eval_pos(a)?;
                 let pb = self.eval_pos(b)?;
@@ -922,12 +931,9 @@ impl State {
     }
 
     fn label_index(&self, name: &str) -> ER<usize> {
-        self.labels
-            .get(name)
-            .copied()
-            .ok_or_else(|| EvalError {
-                msg: format!("unknown label `{name}`"),
-            })
+        self.labels.get(name).copied().ok_or_else(|| EvalError {
+            msg: format!("unknown label `{name}`"),
+        })
     }
 
     fn nth_index(&mut self, count: &Nth, obj: &PrimObj) -> ER<usize> {
@@ -1091,11 +1097,7 @@ fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> f64 {
 }
 
 fn bool_f(b: bool) -> f64 {
-    if b {
-        1.0
-    } else {
-        0.0
-    }
+    if b { 1.0 } else { 0.0 }
 }
 
 fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
@@ -1145,11 +1147,7 @@ fn want_name(k: PKind) -> &'static str {
 
 fn nearest_dir(v: Point) -> Dir {
     if v.x.abs() >= v.y.abs() {
-        if v.x >= 0.0 {
-            Dir::Right
-        } else {
-            Dir::Left
-        }
+        if v.x >= 0.0 { Dir::Right } else { Dir::Left }
     } else if v.y >= 0.0 {
         Dir::Up
     } else {
@@ -1187,16 +1185,13 @@ fn sprintf_fmt(fmt: &str, vals: &[f64]) -> String {
         }
         let v = vals.get(ai).copied().unwrap_or(0.0);
         ai += 1;
-        let prec = spec
-            .split('.')
-            .nth(1)
-            .and_then(|p| {
-                p.chars()
-                    .take_while(|c| c.is_ascii_digit())
-                    .collect::<String>()
-                    .parse::<usize>()
-                    .ok()
-            });
+        let prec = spec.split('.').nth(1).and_then(|p| {
+            p.chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect::<String>()
+                .parse::<usize>()
+                .ok()
+        });
         match conv {
             'd' | 'i' => out.push_str(&format!("{}", v.round() as i64)),
             'f' | 'F' => out.push_str(&format!("{:.*}", prec.unwrap_or(6), v)),
@@ -1246,9 +1241,7 @@ mod tests {
 
     #[test]
     fn pipeline_chains_left_to_right() {
-        let d = draw(
-            ".PS\nellipse \"document\"\narrow\nbox \"PIC\"\narrow\nbox \"TROFF\"\n.PE",
-        );
+        let d = draw(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\narrow\nbox \"TROFF\"\n.PE");
         // 5 shapes
         assert_eq!(d.shapes.len(), 5);
         // first ellipse centered at (0.375, 0): ellipsewid/2
@@ -1291,7 +1284,10 @@ mod tests {
         let Shape::Box { c, .. } = &d.shapes[1] else {
             panic!()
         };
-        assert!((c.x - 0.75).abs() < 1e-9 && (c.y - 0.75).abs() < 1e-9, "c = {c:?}");
+        assert!(
+            (c.x - 0.75).abs() < 1e-9 && (c.y - 0.75).abs() < 1e-9,
+            "c = {c:?}"
+        );
     }
 
     #[test]

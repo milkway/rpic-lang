@@ -1,0 +1,16 @@
+[package]
+name = "rpic-capi"
+description = "Stable C ABI for rpic — the foundation for non-Rust bindings (R, Python, etc.)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+name = "rpic"
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+rpic-core = { path = "../core" }
+rpic-render = { path = "../render" }

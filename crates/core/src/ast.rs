@@ -5,7 +5,9 @@
 //! blocks, assignments). Control constructs (`if`/`for`/`define`/`print`/…) have
 //! AST slots reserved but are wired up in a later milestone.
 
-use crate::token::{Arrow, Color, Corner, Dir, EnvVar, Func1, Func2, LineType, Param, Prim, TextPos};
+use crate::token::{
+    Arrow, Color, Corner, Dir, EnvVar, Func1, Func2, LineType, Param, Prim, TextPos,
+};
 
 /// A complete picture: optional `.PS <w> <h>` dimensions plus a list of elements.
 #[derive(Debug, Clone, PartialEq)]
@@ -26,7 +28,10 @@ pub struct Label {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     /// A drawn object, optionally labelled (`Start: box …`).
-    Object { label: Option<Label>, object: Object },
+    Object {
+        label: Option<Label>,
+        object: Object,
+    },
     /// `Label: position` — names a point without drawing.
     Place { label: Label, pos: Position },
     /// One or more comma-separated assignments.
@@ -216,7 +221,10 @@ pub enum Place {
         subscript: Option<Box<Expr>>,
     },
     /// `last box`, `2nd last circle`, etc.
-    Nth { count: Nth, obj: PrimObj },
+    Nth {
+        count: Nth,
+        obj: PrimObj,
+    },
     /// `place . corner` (e.g. `A.ne`).
     Corner(Box<Place>, Corner),
     /// `corner of place` / `corner place` (e.g. `top of A`).

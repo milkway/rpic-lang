@@ -88,50 +88,124 @@ pub enum Token {
 /// General keywords: attributes, ordinals, control words, commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kw {
-    Ht, Wid, Rad, Diam, Thick, Scaled,
-    From, To, At, With, By, Then, Continue, Chop, Same, Cw, Ccw,
-    Of, The, Way, Between, And, Here, Last, Fill,
+    Ht,
+    Wid,
+    Rad,
+    Diam,
+    Thick,
+    Scaled,
+    From,
+    To,
+    At,
+    With,
+    By,
+    Then,
+    Continue,
+    Chop,
+    Same,
+    Cw,
+    Ccw,
+    Of,
+    The,
+    Way,
+    Between,
+    And,
+    Here,
+    Last,
+    Fill,
     Nth, // ordinal marker: st / nd / rd / th
-    Print, Copy, Reset, Exec, Sh, Command, Define, Undef, Rand,
-    If, Else, For, Do, Sprintf,
+    Print,
+    Copy,
+    Reset,
+    Exec,
+    Sh,
+    Command,
+    Define,
+    Undef,
+    Rand,
+    If,
+    Else,
+    For,
+    Do,
+    Sprintf,
     // rpic animation extension (not in classic pic)
-    Animate, After, Delay,
+    Animate,
+    After,
+    Delay,
 }
 
 /// Compass / named corners of an object.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Corner {
-    N, S, E, W, Ne, Se, Nw, Sw, Start, End, Center,
+    N,
+    S,
+    E,
+    W,
+    Ne,
+    Se,
+    Nw,
+    Sw,
+    Start,
+    End,
+    Center,
 }
 
 /// Dotted attribute accessors: `.ht .wid .rad .diam .thick .len`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Param {
-    Height, Width, Radius, Diameter, Thickness, Length,
+    Height,
+    Width,
+    Radius,
+    Diameter,
+    Thickness,
+    Length,
 }
 
 /// Single-argument math functions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Func1 {
-    Abs, Acos, Asin, Cos, Exp, Expe, Int, Log, Loge, Sign, Sin, Sqrt, Tan, Floor,
+    Abs,
+    Acos,
+    Asin,
+    Cos,
+    Exp,
+    Expe,
+    Int,
+    Log,
+    Loge,
+    Sign,
+    Sin,
+    Sqrt,
+    Tan,
+    Floor,
 }
 
 /// Two-argument math functions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Func2 {
-    Atan2, Max, Min, Pmod,
+    Atan2,
+    Max,
+    Min,
+    Pmod,
 }
 
 /// Line style attributes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineType {
-    Solid, Dotted, Dashed, Invis,
+    Solid,
+    Dotted,
+    Dashed,
+    Invis,
 }
 
 /// Text justification attributes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextPos {
-    Center, Ljust, Rjust, Above, Below,
+    Center,
+    Ljust,
+    Rjust,
+    Above,
+    Below,
 }
 
 /// Arrowhead specifiers.
@@ -145,26 +219,57 @@ pub enum Arrow {
 /// Direction-of-motion words.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Dir {
-    Up, Down, Right, Left,
+    Up,
+    Down,
+    Right,
+    Left,
 }
 
 /// Drawable primitive objects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Prim {
-    Box, Circle, Ellipse, Arc, Line, Arrow, Move, Spline,
+    Box,
+    Circle,
+    Ellipse,
+    Arc,
+    Line,
+    Arrow,
+    Move,
+    Spline,
 }
 
 /// Color / outline / shade attribute keyword.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Color {
-    Colored, Outlined, Shaded,
+    Colored,
+    Outlined,
+    Shaded,
 }
 
 /// Built-in environment variables (default dimensions & globals).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvVar {
-    Arcrad, Arrowht, Arrowwid, Boxht, Boxrad, Boxwid, Circlerad, Dashwid,
-    Ellipseht, Ellipsewid, Lineht, Linewid, Moveht, Movewid, Textht,
-    Textoffset, Textwid, Arrowhead, Fillval, Linethick, Maxpsht, Maxpswid,
+    Arcrad,
+    Arrowht,
+    Arrowwid,
+    Boxht,
+    Boxrad,
+    Boxwid,
+    Circlerad,
+    Dashwid,
+    Ellipseht,
+    Ellipsewid,
+    Lineht,
+    Linewid,
+    Moveht,
+    Movewid,
+    Textht,
+    Textoffset,
+    Textwid,
+    Arrowhead,
+    Fillval,
+    Linethick,
+    Maxpsht,
+    Maxpswid,
     Scale,
 }

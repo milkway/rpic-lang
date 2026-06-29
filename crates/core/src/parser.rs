@@ -7,7 +7,7 @@
 //! (`if`/`for`/`define`/`print`/`sh`/…) are reported as unsupported for now.
 
 use crate::ast::*;
-use crate::lexer::{lex, LexError, Spanned};
+use crate::lexer::{LexError, Spanned, lex};
 use crate::token::*;
 
 /// A parse error with source location.
@@ -85,14 +85,15 @@ fn expand(
                             msg: "define: expected a macro name".into(),
                             line: l,
                             col: c,
-                        })
+                        });
                     }
                 };
                 i += 1;
                 if toks.get(i).map(|s| &s.tok) != Some(&Token::LeftBrace) {
                     let (l, c) = loc(toks, i);
                     return Err(ParseError {
-                        msg: "define: expected `{` (only `define name { body }` is supported)".into(),
+                        msg: "define: expected `{` (only `define name { body }` is supported)"
+                            .into(),
                         line: l,
                         col: c,
                     });
@@ -126,9 +127,7 @@ fn expand(
             }
             Token::Kw(Kw::Undef) => {
                 i += 1;
-                if let Some(Token::Name(n)) | Some(Token::Label(n)) =
-                    toks.get(i).map(|s| &s.tok)
-                {
+                if let Some(Token::Name(n)) | Some(Token::Label(n)) = toks.get(i).map(|s| &s.tok) {
                     macros.remove(n);
                 }
                 i += 1;
@@ -515,7 +514,9 @@ impl Parser {
                         list.push(*v);
                         self.bump();
                     }
-                    other => return self.err(format!("expected environment variable, found {other:?}")),
+                    other => {
+                        return self.err(format!("expected environment variable, found {other:?}"));
+                    }
                 }
             }
         }
@@ -1314,12 +1315,18 @@ ellipse "typesetter"
         // the dashed box with two strings
         if let Stmt::Object { object, .. } = &p.stmts[4] {
             assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
-            let texts = object.attrs.iter().filter(|a| matches!(a, Attr::Text(_))).count();
-            assert_eq!(texts, 2);
-            assert!(object
+            let texts = object
                 .attrs
                 .iter()
-                .any(|a| matches!(a, Attr::LineStyle(LineType::Dashed, _))));
+                .filter(|a| matches!(a, Attr::Text(_)))
+                .count();
+            assert_eq!(texts, 2);
+            assert!(
+                object
+                    .attrs
+                    .iter()
+                    .any(|a| matches!(a, Attr::LineStyle(LineType::Dashed, _)))
+            );
         } else {
             panic!("expected object");
         }
@@ -1344,14 +1351,19 @@ ellipse "typesetter"
             panic!()
         };
         assert_eq!(object.kind, ObjectKind::Primitive(Prim::Arc));
-        assert!(object
-            .attrs
-            .iter()
-            .any(|a| matches!(a, Attr::Arrowhead(Arrow::Right, _))));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::Arrowhead(Arrow::Right, _)))
+        );
         // from top of B1
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::From(Position::Place(Location::Place(Place::CornerOf(Corner::N, _)), _))
+            Attr::From(Position::Place(
+                Location::Place(Place::CornerOf(Corner::N, _)),
+                _
+            ))
         )));
     }
 
@@ -1395,7 +1407,10 @@ ellipse "typesetter"
         };
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::From(Position::Between { of_the_way: true, .. })
+            Attr::From(Position::Between {
+                of_the_way: true,
+                ..
+            })
         )));
     }
 
@@ -1427,7 +1442,11 @@ ellipse "typesetter"
         let Stmt::Object { object, .. } = &p.stmts[0] else {
             panic!()
         };
-        let thens = object.attrs.iter().filter(|a| matches!(a, Attr::Then)).count();
+        let thens = object
+            .attrs
+            .iter()
+            .filter(|a| matches!(a, Attr::Then))
+            .count();
         assert_eq!(thens, 3);
     }
 

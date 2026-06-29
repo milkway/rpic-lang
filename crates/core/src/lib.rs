@@ -16,10 +16,10 @@ pub mod parser;
 pub mod svg;
 pub mod token;
 
-pub use eval::{eval, EvalError};
+pub use eval::{EvalError, eval};
 pub use ir::Drawing;
-pub use lexer::{lex, LexError};
-pub use parser::{parse, ParseError};
+pub use lexer::{LexError, lex};
+pub use parser::{ParseError, parse};
 pub use svg::to_svg;
 pub use token::Token;
 

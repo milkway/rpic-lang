@@ -502,6 +502,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rpic-capi"
+version = "0.0.1"
+dependencies = [
+ "rpic-core",
+ "rpic-render",
+]
+
+[[package]]
 name = "rpic-cli"
 version = "0.0.1"
 dependencies = [

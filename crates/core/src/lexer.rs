@@ -135,7 +135,9 @@ impl Lexer {
                 self.lex_string()?
             } else if c == '$' {
                 self.lex_arg()?
-            } else if c.is_ascii_digit() || (c == '.' && self.peek_at(1).is_some_and(|d| d.is_ascii_digit())) {
+            } else if c.is_ascii_digit()
+                || (c == '.' && self.peek_at(1).is_some_and(|d| d.is_ascii_digit()))
+            {
                 self.lex_number()?
             } else if c == '.' {
                 self.lex_dot()?
@@ -553,11 +555,7 @@ mod tests {
     fn basic_box() {
         assert_eq!(
             toks("box \"hi\""),
-            vec![
-                Token::Prim(Prim::Box),
-                Token::Str("hi".into()),
-                Token::Eof
-            ]
+            vec![Token::Prim(Prim::Box), Token::Str("hi".into()), Token::Eof]
         );
     }
 
@@ -609,7 +607,12 @@ mod tests {
     fn minus_is_not_arrow_without_gt() {
         assert_eq!(
             toks("2-3"),
-            vec![Token::Float(2.0), Token::Minus, Token::Float(3.0), Token::Eof]
+            vec![
+                Token::Float(2.0),
+                Token::Minus,
+                Token::Float(3.0),
+                Token::Eof
+            ]
         );
     }
 

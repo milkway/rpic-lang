@@ -14,3 +14,16 @@ path = "src/main.rs"
 [dependencies]
 rpic-core = { path = "../core" }
 rpic-render = { version = "0.0.1", path = "../render" }
+
+# Debian packaging (cargo-deb): `cargo deb -p rpic-cli`
+[package.metadata.deb]
+maintainer = "André Leite <leite@de.ufpe.br>"
+copyright = "2026, André Leite"
+license-file = ["../../LICENSE", "0"]
+extended-description = "rpic renders the pic picture-drawing language to SVG, PNG and PDF, with a native circuit-element library."
+section = "graphics"
+priority = "optional"
+assets = [
+    ["target/release/rpic", "usr/bin/", "755"],
+    ["../../README.md", "usr/share/doc/rpic/README.md", "644"],
+]
