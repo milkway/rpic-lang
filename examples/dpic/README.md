@@ -62,8 +62,13 @@ A binary tree drawn by a **recursive macro** (`man36`):
 
 ![man36](manual/man36.svg)
 
+A 3-D figure assembled with `copy`-included projection macros (`3d/EscherCube`,
+which pulls in `3d/libdp3D.pic`):
+
+![EscherCube](3d/EscherCube.svg)
+
 ## Parity status
 
-52 examples render faithfully and are included here (corpus pass rate 61/72).
+53 examples render faithfully and are included here (corpus pass rate 63/72).
 The full pass/fail matrix — and the dpic-specific features rpic does not yet
 implement — is in [`STATUS.md`](STATUS.md).

@@ -1,0 +1,100 @@
+.PS
+############################################################################
+# dpic-only version of parts of lib3D and libgen.
+
+# Useful constants
+  dprtod_=57.295779513082323
+  dpdtor_=0.017453292519943295
+  dptwopi_=6.2831853071795862
+  dppi_=(dptwopi_/2)
+  dpctension_=0.551784
+
+# pic libgen functions
+#                               DIntersect_(Name1,Name2)
+#                               Intersection of named lines or moves
+define DIntersect_ {Dintersect_($1.start,$1.end,$2.start,$2.end)}
+
+#                               Dintersect_(Start1,End1,Start2,End2)
+#                               Intersection of lines joining named positions
+define Dintersect_ {((($3.x-$1.x)*($3.y-$4.y)-($3.y-$1.y)*($3.x-$4.x))/\
+   (($2.x-$1.x)*($3.y-$4.y)-($2.y-$1.y)*($3.x-$4.x)) between $1 and $2)}
+
+# libg3D routines with return arguments
+define Drot3z {$5=cos($1)*($2)-sin($1)*($3);$6=sin($1)*($2)+cos($1)*($3);$7=$4} 
+define Drot3y {$5=cos($1)*($2)+sin($1)*($4);$6=$3;$7=cos($1)*($4)-sin($1)*($2)} 
+define Drot3x {$5=$2,$6=cos($1)*($3)-sin($1)*($4),$7=sin($1)*($3)+cos($1)*($4)} 
+
+#                               Dproject(x3D,y3D,z3D,x,y)
+define Dproject_ {
+  Drot3z(-dpazim,$1,$2,$3,dpxx,dpyy,dpzz) 
+  Drot3y(dpelev,dpxx,dpyy,dpzz,dpxxx,dpyyy,dpzzz) 
+  $4=cos(dprot)*dpyyy-sin(dprot)*dpzzz
+  $5=sin(dprot)*dpyyy+cos(dprot)*dpzzz
+  }
+#                               Projection coords back to orig 3D coords
+define PtoBase3D {
+  Drot3Dx(-m4rot,$1,$2,$3, dpxx,dpyy,dpzz)
+  Drot3Dy(-m4elev,dpxx,dpyy,dpzz, dpxxx,dpyyy,dpzzz)
+  Drot3Dz(m4azim,dpxxx,dpyyy,dpzzz, $4,$5,$6) }
+
+#                               Cross product cross3D(x1,y1,z1,x2,y2,z2)
+define cross3D {
+  $7=($2)*($6)-($3)*($5)
+  $8=($3)*($4)-($1)*($6)
+  $9=($1)*($5)-($2)*($4); }
+  
+#                               Dot product dpdot3D(x1,y1,z1,x2,y2,z2)
+define dpdot3D { (($1)*($4)+($2)*($5)+($3)*($6)) }
+#                               Vector addition, subtraction, scalar product
+define dpsum3D { $7=$1+$4; $8=$2+$5; $9=$3+$6 }
+define dpdiff3D { $7=$1-($4); $8=$2-($5); $9=$3-($6) }
+define dpsprod3D { $5=($1)*($2); $6=($1)*($3); $7=($1)*($4); }
+#                               Euclidian length
+define dplength3D { sqrt(($1)^2+($2)^2+($3)^2) }
+#                               Unit vector
+define dpunit3D { dpsprod3D(1/dplength3D($1,$2,$3),$1,$2,$3, $5,$6,$7) }
+#                               Proportion: between3D(x,Vec1,Vec2), i.e.
+#                               Vec1 * (1-x) + Vec2 * x
+define Dbetween3D {
+  $8=(1-($1))*($2)+($1)*($5)
+  $9=(1-($1))*($3)+($1)*($6)
+  $10=(1-($1))*($4)+($1)*($7); }
+
+
+#                               dpsetview( azimuth, elevation, rotation )
+#                               Set view angles (degrees) for projection onto
+#                               the yz plane. The view vector is obtained by
+#                               looking in along the x axis, then rotating
+#                               about -x, -y, and z in that order.  The
+#                               projected position is givent by Dproject() or
+#                               DProject().  If rotation = 0, the projection
+#                               matrix P is
+#                               P =(       -sin(az),        cos(az),   0   )
+#                                  (-sin(el)cos(az),-sin(az)sin(el),cos(el))
+define dpsetview { # ( azimuth, elevation, rotation )
+ dpazim=($1)*dpdtor_
+ dpelev=($2)*dpdtor_
+ dprot=($3)*dpdtor_
+ dpcaz=cos(dpazim)
+ dpsaz=sin(dpazim)
+ dpcel=cos(dpelev)
+ dpsel=sin(dpelev)
+ dpcro=cos(dprot)
+ dpsro=sin(dprot)
+ dpview3D1=dpcaz*dpcel
+ dpview3D2=dpsaz*dpcel
+ dpview3D3=dpsel
+ dplight3D1=dpview3D1; dplight3D2=dpview3D2; dplight3D3=dpview3D3
+
+#                               Unit vectors projected onto the view plane
+ Dproject_(1,0,0,dpx_,dpy_); UDx: dpx_,dpy_
+ Dproject_(0,1,0,dpx_,dpy_); UDy: dpx_,dpy_
+ Dproject_(0,0,1,dpx_,dpy_); UDz: dpx_,dpy_
+ }
+
+#                               View-plane coords of projected 3D point
+define DProject { (UDx*($1)+UDy*($2)+UDz*($3)) }
+
+
+############################################################################
+.PE

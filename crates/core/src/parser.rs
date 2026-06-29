@@ -34,20 +34,32 @@ impl From<LexError> for ParseError {
     }
 }
 
-/// Parse a full source string into a [`Picture`].
+/// Parse a full source string into a [`Picture`] with no filesystem context.
+/// `copy "file"` includes are unavailable (they require a base directory).
 pub fn parse(src: &str) -> Result<Picture, ParseError> {
+    parse_in_dir(src, None)
+}
+
+/// Parse pic source, resolving `copy "file"` includes relative to `base`.
+pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseError> {
     let src = strip_backend_preamble(src);
     let toks = lex(&src)?;
-    let (toks, macros) = preprocess(toks)?;
+    let (toks, macros) = preprocess(toks, base)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
+    pic.base_dir = base.map(|p| p.to_path_buf());
     Ok(pic)
 }
 
 /// Parse a deferred body (the raw tokens of an `if`/`for` block) with the macro
-/// table in scope, expanding macro calls along this executed path. Used by the
-/// evaluator so dead branches and recursive macros are never parsed.
-pub fn parse_body_tokens(toks: &[Spanned], macros: &Macros) -> Result<Vec<Stmt>, ParseError> {
+/// table in scope, expanding macro calls (and `copy` includes) along this
+/// executed path. Used by the evaluator so dead branches and recursive macros
+/// are never parsed.
+pub fn parse_body_tokens(
+    toks: &[Spanned],
+    macros: &Macros,
+    base: Option<&Path>,
+) -> Result<Vec<Stmt>, ParseError> {
     let mut m = macros.clone();
     let mut input = toks.to_vec();
     input.push(Spanned {
@@ -55,7 +67,7 @@ pub fn parse_body_tokens(toks: &[Spanned], macros: &Macros) -> Result<Vec<Stmt>,
         line: 0,
         col: 0,
     });
-    let expanded = expand(&input, &mut m, 0)?;
+    let expanded = expand(&input, &mut m, 0, base)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
 }
@@ -116,10 +128,11 @@ fn starts_word(s: &str, word: &str) -> bool {
 // re-expanded so macros may call macros. `undef name` removes a definition.
 
 use std::collections::HashMap;
+use std::path::Path;
 
-fn preprocess(input: Vec<Spanned>) -> Result<(Vec<Spanned>, Macros), ParseError> {
+fn preprocess(input: Vec<Spanned>, base: Option<&Path>) -> Result<(Vec<Spanned>, Macros), ParseError> {
     let mut macros: Macros = HashMap::new();
-    let out = expand(&input, &mut macros, 0)?;
+    let out = expand(&input, &mut macros, 0, base)?;
     Ok((out, macros))
 }
 
@@ -131,6 +144,7 @@ fn expand(
     toks: &[Spanned],
     macros: &mut HashMap<String, Vec<Spanned>>,
     depth: usize,
+    base: Option<&Path>,
 ) -> Result<Vec<Spanned>, ParseError> {
     if depth > 64 {
         return Err(ParseError {
@@ -214,7 +228,7 @@ fn expand(
                 let Some(te) = find_kw_depth0(toks, i, Kw::Then) else {
                     continue; // malformed; let the parser report it
                 };
-                out.extend(expand(&toks[i..te], macros, depth + 1)?);
+                out.extend(expand(&toks[i..te], macros, depth + 1, base)?);
                 out.push(toks[te].clone()); // `then`
                 i = copy_braced(toks, te + 1, &mut out)?;
                 // optional `else { … }` (possibly across newlines)
@@ -233,7 +247,7 @@ fn expand(
                 let Some(de) = find_kw_depth0(toks, i, Kw::Do) else {
                     continue;
                 };
-                out.extend(expand(&toks[i..de], macros, depth + 1)?);
+                out.extend(expand(&toks[i..de], macros, depth + 1, base)?);
                 out.push(toks[de].clone()); // `do`
                 i = copy_braced(toks, de + 1, &mut out)?;
             }
@@ -249,8 +263,25 @@ fn expand(
                     Vec::new()
                 };
                 let sub = substitute(&body, &args);
-                let expanded = expand(&sub, macros, depth + 1)?;
+                let expanded = expand(&sub, macros, depth + 1, base)?;
                 out.extend(expanded);
+            }
+            // `copy "file"` splices another pic file's (expanded) tokens inline.
+            Token::Kw(Kw::Copy) => {
+                let (l, c) = loc(toks, i);
+                i += 1;
+                let Some(Token::Str(fname)) = toks.get(i).map(|s| &s.tok) else {
+                    return Err(ParseError {
+                        msg: "copy: expected a quoted file name (only `copy \"file\"` is supported)"
+                            .into(),
+                        line: l,
+                        col: c,
+                    });
+                };
+                let fname = fname.clone();
+                i += 1;
+                let inc = include_file(base, &fname, macros, depth, l, c)?;
+                out.extend(inc);
             }
             _ => {
                 out.push(toks[i].clone());
@@ -373,6 +404,41 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
         }
     }
     s
+}
+
+/// Read and tokenize a `copy "file"` include, returning its expanded tokens
+/// (with the trailing `Eof` removed so it splices cleanly mid-stream). The
+/// included file resolves nested `copy`s relative to its own directory.
+fn include_file(
+    base: Option<&Path>,
+    fname: &str,
+    macros: &mut HashMap<String, Vec<Spanned>>,
+    depth: usize,
+    l: u32,
+    c: u32,
+) -> Result<Vec<Spanned>, ParseError> {
+    let mkerr = |msg: String| ParseError { msg, line: l, col: c };
+    let p = Path::new(fname);
+    let path = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        match base {
+            Some(b) => b.join(p),
+            None => {
+                return Err(mkerr(format!(
+                    "copy \"{fname}\": file includes require a file path (unavailable here)"
+                )));
+            }
+        }
+    };
+    let content = std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
+    let toks = lex(&content)?;
+    let inc_base = path.parent().map(|d| d.to_path_buf());
+    let mut expanded = expand(&toks, macros, depth + 1, inc_base.as_deref())?;
+    if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
+        expanded.pop();
+    }
+    Ok(expanded)
 }
 
 /// Find the next occurrence of keyword `kw` at bracket-depth 0 from `start`.
@@ -562,6 +628,7 @@ impl Parser {
             height,
             stmts,
             macros: HashMap::new(),
+            base_dir: None,
         })
     }
 
@@ -1269,64 +1336,94 @@ impl Parser {
     }
 
     fn parse_pos_primary(&mut self) -> PResult<Position> {
-        // `( … )`: parenthesised position, coordinate pair `(x,y)`, or
-        // `(pos, pos)` — x of the first, y of the second.
-        if self.eat(&Token::Lparen) {
-            let p1 = self.parse_position()?;
-            let p = if self.eat(&Token::Comma) {
-                let p2 = self.parse_position()?;
-                Position::Place(Location::ParenPair(Box::new(p1), Box::new(p2)))
-            } else {
-                p1 // drop the redundant parentheses
-            };
-            self.expect(&Token::Rparen)?;
+        // A fraction-led interpolation — `frac between A and B`, `frac <p,p>`, or
+        // `frac of the way between A and B`. The fraction can be parenthesised
+        // (e.g. `(X/Y) between A and B`), so try it before the `(`/place branches.
+        if let Some(p) = self.try_fraction()? {
             return Ok(p);
+        }
+        // `( … )`: coordinate pair `(x,y)` of scalar expressions, a
+        // parenthesised position, or `(pos, pos)` — x of the first, y of the
+        // second. Try a scalar pair first so components that are themselves
+        // parenthesised scalars (e.g. `((a*g)*cos(t), …)`) parse correctly.
+        if self.eat(&Token::Lparen) {
+            let save = self.idx;
+            // Prefer parsing the contents as position(s) — handles `(A, B.c)`,
+            // `(pos, pos)`, `(2,3)`, `(0.5 between A and B)`. If that fails, the
+            // contents are scalar coordinate expressions that the position
+            // grammar can't represent alone (e.g. `((a*g)*cos t, (a*g)*sin t)`).
+            if let Ok(p1) = self.parse_position() {
+                let p = if self.eat(&Token::Comma) {
+                    let p2 = self.parse_position()?;
+                    Position::Place(Location::ParenPair(Box::new(p1), Box::new(p2)))
+                } else {
+                    p1 // drop the redundant parentheses
+                };
+                self.expect(&Token::Rparen)?;
+                return Ok(p);
+            }
+            self.idx = save;
+            let e1 = self.parse_add()?;
+            self.expect(&Token::Comma)?;
+            let e2 = self.parse_add()?;
+            self.expect(&Token::Rparen)?;
+            return Ok(Position::Pair(e1, e2));
         }
         // A leading place is point-valued UNLESS it is a scalar accessor
         // (`place.x` / `.y` / `.attr`), which begins an `(expr, expr)` pair.
         if self.at_place_start() && !self.place_is_scalar_ahead() {
             return Ok(Position::Place(Location::Place(self.parse_place()?)));
         }
-        // expression-led: pair, `<p1,p2>` interpolation, or `between`. The
-        // leading fraction is parsed at additive level so a following `<` is not
-        // mistaken for a comparison operator.
+        // expression-led coordinate pair `x, y` (interpolation handled above)
         let e1 = self.parse_add()?;
         if self.eat(&Token::Comma) {
             let e2 = self.parse_add()?;
             return Ok(Position::Pair(e1, e2));
         }
-        // `frac <p1,p2>` is shorthand for `frac of the way between p1 and p2`.
+        self.err("expected `,`, `between`, or `of the way between` in position")
+    }
+
+    /// Try to parse `frac (between | <p,p> | of the way between)`; if the leading
+    /// expression isn't followed by an interpolation, backtrack and return `None`
+    /// so the caller can parse a plain place / pair / parenthesised position.
+    fn try_fraction(&mut self) -> PResult<Option<Position>> {
+        let save = self.idx;
+        let Ok(frac) = self.parse_add() else {
+            self.idx = save;
+            return Ok(None);
+        };
+        let mk = |frac, a, b, of_the_way| {
+            Ok(Some(Position::Between {
+                frac: Box::new(frac),
+                a: Box::new(a),
+                b: Box::new(b),
+                of_the_way,
+            }))
+        };
         if self.eat(&Token::Lt) {
             let a = self.parse_position()?;
             self.expect(&Token::Comma)?;
             let b = self.parse_position()?;
             self.expect(&Token::Gt)?;
-            return Ok(Position::Between {
-                frac: Box::new(e1),
-                a: Box::new(a),
-                b: Box::new(b),
-                of_the_way: false,
-            });
+            return mk(frac, a, b, false);
         }
-        let of_the_way = if self.eat_kw(Kw::Of) {
-            self.expect_kw(Kw::The)?;
-            self.expect_kw(Kw::Way)?;
-            self.expect_kw(Kw::Between)?;
+        let of_the_way = if self.at_kw(Kw::Of) {
+            self.eat_kw(Kw::Of);
+            if !(self.eat_kw(Kw::The) && self.eat_kw(Kw::Way) && self.eat_kw(Kw::Between)) {
+                self.idx = save;
+                return Ok(None);
+            }
             true
         } else if self.eat_kw(Kw::Between) {
             false
         } else {
-            return self.err("expected `,`, `between`, or `of the way between` in position");
+            self.idx = save;
+            return Ok(None);
         };
         let a = self.parse_position()?;
         self.expect_kw(Kw::And)?;
         let b = self.parse_position()?;
-        Ok(Position::Between {
-            frac: Box::new(e1),
-            a: Box::new(a),
-            b: Box::new(b),
-            of_the_way,
-        })
+        mk(frac, a, b, of_the_way)
     }
 
     /// Lookahead: does the upcoming place end in a scalar accessor
@@ -1945,8 +2042,9 @@ box
 
     #[test]
     fn unsupported_control_is_clear() {
+        // `copy "file"` with no filesystem context reports a clear file error
         let e = parse("copy \"x\"").unwrap_err();
-        assert!(e.msg.contains("not supported yet"));
+        assert!(e.msg.contains("copy") && e.msg.contains("file"));
     }
 
     #[test]

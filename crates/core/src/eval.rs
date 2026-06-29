@@ -41,6 +41,7 @@ fn err<T>(msg: impl Into<String>) -> ER<T> {
 pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut st = State::new();
     st.macros = pic.macros.clone();
+    st.base_dir = pic.base_dir.clone();
     st.eval_stmts(&pic.stmts)?;
     let want_w = match &pic.width {
         Some(e) => Some(st.eval_expr(e)?),
@@ -215,6 +216,7 @@ struct State {
     vars: HashMap<String, f64>,
     env: EnvVars,
     macros: Macros,
+    base_dir: Option<std::path::PathBuf>,
     shapes: Vec<Shape>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
@@ -249,6 +251,7 @@ impl State {
             vars,
             env: EnvVars::new(),
             macros: HashMap::new(),
+            base_dir: None,
             shapes: Vec::new(),
             placed: Vec::new(),
             labels: HashMap::new(),
@@ -268,7 +271,7 @@ impl State {
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
     fn parse_body(&self, body: &Body) -> ER<Vec<Stmt>> {
-        crate::parser::parse_body_tokens(body, &self.macros)
+        crate::parser::parse_body_tokens(body, &self.macros, self.base_dir.as_deref())
             .map_err(|e| EvalError { msg: e.to_string() })
     }
 
@@ -927,6 +930,7 @@ impl State {
         sub.env = self.env.clone();
         sub.vars = self.vars.clone();
         sub.macros = self.macros.clone();
+        sub.base_dir = self.base_dir.clone();
         sub.eval_stmts(stmts)?;
 
         let sub_bb = if sub.bbox.is_empty() {
@@ -1806,7 +1810,7 @@ fn scale_shape(sh: &mut Shape, f: f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::parse;
+    use crate::parser::{parse, parse_in_dir};
 
     fn draw(src: &str) -> Drawing {
         eval(&parse(src).unwrap()).unwrap()
@@ -2157,6 +2161,19 @@ mod tests {
             panic!()
         };
         assert!((*w - 3.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
+    fn copy_includes_a_file() {
+        // `copy "file"` splices another pic file relative to the base directory
+        let dir = std::env::temp_dir().join(format!("rpic_copy_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("inc.pic"), "box wid 0.5 ht 0.5\n").unwrap();
+        let pic = parse_in_dir("copy \"inc.pic\"\ncircle", Some(dir.as_path())).unwrap();
+        let d = eval(&pic).unwrap();
+        assert!(d.shapes.iter().any(|s| matches!(s, Shape::Box { .. })));
+        assert!(d.shapes.iter().any(|s| matches!(s, Shape::Circle { .. })));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

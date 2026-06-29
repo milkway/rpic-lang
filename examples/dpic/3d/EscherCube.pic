@@ -1,0 +1,117 @@
+.PS
+copy "libdp3D.pic"
+
+define DPL {DProject($1,$2,$3)}
+define ISL {
+  Start1: $2; End1: $2 + $3
+  Start2: $4; End2: $4 + $5
+  $1: line from Start2 to Dintersect_(Start1,End1,Start2,End2) }
+
+Cube1: [
+  bdp = 2.2
+  bwd = 2.0
+  bht = 1.5 
+  bth = bwd/8
+  dpsetview(-60,20,0)       # defines unit projections UDx, UDy, UDz
+
+  L1: line from DPL(bdp,0,bht) to DPL(bdp,bwd,bht) \
+    then to DPL(0,bwd,bht) then to DPL(0,0,bht) \
+    then to DPL(0,0,0) then to DPL(bdp,0,0) \
+    then to DPL(bdp,bwd,0) then to DPL(bdp,bwd,bht)
+  L2: line from DPL(bth,bth,bht) to DPL(bth,bwd-bth,bht) \
+    then to DPL(bdp-bth,bwd-bth,bht) \
+    then to DPL(bdp-bth,bth,bht)
+  L3: line from DPL(bdp,bth,bht-bth) to DPL(bdp,bwd-bth,bht-bth) \
+    then to DPL(bdp,bwd-bth,bth) \
+    then to DPL(bdp,bth,bth)
+  L4: line from DPL(bdp-bth,0,bth) to DPL(bth,0,bth) \
+    then to DPL(bth,0,bht-bth)
+  L5: line from DPL(bth,bwd-bth,bht) to DPL(bth,bwd-bth,bht) + DPL(0,0,-bht) 
+  L6: line from DPL(bth,0,bth) to L5.end+DPL(0,bth,bth)
+  L7: line from DPL(bdp,bwd-bth,bth) to L5.end + DPL(-bth,0,bth)
+  ISL(L8,L3.start,UDy,DPL(bdp-bth,bwd-bth,bth),UDz)
+  ISL(L9,L3.end,UDz,L8.start,UDy)
+  ISL(L10,L9.start,UDy,L5.end,UDx)
+  ISL(L11,L4.end,UDx,DPL(bth,bth,bth),UDz)
+  ISL(L12,L4.start,UDz,L11.start,UDx)
+  ISL(L13,L11.start,UDz,L7.end,UDy)
+  ISL(L14,L12.start,UDx,L5.end,UDy)
+  ISL(L15,L2.start+DPL(0,bwd-bth-bth,-bth),UDy,L7.end,UDz)
+  ISL(L16,L2.start+DPL(0,bwd-bth-bth,-bth),UDx,L6.end,UDz)
+  ISL(L17,L8.end,UDz,L6.end,UDx)
+  ISL(L18,L15.start,UDz,L2.start,UDx)
+  ISL(L19,L15.start,UDz,DPL(0,0,bht),UDx)
+  ISL(L20,L15.start,UDz,L4.end,UDx)
+  ISL(L21,L2.end,UDy,L5.start+DPL(0,0,-bth),UDx)
+  ISL(L22,L2.start,UDx,L5.start+DPL(0,0,-bth),UDy)
+  ISL(L23,L10.start,UDx,DPL(bdp,0,0),UDz)
+  ISL(L24,L10.start,UDx,L3.end,UDz)
+  ISL(L25,L10.start,UDx,L4.start,UDz)
+  ISL(L26,L17.start,UDx,L3.start,UDz)
+  ISL(L27,L17.start,UDx,DPL(bdp,0,bht),UDz)
+  ISL(L28,L17.start,UDx,L27.start+DPL(-bth,0,-bth),UDz)
+  ISL(L29,L16.start,UDz,L27.start+DPL(-bth,0,-bth),UDx)
+  ISL(L30,L16.start,UDz,L27.start,UDx)
+  ISL(L31,L16.start,UDz,L2.end,UDx)
+
+if 0 then { for i=2 to 4 do { exec sprintf("\"L%g.s\" at L%g.start",i,i) }
+  for i=5 to 31 do { exec sprintf("\"L%g\" at L%g",i,i) } }
+]
+#box wid last [].wid ht last [].ht at last []
+
+Cube2:[
+  bdp = 1.8
+  bwd = 2.5
+  bht = 1.5 
+  bth = bwd/10
+
+  dpsetview(-45,20,0)
+  L1: line from DPL(0,0,0) to DPL(0,0,bht) \
+    then to DPL(0,bwd,bht) then to DPL(bdp,bwd,bht) \
+    then to DPL(bdp,bwd,0) then to DPL(bdp,0,0) \
+    then to DPL(0,0,0)
+  L2: line from DPL(bth,bth,bht) to DPL(bth,bwd-bth,bht) \
+    then to DPL(bdp-bth,bwd-bth,bht) \
+    then to DPL(bdp-bth,bth,bht) \
+    then to DPL(bth,bth,bht)
+  L3: line from DPL(bth,bth,0) to DPL(bth,bwd-bth,0) \
+    then to DPL(bdp-bth,bwd-bth,0) \
+    then to DPL(bdp-bth,bth,0) \
+    then to DPL(bth,bth,0)
+  L4: line from DPL(bdp,bth,bht-bth) to DPL(bdp,bwd-bth,bht-bth) \
+    then to DPL(bdp,bwd-bth,bth) \
+    then to DPL(bth+bth,bwd-bth,bth)
+  L5: line from DPL(bdp-bth,0,bht-bth) to DPL(bth,0,bht-bth) \
+    then to DPL(bth,0,bth) \
+    then to DPL(bth,bwd-bth-bth,bth)
+  L6: line from DPL(0,0,bht) to DPL(bdp,0,bht) \
+    then to DPL(bdp,bwd,bht)
+  L7: line from DPL(0,0,0) to DPL(0,bwd,0) \
+    then to DPL(bdp,bwd,0)
+  ISL(L8,L4.start,UDy,L4.end,UDz)
+  ISL(L9,L4.start,UDy,DPL(0,bwd,0),UDz)
+  ISL(L10,L4.start,UDy,L5.end,UDz)
+  ISL(L11,L5.end,UDy,L4.start,UDz)
+  ISL(L12,L5.end,UDy,DPL(bdp,0,bht),UDz)
+  ISL(L13,L5.end,UDy,L5.start,UDz)
+  ISL(L14,DPL(bdp-bth,bth,bht),UDy,DPL(bth,bwd-bth-bth,bht-bth),UDz)
+  ISL(L15,L2.start,UDx,DPL(bth,bwd-bth-bth,bht-bth),UDy)
+  ISL(L16,DPL(bdp-bth,bth,bht),UDy,DPL(bth,bwd-bth,bht),UDz)
+  ISL(L17,DPL(bdp-bth,bth,bht),UDy,DPL(bth+bth,bwd-bth,bht-bth),UDz)
+  ISL(L18,DPL(bdp-bth,bth,bht),UDy,DPL(bth+bth,bwd-bth,bht-bth),UDx)
+  ISL(L19,L3.start,UDy,L5.start+DPL(0,0,-bht+bth+bth),UDx)
+  ISL(L20,L3.start,UDy,L5.start+DPL(0,0,-bht+bth+bth),UDz)
+  ISL(L21,L3.start,UDy,DPL(bdp-bth,bth,0),UDz)
+  ISL(L22,L3.start,UDy,L4.start+DPL(0,0,-bht+bth+bth),UDz)
+  ISL(L23,DPL(bth,bwd-bth,0),UDx,L4.start+DPL(0,0,-bht+bth+bth),UDy)
+  ISL(L24,L5.start,UDx,DPL(bth,bth,bth),UDz)
+  ISL(L25,L4.start,UDy,DPL(bdp-bth,bwd-bth,bth),UDz)
+
+
+if 0 then { for i=1 to 7 do { exec sprintf("\"L%g.s\" at L%g.start",i,i) }
+  for i=8 to 10 do { exec sprintf("\"L%g\" at L%g",i,i) }
+  }
+] with .sw at Cube1.se+(0.2,0)
+#box wid last [].wid ht last [].ht at last []
+#print last [].e
+.PE
