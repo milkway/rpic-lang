@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>rpic — pic → SVG with GSAP animation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+          integrity="sha512-7eHRwcbYkK4d9g/6tD/mhkf++eoTHwpNM9woBxtPUBWm67zeAfFC+HrdoE2GanKeocly/VxeLvIqwvCdk7qScg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root { --bg:#0f1115; --panel:#171a21; --ink:#e7e9ee; --muted:#9aa3b2; --accent:#5db0ff; --line:#2a2f3a; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+           background:var(--bg); color:var(--ink); height:100vh; display:flex; flex-direction:column; }
+    header { padding:10px 16px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:12px; }
+    header h1 { font-size:15px; margin:0; letter-spacing:.3px; }
+    header span { color:var(--muted); font-size:12px; }
+    main { flex:1; display:grid; grid-template-columns: 380px 1fr; min-height:0; }
+    .left { border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+    textarea { flex:1; resize:none; border:0; outline:0; padding:14px; background:var(--panel); color:var(--ink);
+               font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; tab-size:2; }
+    .bar { display:flex; gap:8px; padding:10px; border-top:1px solid var(--line); align-items:center; }
+    button { background:var(--accent); color:#08233f; border:0; border-radius:7px; padding:8px 14px; font-weight:600; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+    .right { position:relative; min-height:0; overflow:auto; display:flex; align-items:center; justify-content:center; background:
+             repeating-linear-gradient(0deg,#12151c,#12151c 23px,#141821 24px),
+             repeating-linear-gradient(90deg,#12151c,#12151c 23px,#141821 24px); }
+    #stage { background:#fff; border-radius:8px; padding:8px; box-shadow:0 10px 40px rgba(0,0,0,.45); }
+    #stage svg { display:block; }
+    #err { position:absolute; top:10px; left:10px; right:10px; background:#3a1620; color:#ffb4c0; border:1px solid #5a2230;
+           padding:8px 12px; border-radius:6px; font:12px/1.4 ui-monospace,monospace; white-space:pre-wrap; display:none; }
+    .hint { color:var(--muted); font-size:12px; margin-left:auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>rpic</h1>
+    <span>pic language → SVG, animated with GSAP</span>
+  </header>
+  <main>
+    <section class="left">
+      <textarea id="src" spellcheck="false"></textarea>
+      <div class="bar">
+        <button id="run">▶ Run</button>
+        <button id="replay" class="ghost">↻ Replay</button>
+        <label style="display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;cursor:pointer">
+          <input type="checkbox" id="circuits"> circuit library
+        </label>
+        <span class="hint">animate &lt;obj&gt; with "draw|fade|pop" [for s] [at s | after &lt;obj&gt;] [delay s]</span>
+      </div>
+    </section>
+    <section class="right">
+      <div id="err"></div>
+      <div id="stage"></div>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

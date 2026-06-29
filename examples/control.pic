@@ -1,0 +1,5 @@
+.PS
+define node { circle rad 0.18 $1 }
+node("A")
+for i = 1 to 4 do { arrow wid 0.4; node(sprintf("%g", i)) }
+.PE

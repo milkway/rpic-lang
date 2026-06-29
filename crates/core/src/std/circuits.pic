@@ -1,0 +1,1046 @@
+# rpic circuit element library (native `define` dialect) — batch 1: analog
+# two-terminal elements, drawn between two named points so they work at any
+# angle. Ported in spirit from circuit_macros (J. D. Aplevich, LPPL); this is an
+# independent re-authoring in the rpic/pic language.
+#
+# Convention: each two-terminal element takes two point arguments (typically
+# labels), e.g.  A: (0,0); B: (2,0); resistor(A,B)
+# It draws the leads + body from $1 to $2. Globals prefixed per element are
+# scratch and overwritten on each call.
+
+# --- junction dot ---------------------------------------------------------
+define dot { circle rad 0.035 fill 0 at $1 }
+
+# --- plain wire -----------------------------------------------------------
+define wire { line from $1 to $2 }
+
+# --- resistor (zig-zag) ---------------------------------------------------
+define resistor {
+  rsx=$1.x; rsy=$1.y; rex=$2.x; rey=$2.y
+  rdx=rex-rsx; rdy=rey-rsy; rL=sqrt(rdx*rdx+rdy*rdy)
+  rux=rdx/rL; ruy=rdy/rL; rpx=0-ruy; rpy=rux
+  rb=0.45; rld=(rL-rb)/2; rt=0.07
+  line from (rsx,rsy) to (rsx+rux*rld,rsy+ruy*rld) \
+    then to (rsx+rux*(rld+rb*0.0833)+rpx*rt, rsy+ruy*(rld+rb*0.0833)+rpy*rt) \
+    then to (rsx+rux*(rld+rb*0.25)-rpx*rt,   rsy+ruy*(rld+rb*0.25)-rpy*rt) \
+    then to (rsx+rux*(rld+rb*0.4167)+rpx*rt, rsy+ruy*(rld+rb*0.4167)+rpy*rt) \
+    then to (rsx+rux*(rld+rb*0.5833)-rpx*rt, rsy+ruy*(rld+rb*0.5833)-rpy*rt) \
+    then to (rsx+rux*(rld+rb*0.75)+rpx*rt,   rsy+ruy*(rld+rb*0.75)+rpy*rt) \
+    then to (rsx+rux*(rld+rb*0.9167)-rpx*rt, rsy+ruy*(rld+rb*0.9167)-rpy*rt) \
+    then to (rsx+rux*(rld+rb),rsy+ruy*(rld+rb)) \
+    then to (rex,rey)
+}
+
+# --- capacitor (two plates) ----------------------------------------------
+define capacitor {
+  csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
+  cdx=cex-csx; cdy=cey-csy; cL=sqrt(cdx*cdx+cdy*cdy)
+  cux=cdx/cL; cuy=cdy/cL; cpx=0-cuy; cpy=cux
+  cg=0.07; ch=0.13; cm=cL/2
+  line from (csx,csy) to (csx+cux*(cm-cg/2),csy+cuy*(cm-cg/2))
+  line from (csx+cux*(cm-cg/2)+cpx*ch, csy+cuy*(cm-cg/2)+cpy*ch) \
+    to   (csx+cux*(cm-cg/2)-cpx*ch, csy+cuy*(cm-cg/2)-cpy*ch)
+  line from (csx+cux*(cm+cg/2)+cpx*ch, csy+cuy*(cm+cg/2)+cpy*ch) \
+    to   (csx+cux*(cm+cg/2)-cpx*ch, csy+cuy*(cm+cg/2)-cpy*ch)
+  line from (csx+cux*(cm+cg/2),csy+cuy*(cm+cg/2)) to (cex,cey)
+}
+
+# --- inductor (coils as a spline) ----------------------------------------
+define inductor {
+  isx=$1.x; isy=$1.y; iex=$2.x; iey=$2.y
+  idx=iex-isx; idy=iey-isy; iL=sqrt(idx*idx+idy*idy)
+  iux=idx/iL; iuy=idy/iL; ipx=0-iuy; ipy=iux
+  ib=0.5; id=(iL-ib)/2; ih=0.12
+  line from (isx,isy) to (isx+iux*id,isy+iuy*id)
+  spline from (isx+iux*id,isy+iuy*id) \
+    to (isx+iux*(id+ib*0.125)+ipx*ih, isy+iuy*(id+ib*0.125)+ipy*ih) \
+    to (isx+iux*(id+ib*0.25),isy+iuy*(id+ib*0.25)) \
+    to (isx+iux*(id+ib*0.375)+ipx*ih, isy+iuy*(id+ib*0.375)+ipy*ih) \
+    to (isx+iux*(id+ib*0.5),isy+iuy*(id+ib*0.5)) \
+    to (isx+iux*(id+ib*0.625)+ipx*ih, isy+iuy*(id+ib*0.625)+ipy*ih) \
+    to (isx+iux*(id+ib*0.75),isy+iuy*(id+ib*0.75)) \
+    to (isx+iux*(id+ib*0.875)+ipx*ih, isy+iuy*(id+ib*0.875)+ipy*ih) \
+    to (isx+iux*(id+ib),isy+iuy*(id+ib))
+  line from (isx+iux*(id+ib),isy+iuy*(id+ib)) to (iex,iey)
+}
+
+# --- diode (triangle + cathode bar) --------------------------------------
+define diode {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  db=0.26; dd=(dL-db)/2; dh=0.13
+  line from (dsx,dsy) to (dsx+dux*dd,dsy+duy*dd)
+  line from (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh) \
+    then to (dsx+dux*dd-dpx*dh,dsy+duy*dd-dpy*dh) \
+    then to (dsx+dux*(dd+db),dsy+duy*(dd+db)) \
+    then to (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    to   (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
+  line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
+}
+
+# --- battery / DC source (long + short plates) ---------------------------
+define battery {
+  bsx=$1.x; bsy=$1.y; bex=$2.x; bey=$2.y
+  bdx=bex-bsx; bdy=bey-bsy; bL=sqrt(bdx*bdx+bdy*bdy)
+  bux=bdx/bL; buy=bdy/bL; bpx=0-buy; bpy=bux
+  bg=0.07; bM=bL/2; bP=0.16; bN=0.08
+  line from (bsx,bsy) to (bsx+bux*(bM-bg/2),bsy+buy*(bM-bg/2))
+  line from (bsx+bux*(bM-bg/2)+bpx*bP,bsy+buy*(bM-bg/2)+bpy*bP) \
+    to   (bsx+bux*(bM-bg/2)-bpx*bP,bsy+buy*(bM-bg/2)-bpy*bP)
+  line from (bsx+bux*(bM+bg/2)+bpx*bN,bsy+buy*(bM+bg/2)+bpy*bN) \
+    to   (bsx+bux*(bM+bg/2)-bpx*bN,bsy+buy*(bM+bg/2)-bpy*bN)
+  line from (bsx+bux*(bM+bg/2),bsy+buy*(bM+bg/2)) to (bex,bey)
+}
+
+# --- ground (one terminal, points downward from $1) ----------------------
+define ground {
+  gx=$1.x; gy=$1.y
+  line from (gx,gy) to (gx,gy-0.12)
+  line from (gx-0.13,gy-0.12) to (gx+0.13,gy-0.12)
+  line from (gx-0.08,gy-0.17) to (gx+0.08,gy-0.17)
+  line from (gx-0.03,gy-0.22) to (gx+0.03,gy-0.22)
+}
+
+# =========================================================================
+# Batch 2: logic gates (ANSI/MIL distinctive shapes). Each is centered at a
+# named point $1, faces right, and sets terminal globals:
+#   gA_x,gA_y  top input      gB_x,gB_y  bottom input      gY_x,gY_y  output
+# (single-input gates set only gA_* and gY_*). Connect with wire(...)/dot(...).
+
+# --- buffer (triangle) ----------------------------------------------------
+define buffer {
+  qx=$1.x; qy=$1.y; qw=0.5; qh=0.5; qL=0.18
+  qxl=qx-qw/2; qxr=qx+qw/2
+  line from (qxl,qy+qh/2) to (qxr,qy) then to (qxl,qy-qh/2) then to (qxl,qy+qh/2)
+  line from (qxl-qL,qy) to (qxl,qy)
+  line from (qxr,qy) to (qxr+qL,qy)
+  gA_x=qxl-qL; gA_y=qy; gY_x=qxr+qL; gY_y=qy
+}
+
+# --- NOT (inverter: triangle + bubble) -----------------------------------
+define not_gate {
+  kx=$1.x; ky=$1.y; kw=0.5; kh=0.5; kL=0.18; kr=0.05
+  kxl=kx-kw/2; kxr=kx+kw/2
+  line from (kxl,ky+kh/2) to (kxr,ky) then to (kxl,ky-kh/2) then to (kxl,ky+kh/2)
+  circle rad kr at (kxr+kr,ky)
+  line from (kxl-kL,ky) to (kxl,ky)
+  line from (kxr+2*kr,ky) to (kxr+2*kr+kL,ky)
+  gA_x=kxl-kL; gA_y=ky; gY_x=kxr+2*kr+kL; gY_y=ky
+}
+
+# --- AND ------------------------------------------------------------------
+define and_gate {
+  ax=$1.x; ay=$1.y; aw=0.5; ah=0.5; aL=0.18; ain=0.15; ar=0.25
+  axl=ax-aw/2; axf=axl+(aw-ar)
+  line from (axl,ay-ah/2) to (axl,ay+ah/2) then to (axf,ay+ah/2)
+  spline from (axf,ay+ah/2) to (axf+ar*0.707,ay+ar*0.707) to (axf+ar,ay) \
+    to (axf+ar*0.707,ay-ar*0.707) to (axf,ay-ah/2)
+  line from (axf,ay-ah/2) to (axl,ay-ah/2)
+  line from (axl-aL,ay+ain) to (axl,ay+ain)
+  line from (axl-aL,ay-ain) to (axl,ay-ain)
+  line from (axf+ar,ay) to (axf+ar+aL,ay)
+  gA_x=axl-aL; gA_y=ay+ain; gB_x=axl-aL; gB_y=ay-ain; gY_x=axf+ar+aL; gY_y=ay
+}
+
+# --- NAND (AND + bubble) --------------------------------------------------
+define nand_gate {
+  ax=$1.x; ay=$1.y; aw=0.5; ah=0.5; aL=0.18; ain=0.15; ar=0.25; ab=0.05
+  axl=ax-aw/2; axf=axl+(aw-ar)
+  line from (axl,ay-ah/2) to (axl,ay+ah/2) then to (axf,ay+ah/2)
+  spline from (axf,ay+ah/2) to (axf+ar*0.707,ay+ar*0.707) to (axf+ar,ay) \
+    to (axf+ar*0.707,ay-ar*0.707) to (axf,ay-ah/2)
+  line from (axf,ay-ah/2) to (axl,ay-ah/2)
+  circle rad ab at (axf+ar+ab,ay)
+  line from (axl-aL,ay+ain) to (axl,ay+ain)
+  line from (axl-aL,ay-ain) to (axl,ay-ain)
+  line from (axf+ar+2*ab,ay) to (axf+ar+2*ab+aL,ay)
+  gA_x=axl-aL; gA_y=ay+ain; gB_x=axl-aL; gB_y=ay-ain; gY_x=axf+ar+2*ab+aL; gY_y=ay
+}
+
+# --- OR -------------------------------------------------------------------
+define or_gate {
+  ox=$1.x; oy=$1.y; ow=0.6; oh=0.5; oL=0.18; oin=0.15
+  oxl=ox-ow/2; oxr=ox+ow/2; oyt=oy+oh/2; oyb=oy-oh/2
+  spline from (oxl,oyt) to (oxl+0.12,oy) to (oxl,oyb)
+  spline from (oxl,oyt) to (ox,oyt) to (oxr,oy)
+  spline from (oxl,oyb) to (ox,oyb) to (oxr,oy)
+  line from (oxl-oL,oy+oin) to (oxl+0.07,oy+oin)
+  line from (oxl-oL,oy-oin) to (oxl+0.07,oy-oin)
+  line from (oxr,oy) to (oxr+oL,oy)
+  gA_x=oxl-oL; gA_y=oy+oin; gB_x=oxl-oL; gB_y=oy-oin; gY_x=oxr+oL; gY_y=oy
+}
+
+# --- NOR (OR + bubble) ----------------------------------------------------
+define nor_gate {
+  ox=$1.x; oy=$1.y; ow=0.6; oh=0.5; oL=0.18; oin=0.15; ob=0.05
+  oxl=ox-ow/2; oxr=ox+ow/2; oyt=oy+oh/2; oyb=oy-oh/2
+  spline from (oxl,oyt) to (oxl+0.12,oy) to (oxl,oyb)
+  spline from (oxl,oyt) to (ox,oyt) to (oxr,oy)
+  spline from (oxl,oyb) to (ox,oyb) to (oxr,oy)
+  circle rad ob at (oxr+ob,oy)
+  line from (oxl-oL,oy+oin) to (oxl+0.07,oy+oin)
+  line from (oxl-oL,oy-oin) to (oxl+0.07,oy-oin)
+  line from (oxr+2*ob,oy) to (oxr+2*ob+oL,oy)
+  gA_x=oxl-oL; gA_y=oy+oin; gB_x=oxl-oL; gB_y=oy-oin; gY_x=oxr+2*ob+oL; gY_y=oy
+}
+
+# --- XOR (OR + extra back curve) ------------------------------------------
+define xor_gate {
+  xx=$1.x; xy=$1.y; xw=0.6; xh=0.5; xL=0.18; xin=0.15
+  xxl=xx-xw/2; xxr=xx+xw/2; xyt=xy+xh/2; xyb=xy-xh/2
+  spline from (xxl-0.08,xyt) to (xxl-0.08+0.12,xy) to (xxl-0.08,xyb)
+  spline from (xxl,xyt) to (xxl+0.12,xy) to (xxl,xyb)
+  spline from (xxl,xyt) to (xx,xyt) to (xxr,xy)
+  spline from (xxl,xyb) to (xx,xyb) to (xxr,xy)
+  line from (xxl-xL,xy+xin) to (xxl+0.05,xy+xin)
+  line from (xxl-xL,xy-xin) to (xxl+0.05,xy-xin)
+  line from (xxr,xy) to (xxr+xL,xy)
+  gA_x=xxl-xL; gA_y=xy+xin; gB_x=xxl-xL; gB_y=xy-xin; gY_x=xxr+xL; gY_y=xy
+}
+
+# --- XNOR (XOR + bubble) --------------------------------------------------
+define xnor_gate {
+  xx=$1.x; xy=$1.y; xw=0.6; xh=0.5; xL=0.18; xin=0.15; xb=0.05
+  xxl=xx-xw/2; xxr=xx+xw/2; xyt=xy+xh/2; xyb=xy-xh/2
+  spline from (xxl-0.08,xyt) to (xxl-0.08+0.12,xy) to (xxl-0.08,xyb)
+  spline from (xxl,xyt) to (xxl+0.12,xy) to (xxl,xyb)
+  spline from (xxl,xyt) to (xx,xyt) to (xxr,xy)
+  spline from (xxl,xyb) to (xx,xyb) to (xxr,xy)
+  circle rad xb at (xxr+xb,xy)
+  line from (xxl-xL,xy+xin) to (xxl+0.05,xy+xin)
+  line from (xxl-xL,xy-xin) to (xxl+0.05,xy-xin)
+  line from (xxr+2*xb,xy) to (xxr+2*xb+xL,xy)
+  gA_x=xxl-xL; gA_y=xy+xin; gB_x=xxl-xL; gB_y=xy-xin; gY_x=xxr+2*xb+xL; gY_y=xy
+}
+
+# =========================================================================
+# Batch 3: active devices. Multi-terminal devices are centered at $1, facing
+# right; two-terminal ones (ac_source, switch, potentiometer) span $1..$2.
+
+# --- op-amp (triangle, + / - inputs) -------------------------------------
+define opamp {
+  px=$1.x; py=$1.y; pw=0.7; ph=0.7
+  pxl=px-pw/2; pxr=px+pw/2
+  line from (pxl,py+ph/2) to (pxr,py) then to (pxl,py-ph/2) then to (pxl,py+ph/2)
+  line from (pxl-0.18,py+ph/4) to (pxl,py+ph/4)
+  line from (pxl-0.18,py-ph/4) to (pxl,py-ph/4)
+  line from (pxr,py) to (pxr+0.18,py)
+  line from (pxl+0.04,py+ph/4) to (pxl+0.11,py+ph/4)
+  line from (pxl+0.04,py-ph/4) to (pxl+0.11,py-ph/4)
+  line from (pxl+0.075,py-ph/4+0.035) to (pxl+0.075,py-ph/4-0.035)
+  gIm_x=pxl-0.18; gIm_y=py+ph/4; gIp_x=pxl-0.18; gIp_y=py-ph/4; gY_x=pxr+0.18; gY_y=py
+}
+
+# --- NPN bipolar transistor ----------------------------------------------
+define npn {
+  tx=$1.x; ty=$1.y; tr=0.3
+  circle rad tr at (tx,ty)
+  line from (tx-0.06,ty-0.16) to (tx-0.06,ty+0.16)
+  line from (tx-tr-0.18,ty) to (tx-0.06,ty)
+  line from (tx-0.06,ty+0.07) to (tx+0.16,ty+0.22)
+  line from (tx+0.16,ty+0.22) to (tx+0.16,ty+tr+0.12)
+  arrow from (tx-0.06,ty-0.07) to (tx+0.16,ty-0.22)
+  line from (tx+0.16,ty-0.22) to (tx+0.16,ty-tr-0.12)
+  gBase_x=tx-tr-0.18; gBase_y=ty; gColl_x=tx+0.16; gColl_y=ty+tr+0.12; gEmit_x=tx+0.16; gEmit_y=ty-tr-0.12
+}
+
+# --- PNP bipolar transistor (emitter arrow toward base) ------------------
+define pnp {
+  tx=$1.x; ty=$1.y; tr=0.3
+  circle rad tr at (tx,ty)
+  line from (tx-0.06,ty-0.16) to (tx-0.06,ty+0.16)
+  line from (tx-tr-0.18,ty) to (tx-0.06,ty)
+  line from (tx-0.06,ty+0.07) to (tx+0.16,ty+0.22)
+  line from (tx+0.16,ty+0.22) to (tx+0.16,ty+tr+0.12)
+  arrow from (tx+0.16,ty-0.22) to (tx-0.06,ty-0.07)
+  line from (tx+0.16,ty-0.22) to (tx+0.16,ty-tr-0.12)
+  gBase_x=tx-tr-0.18; gBase_y=ty; gColl_x=tx+0.16; gColl_y=ty+tr+0.12; gEmit_x=tx+0.16; gEmit_y=ty-tr-0.12
+}
+
+# --- AC source (circle + sine) -------------------------------------------
+define ac_source {
+  asx=$1.x; asy=$1.y; aex=$2.x; aey=$2.y
+  adx=aex-asx; ady=aey-asy; aL=sqrt(adx*adx+ady*ady)
+  aux=adx/aL; auy=ady/aL; apx=0-auy; apy=aux
+  arad=0.2; amid=aL/2
+  line from (asx,asy) to (asx+aux*(amid-arad),asy+auy*(amid-arad))
+  circle rad arad at (asx+aux*amid,asy+auy*amid)
+  spline from (asx+aux*(amid-arad*0.7),asy+auy*(amid-arad*0.7)) \
+    to (asx+aux*(amid-arad*0.35)+apx*0.09,asy+auy*(amid-arad*0.35)+apy*0.09) \
+    to (asx+aux*amid,asy+auy*amid) \
+    to (asx+aux*(amid+arad*0.35)-apx*0.09,asy+auy*(amid+arad*0.35)-apy*0.09) \
+    to (asx+aux*(amid+arad*0.7),asy+auy*(amid+arad*0.7))
+  line from (asx+aux*(amid+arad),asy+auy*(amid+arad)) to (aex,aey)
+}
+
+# --- SPST switch (open) ---------------------------------------------------
+define switch {
+  ssx=$1.x; ssy=$1.y; sex=$2.x; sey=$2.y
+  sdx=sex-ssx; sdy=sey-ssy; sL=sqrt(sdx*sdx+sdy*sdy)
+  sux=sdx/sL; suy=sdy/sL; spx=0-suy; spy=sux
+  sg=0.35; sm=sL/2
+  line from (ssx,ssy) to (ssx+sux*(sm-sg/2),ssy+suy*(sm-sg/2))
+  circle rad 0.025 fill 0 at (ssx+sux*(sm-sg/2),ssy+suy*(sm-sg/2))
+  line from (ssx+sux*(sm-sg/2),ssy+suy*(sm-sg/2)) \
+    to (ssx+sux*(sm+sg*0.15)+spx*0.2,ssy+suy*(sm+sg*0.15)+spy*0.2)
+  circle rad 0.025 fill 0 at (ssx+sux*(sm+sg/2),ssy+suy*(sm+sg/2))
+  line from (ssx+sux*(sm+sg/2),ssy+suy*(sm+sg/2)) to (sex,sey)
+}
+
+# --- potentiometer (IEC box + wiper) -------------------------------------
+define potentiometer {
+  psx=$1.x; psy=$1.y; pex=$2.x; pey=$2.y
+  pdx=pex-psx; pdy=pey-psy; pL=sqrt(pdx*pdx+pdy*pdy)
+  pux=pdx/pL; puy=pdy/pL; ppx=0-puy; ppy=pux
+  pb=0.5; pld=(pL-pb)/2; pbh=0.12
+  line from (psx,psy) to (psx+pux*pld,psy+puy*pld)
+  line from (psx+pux*pld+ppx*pbh,psy+puy*pld+ppy*pbh) \
+    then to (psx+pux*(pld+pb)+ppx*pbh,psy+puy*(pld+pb)+ppy*pbh) \
+    then to (psx+pux*(pld+pb)-ppx*pbh,psy+puy*(pld+pb)-ppy*pbh) \
+    then to (psx+pux*pld-ppx*pbh,psy+puy*pld-ppy*pbh) \
+    then to (psx+pux*pld+ppx*pbh,psy+puy*pld+ppy*pbh)
+  line from (psx+pux*(pld+pb),psy+puy*(pld+pb)) to (pex,pey)
+  arrow from (psx+pux*(pld+pb/2)+ppx*0.3,psy+puy*(pld+pb/2)+ppy*0.3) \
+    to (psx+pux*(pld+pb/2)+ppx*pbh,psy+puy*(pld+pb/2)+ppy*pbh)
+  gW_x=psx+pux*(pld+pb/2)+ppx*0.3; gW_y=psy+puy*(pld+pb/2)+ppy*0.3
+}
+
+# --- transformer (two coils + core) --------------------------------------
+define transformer {
+  fx=$1.x; fy=$1.y
+  spline from (fx-0.18,fy+0.3) to (fx-0.27,fy+0.225) to (fx-0.18,fy+0.15) \
+    to (fx-0.27,fy+0.075) to (fx-0.18,fy) to (fx-0.27,fy-0.075) \
+    to (fx-0.18,fy-0.15) to (fx-0.27,fy-0.225) to (fx-0.18,fy-0.3)
+  spline from (fx+0.18,fy+0.3) to (fx+0.27,fy+0.225) to (fx+0.18,fy+0.15) \
+    to (fx+0.27,fy+0.075) to (fx+0.18,fy) to (fx+0.27,fy-0.075) \
+    to (fx+0.18,fy-0.15) to (fx+0.27,fy-0.225) to (fx+0.18,fy-0.3)
+  line from (fx-0.03,fy-0.3) to (fx-0.03,fy+0.3)
+  line from (fx+0.03,fy-0.3) to (fx+0.03,fy+0.3)
+  line from (fx-0.18,fy+0.3) to (fx-0.18,fy+0.45)
+  line from (fx-0.18,fy-0.3) to (fx-0.18,fy-0.45)
+  line from (fx+0.18,fy+0.3) to (fx+0.18,fy+0.45)
+  line from (fx+0.18,fy-0.3) to (fx+0.18,fy-0.45)
+  gP1_x=fx-0.18; gP1_y=fy+0.45; gP2_x=fx-0.18; gP2_y=fy-0.45
+  gS1_x=fx+0.18; gS1_y=fy+0.45; gS2_x=fx+0.18; gS2_y=fy-0.45
+}
+
+# =========================================================================
+# Batch 4: MOSFETs, extra sources, diode variants.
+
+# --- n-channel MOSFET (enhancement) --------------------------------------
+define nmos {
+  mx=$1.x; my=$1.y
+  line from (mx-0.4,my) to (mx-0.2,my)
+  line from (mx-0.2,my-0.18) to (mx-0.2,my+0.18)
+  line from (mx-0.08,my+0.07) to (mx-0.08,my+0.18)
+  line from (mx-0.08,my-0.055) to (mx-0.08,my+0.055)
+  line from (mx-0.08,my-0.18) to (mx-0.08,my-0.07)
+  line from (mx-0.08,my+0.125) to (mx+0.16,my+0.125)
+  line from (mx+0.16,my+0.125) to (mx+0.16,my+0.36)
+  line from (mx-0.08,my-0.125) to (mx+0.16,my-0.125)
+  line from (mx+0.16,my-0.125) to (mx+0.16,my-0.36)
+  line from (mx+0.16,my-0.125) to (mx+0.16,my)
+  arrow from (mx+0.16,my) to (mx-0.08,my)
+  gGate_x=mx-0.4; gGate_y=my; gDrain_x=mx+0.16; gDrain_y=my+0.36; gSrc_x=mx+0.16; gSrc_y=my-0.36
+}
+
+# --- p-channel MOSFET (enhancement) --------------------------------------
+define pmos {
+  mx=$1.x; my=$1.y
+  line from (mx-0.4,my) to (mx-0.2,my)
+  line from (mx-0.2,my-0.18) to (mx-0.2,my+0.18)
+  line from (mx-0.08,my+0.07) to (mx-0.08,my+0.18)
+  line from (mx-0.08,my-0.055) to (mx-0.08,my+0.055)
+  line from (mx-0.08,my-0.18) to (mx-0.08,my-0.07)
+  line from (mx-0.08,my+0.125) to (mx+0.16,my+0.125)
+  line from (mx+0.16,my+0.125) to (mx+0.16,my+0.36)
+  line from (mx-0.08,my-0.125) to (mx+0.16,my-0.125)
+  line from (mx+0.16,my-0.125) to (mx+0.16,my-0.36)
+  line from (mx+0.16,my+0.125) to (mx+0.16,my)
+  arrow from (mx-0.08,my) to (mx+0.16,my)
+  gGate_x=mx-0.4; gGate_y=my; gDrain_x=mx+0.16; gDrain_y=my+0.36; gSrc_x=mx+0.16; gSrc_y=my-0.36
+}
+
+# --- independent current source (circle + arrow) -------------------------
+define current_source {
+  asx=$1.x; asy=$1.y; aex=$2.x; aey=$2.y
+  adx=aex-asx; ady=aey-asy; aL=sqrt(adx*adx+ady*ady)
+  aux=adx/aL; auy=ady/aL
+  arad=0.2; amid=aL/2
+  line from (asx,asy) to (asx+aux*(amid-arad),asy+auy*(amid-arad))
+  circle rad arad at (asx+aux*amid,asy+auy*amid)
+  arrow from (asx+aux*(amid-arad*0.55),asy+auy*(amid-arad*0.55)) \
+    to (asx+aux*(amid+arad*0.55),asy+auy*(amid+arad*0.55))
+  line from (asx+aux*(amid+arad),asy+auy*(amid+arad)) to (aex,aey)
+}
+
+# --- controlled voltage source (diamond + / -) ---------------------------
+define vsource_ctrl {
+  vsx=$1.x; vsy=$1.y; vex=$2.x; vey=$2.y
+  vdx=vex-vsx; vdy=vey-vsy; vL=sqrt(vdx*vdx+vdy*vdy)
+  vux=vdx/vL; vuy=vdy/vL; vpx=0-vuy; vpy=vux
+  vr=0.22; vm=vL/2
+  line from (vsx,vsy) to (vsx+vux*(vm-vr),vsy+vuy*(vm-vr))
+  line from (vsx+vux*(vm-vr),vsy+vuy*(vm-vr)) \
+    then to (vsx+vux*vm+vpx*vr,vsy+vuy*vm+vpy*vr) \
+    then to (vsx+vux*(vm+vr),vsy+vuy*(vm+vr)) \
+    then to (vsx+vux*vm-vpx*vr,vsy+vuy*vm-vpy*vr) \
+    then to (vsx+vux*(vm-vr),vsy+vuy*(vm-vr))
+  line from (vsx+vux*(vm+vr),vsy+vuy*(vm+vr)) to (vex,vey)
+  line from (vsx+vux*(vm-vr*0.5)+vpx*0.05,vsy+vuy*(vm-vr*0.5)+vpy*0.05) \
+    to (vsx+vux*(vm-vr*0.5)-vpx*0.05,vsy+vuy*(vm-vr*0.5)-vpy*0.05)
+  line from (vsx+vux*(vm+vr*0.5)+vpx*0.05,vsy+vuy*(vm+vr*0.5)+vpy*0.05) \
+    to (vsx+vux*(vm+vr*0.5)-vpx*0.05,vsy+vuy*(vm+vr*0.5)-vpy*0.05)
+  line from (vsx+vux*(vm+vr*0.5-0.05),vsy+vuy*(vm+vr*0.5-0.05)) \
+    to (vsx+vux*(vm+vr*0.5+0.05),vsy+vuy*(vm+vr*0.5+0.05))
+}
+
+# --- controlled current source (diamond + arrow) -------------------------
+define isource_ctrl {
+  jsx=$1.x; jsy=$1.y; jex=$2.x; jey=$2.y
+  jdx=jex-jsx; jdy=jey-jsy; jL=sqrt(jdx*jdx+jdy*jdy)
+  jux=jdx/jL; juy=jdy/jL; jpx=0-juy; jpy=jux
+  jr=0.22; jm=jL/2
+  line from (jsx,jsy) to (jsx+jux*(jm-jr),jsy+juy*(jm-jr))
+  line from (jsx+jux*(jm-jr),jsy+juy*(jm-jr)) \
+    then to (jsx+jux*jm+jpx*jr,jsy+juy*jm+jpy*jr) \
+    then to (jsx+jux*(jm+jr),jsy+juy*(jm+jr)) \
+    then to (jsx+jux*jm-jpx*jr,jsy+juy*jm-jpy*jr) \
+    then to (jsx+jux*(jm-jr),jsy+juy*(jm-jr))
+  line from (jsx+jux*(jm+jr),jsy+juy*(jm+jr)) to (jex,jey)
+  arrow from (jsx+jux*(jm-jr*0.5),jsy+juy*(jm-jr*0.5)) \
+    to (jsx+jux*(jm+jr*0.5),jsy+juy*(jm+jr*0.5))
+}
+
+# --- LED (diode + two outgoing arrows) -----------------------------------
+define led {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  db=0.26; dd=(dL-db)/2; dh=0.13
+  line from (dsx,dsy) to (dsx+dux*dd,dsy+duy*dd)
+  line from (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh) \
+    then to (dsx+dux*dd-dpx*dh,dsy+duy*dd-dpy*dh) \
+    then to (dsx+dux*(dd+db),dsy+duy*(dd+db)) \
+    then to (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    to (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
+  line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
+  arrow from (dsx+dux*(dd+db*0.35)+dpx*0.17,dsy+duy*(dd+db*0.35)+dpy*0.17) \
+    to (dsx+dux*(dd+db*0.35+0.08)+dpx*0.34,dsy+duy*(dd+db*0.35+0.08)+dpy*0.34)
+  arrow from (dsx+dux*(dd+db*0.7)+dpx*0.17,dsy+duy*(dd+db*0.7)+dpy*0.17) \
+    to (dsx+dux*(dd+db*0.7+0.08)+dpx*0.34,dsy+duy*(dd+db*0.7+0.08)+dpy*0.34)
+}
+
+# --- photodiode (diode + two incoming arrows) ----------------------------
+define photodiode {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  db=0.26; dd=(dL-db)/2; dh=0.13
+  line from (dsx,dsy) to (dsx+dux*dd,dsy+duy*dd)
+  line from (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh) \
+    then to (dsx+dux*dd-dpx*dh,dsy+duy*dd-dpy*dh) \
+    then to (dsx+dux*(dd+db),dsy+duy*(dd+db)) \
+    then to (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    to (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
+  line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
+  arrow from (dsx+dux*(dd+db*0.35+0.08)+dpx*0.34,dsy+duy*(dd+db*0.35+0.08)+dpy*0.34) \
+    to (dsx+dux*(dd+db*0.35)+dpx*0.17,dsy+duy*(dd+db*0.35)+dpy*0.17)
+  arrow from (dsx+dux*(dd+db*0.7+0.08)+dpx*0.34,dsy+duy*(dd+db*0.7+0.08)+dpy*0.34) \
+    to (dsx+dux*(dd+db*0.7)+dpx*0.17,dsy+duy*(dd+db*0.7)+dpy*0.17)
+}
+
+# --- zener diode (diode with Z-shaped cathode bar) -----------------------
+define zener {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  db=0.26; dd=(dL-db)/2; dh=0.13
+  line from (dsx,dsy) to (dsx+dux*dd,dsy+duy*dd)
+  line from (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh) \
+    then to (dsx+dux*dd-dpx*dh,dsy+duy*dd-dpy*dh) \
+    then to (dsx+dux*(dd+db),dsy+duy*(dd+db)) \
+    then to (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    then to (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    to (dsx+dux*(dd+db-0.07)+dpx*dh,dsy+duy*(dd+db-0.07)+dpy*dh)
+  line from (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh) \
+    to (dsx+dux*(dd+db+0.07)-dpx*dh,dsy+duy*(dd+db+0.07)-dpy*dh)
+  line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
+}
+
+# =========================================================================
+# Batch 5: annotations and a few more elements.
+
+# --- text label at a point:  clabel(P, "text") ---------------------------
+define clabel { $2 at $1 }
+
+# --- open terminal (small hollow circle) ---------------------------------
+define terminal { circle rad 0.04 at $1 }
+
+# --- supply rail Vdd (stem up + bar) at $1 -------------------------------
+define vdd {
+  ux=$1.x; uy=$1.y
+  line from (ux,uy) to (ux,uy+0.14)
+  line from (ux-0.13,uy+0.14) to (ux+0.13,uy+0.14)
+}
+
+# --- antenna at $1 -------------------------------------------------------
+define antenna {
+  yx=$1.x; yy=$1.y
+  line from (yx,yy) to (yx,yy+0.18)
+  line from (yx,yy+0.18) to (yx-0.13,yy+0.34)
+  line from (yx,yy+0.18) to (yx+0.13,yy+0.34)
+}
+
+# --- current direction arrow alongside a branch $1->$2 -------------------
+define current {
+  csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
+  cdx=cex-csx; cdy=cey-csy; cL=sqrt(cdx*cdx+cdy*cdy)
+  cux=cdx/cL; cuy=cdy/cL; cpx=0-cuy; cpy=cux
+  cm=cL/2; coff=0.18; cln=0.32
+  arrow from (csx+cux*(cm-cln/2)+cpx*coff,csy+cuy*(cm-cln/2)+cpy*coff) \
+    to (csx+cux*(cm+cln/2)+cpx*coff,csy+cuy*(cm+cln/2)+cpy*coff)
+}
+
+# --- voltage arrow across a branch (tail at $1 end, head at $2 end) -------
+define voltage {
+  wsx=$1.x; wsy=$1.y; wex=$2.x; wey=$2.y
+  wdx=wex-wsx; wdy=wey-wsy; wL=sqrt(wdx*wdx+wdy*wdy)
+  wux=wdx/wL; wuy=wdy/wL; wpx=0-wuy; wpy=wux
+  wpad=0.16; woff=0.24
+  arrow from (wsx+wux*wpad+wpx*woff,wsy+wuy*wpad+wpy*woff) \
+    to (wex-wux*wpad+wpx*woff,wey-wuy*wpad+wpy*woff)
+}
+
+# --- lamp (circle with X) ------------------------------------------------
+define lamp {
+  lsx=$1.x; lsy=$1.y; lex=$2.x; ley=$2.y
+  ldx=lex-lsx; ldy=ley-lsy; lL=sqrt(ldx*ldx+ldy*ldy)
+  lux=ldx/lL; luy=ldy/lL; lpx=0-luy; lpy=lux
+  lr=0.2; lm=lL/2; ccx=lsx+lux*lm; ccy=lsy+luy*lm
+  line from (lsx,lsy) to (lsx+lux*(lm-lr),lsy+luy*(lm-lr))
+  circle rad lr at (ccx,ccy)
+  line from (ccx+(lux+lpx)*lr*0.707,ccy+(luy+lpy)*lr*0.707) \
+    to (ccx-(lux+lpx)*lr*0.707,ccy-(luy+lpy)*lr*0.707)
+  line from (ccx+(lux-lpx)*lr*0.707,ccy+(luy-lpy)*lr*0.707) \
+    to (ccx-(lux-lpx)*lr*0.707,ccy-(luy-lpy)*lr*0.707)
+  line from (ccx+lux*lr,ccy+luy*lr) to (lex,ley)
+}
+
+# --- fuse (rectangle with a line through it) -----------------------------
+define fuse {
+  fsx=$1.x; fsy=$1.y; fex=$2.x; fey=$2.y
+  fdx=fex-fsx; fdy=fey-fsy; fL=sqrt(fdx*fdx+fdy*fdy)
+  fux=fdx/fL; fuy=fdy/fL; fpx=0-fuy; fpy=fux
+  fb=0.4; fld=(fL-fb)/2; fh=0.1
+  line from (fsx,fsy) to (fsx+fux*fld,fsy+fuy*fld)
+  line from (fsx+fux*fld+fpx*fh,fsy+fuy*fld+fpy*fh) \
+    then to (fsx+fux*(fld+fb)+fpx*fh,fsy+fuy*(fld+fb)+fpy*fh) \
+    then to (fsx+fux*(fld+fb)-fpx*fh,fsy+fuy*(fld+fb)-fpy*fh) \
+    then to (fsx+fux*fld-fpx*fh,fsy+fuy*fld-fpy*fh) \
+    then to (fsx+fux*fld+fpx*fh,fsy+fuy*fld+fpy*fh)
+  line from (fsx+fux*fld,fsy+fuy*fld) to (fsx+fux*(fld+fb),fsy+fuy*(fld+fb))
+  line from (fsx+fux*(fld+fb),fsy+fuy*(fld+fb)) to (fex,fey)
+}
+
+# =========================================================================
+# Batch 6: meters, connectors, and more.
+
+# --- generic meter (circle + a letter):  meter(A, B, "X") ----------------
+define meter {
+  msx=$1.x; msy=$1.y; mex=$2.x; mey=$2.y
+  mdx=mex-msx; mdy=mey-msy; mL=sqrt(mdx*mdx+mdy*mdy)
+  mvx=mdx/mL; mvy=mdy/mL
+  mr=0.2; mm=mL/2
+  line from (msx,msy) to (msx+mvx*(mm-mr),msy+mvy*(mm-mr))
+  circle rad mr at (msx+mvx*mm,msy+mvy*mm)
+  $3 at (msx+mvx*mm,msy+mvy*mm)
+  line from (msx+mvx*(mm+mr),msy+mvy*(mm+mr)) to (mex,mey)
+}
+define voltmeter { meter($1,$2,"V") }
+define ammeter   { meter($1,$2,"A") }
+define ohmmeter  { meter($1,$2,"Ω") }
+
+# --- quartz crystal (plates + body box) ----------------------------------
+define crystal {
+  qsx=$1.x; qsy=$1.y; qex=$2.x; qey=$2.y
+  qdx=qex-qsx; qdy=qey-qsy; qL=sqrt(qdx*qdx+qdy*qdy)
+  qux=qdx/qL; quy=qdy/qL; qpx=0-quy; qpy=qux
+  qm=qL/2; qbw=0.07; qg=0.05; qph=0.15; qbh=0.18
+  line from (qsx,qsy) to (qsx+qux*(qm-qbw/2-qg),qsy+quy*(qm-qbw/2-qg))
+  line from (qsx+qux*(qm-qbw/2-qg)+qpx*qph,qsy+quy*(qm-qbw/2-qg)+qpy*qph) \
+    to (qsx+qux*(qm-qbw/2-qg)-qpx*qph,qsy+quy*(qm-qbw/2-qg)-qpy*qph)
+  line from (qsx+qux*(qm-qbw/2)+qpx*qbh,qsy+quy*(qm-qbw/2)+qpy*qbh) \
+    then to (qsx+qux*(qm+qbw/2)+qpx*qbh,qsy+quy*(qm+qbw/2)+qpy*qbh) \
+    then to (qsx+qux*(qm+qbw/2)-qpx*qbh,qsy+quy*(qm+qbw/2)-qpy*qbh) \
+    then to (qsx+qux*(qm-qbw/2)-qpx*qbh,qsy+quy*(qm-qbw/2)-qpy*qbh) \
+    then to (qsx+qux*(qm-qbw/2)+qpx*qbh,qsy+quy*(qm-qbw/2)+qpy*qbh)
+  line from (qsx+qux*(qm+qbw/2+qg)+qpx*qph,qsy+quy*(qm+qbw/2+qg)+qpy*qph) \
+    to (qsx+qux*(qm+qbw/2+qg)-qpx*qph,qsy+quy*(qm+qbw/2+qg)-qpy*qph)
+  line from (qsx+qux*(qm+qbw/2+qg),qsy+quy*(qm+qbw/2+qg)) to (qex,qey)
+}
+
+# --- speaker (box + cone) ------------------------------------------------
+define speaker {
+  ksx=$1.x; ksy=$1.y; kex=$2.x; key=$2.y
+  kdx=kex-ksx; kdy=key-ksy; kL=sqrt(kdx*kdx+kdy*kdy)
+  kux=kdx/kL; kuy=kdy/kL; kpx=0-kuy; kpy=kux
+  km=kL/2; kbw=0.12; kbh=0.14; kch=0.26
+  line from (ksx,ksy) to (ksx+kux*(km-kbw),ksy+kuy*(km-kbw))
+  line from (ksx+kux*(km-kbw)+kpx*kbh,ksy+kuy*(km-kbw)+kpy*kbh) \
+    then to (ksx+kux*km+kpx*kbh,ksy+kuy*km+kpy*kbh) \
+    then to (ksx+kux*km-kpx*kbh,ksy+kuy*km-kpy*kbh) \
+    then to (ksx+kux*(km-kbw)-kpx*kbh,ksy+kuy*(km-kbw)-kpy*kbh) \
+    then to (ksx+kux*(km-kbw)+kpx*kbh,ksy+kuy*(km-kbw)+kpy*kbh)
+  line from (ksx+kux*km+kpx*kbh,ksy+kuy*km+kpy*kbh) \
+    then to (ksx+kux*(km+kbw)+kpx*kch,ksy+kuy*(km+kbw)+kpy*kch) \
+    then to (ksx+kux*(km+kbw)-kpx*kch,ksy+kuy*(km+kbw)-kpy*kch) \
+    then to (ksx+kux*km-kpx*kbh,ksy+kuy*km-kpy*kbh)
+  line from (ksx+kux*(km+kbw),ksy+kuy*(km+kbw)) to (kex,key)
+}
+
+# --- wire hop / crossover (semicircle bump at the midpoint) ---------------
+define hop {
+  hsx=$1.x; hsy=$1.y; hex=$2.x; hey=$2.y
+  hdx=hex-hsx; hdy=hey-hsy; hL=sqrt(hdx*hdx+hdy*hdy)
+  hux=hdx/hL; huy=hdy/hL; hpx=0-huy; hpy=hux
+  hm=hL/2; hr=0.09
+  line from (hsx,hsy) to (hsx+hux*(hm-hr),hsy+huy*(hm-hr))
+  spline from (hsx+hux*(hm-hr),hsy+huy*(hm-hr)) \
+    to (hsx+hux*hm+hpx*hr,hsy+huy*hm+hpy*hr) \
+    to (hsx+hux*(hm+hr),hsy+huy*(hm+hr))
+  line from (hsx+hux*(hm+hr),hsy+huy*(hm+hr)) to (hex,hey)
+}
+
+# --- SPDT switch:  spdt(common, throw1_closed, throw2_open) --------------
+define spdt {
+  px=$1.x; py=$1.y; t1x=$2.x; t1y=$2.y; t2x=$3.x; t2y=$3.y
+  circle rad 0.025 fill 0 at (px,py)
+  circle rad 0.025 fill 0 at (t1x,t1y)
+  circle rad 0.025 fill 0 at (t2x,t2y)
+  line from (px,py) to (t1x,t1y)
+}
+
+# =========================================================================
+# Batch 7: IEC box parts, sources, switches, rotating machines, bell.
+
+# --- IEC resistor (rectangle box) ----------------------------------------
+define iec_resistor {
+  rsx=$1.x; rsy=$1.y; rex=$2.x; rey=$2.y
+  rdx=rex-rsx; rdy=rey-rsy; rL=sqrt(rdx*rdx+rdy*rdy)
+  rux=rdx/rL; ruy=rdy/rL; rpx=0-ruy; rpy=rux
+  rb=0.5; rld=(rL-rb)/2; rh=0.11
+  line from (rsx,rsy) to (rsx+rux*rld,rsy+ruy*rld)
+  line from (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh) \
+    then to (rsx+rux*(rld+rb)+rpx*rh,rsy+ruy*(rld+rb)+rpy*rh) \
+    then to (rsx+rux*(rld+rb)-rpx*rh,rsy+ruy*(rld+rb)-rpy*rh) \
+    then to (rsx+rux*rld-rpx*rh,rsy+ruy*rld-rpy*rh) \
+    then to (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh)
+  line from (rsx+rux*(rld+rb),rsy+ruy*(rld+rb)) to (rex,rey)
+}
+
+# --- independent voltage source (circle with - / +) ----------------------
+define voltage_source {
+  asx=$1.x; asy=$1.y; aex=$2.x; aey=$2.y
+  adx=aex-asx; ady=aey-asy; aL=sqrt(adx*adx+ady*ady)
+  aux=adx/aL; auy=ady/aL; apx=0-auy; apy=aux
+  arad=0.2; amid=aL/2
+  line from (asx,asy) to (asx+aux*(amid-arad),asy+auy*(amid-arad))
+  circle rad arad at (asx+aux*amid,asy+auy*amid)
+  line from (asx+aux*(amid-arad*0.5)+apx*0.05,asy+auy*(amid-arad*0.5)+apy*0.05) \
+    to (asx+aux*(amid-arad*0.5)-apx*0.05,asy+auy*(amid-arad*0.5)-apy*0.05)
+  line from (asx+aux*(amid+arad*0.5)+apx*0.05,asy+auy*(amid+arad*0.5)+apy*0.05) \
+    to (asx+aux*(amid+arad*0.5)-apx*0.05,asy+auy*(amid+arad*0.5)-apy*0.05)
+  line from (asx+aux*(amid+arad*0.5-0.05),asy+auy*(amid+arad*0.5-0.05)) \
+    to (asx+aux*(amid+arad*0.5+0.05),asy+auy*(amid+arad*0.5+0.05))
+  line from (asx+aux*(amid+arad),asy+auy*(amid+arad)) to (aex,aey)
+}
+
+# --- pushbutton (momentary, normally open) -------------------------------
+define pushbutton {
+  ssx=$1.x; ssy=$1.y; sex=$2.x; sey=$2.y
+  sdx=sex-ssx; sdy=sey-ssy; sL=sqrt(sdx*sdx+sdy*sdy)
+  sux=sdx/sL; suy=sdy/sL; spx=0-suy; spy=sux
+  sg=0.3; sm=sL/2
+  line from (ssx,ssy) to (ssx+sux*(sm-sg/2),ssy+suy*(sm-sg/2))
+  circle rad 0.025 fill 0 at (ssx+sux*(sm-sg/2),ssy+suy*(sm-sg/2))
+  circle rad 0.025 fill 0 at (ssx+sux*(sm+sg/2),ssy+suy*(sm+sg/2))
+  line from (ssx+sux*(sm-sg/2)+spx*0.16,ssy+suy*(sm-sg/2)+spy*0.16) \
+    to (ssx+sux*(sm+sg/2)+spx*0.16,ssy+suy*(sm+sg/2)+spy*0.16)
+  line from (ssx+sux*sm+spx*0.16,ssy+suy*sm+spy*0.16) \
+    to (ssx+sux*sm+spx*0.3,ssy+suy*sm+spy*0.3)
+  line from (ssx+sux*(sm+sg/2),ssy+suy*(sm+sg/2)) to (sex,sey)
+}
+
+# --- relay (coil box + linked contact) -----------------------------------
+define relay {
+  rsx=$1.x; rsy=$1.y; rex=$2.x; rey=$2.y
+  rdx=rex-rsx; rdy=rey-rsy; rL=sqrt(rdx*rdx+rdy*rdy)
+  rux=rdx/rL; ruy=rdy/rL; rpx=0-ruy; rpy=rux
+  rb=0.4; rld=(rL-rb)/2; rh=0.1
+  line from (rsx,rsy) to (rsx+rux*rld,rsy+ruy*rld)
+  line from (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh) \
+    then to (rsx+rux*(rld+rb)+rpx*rh,rsy+ruy*(rld+rb)+rpy*rh) \
+    then to (rsx+rux*(rld+rb)-rpx*rh,rsy+ruy*(rld+rb)-rpy*rh) \
+    then to (rsx+rux*rld-rpx*rh,rsy+ruy*rld-rpy*rh) \
+    then to (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh)
+  line from (rsx+rux*(rld+rb),rsy+ruy*(rld+rb)) to (rex,rey)
+  bcx=rsx+rux*(rld+rb/2); bcy=rsy+ruy*(rld+rb/2)
+  circle rad 0.025 fill 0 at (bcx-rux*0.18+rpx*0.5,bcy-ruy*0.18+rpy*0.5)
+  circle rad 0.025 fill 0 at (bcx+rux*0.18+rpx*0.5,bcy+ruy*0.18+rpy*0.5)
+  line from (bcx-rux*0.18+rpx*0.5,bcy-ruy*0.18+rpy*0.5) \
+    to (bcx+rux*0.1+rpx*0.62,bcy+ruy*0.1+rpy*0.62)
+  line from (bcx-rux*0.18+rpx*0.5,bcy-ruy*0.18+rpy*0.5) \
+    to (bcx-rux*0.18+rpx*0.62,bcy-ruy*0.18+rpy*0.62)
+  line from (bcx+rux*0.18+rpx*0.5,bcy+ruy*0.18+rpy*0.5) \
+    to (bcx+rux*0.18+rpx*0.62,bcy+ruy*0.18+rpy*0.62)
+  line dotted from (bcx+rpx*rh,bcy+rpy*rh) to (bcx-rux*0.04+rpx*0.56,bcy-ruy*0.04+rpy*0.56)
+}
+
+# --- thermistor (box with diagonal foot) ---------------------------------
+define thermistor {
+  tsx=$1.x; tsy=$1.y; tex=$2.x; tey=$2.y
+  tdx=tex-tsx; tdy=tey-tsy; tL=sqrt(tdx*tdx+tdy*tdy)
+  tux=tdx/tL; tuy=tdy/tL; tpx=0-tuy; tpy=tux
+  tb=0.5; tld=(tL-tb)/2; thh=0.11
+  line from (tsx,tsy) to (tsx+tux*tld,tsy+tuy*tld)
+  line from (tsx+tux*tld+tpx*thh,tsy+tuy*tld+tpy*thh) \
+    then to (tsx+tux*(tld+tb)+tpx*thh,tsy+tuy*(tld+tb)+tpy*thh) \
+    then to (tsx+tux*(tld+tb)-tpx*thh,tsy+tuy*(tld+tb)-tpy*thh) \
+    then to (tsx+tux*tld-tpx*thh,tsy+tuy*tld-tpy*thh) \
+    then to (tsx+tux*tld+tpx*thh,tsy+tuy*tld+tpy*thh)
+  line from (tsx+tux*(tld+tb),tsy+tuy*(tld+tb)) to (tex,tey)
+  line from (tsx+tux*(tld-0.06)-tpx*thh*1.5,tsy+tuy*(tld-0.06)-tpy*thh*1.5) \
+    to (tsx+tux*tld-tpx*thh*1.5,tsy+tuy*tld-tpy*thh*1.5) \
+    then to (tsx+tux*(tld+tb)+tpx*thh*1.5,tsy+tuy*(tld+tb)+tpy*thh*1.5)
+}
+
+# --- rotating machines (circle + letter) ---------------------------------
+define motor     { meter($1,$2,"M") }
+define generator { meter($1,$2,"G") }
+
+# --- bell (dome) ---------------------------------------------------------
+define bell {
+  bsx=$1.x; bsy=$1.y; bex=$2.x; bey=$2.y
+  bdx=bex-bsx; bdy=bey-bsy; bL=sqrt(bdx*bdx+bdy*bdy)
+  bux=bdx/bL; buy=bdy/bL; bpx=0-buy; bpy=bux
+  br=0.2; bm=bL/2
+  line from (bsx,bsy) to (bsx+bux*(bm-br),bsy+buy*(bm-br))
+  spline from (bsx+bux*(bm-br),bsy+buy*(bm-br)) \
+    to (bsx+bux*(bm-br*0.6)+bpx*br*0.95,bsy+buy*(bm-br*0.6)+bpy*br*0.95) \
+    to (bsx+bux*bm+bpx*br,bsy+buy*bm+bpy*br) \
+    to (bsx+bux*(bm+br*0.6)+bpx*br*0.95,bsy+buy*(bm+br*0.6)+bpy*br*0.95) \
+    to (bsx+bux*(bm+br),bsy+buy*(bm+br))
+  line from (bsx+bux*(bm-br),bsy+buy*(bm-br)) to (bsx+bux*(bm+br),bsy+buy*(bm+br))
+  line from (bsx+bux*(bm+br),bsy+buy*(bm+br)) to (bex,bey)
+}
+
+# =========================================================================
+# Batch 8: IEEE/IEC rectangular gates, transmission line, varistor, bus.
+
+# --- generic rectangular gate:  iecgate(C, "label") ----------------------
+define iecgate {
+  px=$1.x; py=$1.y; pw=0.46; ph=0.6; pL=0.18; pin=0.18
+  pxl=px-pw/2; pxr=px+pw/2
+  line from (pxl,py-ph/2) then to (pxl,py+ph/2) then to (pxr,py+ph/2) \
+    then to (pxr,py-ph/2) then to (pxl,py-ph/2)
+  $2 at (px,py)
+  line from (pxl-pL,py+pin) to (pxl,py+pin)
+  line from (pxl-pL,py-pin) to (pxl,py-pin)
+  line from (pxr,py) to (pxr+pL,py)
+  gA_x=pxl-pL; gA_y=py+pin; gB_x=pxl-pL; gB_y=py-pin; gY_x=pxr+pL; gY_y=py
+}
+define ieee_and { iecgate($1,"&") }
+define ieee_or  { iecgate($1,"≥1") }
+define ieee_xor { iecgate($1,"=1") }
+define ieee_buf { iecgate($1,"1") }
+
+# --- varistor / VDR (box with diagonal arrow) ----------------------------
+define varistor {
+  vsx=$1.x; vsy=$1.y; vex=$2.x; vey=$2.y
+  vdx=vex-vsx; vdy=vey-vsy; vL=sqrt(vdx*vdx+vdy*vdy)
+  vux=vdx/vL; vuy=vdy/vL; vpx=0-vuy; vpy=vux
+  vb=0.5; vld=(vL-vb)/2; vh=0.11
+  line from (vsx,vsy) to (vsx+vux*vld,vsy+vuy*vld)
+  line from (vsx+vux*vld+vpx*vh,vsy+vuy*vld+vpy*vh) \
+    then to (vsx+vux*(vld+vb)+vpx*vh,vsy+vuy*(vld+vb)+vpy*vh) \
+    then to (vsx+vux*(vld+vb)-vpx*vh,vsy+vuy*(vld+vb)-vpy*vh) \
+    then to (vsx+vux*vld-vpx*vh,vsy+vuy*vld-vpy*vh) \
+    then to (vsx+vux*vld+vpx*vh,vsy+vuy*vld+vpy*vh)
+  line from (vsx+vux*(vld+vb),vsy+vuy*(vld+vb)) to (vex,vey)
+  arrow from (vsx+vux*(vld-0.04)-vpx*vh*1.6,vsy+vuy*(vld-0.04)-vpy*vh*1.6) \
+    to (vsx+vux*(vld+vb+0.04)+vpx*vh*1.6,vsy+vuy*(vld+vb+0.04)+vpy*vh*1.6)
+}
+
+# --- transmission line (elongated stadium) -------------------------------
+define tline {
+  tsx=$1.x; tsy=$1.y; tex=$2.x; tey=$2.y
+  tdx=tex-tsx; tdy=tey-tsy; tL=sqrt(tdx*tdx+tdy*tdy)
+  tux=tdx/tL; tuy=tdy/tL; tpx=0-tuy; tpy=tux
+  tb=0.5; tld=(tL-tb)/2; th2=0.12
+  line from (tsx,tsy) to (tsx+tux*tld,tsy+tuy*tld)
+  spline from (tsx+tux*tld+tpx*th2,tsy+tuy*tld+tpy*th2) \
+    to (tsx+tux*(tld-th2),tsy+tuy*(tld-th2)) \
+    to (tsx+tux*tld-tpx*th2,tsy+tuy*tld-tpy*th2)
+  line from (tsx+tux*tld+tpx*th2,tsy+tuy*tld+tpy*th2) \
+    to (tsx+tux*(tld+tb)+tpx*th2,tsy+tuy*(tld+tb)+tpy*th2)
+  line from (tsx+tux*tld-tpx*th2,tsy+tuy*tld-tpy*th2) \
+    to (tsx+tux*(tld+tb)-tpx*th2,tsy+tuy*(tld+tb)-tpy*th2)
+  spline from (tsx+tux*(tld+tb)+tpx*th2,tsy+tuy*(tld+tb)+tpy*th2) \
+    to (tsx+tux*(tld+tb+th2),tsy+tuy*(tld+tb+th2)) \
+    to (tsx+tux*(tld+tb)-tpx*th2,tsy+tuy*(tld+tb)-tpy*th2)
+  line from (tsx+tux*(tld+tb),tsy+tuy*(tld+tb)) to (tex,tey)
+}
+
+# --- bus (thick line with a slash) ---------------------------------------
+define bus {
+  bsx=$1.x; bsy=$1.y; bex=$2.x; bey=$2.y
+  bdx=bex-bsx; bdy=bey-bsy; bL=sqrt(bdx*bdx+bdy*bdy)
+  bux=bdx/bL; buy=bdy/bL; bpx=0-buy; bpy=bux; bm=bL/2
+  line thick 2.5 from (bsx,bsy) to (bex,bey)
+  line from (bsx+bux*(bm-0.07)-bpx*0.1,bsy+buy*(bm-0.07)-bpy*0.1) \
+    to (bsx+bux*(bm+0.07)+bpx*0.1,bsy+buy*(bm+0.07)+bpy*0.1)
+}
+
+# =========================================================================
+# Batch 9: 2-terminal variants and ground symbols.
+
+# --- polarized (electrolytic) capacitor ----------------------------------
+define polcap {
+  csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
+  cdx=cex-csx; cdy=cey-csy; cL=sqrt(cdx*cdx+cdy*cdy)
+  cux=cdx/cL; cuy=cdy/cL; cpx=0-cuy; cpy=cux
+  cg=0.09; ch=0.13; cm=cL/2
+  line from (csx,csy) to (csx+cux*(cm-cg/2),csy+cuy*(cm-cg/2))
+  line from (csx+cux*(cm-cg/2)+cpx*ch,csy+cuy*(cm-cg/2)+cpy*ch) \
+    to (csx+cux*(cm-cg/2)-cpx*ch,csy+cuy*(cm-cg/2)-cpy*ch)
+  spline from (csx+cux*(cm+cg/2)+cpx*ch,csy+cuy*(cm+cg/2)+cpy*ch) \
+    to (csx+cux*(cm+cg/2+0.05),csy+cuy*(cm+cg/2+0.05)) \
+    to (csx+cux*(cm+cg/2)-cpx*ch,csy+cuy*(cm+cg/2)-cpy*ch)
+  line from (csx+cux*(cm+cg/2+0.05),csy+cuy*(cm+cg/2+0.05)) to (cex,cey)
+  line from (csx+cux*(cm-0.22)+cpx*0.18,csy+cuy*(cm-0.22)+cpy*0.18) \
+    to (csx+cux*(cm-0.14)+cpx*0.18,csy+cuy*(cm-0.14)+cpy*0.18)
+  line from (csx+cux*(cm-0.18)+cpx*0.14,csy+cuy*(cm-0.18)+cpy*0.14) \
+    to (csx+cux*(cm-0.18)+cpx*0.22,csy+cuy*(cm-0.18)+cpy*0.22)
+}
+
+# --- variable capacitor (capacitor + arrow) ------------------------------
+define varcap {
+  csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
+  cdx=cex-csx; cdy=cey-csy; cL=sqrt(cdx*cdx+cdy*cdy)
+  cux=cdx/cL; cuy=cdy/cL; cpx=0-cuy; cpy=cux
+  cg=0.07; ch=0.13; cm=cL/2
+  line from (csx,csy) to (csx+cux*(cm-cg/2),csy+cuy*(cm-cg/2))
+  line from (csx+cux*(cm-cg/2)+cpx*ch,csy+cuy*(cm-cg/2)+cpy*ch) \
+    to (csx+cux*(cm-cg/2)-cpx*ch,csy+cuy*(cm-cg/2)-cpy*ch)
+  line from (csx+cux*(cm+cg/2)+cpx*ch,csy+cuy*(cm+cg/2)+cpy*ch) \
+    to (csx+cux*(cm+cg/2)-cpx*ch,csy+cuy*(cm+cg/2)-cpy*ch)
+  line from (csx+cux*(cm+cg/2),csy+cuy*(cm+cg/2)) to (cex,cey)
+  arrow from (csx+cux*(cm-0.16)-cpx*0.2,csy+cuy*(cm-0.16)-cpy*0.2) \
+    to (csx+cux*(cm+0.16)+cpx*0.2,csy+cuy*(cm+0.16)+cpy*0.2)
+}
+
+# --- variable inductor (inductor + arrow) --------------------------------
+define varind {
+  isx=$1.x; isy=$1.y; iex=$2.x; iey=$2.y
+  idx=iex-isx; idy=iey-isy; iL=sqrt(idx*idx+idy*idy)
+  iux=idx/iL; iuy=idy/iL; ipx=0-iuy; ipy=iux
+  ib=0.5; id=(iL-ib)/2; ih=0.12
+  line from (isx,isy) to (isx+iux*id,isy+iuy*id)
+  spline from (isx+iux*id,isy+iuy*id) \
+    to (isx+iux*(id+ib*0.125)+ipx*ih,isy+iuy*(id+ib*0.125)+ipy*ih) \
+    to (isx+iux*(id+ib*0.25),isy+iuy*(id+ib*0.25)) \
+    to (isx+iux*(id+ib*0.375)+ipx*ih,isy+iuy*(id+ib*0.375)+ipy*ih) \
+    to (isx+iux*(id+ib*0.5),isy+iuy*(id+ib*0.5)) \
+    to (isx+iux*(id+ib*0.625)+ipx*ih,isy+iuy*(id+ib*0.625)+ipy*ih) \
+    to (isx+iux*(id+ib*0.75),isy+iuy*(id+ib*0.75)) \
+    to (isx+iux*(id+ib*0.875)+ipx*ih,isy+iuy*(id+ib*0.875)+ipy*ih) \
+    to (isx+iux*(id+ib),isy+iuy*(id+ib))
+  line from (isx+iux*(id+ib),isy+iuy*(id+ib)) to (iex,iey)
+  arrow from (isx+iux*(id+ib/2)-ipx*0.18,isy+iuy*(id+ib/2)-ipy*0.18) \
+    to (isx+iux*(id+ib/2)+ipx*0.22,isy+iuy*(id+ib/2)+ipy*0.22)
+}
+
+# --- Schottky diode (cathode bar with hooks) -----------------------------
+define schottky {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  db=0.26; dd=(dL-db)/2; dh=0.13
+  line from (dsx,dsy) to (dsx+dux*dd,dsy+duy*dd)
+  line from (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh) \
+    then to (dsx+dux*dd-dpx*dh,dsy+duy*dd-dpy*dh) \
+    then to (dsx+dux*(dd+db),dsy+duy*(dd+db)) \
+    then to (dsx+dux*dd+dpx*dh,dsy+duy*dd+dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    then to (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
+  line from (dsx+dux*(dd+db)+dpx*dh,dsy+duy*(dd+db)+dpy*dh) \
+    to (dsx+dux*(dd+db-0.06)+dpx*dh,dsy+duy*(dd+db-0.06)+dpy*dh)
+  line from (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh) \
+    to (dsx+dux*(dd+db+0.06)-dpx*dh,dsy+duy*(dd+db+0.06)-dpy*dh)
+  line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
+}
+
+# --- photoresistor / LDR (box + two incoming arrows) ---------------------
+define ldr {
+  rsx=$1.x; rsy=$1.y; rex=$2.x; rey=$2.y
+  rdx=rex-rsx; rdy=rey-rsy; rL=sqrt(rdx*rdx+rdy*rdy)
+  rux=rdx/rL; ruy=rdy/rL; rpx=0-ruy; rpy=rux
+  rb=0.5; rld=(rL-rb)/2; rh=0.11
+  line from (rsx,rsy) to (rsx+rux*rld,rsy+ruy*rld)
+  line from (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh) \
+    then to (rsx+rux*(rld+rb)+rpx*rh,rsy+ruy*(rld+rb)+rpy*rh) \
+    then to (rsx+rux*(rld+rb)-rpx*rh,rsy+ruy*(rld+rb)-rpy*rh) \
+    then to (rsx+rux*rld-rpx*rh,rsy+ruy*rld-rpy*rh) \
+    then to (rsx+rux*rld+rpx*rh,rsy+ruy*rld+rpy*rh)
+  line from (rsx+rux*(rld+rb),rsy+ruy*(rld+rb)) to (rex,rey)
+  arrow from (rsx+rux*(rld+rb*0.35+0.1)+rpx*0.36,rsy+ruy*(rld+rb*0.35+0.1)+rpy*0.36) \
+    to (rsx+rux*(rld+rb*0.35)+rpx*0.18,rsy+ruy*(rld+rb*0.35)+rpy*0.18)
+  arrow from (rsx+rux*(rld+rb*0.65+0.1)+rpx*0.36,rsy+ruy*(rld+rb*0.65+0.1)+rpy*0.36) \
+    to (rsx+rux*(rld+rb*0.65)+rpx*0.18,rsy+ruy*(rld+rb*0.65)+rpy*0.18)
+}
+
+# --- spark gap (two triangles facing across a gap) -----------------------
+define spark_gap {
+  dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
+  ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
+  dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
+  dg=0.12; dw=0.16; dh=0.12; dm=dL/2
+  line from (dsx,dsy) to (dsx+dux*(dm-dg/2-dw),dsy+duy*(dm-dg/2-dw))
+  line from (dsx+dux*(dm-dg/2-dw)+dpx*dh,dsy+duy*(dm-dg/2-dw)+dpy*dh) \
+    then to (dsx+dux*(dm-dg/2),dsy+duy*(dm-dg/2)) \
+    then to (dsx+dux*(dm-dg/2-dw)-dpx*dh,dsy+duy*(dm-dg/2-dw)-dpy*dh)
+  line from (dsx+dux*(dm+dg/2+dw)+dpx*dh,dsy+duy*(dm+dg/2+dw)+dpy*dh) \
+    then to (dsx+dux*(dm+dg/2),dsy+duy*(dm+dg/2)) \
+    then to (dsx+dux*(dm+dg/2+dw)-dpx*dh,dsy+duy*(dm+dg/2+dw)-dpy*dh)
+  line from (dsx+dux*(dm+dg/2+dw),dsy+duy*(dm+dg/2+dw)) to (dex,dey)
+}
+
+# --- chassis ground (bar + hatches) at $1 (points down) ------------------
+define chassis_ground {
+  gx=$1.x; gy=$1.y
+  line from (gx,gy) to (gx,gy-0.12)
+  line from (gx-0.14,gy-0.12) to (gx+0.14,gy-0.12)
+  line from (gx-0.14,gy-0.12) to (gx-0.22,gy-0.24)
+  line from (gx,gy-0.12) to (gx-0.08,gy-0.24)
+  line from (gx+0.14,gy-0.12) to (gx+0.06,gy-0.24)
+}
+
+# --- signal ground (downward triangle) at $1 -----------------------------
+define signal_ground {
+  gx=$1.x; gy=$1.y
+  line from (gx,gy) to (gx,gy-0.1)
+  line from (gx-0.13,gy-0.1) then to (gx+0.13,gy-0.1) then to (gx,gy-0.28) then to (gx-0.13,gy-0.1)
+}
+
+# =========================================================================
+# Batch 10: JFETs, digital blocks, transducers.
+
+# --- n-channel JFET ------------------------------------------------------
+define njfet {
+  mx=$1.x; my=$1.y
+  line from (mx-0.12,my-0.2) to (mx-0.12,my+0.2)
+  line from (mx-0.4,my) to (mx-0.24,my)
+  arrow from (mx-0.24,my) to (mx-0.12,my)
+  line from (mx-0.12,my+0.13) to (mx+0.16,my+0.13)
+  line from (mx+0.16,my+0.13) to (mx+0.16,my+0.36)
+  line from (mx-0.12,my-0.13) to (mx+0.16,my-0.13)
+  line from (mx+0.16,my-0.13) to (mx+0.16,my-0.36)
+  gGate_x=mx-0.4; gGate_y=my; gDrain_x=mx+0.16; gDrain_y=my+0.36; gSrc_x=mx+0.16; gSrc_y=my-0.36
+}
+
+# --- p-channel JFET (gate arrow points outward) --------------------------
+define pjfet {
+  mx=$1.x; my=$1.y
+  line from (mx-0.12,my-0.2) to (mx-0.12,my+0.2)
+  line from (mx-0.4,my) to (mx-0.28,my)
+  arrow from (mx-0.12,my) to (mx-0.28,my)
+  line from (mx-0.12,my+0.13) to (mx+0.16,my+0.13)
+  line from (mx+0.16,my+0.13) to (mx+0.16,my+0.36)
+  line from (mx-0.12,my-0.13) to (mx+0.16,my-0.13)
+  line from (mx+0.16,my-0.13) to (mx+0.16,my-0.36)
+  gGate_x=mx-0.4; gGate_y=my; gDrain_x=mx+0.16; gDrain_y=my+0.36; gSrc_x=mx+0.16; gSrc_y=my-0.36
+}
+
+# --- phototransistor (NPN + two incoming light arrows) -------------------
+define phototransistor {
+  tx=$1.x; ty=$1.y; tr=0.3
+  circle rad tr at (tx,ty)
+  line from (tx-0.06,ty-0.16) to (tx-0.06,ty+0.16)
+  line from (tx-tr-0.18,ty) to (tx-0.06,ty)
+  line from (tx-0.06,ty+0.07) to (tx+0.16,ty+0.22)
+  line from (tx+0.16,ty+0.22) to (tx+0.16,ty+tr+0.12)
+  arrow from (tx-0.06,ty-0.07) to (tx+0.16,ty-0.22)
+  line from (tx+0.16,ty-0.22) to (tx+0.16,ty-tr-0.12)
+  arrow from (tx-tr-0.36,ty+0.5) to (tx-tr-0.18,ty+0.32)
+  arrow from (tx-tr-0.18,ty+0.55) to (tx-tr,ty+0.37)
+  gBase_x=tx-tr-0.18; gBase_y=ty; gColl_x=tx+0.16; gColl_y=ty+tr+0.12; gEmit_x=tx+0.16; gEmit_y=ty-tr-0.12
+}
+
+# --- generic IC block:  ic_block(C, "name") ------------------------------
+define ic_block {
+  px=$1.x; py=$1.y; pw=0.9; ph=0.7
+  line from (px-pw/2,py-ph/2) then to (px-pw/2,py+ph/2) \
+    then to (px+pw/2,py+ph/2) then to (px+pw/2,py-ph/2) then to (px-pw/2,py-ph/2)
+  $2 at (px,py)
+  gWx=px-pw/2; gEx=px+pw/2; gNy=py+ph/2; gSy=py-ph/2; gCx=px; gCy=py
+}
+
+# --- 2:1 multiplexer (trapezoid) -----------------------------------------
+define mux {
+  px=$1.x; py=$1.y; pw=0.5; ph=0.8; phs=0.45
+  line from (px-pw/2,py-ph/2) then to (px-pw/2,py+ph/2) \
+    then to (px+pw/2,py+phs/2) then to (px+pw/2,py-phs/2) then to (px-pw/2,py-ph/2)
+  gWx=px-pw/2; gEx=px+pw/2; gCy=py
+}
+
+# --- solar cell (battery plates + incoming light) ------------------------
+define solar_cell {
+  zsx=$1.x; zsy=$1.y; zex=$2.x; zey=$2.y
+  zdx=zex-zsx; zdy=zey-zsy; zL=sqrt(zdx*zdx+zdy*zdy)
+  zux=zdx/zL; zuy=zdy/zL; zpx=0-zuy; zpy=zux
+  zg=0.07; zm=zL/2
+  line from (zsx,zsy) to (zsx+zux*(zm-zg/2),zsy+zuy*(zm-zg/2))
+  line from (zsx+zux*(zm-zg/2)+zpx*0.16,zsy+zuy*(zm-zg/2)+zpy*0.16) \
+    to (zsx+zux*(zm-zg/2)-zpx*0.16,zsy+zuy*(zm-zg/2)-zpy*0.16)
+  line from (zsx+zux*(zm+zg/2)+zpx*0.08,zsy+zuy*(zm+zg/2)+zpy*0.08) \
+    to (zsx+zux*(zm+zg/2)-zpx*0.08,zsy+zuy*(zm+zg/2)-zpy*0.08)
+  line from (zsx+zux*(zm+zg/2),zsy+zuy*(zm+zg/2)) to (zex,zey)
+  arrow from (zsx+zux*(zm-0.28)+zpx*0.5,zsy+zuy*(zm-0.28)+zpy*0.5) \
+    to (zsx+zux*(zm-0.1)+zpx*0.32,zsy+zuy*(zm-0.1)+zpy*0.32)
+  arrow from (zsx+zux*(zm-0.08)+zpx*0.5,zsy+zuy*(zm-0.08)+zpy*0.5) \
+    to (zsx+zux*(zm+0.1)+zpx*0.32,zsy+zuy*(zm+0.1)+zpy*0.32)
+}
+
+# --- microphone (circle with chord) --------------------------------------
+define microphone {
+  nsx=$1.x; nsy=$1.y; nex=$2.x; ney=$2.y
+  ndx=nex-nsx; ndy=ney-nsy; nL=sqrt(ndx*ndx+ndy*ndy)
+  nux=ndx/nL; nuy=ndy/nL; npx=0-nuy; npy=nux
+  nr=0.18; nm=nL/2; nccx=nsx+nux*nm; nccy=nsy+nuy*nm
+  line from (nsx,nsy) to (nsx+nux*(nm-nr),nsy+nuy*(nm-nr))
+  circle rad nr at (nccx,nccy)
+  line from (nccx-nux*nr*0.5+npx*nr*0.86,nccy-nuy*nr*0.5+npy*nr*0.86) \
+    to (nccx-nux*nr*0.5-npx*nr*0.86,nccy-nuy*nr*0.5-npy*nr*0.86)
+  line from (nccx+nux*nr,nccy+nuy*nr) to (nex,ney)
+}
+
+# --- thermocouple (junction tent) ----------------------------------------
+define thermocouple {
+  esx=$1.x; esy=$1.y; eex=$2.x; eey=$2.y
+  edx=eex-esx; edy=eey-esy; eL=sqrt(edx*edx+edy*edy)
+  eux=edx/eL; euy=edy/eL; epx=0-euy; epy=eux
+  em=eL/2
+  line from (esx,esy) to (esx+eux*(em-0.15),esy+euy*(em-0.15))
+  line from (esx+eux*(em-0.15),esy+euy*(em-0.15)) \
+    then to (esx+eux*em+epx*0.18,esy+euy*em+epy*0.18) \
+    then to (esx+eux*(em+0.15),esy+euy*(em+0.15))
+  circle rad 0.025 fill 0 at (esx+eux*em+epx*0.18,esy+euy*em+epy*0.18)
+  line from (esx+eux*(em+0.15),esy+euy*(em+0.15)) to (eex,eey)
+}

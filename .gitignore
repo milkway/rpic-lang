@@ -1,0 +1,14 @@
+# Rust
+/target
+target/
+**/*.rs.bk
+
+# Node / web
+node_modules/
+web/dist/
+
+# OS / editor
+.DS_Store
+
+# scratch
+*.tmp

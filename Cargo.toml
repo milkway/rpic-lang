@@ -1,0 +1,21 @@
+# rpic — a modern, SVG/PNG/PDF-first reimplementation of the pic graphics
+# language (Kernighan 1982) in Rust, descended in spirit from dpic (J.D.
+# Aplevich).
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/render",
+    "crates/cli",
+]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+license = "BSD-2-Clause"
+authors = ["André Leite <leite@de.ufpe.br>"]
+repository = "https://github.com/leite/dpic"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

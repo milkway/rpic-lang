@@ -1,0 +1,12 @@
+[package]
+name = "rpic-render"
+description = "Raster (PNG) and PDF rendering for rpic, by rasterizing/converting its SVG output (pure Rust: resvg/tiny-skia, svg2pdf)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+resvg = "0.47.0"
+svg2pdf = "0.13.0"

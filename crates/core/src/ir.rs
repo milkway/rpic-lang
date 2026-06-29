@@ -1,0 +1,141 @@
+//! Intermediate representation: the placed-primitive tree produced by the
+//! evaluator and consumed by the render backends. All coordinates are absolute,
+//! in pic units (inches), y pointing up.
+
+use crate::geom::{Bbox, Point};
+
+/// A fully evaluated drawing.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Drawing {
+    pub shapes: Vec<Shape>,
+    pub bbox: Bbox,
+    pub anims: Vec<Anim>,
+}
+
+/// A resolved animation entry. `shape` indexes into [`Drawing::shapes`]; the
+/// SVG backend gives that shape the id `s{shape}` so the player can target it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Anim {
+    pub shape: usize,
+    pub effect: String,
+    /// Absolute start time in seconds.
+    pub start: f64,
+    pub duration: f64,
+}
+
+/// Line dash style.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Dash {
+    #[default]
+    Solid,
+    Dashed,
+    Dotted,
+}
+
+/// Fill specification.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Fill {
+    /// Gray level, pic convention: 0 = black, 1 = white.
+    Gray(f64),
+    /// A named/explicit color.
+    Color(String),
+}
+
+/// Visual style shared by all shapes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Style {
+    /// Stroke color (CSS), or `None` to use the default.
+    pub stroke: Option<String>,
+    pub fill: Option<Fill>,
+    pub dash: Dash,
+    /// Stroke thickness in points; `None` = backend default.
+    pub thick: Option<f64>,
+    /// Invisible (used by `move` and `invis`): geometry counts, nothing drawn.
+    pub invis: bool,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Style {
+            stroke: None,
+            fill: None,
+            dash: Dash::Solid,
+            thick: None,
+            invis: false,
+        }
+    }
+}
+
+/// Which ends of a path carry an arrowhead.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Arrowheads {
+    #[default]
+    None,
+    Start,
+    End,
+    Both,
+}
+
+/// A line of attached text with placement hints.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TextLine {
+    pub s: String,
+    /// horizontal: -1 = ljust, 0 = center, +1 = rjust.
+    pub halign: i8,
+    /// vertical: +1 = above, 0 = center, -1 = below.
+    pub valign: i8,
+}
+
+/// A placed drawing primitive.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Shape {
+    Box {
+        c: Point,
+        w: f64,
+        h: f64,
+        rad: f64,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    Circle {
+        c: Point,
+        r: f64,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    Ellipse {
+        c: Point,
+        w: f64,
+        h: f64,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    /// Straight polyline (line / arrow / move).
+    Path {
+        pts: Vec<Point>,
+        arrows: Arrowheads,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    Spline {
+        pts: Vec<Point>,
+        arrows: Arrowheads,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    Arc {
+        c: Point,
+        r: f64,
+        /// start and end angles in radians.
+        a0: f64,
+        a1: f64,
+        cw: bool,
+        arrows: Arrowheads,
+        style: Style,
+        text: Vec<TextLine>,
+    },
+    Text {
+        at: Point,
+        text: Vec<TextLine>,
+    },
+}
