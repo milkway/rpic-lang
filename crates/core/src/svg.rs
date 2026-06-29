@@ -275,16 +275,30 @@ impl Svg {
             let base = t - u * hl;
             let l = base + perp * hw;
             let r = base - perp * hw;
-            out.push_str(&format!(
-                "<polygon points=\"{},{} {},{} {},{}\" fill=\"{}\"/>\n",
-                num(t.x),
-                num(t.y),
-                num(l.x),
-                num(l.y),
-                num(r.x),
-                num(r.y),
-                color
-            ));
+            if style.arrow_filled {
+                out.push_str(&format!(
+                    "<polygon points=\"{},{} {},{} {},{}\" fill=\"{}\"/>\n",
+                    num(t.x),
+                    num(t.y),
+                    num(l.x),
+                    num(l.y),
+                    num(r.x),
+                    num(r.y),
+                    color
+                ));
+            } else {
+                // open arrowhead: two strokes meeting at the tip
+                out.push_str(&format!(
+                    "<polyline points=\"{},{} {},{} {},{}\" fill=\"none\" {}/>\n",
+                    num(l.x),
+                    num(l.y),
+                    num(t.x),
+                    num(t.y),
+                    num(r.x),
+                    num(r.y),
+                    self.stroke(style)
+                ));
+            }
         };
         let mut buf = String::new();
         if matches!(arrows, Arrowheads::End | Arrowheads::Both) {

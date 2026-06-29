@@ -1165,6 +1165,9 @@ impl State {
         let mut s = Style {
             arrow_ht: self.env.get(EnvVar::Arrowht),
             arrow_wid: self.env.get(EnvVar::Arrowwid),
+            // `arrowhead = 0` draws an open (two-stroke) head; anything else
+            // (default 2) is a filled triangle.
+            arrow_filled: self.env.get(EnvVar::Arrowhead).round() as i64 != 0,
             ..Default::default()
         };
         for a in &obj.attrs {
@@ -2200,6 +2203,21 @@ mod tests {
         };
         assert!((style.arrow_ht - 0.3).abs() < 1e-9, "ht = {}", style.arrow_ht);
         assert!((style.arrow_wid - 0.2).abs() < 1e-9, "wid = {}", style.arrow_wid);
+    }
+
+    #[test]
+    fn arrowhead_type_open_vs_filled() {
+        // default is a filled head; `arrowhead = 0` is an open (two-stroke) head
+        let d = draw("arrow right 1");
+        let Shape::Path { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(style.arrow_filled, "default should be filled");
+        let d2 = draw("arrowhead = 0\narrow right 1");
+        let Shape::Path { style, .. } = &d2.shapes[0] else {
+            panic!()
+        };
+        assert!(!style.arrow_filled, "arrowhead=0 should be open");
     }
 
     #[test]
