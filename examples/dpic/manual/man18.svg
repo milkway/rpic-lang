@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="416" height="152" viewBox="0 0 416 152" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<ellipse cx="40" cy="76" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<ellipse cx="112" cy="124" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+</g>
+<g id="s3">
+<circle cx="316" cy="28" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="316" y="28" text-anchor="middle" dominant-baseline="central">a</text>
+</g>
+<g id="s4">
+<circle cx="244" cy="124" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="244" y="124" text-anchor="middle" dominant-baseline="central">b</text>
+</g>
+<g id="s5">
+<circle cx="388" cy="124" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="388" y="124" text-anchor="middle" dominant-baseline="central">c</text>
+</g>
+<g id="s6">
+<polyline points="301.6,47.2 258.4,104.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<polyline points="330.4,47.2 373.6,104.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

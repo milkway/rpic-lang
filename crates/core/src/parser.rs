@@ -89,6 +89,10 @@ fn expand(
                     }
                 };
                 i += 1;
+                // the `{` body may begin on a following line
+                while toks.get(i).map(|s| &s.tok) == Some(&Token::Newline) {
+                    i += 1;
+                }
                 if toks.get(i).map(|s| &s.tok) != Some(&Token::LeftBrace) {
                     let (l, c) = loc(toks, i);
                     return Err(ParseError {
@@ -132,7 +136,7 @@ fn expand(
                 }
                 i += 1;
             }
-            Token::Name(n) if macros.contains_key(n) => {
+            Token::Name(n) | Token::Label(n) if macros.contains_key(n) => {
                 let body = macros.get(n).unwrap().clone();
                 i += 1;
                 let args = if toks.get(i).map(|s| &s.tok) == Some(&Token::Lparen) {
@@ -205,15 +209,69 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
 fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
     let mut out = Vec::new();
     for s in body {
-        if let Token::Arg(k) = s.tok {
-            if let Some(a) = args.get((k as usize).wrapping_sub(1)) {
-                out.extend(a.iter().cloned());
+        match &s.tok {
+            Token::Arg(k) => {
+                if let Some(a) = args.get((*k as usize).wrapping_sub(1)) {
+                    out.extend(a.iter().cloned());
+                }
             }
-        } else {
-            out.push(s.clone());
+            // `$n` is also substituted inside string literals (the `"$1"==""`
+            // default-argument idiom, sprintf templates like `"$2%g"`, …).
+            Token::Str(text) if text.contains('$') => {
+                out.push(Spanned {
+                    tok: Token::Str(subst_in_string(text, args)),
+                    line: s.line,
+                    col: s.col,
+                });
+            }
+            _ => out.push(s.clone()),
         }
     }
     out
+}
+
+/// Replace `$n` references inside a string literal with the textual form of the
+/// n-th macro argument (empty if missing).
+fn subst_in_string(text: &str, args: &[Vec<Spanned>]) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '$' && chars.get(i + 1).is_some_and(|c| c.is_ascii_digit()) {
+            let mut j = i + 1;
+            let mut num = String::new();
+            while j < chars.len() && chars[j].is_ascii_digit() {
+                num.push(chars[j]);
+                j += 1;
+            }
+            if let Ok(k) = num.parse::<usize>()
+                && k >= 1
+                && let Some(a) = args.get(k - 1)
+            {
+                out.push_str(&tokens_to_text(a));
+            }
+            i = j;
+        } else {
+            out.push(chars[i]);
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Best-effort textual rendering of an argument token list, for `$n` splicing
+/// inside string literals (numbers, names and strings; other tokens elide).
+fn tokens_to_text(toks: &[Spanned]) -> String {
+    let mut s = String::new();
+    for t in toks {
+        match &t.tok {
+            Token::Float(v) => s.push_str(&format!("{v}")),
+            Token::Str(t) => s.push_str(t),
+            Token::Name(n) | Token::Label(n) => s.push_str(n),
+            _ => {}
+        }
+    }
+    s
 }
 
 type PResult<T> = Result<T, ParseError>;
@@ -362,6 +420,16 @@ impl Parser {
     // ---- statements --------------------------------------------------------
 
     fn parse_element(&mut self) -> PResult<Stmt> {
+        // A `%`-led line is a comment convention in some source documents (pic
+        // proper uses `#`). `%` is never valid at statement start, so skip the
+        // line as a no-op.
+        if self.at(&Token::Percent) {
+            while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
+                self.bump();
+            }
+            return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
+        }
+
         // rpic animation directive.
         if self.at_kw(Kw::Animate) {
             return Ok(Stmt::Animate(self.parse_animate()?));
@@ -383,9 +451,18 @@ impl Parser {
                 Kw::Define | Kw::Undef => {
                     return self.err("only the `define name { body }` macro form is supported");
                 }
-                Kw::Sh | Kw::Exec | Kw::Command | Kw::Copy => {
-                    let kw = format!("{k:?}").to_lowercase();
-                    return self.err(format!("`{kw}` is not supported yet (planned milestone)"));
+                // `command`/`sh`/`exec` emit raw backend (troff/PostScript/TeX)
+                // text or run a shell; none affect SVG geometry, so consume the
+                // rest of the line and treat them as no-ops.
+                Kw::Command | Kw::Sh | Kw::Exec => {
+                    self.bump();
+                    while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
+                        self.bump();
+                    }
+                    return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
+                }
+                Kw::Copy => {
+                    return self.err("`copy` is not supported yet (planned milestone)");
                 }
                 _ => {}
             }
@@ -441,10 +518,12 @@ impl Parser {
         self.expect_kw(Kw::If)?;
         let cond = self.parse_expr()?;
         self.expect_kw(Kw::Then)?;
+        self.skip_newlines();
         self.expect(&Token::LeftBrace)?;
         let then_body = self.parse_elementlist(&[Token::RightBrace])?;
         self.expect(&Token::RightBrace)?;
         let else_body = if self.eat_kw(Kw::Else) {
+            self.skip_newlines();
             self.expect(&Token::LeftBrace)?;
             let b = self.parse_elementlist(&[Token::RightBrace])?;
             self.expect(&Token::RightBrace)?;
@@ -479,6 +558,7 @@ impl Parser {
             by = self.parse_expr()?;
         }
         self.expect_kw(Kw::Do)?;
+        self.skip_newlines();
         self.expect(&Token::LeftBrace)?;
         let body = self.parse_elementlist(&[Token::RightBrace])?;
         self.expect(&Token::RightBrace)?;
@@ -594,7 +674,12 @@ impl Parser {
     fn at_object_start(&self) -> bool {
         matches!(
             self.cur(),
-            Token::Prim(_) | Token::LeftBrack | Token::Block | Token::Str(_)
+            Token::Prim(_)
+                | Token::LeftBrack
+                | Token::Block
+                | Token::Str(_)
+                | Token::Arg(_)
+                | Token::Kw(Kw::Sprintf)
         )
     }
 
@@ -677,6 +762,18 @@ impl Parser {
 
     fn parse_object(&mut self) -> PResult<Object> {
         let mut attrs = Vec::new();
+        // a bare string expression (literal, `$arg`, sprintf, concatenation)
+        // places a text-only object.
+        if self.at_string_start() {
+            attrs.push(Attr::Text(self.parse_stringexpr()?));
+            while let Some(a) = self.parse_attr()? {
+                attrs.push(a);
+            }
+            return Ok(Object {
+                kind: ObjectKind::Text,
+                attrs,
+            });
+        }
         let kind = match self.cur().clone() {
             Token::Prim(p) => {
                 self.bump();
@@ -823,9 +920,29 @@ impl Parser {
             }
             Token::Color(c) => {
                 self.bump();
-                let s = self.parse_stringexpr()?;
+                // a colour may be a quoted string or a bareword name (e.g.
+                // `shaded Custom`, `outlined red`).
+                let s = match self.cur().clone() {
+                    Token::Name(n) | Token::Label(n) => {
+                        self.bump();
+                        StringExpr::Lit(n)
+                    }
+                    _ => self.parse_stringexpr()?,
+                };
                 Attr::Color(c, s)
             }
+            // a bare expression distance with no direction word, e.g. `move 1`,
+            // `move -0.1`, `spline x` (length in the prevailing direction)
+            Token::Float(_)
+            | Token::Lparen
+            | Token::EnvVar(_)
+            | Token::Func1(_)
+            | Token::Func2(_)
+            | Token::Name(_)
+            | Token::Minus
+            | Token::Plus
+            | Token::Kw(Kw::Rand) => Attr::Dist(self.parse_expr()?),
+            _ if self.place_is_scalar_ahead() => Attr::Dist(self.parse_expr()?),
             _ => return Ok(None),
         };
         Ok(Some(attr))
@@ -891,23 +1008,78 @@ impl Parser {
 
     // ---- positions ---------------------------------------------------------
 
+    /// Positions support vector arithmetic; `+`/`-` are the lowest precedence.
     fn parse_position(&mut self) -> PResult<Position> {
-        if self.at(&Token::Lparen) {
-            return self.parse_paren_position();
+        let mut left = self.parse_pos_mul()?;
+        loop {
+            let sign = if self.at(&Token::Plus) {
+                Sign::Plus
+            } else if self.at(&Token::Minus) {
+                Sign::Minus
+            } else {
+                break;
+            };
+            self.bump();
+            let right = self.parse_pos_mul()?;
+            left = Position::Sum(sign, Box::new(left), Box::new(right));
+        }
+        Ok(left)
+    }
+
+    /// Scaling a position by a scalar: `p * s`, `p / s` (binds tighter than ±).
+    fn parse_pos_mul(&mut self) -> PResult<Position> {
+        let mut left = self.parse_pos_primary()?;
+        loop {
+            if self.eat(&Token::Mult) {
+                left = Position::Scale(Box::new(left), self.parse_unary()?, false);
+            } else if self.eat(&Token::Div) {
+                left = Position::Scale(Box::new(left), self.parse_unary()?, true);
+            } else {
+                break;
+            }
+        }
+        Ok(left)
+    }
+
+    fn parse_pos_primary(&mut self) -> PResult<Position> {
+        // `( … )`: parenthesised position, coordinate pair `(x,y)`, or
+        // `(pos, pos)` — x of the first, y of the second.
+        if self.eat(&Token::Lparen) {
+            let p1 = self.parse_position()?;
+            let p = if self.eat(&Token::Comma) {
+                let p2 = self.parse_position()?;
+                Position::Place(Location::ParenPair(Box::new(p1), Box::new(p2)))
+            } else {
+                p1 // drop the redundant parentheses
+            };
+            self.expect(&Token::Rparen)?;
+            return Ok(p);
         }
         // A leading place is point-valued UNLESS it is a scalar accessor
-        // (`place.x` / `.y` / `.attr`), in which case it begins an (expr, expr)
-        // pair like `(A.x, A.y - 0.5)`.
+        // (`place.x` / `.y` / `.attr`), which begins an `(expr, expr)` pair.
         if self.at_place_start() && !self.place_is_scalar_ahead() {
-            let loc = self.parse_location_operand()?;
-            let shifts = self.parse_shifts()?;
-            return Ok(Position::Place(loc, shifts));
+            return Ok(Position::Place(Location::Place(self.parse_place()?)));
         }
-        // expression-led: pair or between
-        let e1 = self.parse_expr()?;
+        // expression-led: pair, `<p1,p2>` interpolation, or `between`. The
+        // leading fraction is parsed at additive level so a following `<` is not
+        // mistaken for a comparison operator.
+        let e1 = self.parse_add()?;
         if self.eat(&Token::Comma) {
-            let e2 = self.parse_expr()?;
+            let e2 = self.parse_add()?;
             return Ok(Position::Pair(e1, e2));
+        }
+        // `frac <p1,p2>` is shorthand for `frac of the way between p1 and p2`.
+        if self.eat(&Token::Lt) {
+            let a = self.parse_position()?;
+            self.expect(&Token::Comma)?;
+            let b = self.parse_position()?;
+            self.expect(&Token::Gt)?;
+            return Ok(Position::Between {
+                frac: Box::new(e1),
+                a: Box::new(a),
+                b: Box::new(b),
+                of_the_way: false,
+            });
         }
         let of_the_way = if self.eat_kw(Kw::Of) {
             self.expect_kw(Kw::The)?;
@@ -928,61 +1100,6 @@ impl Parser {
             b: Box::new(b),
             of_the_way,
         })
-    }
-
-    fn parse_shifts(&mut self) -> PResult<Vec<Shift>> {
-        let mut shifts = Vec::new();
-        loop {
-            let sign = if self.at(&Token::Plus) {
-                Sign::Plus
-            } else if self.at(&Token::Minus) {
-                Sign::Minus
-            } else {
-                break;
-            };
-            self.bump();
-            let loc = self.parse_location_operand()?;
-            shifts.push(Shift { sign, loc });
-        }
-        Ok(shifts)
-    }
-
-    /// A location used as a position component or shift operand (no trailing
-    /// shifts of its own).
-    fn parse_location_operand(&mut self) -> PResult<Location> {
-        if self.eat(&Token::Lparen) {
-            let p1 = self.parse_position()?;
-            if self.eat(&Token::Comma) {
-                let p2 = self.parse_position()?;
-                self.expect(&Token::Rparen)?;
-                Ok(Location::ParenPair(Box::new(p1), Box::new(p2)))
-            } else {
-                self.expect(&Token::Rparen)?;
-                Ok(Location::Paren(Box::new(p1)))
-            }
-        } else {
-            Ok(Location::Place(self.parse_place()?))
-        }
-    }
-
-    /// Parse a parenthesised position: `(pos)`, `(pos, pos)`, or `(expr, expr)`
-    /// (the latter resolved by the recursive call, e.g. `(A.x, A.y)`).
-    fn parse_paren_position(&mut self) -> PResult<Position> {
-        self.expect(&Token::Lparen)?;
-        let p1 = self.parse_position()?;
-        if self.eat(&Token::Comma) {
-            let p2 = self.parse_position()?;
-            self.expect(&Token::Rparen)?;
-            let shifts = self.parse_shifts()?;
-            Ok(Position::Place(
-                Location::ParenPair(Box::new(p1), Box::new(p2)),
-                shifts,
-            ))
-        } else {
-            self.expect(&Token::Rparen)?;
-            let shifts = self.parse_shifts()?;
-            Ok(Position::Place(Location::Paren(Box::new(p1)), shifts))
-        }
     }
 
     /// Lookahead: does the upcoming place end in a scalar accessor
@@ -1121,7 +1238,7 @@ impl Parser {
     // ---- expressions -------------------------------------------------------
 
     fn opt_expr(&mut self) -> PResult<Option<Expr>> {
-        if self.starts_scalar() {
+        if self.starts_scalar() || self.place_is_scalar_ahead() {
             Ok(Some(self.parse_expr()?))
         } else {
             Ok(None)
@@ -1247,6 +1364,10 @@ impl Parser {
         if self.at_place_start() {
             return self.parse_place_scalar();
         }
+        // a string operand (only meaningful as an `==`/`!=` operand)
+        if self.at_string_start() {
+            return Ok(Expr::Str(self.parse_stringexpr()?));
+        }
         match self.cur().clone() {
             Token::Float(v) => {
                 self.bump();
@@ -1267,7 +1388,16 @@ impl Parser {
             }
             Token::Lparen => {
                 self.bump();
-                // could be ( expr ) or a parenthesised location used with .x/.y
+                // embedded assignment `( name = expr )` yields the assigned value
+                if let Token::Name(n) = self.cur().clone()
+                    && matches!(self.peek(1), Token::Eq | Token::ColonEq)
+                {
+                    self.bump(); // name
+                    self.bump(); // `=`
+                    let v = self.parse_expr()?;
+                    self.expect(&Token::Rparen)?;
+                    return Ok(Expr::Assign(n, Box::new(v)));
+                }
                 let e = self.parse_expr()?;
                 self.expect(&Token::Rparen)?;
                 Ok(e)
@@ -1397,10 +1527,7 @@ ellipse "typesetter"
         // from top of B1
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::From(Position::Place(
-                Location::Place(Place::CornerOf(Corner::N, _)),
-                _
-            ))
+            Attr::From(Position::Place(Location::Place(Place::CornerOf(Corner::N, _))))
         )));
     }
 
@@ -1419,7 +1546,8 @@ ellipse "typesetter"
             panic!()
         };
         assert_eq!(*anchor, WithAnchor::Corner(Corner::Nw));
-        assert!(matches!(at, Position::Place(_, shifts) if shifts.len() == 1));
+        // `last ellipse.se + (0.1,0)` is a position sum
+        assert!(matches!(at, Position::Sum(Sign::Plus, _, _)));
     }
 
     #[test]
@@ -1498,7 +1626,7 @@ ellipse "typesetter"
             object
                 .attrs
                 .iter()
-                .any(|a| matches!(a, Attr::At(Position::Place(Location::Paren(_), _))))
+                .any(|a| matches!(a, Attr::At(Position::Pair(_, _))))
         );
         // a plain point place still parses as a place position
         let q = pic("A: box\nbox at A.ne");
@@ -1507,13 +1635,13 @@ ellipse "typesetter"
         };
         assert!(object.attrs.iter().any(|a| matches!(
             a,
-            Attr::At(Position::Place(Location::Place(Place::Corner(_, _)), _))
+            Attr::At(Position::Place(Location::Place(Place::Corner(_, _))))
         )));
     }
 
     #[test]
     fn unsupported_control_is_clear() {
-        let e = parse("sh \"ls\"").unwrap_err();
+        let e = parse("copy \"x\"").unwrap_err();
         assert!(e.msg.contains("not supported yet"));
     }
 

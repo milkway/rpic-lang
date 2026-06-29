@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="272" height="176" viewBox="0 0 272 176" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="268,28 220,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="220,28 229.6,25.6 229.6,30.4" fill="black"/>
+</g>
+<g id="s1">
+<rect x="148" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="148,28 100,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="100,28 109.6,25.6 109.6,30.4" fill="black"/>
+</g>
+<g id="s3">
+<circle cx="76" cy="28" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<polyline points="52,28 4,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="4,28 13.6,25.6 13.6,30.4" fill="black"/>
+</g>
+<g id="s5">
+</g>
+<g id="s6">
+<polyline points="4,124 52,124" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52,124 42.4,126.4 42.4,121.6" fill="black"/>
+</g>
+<g id="s7">
+<circle cx="76" cy="124" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<polyline points="100,124 100,172" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="100,172 97.6,162.4 102.4,162.4" fill="black"/>
+</g>
+</svg>

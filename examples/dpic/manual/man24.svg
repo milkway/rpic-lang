@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="148.16" height="108.8" viewBox="0 0 148.16 108.8" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="45.28" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<rect x="54.88" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<rect x="64.48" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<rect x="74.08" y="8.8" width="19.2" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="83.68" y="32.8" text-anchor="middle" dominant-baseline="central">...</text>
+</g>
+<g id="s4">
+<rect x="93.28" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<rect x="8.8" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+</g>
+<g id="s7">
+<rect x="31.84" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+</g>
+<g id="s9">
+<rect x="54.88" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+</g>
+<g id="s11">
+<text x="97.12" y="90.4" text-anchor="middle" dominant-baseline="central">...</text>
+</g>
+<g id="s12">
+</g>
+<g id="s13">
+<rect x="120.16" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s14">
+<polyline points="50.08,32.8 8.8,80.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="8.8,80.8 13.24,71.957 16.879,75.086" fill="black"/>
+</g>
+<g id="s15">
+<polyline points="59.68,32.8 31.84,80.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="31.84,80.8 34.58,71.292 38.733,73.7" fill="black"/>
+</g>
+<g id="s16">
+<polyline points="69.28,32.8 54.88,80.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="54.88,80.8 55.34,70.915 59.937,72.295" fill="black"/>
+</g>
+<g id="s17">
+<polyline points="98.08,32.8 120.16,80.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="120.16,80.8 113.968,73.081 118.328,71.076" fill="black"/>
+</g>
+<g id="s18">
+<rect x="4" y="4" width="140.16" height="100.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+</g>
+</svg>

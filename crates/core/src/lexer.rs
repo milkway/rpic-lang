@@ -246,6 +246,16 @@ impl Lexer {
                 }
             }
         }
+        // optional inch unit suffix `i`/`I` (pic's base unit is the inch, so the
+        // suffix is informational); don't consume it when it begins an
+        // identifier, e.g. the `in` of a following word.
+        if matches!(self.peek(), Some('i') | Some('I'))
+            && !self
+                .peek_at(1)
+                .is_some_and(|c| c.is_alphanumeric() || c == '_')
+        {
+            self.bump();
+        }
         match s.parse::<f64>() {
             Ok(v) => Ok(Token::Float(v)),
             Err(_) => self.err(format!("invalid number `{s}`")),

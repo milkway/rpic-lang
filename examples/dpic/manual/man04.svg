@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="429.2" height="204" viewBox="0 0 429.2 204" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="26.8" cy="32.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<text x="26.8" y="52" text-anchor="middle" dominant-baseline="central">0.1</text>
+</g>
+<g id="s2">
+<circle cx="122.8" cy="32.8" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="122.8" y="32.8" text-anchor="middle" dominant-baseline="central">0.2</text>
+</g>
+<g id="s3">
+<circle cx="218.8" cy="32.8" r="28.8" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="218.8" y="32.8" text-anchor="middle" dominant-baseline="central">0.3</text>
+</g>
+<g id="s4">
+</g>
+<g id="s5">
+<polyline points="17.2,100 65.2,100" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="65.2,100 55.6,102.4 55.6,97.6" fill="black"/>
+</g>
+<g id="s6">
+<rect x="65.2" y="76" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="101.2" y="100" text-anchor="middle" dominant-baseline="central">Input</text>
+</g>
+<g id="s7">
+<polyline points="137.2,100 185.2,100" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="185.2,100 175.6,102.4 175.6,97.6" fill="black"/>
+</g>
+<g id="s8">
+<rect x="185.2" y="76" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="221.2" y="100" text-anchor="middle" dominant-baseline="central">process</text>
+</g>
+<g id="s9">
+<polyline points="257.2,100 305.2,100" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="305.2,100 295.6,102.4 295.6,97.6" fill="black"/>
+</g>
+<g id="s10">
+<rect x="305.2" y="76" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="341.2" y="100" text-anchor="middle" dominant-baseline="central">output</text>
+</g>
+<g id="s11">
+<polyline points="377.2,100 425.2,100" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="425.2,100 415.6,102.4 415.6,97.6" fill="black"/>
+</g>
+<g id="s12">
+</g>
+<g id="s13">
+<text x="17.2" y="191.2" text-anchor="middle" dominant-baseline="central">0.1</text>
+</g>
+<g id="s14">
+<path d="M 17.2 172 A 9.6 9.6 0 0 1 26.8 162.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+</g>
+<g id="s16">
+<text x="113.2" y="191.2" text-anchor="middle" dominant-baseline="central">0.2</text>
+</g>
+<g id="s17">
+<path d="M 113.2 172 A 19.2 19.2 0 0 1 132.4 152.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s18">
+</g>
+<g id="s19">
+<text x="209.2" y="191.2" text-anchor="middle" dominant-baseline="central">0.3</text>
+</g>
+<g id="s20">
+<path d="M 209.2 172 A 28.8 28.8 0 0 1 238 143.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

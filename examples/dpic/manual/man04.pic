@@ -1,0 +1,23 @@
+.PS
+  circle rad 0.1; "0.1" at last circle+(0,-0.2) 
+  circle rad 0.2 "0.2" at last circle + (1,0)
+  circle rad 0.3 "0.3" at last circle + (1,0)
+  move to (0,last circle.s.y-0.4)
+  arrow
+  box "Input"
+  arrow
+  box "process"
+  arrow
+  box "output"
+  arrow
+
+  move to (0, 1st arrow.y-0.75)
+  {"0.1" at Here+(0,-0.2)}
+  arc rad 0.1
+  move to last arc.start+(1,0); right
+  {"0.2" at Here+(0,-0.2)}
+  arc rad 0.2
+  move to last arc.start+(1,0); right
+  {"0.3" at Here+(0,-0.2)}
+  arc rad 0.3
+.PE

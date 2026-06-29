@@ -1,0 +1,18 @@
+.PS
+
+  scale = 0.25
+  linethick = 0.4
+
+  Orig: 0,0
+  arrow from Orig to (1,0) chop 0 chop -0.1
+  arrow from Orig to (0,1) chop 0 chop -0.1
+  line from (0,1) to (1,1) then to (1,0)
+  for i=0 to 5 do { line up 0.05 from (i/5,0)
+   sprintf("%g",i/5) at last line.start below }
+  for i=0 to 5 do { line right 0.05 from (0,i/5)
+   sprintf("%g",i/5) at last line.start rjust }
+
+  for i=1 to 1000 do { circle fill 0 diam 0.01 at (rand(),rand()) }
+  
+  move left 0.4*scale from (0,0)
+.PE

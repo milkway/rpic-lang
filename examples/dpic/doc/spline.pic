@@ -1,0 +1,22 @@
+% spline.pic
+.PS
+linewid = 1.5
+
+hd = 1.5
+wd = 2.0
+
+[
+  line from 0,0 dotted thick 0.4 up hd then right wd then down hd
+  spline from 0,0 up hd then right wd then down hd
+  ]
+[
+  line from 0,0 dotted thick 0.4 up hd then right wd then down hd
+  for x = 0.2 to 1.45 by 0.4 do {
+    spline x from 0,0 up hd then right wd then down hd
+    }
+  "\small x = .2" at .35,.7 ljust
+  "\small .6" at .3,1.0
+  "\small 1.0" at .2,1.25
+  "\small 1.4" at .4,1.6
+  ] with (0,0) at last [].se+(0.5,0)
+.PE

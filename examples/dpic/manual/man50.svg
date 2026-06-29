@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="344" height="344" viewBox="0 0 344 344" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="46" y="179" width="196" height="28" fill="none" stroke="black" stroke-width="2.4"/>
+</g>
+<g id="s1">
+</g>
+<g id="s2">
+<path d="M 256 193 C 258.333 193 267.667 197.667 270 193 C 272.333 188.333 265.333 169.667 270 165 C 274.667 160.333 293.333 169.667 298 165 C 302.667 160.333 298 141.667 298 137" fill="none" stroke="black" stroke-width="19.2"/>
+</g>
+<g id="s3">
+<circle cx="172" cy="172" r="168" fill="none" stroke="red" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<polyline points="4,340 340,4" fill="none" stroke="red" stroke-width="1.067"/>
+</g>
+</svg>

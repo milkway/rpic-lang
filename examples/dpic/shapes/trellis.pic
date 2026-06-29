@@ -1,0 +1,23 @@
+.PS
+# trellis.pic
+# https://tex.stackexchange.com/questions/253458/latex-trellis-diagrams-for-stbcs
+# https://web.archive.org/web/20150926144231/http://www.ee2.caltech.edu/Faculty/babak/courses/ee161/papers/tsc.pdf
+
+define trellis {[ # ( nstates, psk, width, ydistance )
+ ngroups = ($1)/($2)
+ for s=1 to $1 do {
+   A[s]: circle rad 0.02 fill 0 at (0,-s*($4))
+   B[s]: circle rad 0.02 fill 0 at ($3,-s*($4)) }
+ for g=1 to ngroups do {
+   for i=1 to $2 do {
+     for j=1 to $2 do { line from A[g+(i-1)*ngroups] to B[(g-1)*($2)+j] }
+     } }
+ ]}
+
+trellis(4,4,1/2,1/2)
+trellis(8,8,1,1/2) with .nw at last [].ne+(1/2,0)
+trellis(16,4,3/4,1/4) with .nw at last [].ne+(1/2,0)
+trellis(16,8,5/4,1/4) with .nw at last [].ne+(1/2,0)
+trellis(32,4,5/4,1/8) with .nw at last [].ne+(1/2,0)
+
+.PE

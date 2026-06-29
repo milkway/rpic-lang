@@ -1,0 +1,24 @@
+.PS 3.5
+#             .PS
+#             d = 0.5
+#             [ box ht d wid 3.5 weight d/20
+#               box ht d wid d/2 filled 0.5 noedge
+#               spline weight 0.2 edge .75 right d then up d \
+#                                     then right d then up d
+#             ]
+#             linecolor = red; lineweight = 0.375
+#             circle rad 3 at last block
+#             line from last circle .4th to last circle .8th
+#             .PE
+#
+  d = 0.5
+  [ box ht d wid 3.5 thick d/20*72
+    box invis ht d wid d/2 filled 0.5
+    spline thick 0.2*72 right d/2 then up d \
+      then right d then up d
+    ]
+#  linecolor = red; lineweight = 0.375
+  linethick = 0.375*72
+  circle outlined "red" rad 3 at last []
+  line outlined "red" from last circle .sw to last circle .ne
+.PE

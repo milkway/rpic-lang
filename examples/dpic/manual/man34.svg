@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="629" height="584" viewBox="0 0 629 584" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="4" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="40" y="19.2" text-anchor="middle" dominant-baseline="central">{\bf ms}</text>
+<text x="40" y="36.8" text-anchor="middle" dominant-baseline="central">sources</text>
+</g>
+<g id="s1">
+</g>
+<g id="s2">
+<rect x="124" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="160" y="19.2" text-anchor="middle" dominant-baseline="central">{\bf HTML}</text>
+<text x="160" y="36.8" text-anchor="middle" dominant-baseline="central">sources</text>
+</g>
+<g id="s3">
+</g>
+<g id="s4">
+<rect x="244" y="4" width="144" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="316" y="19.2" text-anchor="middle" dominant-baseline="central">{\bf linuxdoc-sgml}</text>
+<text x="316" y="36.8" text-anchor="middle" dominant-baseline="central">sources</text>
+</g>
+<g id="s5">
+</g>
+<g id="s6">
+<rect x="436" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="472" y="19.2" text-anchor="middle" dominant-baseline="central">{\bf Texinfo}</text>
+<text x="472" y="36.8" text-anchor="middle" dominant-baseline="central">sources</text>
+</g>
+<g id="s7">
+<polyline points="40,52 40,76" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<polyline points="40,76 40,100" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<polyline points="160,52 160,76" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<rect x="124" y="76" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="160" y="88" text-anchor="middle" dominant-baseline="central">{\bf html2ms}</text>
+</g>
+<g id="s11">
+<polyline points="160,100 160,124" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s12">
+<polyline points="316,52 316,76" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<rect x="280" y="76" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="316" y="88" text-anchor="middle" dominant-baseline="central">{\bf format}</text>
+</g>
+<g id="s14">
+<polyline points="316,100 316,124" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<polyline points="472,52 472,76" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s16">
+<rect x="436" y="76" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="472" y="88" text-anchor="middle" dominant-baseline="central">{\bf texi2roff}</text>
+</g>
+<g id="s17">
+<polyline points="472,100 472,124" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s18">
+</g>
+<g id="s19">
+<rect x="223" y="220" width="96" height="72" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="271" y="238.4" text-anchor="middle" dominant-baseline="central">{\bf ms}</text>
+<text x="271" y="256" text-anchor="middle" dominant-baseline="central">intermediate</text>
+<text x="271" y="273.6" text-anchor="middle" dominant-baseline="central">form</text>
+</g>
+<g id="s20">
+<polyline points="40,100 223,220" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="223,220 213.656,216.743 216.288,212.729" fill="black"/>
+</g>
+<g id="s21">
+<polyline points="160,124 255,220" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="255,220 246.541,214.864 249.953,211.488" fill="black"/>
+</g>
+<g id="s22">
+<polyline points="316,124 287,220" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="287,220 287.479,210.116 292.074,211.504" fill="black"/>
+</g>
+<g id="s23">
+<polyline points="472,124 319,220" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="319,220 325.856,212.865 328.407,216.931" fill="black"/>
+</g>
+<g id="s24">
+</g>
+<g id="s25">
+<polyline points="223,292 175,316 175,340" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="175,340 172.6,330.4 177.4,330.4" fill="black"/>
+</g>
+<g id="s26">
+<rect x="139" y="340" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="175" y="352" text-anchor="middle" dominant-baseline="central">{\bf pic}</text>
+</g>
+<g id="s27">
+<polyline points="175,364 175,388" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="175,388 172.6,378.4 177.4,378.4" fill="black"/>
+</g>
+<g id="s28">
+<rect x="139" y="388" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="175" y="400" text-anchor="middle" dominant-baseline="central">{\bf eqn}</text>
+</g>
+<g id="s29">
+<polyline points="175,412 175,436" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="175,436 172.6,426.4 177.4,426.4" fill="black"/>
+</g>
+<g id="s30">
+<rect x="139" y="436" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="175" y="448" text-anchor="middle" dominant-baseline="central">{\bf tbl}</text>
+</g>
+<g id="s31">
+<polyline points="175,460 175,484" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="175,484 172.6,474.4 177.4,474.4" fill="black"/>
+</g>
+<g id="s32">
+<rect x="139" y="484" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="175" y="496" text-anchor="middle" dominant-baseline="central">{\bf groff}</text>
+</g>
+<g id="s33">
+<polyline points="175,508 175,532" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="175,532 172.6,522.4 177.4,522.4" fill="black"/>
+</g>
+<g id="s34">
+<rect x="139" y="532" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="175" y="556" text-anchor="middle" dominant-baseline="central">PostScript</text>
+</g>
+<g id="s35">
+</g>
+<g id="s36">
+<polyline points="319,292 367,316 367,340" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="367,340 364.6,330.4 369.4,330.4" fill="black"/>
+</g>
+<g id="s37">
+<rect x="331" y="340" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="1,3" stroke-linecap="round"/>
+<text x="367" y="352" text-anchor="middle" dominant-baseline="central">{\bf pic2img}</text>
+</g>
+<g id="s38">
+<polyline points="367,364 367,388" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="367,388 364.6,378.4 369.4,378.4" fill="black"/>
+</g>
+<g id="s39">
+<rect x="331" y="388" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="1,3" stroke-linecap="round"/>
+<text x="367" y="400" text-anchor="middle" dominant-baseline="central">{\bf eqn2html}</text>
+</g>
+<g id="s40">
+<polyline points="367,412 367,436" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="367,436 364.6,426.4 369.4,426.4" fill="black"/>
+</g>
+<g id="s41">
+<rect x="331" y="436" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="1,3" stroke-linecap="round"/>
+<text x="367" y="448" text-anchor="middle" dominant-baseline="central">{\bf tbl2html}</text>
+</g>
+<g id="s42">
+<polyline points="367,460 367,484" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="367,484 364.6,474.4 369.4,474.4" fill="black"/>
+</g>
+<g id="s43">
+<rect x="331" y="484" width="72" height="24" rx="12" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="367" y="496" text-anchor="middle" dominant-baseline="central">{\bf ms2html}</text>
+</g>
+<g id="s44">
+<polyline points="367,508 367,532" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="367,532 364.6,522.4 369.4,522.4" fill="black"/>
+</g>
+<g id="s45">
+<rect x="331" y="532" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="367" y="556" text-anchor="middle" dominant-baseline="central">HTML</text>
+</g>
+<g id="s46">
+<rect x="511" y="376" width="96" height="48" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<text x="559" y="391.2" text-anchor="middle" dominant-baseline="central">These tools</text>
+<text x="559" y="408.8" text-anchor="middle" dominant-baseline="central">don't yet exist</text>
+</g>
+<g id="s47">
+<polyline points="511,376 403,352" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<polygon points="403,352 412.892,351.74 411.851,356.425" fill="black"/>
+</g>
+<g id="s48">
+<polyline points="511,400 403,400" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<polygon points="403,400 412.6,397.6 412.6,402.4" fill="black"/>
+</g>
+<g id="s49">
+<polyline points="511,424 403,448" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<polygon points="403,448 411.851,443.575 412.892,448.26" fill="black"/>
+</g>
+</svg>

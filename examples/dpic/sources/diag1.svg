@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236.167" height="80" viewBox="0 0 236.167 80" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="4,28 52,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="52,28 42.4,30.4 42.4,25.6" fill="black"/>
+<text x="28" y="28" text-anchor="middle" dominant-baseline="central">$u$</text>
+</g>
+<g id="s1">
+<circle cx="65.284" cy="28" r="13.284" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="78.567,28 112.167,28" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<rect x="112.167" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="148.167" y="28" text-anchor="middle" dominant-baseline="central">$G(s)$</text>
+</g>
+<g id="s4">
+<polyline points="184.167,28 232.167,28" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="232.167,28 222.567,30.4 222.567,25.6" fill="black"/>
+<text x="208.167" y="28" text-anchor="middle" dominant-baseline="central">$y$</text>
+</g>
+<g id="s5">
+<polyline points="208.167,28 208.167,76 65.284,76 65.284,41.284" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="65.284,41.284 67.684,50.884 62.884,50.884" fill="black"/>
+</g>
+<g id="s6">
+<text x="65.284" y="41.284" text-anchor="middle" dominant-baseline="central">$-\;$</text>
+</g>
+</svg>

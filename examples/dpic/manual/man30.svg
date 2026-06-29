@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="378.4" height="152" viewBox="0 0 378.4 152" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="28" cy="76" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="28" y="76" text-anchor="middle" dominant-baseline="central">DISK</text>
+</g>
+<g id="s1">
+<polyline points="52,76 100,76" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="100,76 90.4,78.4 90.4,73.6" fill="black"/>
+<text x="76" y="67.2" text-anchor="middle" dominant-baseline="central">char</text>
+<text x="76" y="84.8" text-anchor="middle" dominant-baseline="central">defns</text>
+</g>
+<g id="s2">
+<rect x="100" y="52" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="136" y="67.2" text-anchor="middle" dominant-baseline="central">CPU</text>
+<text x="136" y="84.8" text-anchor="middle" dominant-baseline="central">(16-bit mini)</text>
+</g>
+<g id="s3">
+<polyline points="136,52 136,4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="136,52 133.6,42.4 138.4,42.4" fill="black"/>
+<text x="136" y="28" text-anchor="middle" dominant-baseline="central">input</text>
+</g>
+<g id="s4">
+<polyline points="172,76 220,76" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="220,76 210.4,78.4 210.4,73.6" fill="black"/>
+</g>
+<g id="s5">
+<text x="220" y="76" text-anchor="middle" dominant-baseline="central">  CRT</text>
+</g>
+<g id="s6">
+<polyline points="220,83.2 220,68.8 268,68.8 316,44.8 316,107.2 268,83.2 220,83.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<polyline points="320.8,4 320.8,148" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="320.8,148 318.4,138.4 323.2,138.4" fill="black"/>
+</g>
+<g id="s8">
+<text x="320.8" y="124" text-anchor="middle" dominant-baseline="central"> ... paper</text>
+</g>
+<g id="s9">
+<circle cx="315.52" cy="28" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<circle cx="326.08" cy="28" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<text x="330.4" y="28" text-anchor="middle" dominant-baseline="central">   rollers</text>
+</g>
+</svg>

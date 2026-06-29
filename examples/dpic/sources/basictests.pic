@@ -1,0 +1,176 @@
+.PS
+  thq = 1.5
+  thd = thq*2/72
+  define ths { thq := thq + 0.25; thd := thq*2/72 }
+[
+#                               case(i,.,.) statement: execute alternative i
+define case { exec sprintf("$%g",floor($1+0.5)+1); }
+#                               DefineRGBColor(colorname,r,g,b)
+#                               Arguments are in the range 0 to 1
+#                               Define dpic macro colorname according to the
+#                               postprocessor specified by dpic command-line
+#                               option; colorname then evaluates to a string
+define DefineRGBColor {
+case(dpicopt,  # The order of the following is defined in dpic source:
+# MFpic:
+  command sprintf("\mfpdefinecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# Mpost:
+  define $1 {sprintf("(%g,%g,%g)",$2,$3,$4)} ,
+# PDF:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
+# PGF:
+  command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# Pict2e:
+  command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# PS:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
+# PSfrag:
+  define $1 {sprintf("%g %g %g",$2,$3,$4)} ,
+# PSTricks:
+  command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# SVG:
+  define $1 {sprintf("rgb(%g,%g,%g)",int($2*255),int($3*255),int($4*255))} ,
+# TeX:
+  command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# tTeX:
+  command sprintf("\definecolor{_$1__}{rgb}{%g,%g,%g}",$2,$3,$4)
+  define $1 {"_$1__"} ,
+# xfig:
+  define $1 {"black"}
+  ) }
+
+[
+  boxwid = 0.5; boxht = 0.75; movewid = 0.1
+  ellipsewid = boxwid; ellipseht = boxht
+  arcrad = boxwid/2
+  DefineRGBColor(Custom,0.8,0.7,0.6)
+  vsep = 0.1
+  define lrm {move right boxwid+0.1}
+[]
+
+A:[
+  box "line 1" "line 2"; move
+  box dotted thd thick thq outline "magenta" "dotted" "thick" "1.5" \
+   "outline" "magenta"; move; ths
+  box dashed "dashed" "fill" fill; move
+  box invis shaded "green" "invis" "shaded" "green"; move
+  box shaded "yellow" "shaded" "yellow"; move
+  box outlined "red" shaded "yellow" "outline" "red" "shaded" "yellow"; move
+  box shaded Custom outlined "blue" "shaded" "Custom" "outline" "blue"
+  ]
+
+[
+  box rad boxwid/3  "1"; move
+  box rad boxwid/3 dotted thd thick thq outline "magenta" "2"; move; ths
+  box rad boxwid/3 dashed fill "3"; move
+  box rad boxwid/3 invis shaded "green" "4"; move
+  box rad boxwid/3 shaded "yellow"  "5"; move
+  box rad boxwid/3 outlined "red" shaded "yellow"  "6"; move
+  box rad boxwid/3 shaded Custom outlined "blue" "7"
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  circle "1"; move
+  circle dotted thd thick thq outline "magenta" "2"; move; ths
+  circle dashed "3" fill; move
+  circle invis shaded "green" "4"; move
+  circle shaded "yellow" "5"; move
+  circle outlined "red" shaded "yellow" "6"; move
+  circle shaded Custom outlined "blue" "7"
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  ellipse "1"; move
+  ellipse dotted thd thick thq outline "magenta" "2"; move; ths
+  ellipse dashed "3" fill; move
+  ellipse invis shaded "green" "4"; move
+  ellipse shaded "yellow" "5"; move
+  ellipse outlined "red" shaded "yellow" "6"; move
+  ellipse shaded Custom outlined "blue" "7"
+] with .nw at last [].sw+(0,-vsep)
+
+[ define C {Here+(0,arcrad)}; define E {C+(-1,1)*arcrad/sqrt(2)}
+  define sarc { arc to E with .c at C }
+  { sarc "1"}; lrm
+  { sarc dotted thd thick thq outlined "magenta" "2"}; lrm; ths
+  { sarc dashed fill "3"}; lrm
+  { sarc invis shaded "green" "4"}; lrm
+  { sarc <-> shaded "yellow" "5"}; lrm
+  { sarc <-> dashed outlined "red" shaded "yellow" "6"}; lrm
+  sarc <-> dotted thd thick thq outlined "blue" shaded Custom "7"; ths
+  undef C; undef E
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  { line right boxwid then up boxwid then left boxwid }; lrm
+  { line dotted thd thick thq outlined "magenta" \
+      right boxwid then up boxwid then left boxwid }; lrm; ths
+  { line dashed fill right boxwid then up boxwid then left boxwid }; lrm
+  { line invis shaded "green" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { line <-> shaded "yellow" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { line dashed <-> outlined "red" shaded "yellow" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { line dotted thd thick thq <-> outlined "blue" shaded Custom \
+      right boxwid then up boxwid then left boxwid }; ths; lrm
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  { spline right boxwid then up boxwid then left boxwid }; lrm
+  { spline dotted thd thick thq outlined "magenta" \
+      right boxwid then up boxwid then left boxwid }; lrm; ths
+  { spline dashed fill right boxwid then up boxwid then left boxwid }; lrm
+  { spline invis shaded "green" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { spline <-> shaded "yellow" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { spline dashed <-> outlined "red" shaded "yellow" \
+      right boxwid then up boxwid then left boxwid }; lrm
+  { spline dotted thd thick thq <-> outlined "blue" shaded Custom \
+      right boxwid then up boxwid then left boxwid }; lrm; ths
+] with .nw at last [].sw+(0,-vsep)
+
+[
+define dspline {
+  { spline $1 right boxwid then up boxwid then left boxwid \
+   $2 };
+   {"$1" at Here+(boxwid/2,boxwid/2) }; lrm }
+
+  dspline(0.2)
+  dspline(0.3,dotted thd thick thq outlined "magenta"); ths
+  dspline(0.4,dashed fill)
+  dspline(0.5,invis shaded "green")
+  dspline(0.6,<-> shaded "yellow")
+  dspline(0.7,dashed <-> outlined "red" shaded "yellow")
+  dspline(0.8,dotted thd thick thq <-> outlined "blue" shaded Custom); ths
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  define lmove {move down boxht right movewid }
+  line up boxht right boxwid "1" then down boxht "2" ; move right movewid
+  line dotted thd thick thq outlined "magenta" \
+    up boxht right boxwid "1" then down boxht "2" ; move right movewid; ths
+  line dashed up boxht right boxwid ; lmove
+  line <-> dashed up boxht right boxwid ; lmove
+  line colored Custom <-> dotted thd thick thq up boxht right boxwid ; lmove;ths
+  line colored "red" <-> dotted thd thick thq up boxht right boxwid ; lmove; ths
+  { move up boxht*5/6; line right boxwid "above" above }
+  { move up boxht/2; line right boxwid "on" }
+  { move up boxht/6; line right boxwid "below" below }
+] with .nw at last [].sw+(0,-vsep)
+
+[
+  for f=0 to 1.02 by 0.1 do {
+    box wid (boxwid*7+movewid*6)/11 fill f sprintf("%g",f)
+    }
+] with .nw at last [].sw+(0,-vsep)
+
+]
+] with .sw at (1,1)
+.PE

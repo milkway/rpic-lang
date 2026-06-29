@@ -71,6 +71,18 @@ rpic --png --scale 2 -o out.png diagram.pic
 rpic --pdf -o out.pdf diagram.pic
 ```
 
+## Examples
+
+A gallery of diagrams from the dpic distribution — including reproductions of
+**Brian Kernighan's** original pic-manual figures — rendered by rpic itself lives
+in [`examples/dpic/`](examples/dpic). Each `.pic` is paired with its rendered
+`.svg`, with full credits and a parity matrix in
+[`examples/dpic/STATUS.md`](examples/dpic/STATUS.md).
+
+```sh
+rpic --svg examples/dpic/manual/man16.pic -o man16.svg
+```
+
 ## Animation (GSAP)
 
 A declarative extension, faithful to pic's style:

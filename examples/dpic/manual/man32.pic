@@ -1,0 +1,42 @@
+.PS 417/72.27 
+#Plot a single jumper in a $1 by $2 box, $3 is the on-off state 
+define jumper { [ 
+    shrinkfactor = 0.8; 
+    Outer: box invis wid 0.5 ht 1; 
+
+    #Count on end ] to reset these 
+    boxwid = Outer.wid * shrinkfactor / 2; 
+    boxht = Outer.ht * shrinkfactor / 2; 
+
+    #dpic requires ".center of Outer" or "Outer.center"
+    box fill (!$1) with .s at .center of Outer; 
+    box fill ($1) with .n at .center of Outer; 
+    ]} 
+
+#Plot a block of six jumpers 
+define jumperblock { 
+    jumper($1); 
+    jumper($2); 
+    jumper($3); 
+    jumper($4); 
+    jumper($5); 
+    jumper($6); 
+
+    jwidth = last [].Outer.wid; 
+    jheight = last [].Outer.ht; 
+
+    # dpic modifies objects from left to right to remove ambiguity
+    #box with .nw at 6th last [].nw wid 6*jwidth ht jheight; 
+    box wid 6*jwidth ht jheight with .nw at 6th last [].nw
+
+    #Use {} to avoid changing position from last box draw. 
+    #This is necessary so move in any direction will work as expected 
+    {"Jumpers in state $1$2$3$4$5$6" at last box .s + (0, -0.2);} 
+    } 
+
+    #Sample macro invocations 
+    jumperblock(1,1,0,0,1,0); 
+    move; 
+    jumperblock(1,0,1,0,1,1); 
+.PE
+

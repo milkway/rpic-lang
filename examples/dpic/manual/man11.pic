@@ -1,0 +1,9 @@
+.PS
+[down; box ht 0.2 wid 1.5; move down 0.15; box same; move same; box same]
+[boxwid = 0.1; boxht = 1
+ movewid = 0.2; right
+ box; move; box; move; box] with .nw at last [].sw + (0,-0.25)
+[ box fill
+  box ht boxht/2 wid boxwid/2 "hello" at last box ] \
+  with .nw at last [].sw + (0,-0.25)
+.PE

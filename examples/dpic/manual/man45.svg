@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="344" height="112.8" viewBox="0 0 344 112.8" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<rect x="4" y="28" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<rect x="76" y="4" width="96" height="96" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<rect x="172" y="4" width="96" height="96" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<rect x="268" y="28" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<text x="172" y="100" text-anchor="middle" dominant-baseline="central">\tt box; box wid 1 ht 1; box same; box</text>
+</g>
+</svg>
