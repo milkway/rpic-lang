@@ -41,12 +41,67 @@ fn err<T>(msg: impl Into<String>) -> ER<T> {
 pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut st = State::new();
     st.eval_stmts(&pic.stmts)?;
-    Ok(Drawing {
+    let want_w = match &pic.width {
+        Some(e) => Some(st.eval_expr(e)?),
+        None => None,
+    };
+    let want_h = match &pic.height {
+        Some(e) => Some(st.eval_expr(e)?),
+        None => None,
+    };
+    let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
         anims: st.anims,
-    })
+    };
+    apply_ps_size(&mut d, want_w, want_h);
+    Ok(d)
 }
+
+/// Apply `.PS <width> [<height>]` sizing: uniformly scale the whole drawing so
+/// it matches the requested width (or height if only height is given). Font size
+/// is left unchanged.
+fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
+    if d.bbox.is_empty() {
+        return;
+    }
+    let factor = match (want_w, want_h) {
+        (Some(w), _) if w > 0.0 && d.bbox.width() > 0.0 => w / d.bbox.width(),
+        (None, Some(h)) if h > 0.0 && d.bbox.height() > 0.0 => h / d.bbox.height(),
+        _ => return,
+    };
+    if (factor - 1.0).abs() < 1e-9 {
+        return;
+    }
+    for sh in &mut d.shapes {
+        scale_shape(sh, factor);
+    }
+    let mut bb = Bbox::new();
+    bb.add(d.bbox.min * factor);
+    bb.add(d.bbox.max * factor);
+    d.bbox = bb;
+}
+
+/// The dimension variables that track `scale`.
+const SCALED_VARS: [EnvVar; 17] = [
+    EnvVar::Arcrad,
+    EnvVar::Arrowht,
+    EnvVar::Arrowwid,
+    EnvVar::Boxht,
+    EnvVar::Boxrad,
+    EnvVar::Boxwid,
+    EnvVar::Circlerad,
+    EnvVar::Dashwid,
+    EnvVar::Ellipseht,
+    EnvVar::Ellipsewid,
+    EnvVar::Lineht,
+    EnvVar::Linewid,
+    EnvVar::Moveht,
+    EnvVar::Movewid,
+    EnvVar::Textht,
+    EnvVar::Textwid,
+    EnvVar::Textoffset,
+];
 
 // ---- environment variables -------------------------------------------------
 
@@ -360,7 +415,17 @@ impl State {
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
-                self.env.set(*e, apply_op(a.op, cur, rhs));
+                let val = apply_op(a.op, cur, rhs);
+                if matches!(e, EnvVar::Scale) {
+                    // Changing `scale` rescales all scaled dimension variables by
+                    // the ratio (dpic semantics), so default sizes follow.
+                    let ratio = if cur != 0.0 { val / cur } else { val };
+                    for sv in SCALED_VARS {
+                        let v = self.env.get(sv);
+                        self.env.set(sv, v * ratio);
+                    }
+                }
+                self.env.set(*e, val);
             }
         }
         Ok(())
@@ -387,35 +452,39 @@ impl State {
         let dir = self.dir_of(obj);
         let scale = self.scale_of(obj)?;
 
-        // dimensions
+        // dimensions — `same` reuses the previous like-object's size as the
+        // default; explicit ht/wid/rad still override.
+        let prev = if obj.attrs.iter().any(|a| matches!(a, Attr::Same)) {
+            self.last_dims_of(p)
+        } else {
+            None
+        };
         let (mut w, mut h, mut rad);
         match p {
             Prim::Circle => {
-                let r = self
-                    .dim(obj, DimKind::Rad)?
+                let def_r = prev
+                    .map(|(pw, _)| pw / 2.0)
                     .unwrap_or(self.env.get(EnvVar::Circlerad));
+                let r = self.dim(obj, DimKind::Rad)?.unwrap_or(def_r);
                 let r = self.dim(obj, DimKind::Diam)?.map(|d| d / 2.0).unwrap_or(r);
                 w = 2.0 * r;
                 h = 2.0 * r;
                 rad = r;
             }
             Prim::Ellipse => {
-                w = self
-                    .dim(obj, DimKind::Wid)?
-                    .unwrap_or(self.env.get(EnvVar::Ellipsewid));
-                h = self
-                    .dim(obj, DimKind::Ht)?
-                    .unwrap_or(self.env.get(EnvVar::Ellipseht));
+                let (dw, dh) = prev.unwrap_or((
+                    self.env.get(EnvVar::Ellipsewid),
+                    self.env.get(EnvVar::Ellipseht),
+                ));
+                w = self.dim(obj, DimKind::Wid)?.unwrap_or(dw);
+                h = self.dim(obj, DimKind::Ht)?.unwrap_or(dh);
                 rad = 0.0;
             }
             _ => {
-                // box
-                w = self
-                    .dim(obj, DimKind::Wid)?
-                    .unwrap_or(self.env.get(EnvVar::Boxwid));
-                h = self
-                    .dim(obj, DimKind::Ht)?
-                    .unwrap_or(self.env.get(EnvVar::Boxht));
+                let (dw, dh) =
+                    prev.unwrap_or((self.env.get(EnvVar::Boxwid), self.env.get(EnvVar::Boxht)));
+                w = self.dim(obj, DimKind::Wid)?.unwrap_or(dw);
+                h = self.dim(obj, DimKind::Ht)?.unwrap_or(dh);
                 rad = self
                     .dim(obj, DimKind::Rad)?
                     .unwrap_or(self.env.get(EnvVar::Boxrad));
@@ -542,6 +611,23 @@ impl State {
             };
             pts.push(start + dir_unit(self.dir) * dist);
             last_dir = self.dir;
+        }
+
+        // `chop`: trim each end (default circlerad) so connectors meet shapes cleanly
+        if let Some(amt) = self.chop_of(obj)? {
+            if pts.len() >= 2 && amt > 0.0 {
+                let n = pts.len();
+                let d0 = pts[1] - pts[0];
+                let l0 = d0.len();
+                if l0 > amt {
+                    pts[0] = pts[0] + d0 / l0 * amt;
+                }
+                let d1 = pts[n - 2] - pts[n - 1];
+                let l1 = d1.len();
+                if l1 > amt {
+                    pts[n - 1] = pts[n - 1] + d1 / l1 * amt;
+                }
+            }
         }
 
         // arrowheads
@@ -783,6 +869,35 @@ impl State {
             }
         }
         Ok(None)
+    }
+
+    /// The `chop` amount (explicit value, or `circlerad`), if the object has it.
+    fn chop_of(&mut self, obj: &Object) -> ER<Option<f64>> {
+        for a in &obj.attrs {
+            if let Attr::Chop(opt) = a {
+                let amt = match opt {
+                    Some(e) => self.eval_expr(e)?,
+                    None => self.env.get(EnvVar::Circlerad),
+                };
+                return Ok(Some(amt));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Width/height of the last placed object of the same closed kind (for `same`).
+    fn last_dims_of(&self, p: Prim) -> Option<(f64, f64)> {
+        let want = match p {
+            Prim::Box => PKind::Box,
+            Prim::Circle => PKind::Circle,
+            Prim::Ellipse => PKind::Ellipse,
+            _ => return None,
+        };
+        self.placed
+            .iter()
+            .rev()
+            .find(|pl| pl.kind == want)
+            .map(|pl| (pl.bbox.width(), pl.bbox.height()))
     }
 
     /// Compute the center of a closed object given direction and extents.
@@ -1261,6 +1376,37 @@ fn translate_shape(sh: &mut Shape, d: Point) {
     }
 }
 
+/// Uniformly scale a shape's geometry about the origin (font size unchanged).
+fn scale_shape(sh: &mut Shape, f: f64) {
+    match sh {
+        Shape::Box { c, w, h, rad, .. } => {
+            *c = *c * f;
+            *w *= f;
+            *h *= f;
+            *rad *= f;
+        }
+        Shape::Circle { c, r, .. } => {
+            *c = *c * f;
+            *r *= f;
+        }
+        Shape::Ellipse { c, w, h, .. } => {
+            *c = *c * f;
+            *w *= f;
+            *h *= f;
+        }
+        Shape::Path { pts, .. } | Shape::Spline { pts, .. } => {
+            for p in pts {
+                *p = *p * f;
+            }
+        }
+        Shape::Arc { c, r, .. } => {
+            *c = *c * f;
+            *r *= f;
+        }
+        Shape::Text { at, .. } => *at = *at * f,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1371,6 +1517,58 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn scale_rescales_default_dims() {
+        // issue #4: `scale = 2` doubles the default box size
+        let d = draw("scale = 2\nbox");
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (*w - 1.5).abs() < 1e-9 && (*h - 1.0).abs() < 1e-9,
+            "{w} x {h}"
+        );
+    }
+
+    #[test]
+    fn same_reuses_previous_dims() {
+        // issue #4: `box same` reuses the previous box's dimensions
+        let d = draw("box wid 1 ht 0.4 at 0,0\nbox same at 2,0");
+        let Shape::Box { w, h, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(
+            (*w - 1.0).abs() < 1e-9 && (*h - 0.4).abs() < 1e-9,
+            "{w} x {h}"
+        );
+    }
+
+    #[test]
+    fn chop_trims_line_endpoints() {
+        // issue #4: `chop` trims circlerad (0.25) off each end
+        let d = draw("circle at 0,0\ncircle at 2,0\nline from 1st circle to 2nd circle chop");
+        let Shape::Path { pts, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert!((pts[0].x - 0.25).abs() < 1e-9, "start {:?}", pts[0]);
+        assert!(
+            (pts.last().unwrap().x - 1.75).abs() < 1e-9,
+            "end {:?}",
+            pts.last()
+        );
+    }
+
+    #[test]
+    fn ps_width_scales_drawing() {
+        // issue #4: `.PS 6` scales the whole picture to 6 units wide
+        let d = draw(".PS 6\nbox\n.PE");
+        assert!(
+            (d.bbox.width() - 6.0).abs() < 1e-6,
+            "w = {}",
+            d.bbox.width()
+        );
     }
 
     #[test]
