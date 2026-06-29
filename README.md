@@ -9,7 +9,7 @@
   <a href="https://github.com/milkway/rpic-lang/actions/workflows/ci.yml"><img src="https://github.com/milkway/rpic-lang/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/milkway/rpic-lang/releases"><img src="https://img.shields.io/github/v/release/milkway/rpic-lang?sort=semver&display_name=tag" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--2--Clause-blue.svg" alt="License"></a>
-  <a href="https://pypi.org/project/rpic/"><img src="https://img.shields.io/pypi/v/rpic?label=PyPI&color=informational" alt="PyPI"></a>
+  <a href="https://pypi.org/project/rpiclang/"><img src="https://img.shields.io/pypi/v/rpiclang?label=PyPI&color=informational" alt="PyPI"></a>
   <img src="https://img.shields.io/badge/rust-edition%202024-orange.svg" alt="Rust 2024">
 </p>
 
@@ -132,6 +132,10 @@ Prebuilt binaries for macOS / Linux / Windows are attached to each
 ## Language bindings
 
 ### Python — [`bindings/python`](bindings/python)
+
+```sh
+pip install rpiclang          # distribution name; the module is `rpic`
+```
 
 ```python
 import rpic, json

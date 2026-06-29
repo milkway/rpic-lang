@@ -6,6 +6,8 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+keywords = ["svg", "png", "pdf", "render", "rasterize"]
+categories = ["graphics", "rendering"]
 
 [dependencies]
 resvg = "0.47.0"

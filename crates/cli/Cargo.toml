@@ -6,13 +6,15 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+keywords = ["pic", "svg", "diagram", "graphics", "cli"]
+categories = ["command-line-utilities", "graphics"]
 
 [[bin]]
 name = "rpic"
 path = "src/main.rs"
 
 [dependencies]
-rpic-core = { path = "../core" }
+rpic-core = { version = "0.0.1", path = "../core" }
 rpic-render = { version = "0.0.1", path = "../render" }
 
 # Debian packaging (cargo-deb): `cargo deb -p rpic-cli`

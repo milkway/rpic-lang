@@ -6,6 +6,8 @@ edition.workspace = true
 license.workspace = true
 authors.workspace = true
 repository.workspace = true
+keywords = ["pic", "svg", "diagram", "graphics", "drawing"]
+categories = ["graphics", "parser-implementations"]
 
 [lib]
 name = "rpic_core"
