@@ -1,0 +1,19 @@
+# Standalone package (own [workspace]) so the main native workspace doesn't
+# depend on PyO3/Python. Build wheels with maturin.
+[package]
+name = "rpic-python"
+version = "0.0.1"
+edition = "2021"
+license = "BSD-2-Clause"
+authors = ["André Leite <leite@de.ufpe.br>"]
+
+[lib]
+name = "rpic"
+crate-type = ["cdylib"]
+
+[dependencies]
+rpic-core = { path = "../../crates/core" }
+rpic-render = { path = "../../crates/render" }
+pyo3 = { version = "0.26", features = ["extension-module", "abi3-py39"] }
+
+[workspace]

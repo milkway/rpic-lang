@@ -1,0 +1,20 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "rpic"
+version = "0.0.1"
+description = "Python bindings for rpic — the pic graphics language → SVG/PNG/PDF with animation."
+authors = [{ name = "André Leite", email = "leite@de.ufpe.br" }]
+license = { text = "BSD-2-Clause" }
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
