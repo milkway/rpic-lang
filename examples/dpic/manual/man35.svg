@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="747.551" height="259.122" viewBox="0 0 747.551 259.122" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="90.634,81.268 52,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="90.634,81.268 82.907,83.2 82.907,79.337" fill="black"/>
+</g>
+<g id="s1">
+<text x="28" y="81.268" text-anchor="middle" dominant-baseline="central">nums </text>
+</g>
+<g id="s2">
+<ellipse cx="134.098" cy="81.268" rx="43.463" ry="19.317" fill="rgb(179,179,179)" stroke="black" stroke-width="1.067"/>
+<text x="134.098" y="81.268" text-anchor="middle" dominant-baseline="central">generate</text>
+</g>
+<g id="s3">
+</g>
+<g id="s4">
+<rect x="216.195" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.171" y="81.268" text-anchor="middle" dominant-baseline="central">sort0</text>
+</g>
+<g id="s5">
+</g>
+<g id="s6">
+</g>
+<g id="s7">
+<rect x="216.195" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.171" y="158.537" text-anchor="middle" dominant-baseline="central">sort1</text>
+</g>
+<g id="s8">
+</g>
+<g id="s9">
+</g>
+<g id="s10">
+<rect x="216.195" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="245.171" y="235.805" text-anchor="middle" dominant-baseline="central">sort2</text>
+</g>
+<g id="s11">
+<path d="M 177.561 100.585 C 181.424 117.327 194.302 181.717 200.741 201.034 C 207.18 220.351 213.62 213.912 216.195 216.488" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="216.195,216.488 209.366,212.39 212.097,209.658" fill="black"/>
+</g>
+<g id="s12">
+<path d="M 177.561 100.585 C 181.424 104.449 194.302 117.327 200.741 123.766 C 207.18 130.205 213.62 136.644 216.195 139.22" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="216.195,139.22 209.366,135.122 212.097,132.39" fill="black"/>
+</g>
+<g id="s13">
+<polyline points="177.561,81.268 216.195,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="216.195,81.268 208.468,83.2 208.468,79.337" fill="black"/>
+</g>
+<g id="s14">
+</g>
+<g id="s15">
+<rect x="312.78" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="341.756" y="81.268" text-anchor="middle" dominant-baseline="central">sample</text>
+</g>
+<g id="s16">
+<path d="M 274.146 216.488 C 278.01 199.746 290.888 135.356 297.327 116.039 C 303.766 96.722 310.205 103.161 312.78 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="312.78,100.585 308.683,107.415 305.951,104.683" fill="black"/>
+</g>
+<g id="s17">
+<path d="M 274.146 139.22 C 278.01 135.356 290.888 122.478 297.327 116.039 C 303.766 109.6 310.205 103.161 312.78 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="312.78,100.585 308.683,107.415 305.951,104.683" fill="black"/>
+</g>
+<g id="s18">
+<polyline points="274.146,81.268 312.78,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="312.78,81.268 305.054,83.2 305.054,79.337" fill="black"/>
+</g>
+<g id="s19">
+<polyline points="370.732,81.268 409.366,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,81.268 401.639,83.2 401.639,79.337" fill="black"/>
+</g>
+<g id="s20">
+<rect x="409.366" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="438.341" y="81.268" text-anchor="middle" dominant-baseline="central">split0</text>
+</g>
+<g id="s21">
+</g>
+<g id="s22">
+</g>
+<g id="s23">
+<rect x="409.366" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="438.341" y="158.537" text-anchor="middle" dominant-baseline="central">split1</text>
+</g>
+<g id="s24">
+</g>
+<g id="s25">
+</g>
+<g id="s26">
+<rect x="409.366" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="438.341" y="235.805" text-anchor="middle" dominant-baseline="central">split2</text>
+</g>
+<g id="s27">
+<path d="M 370.732 100.585 C 374.595 117.327 387.473 181.717 393.912 201.034 C 400.351 220.351 406.79 213.912 409.366 216.488" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,216.488 402.536,212.39 405.268,209.658" fill="black"/>
+</g>
+<g id="s28">
+<path d="M 370.732 100.585 C 374.595 104.449 387.473 117.327 393.912 123.766 C 400.351 130.205 406.79 136.644 409.366 139.22" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,139.22 402.536,135.122 405.268,132.39" fill="black"/>
+</g>
+<g id="s29">
+<polyline points="370.732,81.268 409.366,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,81.268 401.639,83.2 401.639,79.337" fill="black"/>
+</g>
+<g id="s30">
+<polyline points="274.146,235.805 409.366,235.805" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,235.805 401.639,237.737 401.639,233.873" fill="black"/>
+</g>
+<g id="s31">
+<polyline points="274.146,158.537 409.366,158.537" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="409.366,158.537 401.639,160.468 401.639,156.605" fill="black"/>
+</g>
+<g id="s32">
+</g>
+<g id="s33">
+<polyline points="245.171,61.951 245.171,42.634" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s34">
+<path d="M 245.171 42.634 A 19.317 19.317 0 0 0 264.488 23.317" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s35">
+</g>
+<g id="s36">
+<polyline points="438.341,61.951 438.341,42.634" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="438.341,61.951 436.41,54.224 440.273,54.224" fill="black"/>
+</g>
+<g id="s37">
+<path d="M 438.341 42.634 A 19.317 19.317 0 0 1 419.024 23.317" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s38">
+<polyline points="264.488,23.317 419.024,23.317" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s39">
+</g>
+<g id="s40">
+<rect x="560.039" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="589.015" y="81.268" text-anchor="middle" dominant-baseline="central">merge0</text>
+</g>
+<g id="s41">
+</g>
+<g id="s42">
+</g>
+<g id="s43">
+<rect x="560.039" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="589.015" y="158.537" text-anchor="middle" dominant-baseline="central">merge1</text>
+</g>
+<g id="s44">
+</g>
+<g id="s45">
+</g>
+<g id="s46">
+<rect x="560.039" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="589.015" y="235.805" text-anchor="middle" dominant-baseline="central">merge2</text>
+</g>
+<g id="s47">
+<polyline points="467.317,235.805 560.039,235.805" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,235.805 552.312,237.737 552.312,233.873" fill="black"/>
+</g>
+<g id="s48">
+<path d="M 467.317 177.854 C 480.195 181.717 529.132 194.595 544.585 201.034 C 560.039 207.473 557.463 213.912 560.039 216.488" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,216.488 553.209,212.39 555.941,209.658" fill="black"/>
+</g>
+<g id="s49">
+<path d="M 467.317 100.585 C 480.195 117.327 529.132 181.717 544.585 201.034 C 560.039 220.351 557.463 213.912 560.039 216.488" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,216.488 553.209,212.39 555.941,209.658" fill="black"/>
+</g>
+<g id="s50">
+<path d="M 467.317 216.488 C 480.195 212.624 529.132 199.746 544.585 193.307 C 560.039 186.868 557.463 180.429 560.039 177.854" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,177.854 555.941,184.683 553.209,181.951" fill="black"/>
+</g>
+<g id="s51">
+<polyline points="467.317,158.537 560.039,158.537" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,158.537 552.312,160.468 552.312,156.605" fill="black"/>
+</g>
+<g id="s52">
+<path d="M 467.317 100.585 C 480.195 104.449 529.132 117.327 544.585 123.766 C 560.039 130.205 557.463 136.644 560.039 139.22" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,139.22 553.209,135.122 555.941,132.39" fill="black"/>
+</g>
+<g id="s53">
+<path d="M 467.317 216.488 C 480.195 199.746 529.132 135.356 544.585 116.039 C 560.039 96.722 557.463 103.161 560.039 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,100.585 555.941,107.415 553.209,104.683" fill="black"/>
+</g>
+<g id="s54">
+<path d="M 467.317 139.22 C 480.195 135.356 529.132 122.478 544.585 116.039 C 560.039 109.6 557.463 103.161 560.039 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,100.585 555.941,107.415 553.209,104.683" fill="black"/>
+</g>
+<g id="s55">
+<polyline points="467.317,81.268 560.039,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="560.039,81.268 552.312,83.2 552.312,79.337" fill="black"/>
+</g>
+<g id="s56">
+</g>
+<g id="s57">
+<ellipse cx="700.088" cy="81.268" rx="43.463" ry="19.317" fill="rgb(179,179,179)" stroke="black" stroke-width="1.067"/>
+<text x="700.088" y="81.268" text-anchor="middle" dominant-baseline="central">output</text>
+</g>
+<g id="s58">
+<path d="M 617.99 216.488 C 621.854 199.746 634.732 135.356 641.171 116.039 C 647.61 96.722 654.049 103.161 656.624 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="656.624,100.585 652.527,107.415 649.795,104.683" fill="black"/>
+</g>
+<g id="s59">
+<path d="M 617.99 139.22 C 621.854 135.356 634.732 122.478 641.171 116.039 C 647.61 109.6 654.049 103.161 656.624 100.585" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="656.624,100.585 652.527,107.415 649.795,104.683" fill="black"/>
+</g>
+<g id="s60">
+<polyline points="617.99,81.268 656.624,81.268" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="656.624,81.268 648.898,83.2 648.898,79.337" fill="black"/>
+</g>
+<g id="s61">
+</g>
+<g id="s62">
+<polyline points="134.098,61.951 134.098,23.317" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s63">
+<path d="M 134.098 23.317 A 19.317 19.317 0 0 0 153.415 4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s64">
+</g>
+<g id="s65">
+<polyline points="700.088,61.951 700.088,23.317" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="700.088,61.951 698.156,54.224 702.02,54.224" fill="black"/>
+</g>
+<g id="s66">
+<path d="M 700.088 23.317 A 19.317 19.317 0 0 1 680.771 4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s67">
+<polyline points="153.415,4 680.771,4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>

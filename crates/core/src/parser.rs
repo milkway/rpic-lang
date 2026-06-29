@@ -1473,6 +1473,9 @@ impl Parser {
             Token::Label(_) | Token::Block | Token::Corner(_) => true,
             Token::Kw(Kw::Last) | Token::Kw(Kw::Here) => true,
             Token::Float(_) => matches!(self.peek(1), Token::Kw(Kw::Nth)),
+            // `{expr}th …` / `` `expr`th … `` ordinal counts (only valid as a
+            // place in position/expression context, never a group here)
+            Token::LeftBrace | Token::LeftQuote => true,
             _ => false,
         }
     }
@@ -1523,7 +1526,7 @@ impl Parser {
                 };
                 Ok(Place::Name { name, subscript })
             }
-            Token::Kw(Kw::Last) | Token::Float(_) => {
+            Token::Kw(Kw::Last) | Token::Float(_) | Token::LeftBrace | Token::LeftQuote => {
                 let count = self.parse_nth()?;
                 let obj = self.parse_primobj()?;
                 Ok(Place::Nth { count, obj })
