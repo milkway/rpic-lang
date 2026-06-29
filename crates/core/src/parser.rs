@@ -1501,8 +1501,15 @@ ellipse "typesetter"
             a,
             Attr::At(Position::Place(Location::Paren(_), _))
         )));
-        // a plain point place still works
-        assert!(pic("box at A.ne\nA: box").stmts.len() == 2 || true);
+        // a plain point place still parses as a place position
+        let q = pic("A: box\nbox at A.ne");
+        let Stmt::Object { object, .. } = &q.stmts[1] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(
+            a,
+            Attr::At(Position::Place(Location::Place(Place::Corner(_, _)), _))
+        )));
     }
 
     #[test]
