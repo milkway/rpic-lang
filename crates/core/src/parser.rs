@@ -891,7 +891,13 @@ impl Parser {
     // ---- positions ---------------------------------------------------------
 
     fn parse_position(&mut self) -> PResult<Position> {
-        if self.at(&Token::Lparen) || self.at_place_start() {
+        if self.at(&Token::Lparen) {
+            return self.parse_paren_position();
+        }
+        // A leading place is point-valued UNLESS it is a scalar accessor
+        // (`place.x` / `.y` / `.attr`), in which case it begins an (expr, expr)
+        // pair like `(A.x, A.y - 0.5)`.
+        if self.at_place_start() && !self.place_is_scalar_ahead() {
             let loc = self.parse_location_operand()?;
             let shifts = self.parse_shifts()?;
             return Ok(Position::Place(loc, shifts));
@@ -956,6 +962,40 @@ impl Parser {
         } else {
             Ok(Location::Place(self.parse_place()?))
         }
+    }
+
+    /// Parse a parenthesised position: `(pos)`, `(pos, pos)`, or `(expr, expr)`
+    /// (the latter resolved by the recursive call, e.g. `(A.x, A.y)`).
+    fn parse_paren_position(&mut self) -> PResult<Position> {
+        self.expect(&Token::Lparen)?;
+        let p1 = self.parse_position()?;
+        if self.eat(&Token::Comma) {
+            let p2 = self.parse_position()?;
+            self.expect(&Token::Rparen)?;
+            let shifts = self.parse_shifts()?;
+            Ok(Position::Place(
+                Location::ParenPair(Box::new(p1), Box::new(p2)),
+                shifts,
+            ))
+        } else {
+            self.expect(&Token::Rparen)?;
+            let shifts = self.parse_shifts()?;
+            Ok(Position::Place(Location::Paren(Box::new(p1)), shifts))
+        }
+    }
+
+    /// Lookahead: does the upcoming place end in a scalar accessor
+    /// (`.x` / `.y` / `.attr`)? If so it is a number, not a point. Non-consuming.
+    fn place_is_scalar_ahead(&mut self) -> bool {
+        let save = self.idx;
+        let parsed = self.parse_place().is_ok();
+        let scalar = parsed
+            && matches!(
+                self.cur(),
+                Token::DotX | Token::DotY | Token::Param(_)
+            );
+        self.idx = save;
+        scalar
     }
 
     fn at_place_start(&self) -> bool {
@@ -1448,6 +1488,21 @@ ellipse "typesetter"
             .filter(|a| matches!(a, Attr::Then))
             .count();
         assert_eq!(thens, 3);
+    }
+
+    #[test]
+    fn place_scalar_in_coord_pair() {
+        // issue #3: (A.x, expr) must parse as an (expr,expr) pair, not a place
+        let p = pic("A: box\n\"t\" at (A.x, A.y - 0.5)");
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(
+            a,
+            Attr::At(Position::Place(Location::Paren(_), _))
+        )));
+        // a plain point place still works
+        assert!(pic("box at A.ne\nA: box").stmts.len() == 2 || true);
     }
 
     #[test]

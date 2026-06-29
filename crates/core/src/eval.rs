@@ -1343,6 +1343,16 @@ mod tests {
     }
 
     #[test]
+    fn place_dot_in_coordinate_pair() {
+        // (A.x, A.y - 1) — place scalar accessors inside a coordinate pair (issue #3)
+        let d = draw("A: box wid 1 ht 1 at 2,3\nbox wid 0.2 ht 0.2 at (A.x, A.y - 1)");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 2.0).abs() < 1e-9 && (c.y - 2.0).abs() < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
     fn last_ordinal() {
         let d = draw("box at 0,0\nbox at 2,0\narrow from 1st box.e to 2nd box.w");
         let Shape::Path { pts, .. } = &d.shapes[2] else {
