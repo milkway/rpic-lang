@@ -347,6 +347,12 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
                     out.extend(a.iter().cloned());
                 }
             }
+            // `$+` is the number of arguments passed to this macro
+            Token::ArgCount => out.push(Spanned {
+                tok: Token::Float(args.len() as f64),
+                line: s.line,
+                col: s.col,
+            }),
             // `$n` is also substituted inside string literals (the `"$1"==""`
             // default-argument idiom, sprintf templates like `"$2%g"`, …).
             Token::Str(text) if text.contains('$') => {
@@ -369,7 +375,10 @@ fn subst_in_string(text: &str, args: &[Vec<Spanned>]) -> String {
     let mut out = String::new();
     let mut i = 0;
     while i < chars.len() {
-        if chars[i] == '$' && chars.get(i + 1).is_some_and(|c| c.is_ascii_digit()) {
+        if chars[i] == '$' && chars.get(i + 1) == Some(&'+') {
+            out.push_str(&args.len().to_string());
+            i += 2;
+        } else if chars[i] == '$' && chars.get(i + 1).is_some_and(|c| c.is_ascii_digit()) {
             let mut j = i + 1;
             let mut num = String::new();
             while j < chars.len() && chars[j].is_ascii_digit() {
@@ -1582,6 +1591,7 @@ impl Parser {
                 | Token::Func1(_)
                 | Token::Func2(_)
                 | Token::Kw(Kw::Rand)
+                | Token::ArgCount
         )
     }
 
@@ -1737,6 +1747,11 @@ impl Parser {
                 let e = self.parse_expr()?;
                 self.expect(&Token::Rparen)?;
                 Ok(e)
+            }
+            // `$+` outside any macro invocation: zero arguments
+            Token::ArgCount => {
+                self.bump();
+                Ok(Expr::Num(0.0))
             }
             Token::Func1(f) => {
                 self.bump();

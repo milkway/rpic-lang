@@ -20,6 +20,8 @@ pub enum Token {
     Label(String),
     /// `$n` macro argument reference.
     Arg(u32),
+    /// `$+` — the number of arguments passed to the current macro.
+    ArgCount,
 
     // ---- structural --------------------------------------------------------
     /// End of statement: newline or `;`.

@@ -2177,6 +2177,16 @@ mod tests {
     }
 
     #[test]
+    fn arg_count_macro() {
+        // `$+` is the number of arguments passed to the current macro
+        let d = draw("define cnt { $+ }\nx = cnt(a, b, c)\nbox wid x ht 0.3");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 3.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
     fn recursive_macro_terminates() {
         // a self-calling macro bounded by `if`: textual pre-expansion would
         // diverge, but lazy (eval-time) expansion of the taken branch stops it.

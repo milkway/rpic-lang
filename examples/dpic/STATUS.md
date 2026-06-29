@@ -18,8 +18,8 @@ Corpus pass rate is now **63 / 72** (was 32 at the first audit).
 
 | Feature missing | Examples | Tracking |
 |---|---|---|
-| dpic macro-library metaprogramming (`$+` arg count, `exec`) — also pulled in by `copy` | `dpictools` (×2), `arrowheads`, `arrowwide`, `Spiral`, `tgraph` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
-| PSTricks helper macros (`lozenge`, `\dpicshdraw`) | `circles` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
+| dpic m4 metaprogramming: `exec` in the calling macro's argument scope (dynamic `$n`), `(expr).x`/`.y` on parenthesised positions, `\`-continued define bodies — also pulled in by `copy` (`$+` arg count is supported) | `dpictools` (×2), `arrowheads`, `arrowwide`, `Spiral`, `tgraph` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
+| m4 token pasting (`$1$2` → one identifier) + PSTricks helpers | `circles` | [#15](https://github.com/milkway/rpic-lang/issues/15) |
 | dpic unit-suffixed numbers (`11bp__`) | `man31` | [#18](https://github.com/milkway/rpic-lang/issues/18) (partial) |
 | Macro argument used in an expression slot (`{i}th` ncount) | `man35` | [#13](https://github.com/milkway/rpic-lang/issues/13) |
 
