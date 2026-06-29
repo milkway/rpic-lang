@@ -1,12 +1,12 @@
 {
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The pic graphics language rendered to SVG/PNG/PDF.",
   "homepage": "https://github.com/milkway/rpic-lang",
   "license": "BSD-2-Clause",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/milkway/rpic-lang/releases/download/v0.0.1/rpic-x86_64-pc-windows-msvc.zip",
-      "hash": "SHA256_WIN"
+      "url": "https://github.com/milkway/rpic-lang/releases/download/v0.0.2/rpic-x86_64-pc-windows-msvc.zip",
+      "hash": "1829eeab81ac872b5733e23e6e959e94b246bf2360c0fa968b5b2968a7f528b7"
     }
   },
   "bin": "rpic.exe",

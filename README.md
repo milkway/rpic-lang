@@ -117,7 +117,7 @@ annotations. See [`crates/core/src/std/circuits.pic`](crates/core/src/std/circui
 # from source (any platform)
 cargo install --git https://github.com/milkway/rpic-lang rpic-cli
 
-# Homebrew (after a release + tap)
+# Homebrew (macOS / Linux)
 brew install milkway/rpic/rpic
 
 # Scoop (Windows)

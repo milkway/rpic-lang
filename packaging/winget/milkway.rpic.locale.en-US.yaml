@@ -1,0 +1,17 @@
+PackageIdentifier: milkway.rpic
+PackageVersion: 0.0.2
+PackageLocale: en-US
+Publisher: André Leite
+PublisherUrl: https://github.com/milkway
+PackageName: rpic
+PackageUrl: https://github.com/milkway/rpic-lang
+License: BSD-2-Clause
+LicenseUrl: https://github.com/milkway/rpic-lang/blob/main/LICENSE
+ShortDescription: The pic graphics language rendered to SVG, PNG and PDF.
+Tags:
+  - pic
+  - svg
+  - diagram
+  - graphics
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0
