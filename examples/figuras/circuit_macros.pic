@@ -23,6 +23,15 @@ define capacitor { line invis $1; __capacitor(last line.start, last line.end) }
 define inductor  { line invis $1; __inductor(last line.start, last line.end) }
 define diode     { line invis $1; __diode(last line.start, last line.end) }
 
+# element box (generic impedance): a block so `Z1: ebox(...)` exposes the box
+# corners (Z1.e/.w/.n/.s) via the block's bounds, while the invisible spine
+# advances the pen so consecutive eboxes chain.
+define ebox { [ line invis $1; __ebox(last line.start, last line.end) ] }
+
+# current source (`source(dir len, I)`); the type arg is ignored — drawn as a
+# current source (circle + internal arrow).
+define source { line invis $1; __isource(last line.start, last line.end) }
+
 # a connecting line (crossover hops not modelled — drawn as a plain line)
 define crossover { line $1 }
 

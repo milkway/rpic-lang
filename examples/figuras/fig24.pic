@@ -1,0 +1,16 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+Q1:bi_tr(down_,R,P) with .B at Here
+B:line from Q1.E up_ dimen_/4
+C:line "$V_{cc}$" above from B.end - (dimen_/2,0) to B.end + (dimen_/2,0)
+move to Q1.C; line down_ dimen_/4;
+source(down_ dimen_/2,I); llabel(,1mA,);
+A:line down_ dimen_/4
+line "$V_{ss}$" below from A.end - (dimen_/2,0) to A.end + (dimen_/2,0)
+move to Q1.B; line left_ dimen_/4; down_; dot; rlabel(,V_{en},)
+move to Q1.C; line right_ dimen_/2; up_;dot; rlabel(,V_{sa},)
+line invis from C.start + (0,dimen_/4) to C.end + (0,dimen_/4)
+.PE

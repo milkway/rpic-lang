@@ -1,0 +1,36 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+Ve1:circle radius .05 with .c at (0,0); move to Ve1.w;"$V_{1}$" rjust
+Ve2:circle radius .05 with .c at (0,-dimen_); move to Ve2.w;"$V_{2}$" rjust
+Vp:circle radius .05 with .c at (0,-2*dimen_); move to Vp.w;"$V_{p}$" rjust
+L1:line from Ve1.e right_ dimen_/2;
+R1:resistor(right_ dimen_) with .start at L1.e;rlabel(,R_1,)
+L2:line from Ve2.e right_ dimen_/2;
+R2:resistor(right_ dimen_) with .start at L2.e;rlabel(,R_2,)
+L3:line from Vp.e right_ dimen_/2;
+R3:resistor(right_ dimen_) with .start at L3.e;rlabel(,R_p,)
+L4:line from R1.e right_ dimen_/2;
+L5:line from R2.e right_ dimen_/2;
+L6:line from R3.e right_ dimen_/2;
+L7:line up_ 5*dimen_/2 then right dimen_/4;
+A1:opamp(right_ dimen_) with .In2 at L7.e;
+L8:line from A1.Out right_ dimen_/4 then up_ dimen_ then left_ dimen_/4;
+R4:resistor(left_ dimen_);rlabel(,R_3,);
+L9:line left_ dimen_/4 then down_ .75*dimen_ then right_ dimen_/4
+L10:line from A1.In1 left_ dimen_/2;
+R5:resistor(left_ dimen_);llabel(,R_4,);
+L11:line left_ dimen_/4 then down_ dimen_/4;ground(,T);
+L12:line from A1.Out right_ dimen_;
+A2:opamp(right_ dimen_,"$+$","$-$",) with .In1 at L12.e;
+L13:line from A2.In2 left_ dimen_/2 then down_ dimen_/4; ground(,T);
+L14:line from A2.Out right_ dimen_/4;
+R6:resistor(right_ dimen_);llabel(,R_5,);
+L15:line right_ dimen_/4;
+L16:line down_ dimen_/4;
+D1:diode(down_ dimen_,LE);rlabel(,D_1,);ground;
+.PE

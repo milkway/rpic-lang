@@ -52,14 +52,14 @@ reproductions.
 
 ## Coverage
 
-Of the collection's 48 circuit_macros figures, **38 render** and are included
-here: 27 that draw with raw primitives, plus 11 that exercise the element-API
-compatibility shim (`fig21 22 25 26 27 29 30 31 32 33 45` — linear elements,
-bipolar transistors and op-amps).
+Of the collection's 48 circuit_macros figures, **43 render** and are included
+here: 27 that draw with raw primitives, plus 16 that exercise the element-API
+compatibility shim (`fig05 21 22 23 24 25 26 27 28 29 30 31 32 33 45 47` —
+linear elements, bipolar transistors, op-amps, element boxes (`ebox`), current
+sources (`source`), and `with .start at …` element placement).
 
-The remaining figures need pieces the shim does not yet cover: typed current/
-voltage `source(…)` and `ebox(…)`, and `with .start at …` placement of a
-direction+length element. Those are the natural next steps.
+The remaining few use a line continued by a bare direction word on the next
+line (`… then ⏎ left_ …`), which the shim does not yet handle.
 
 ## A few highlights
 

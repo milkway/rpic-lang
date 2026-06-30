@@ -1,0 +1,18 @@
+copy "circuit_macros.pic"
+.PS
+linethick=linethick*(1.5)
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_*1.25
+G1:ebox(down_ dimen_); rlabel(,-g_m/2,)
+L1:line from G1.n right_ dimen_;
+G2:ebox(down_ dimen_); rlabel(,{g_{LC}},)
+L2:line from G2.n right_ dimen_;
+S1:source(up_ dimen_ with .n at L2.e,I); llabel(,i_s,)
+L3:line from S1.n right_ dimen_;
+C1:capacitor(down_ dimen_); llabel(,C,);
+L4:line from C1.n right_ dimen_;
+L1:inductor(down_ dimen_,W); llabel(,2L,);
+line to G1.s
+.PE

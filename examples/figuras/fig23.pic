@@ -1,0 +1,32 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+Q1:bi_tr(down_,R,P) with .B at Here
+move from Q1.B left_ .5*dimen_
+Q2:bi_tr(down_,,P) with .B at Here
+move from Q1.C down_ .5*dimen_
+Q3:bi_tr(up_,R,) with .C at Here
+move from Q2.C down_ .5*dimen_
+Q4:bi_tr(up_,,) with .C at Here
+A:line from Q3.E to Q4.E
+line from A.c down_ dimen_/4; source(down_ dimen_/2,I); llabel(,1mA,);
+F:line from Here down_ dimen_/4
+line from Q4.C to Q2.C;
+line from Q3.C to Q1.C;
+line from Q1.B to Q2.B;
+line from Q2.B to (Q2.B,Q2.C) then to Q2.C;
+B:line from Q1.E up_ dimen_/4;
+C:line from Q2.E up_ dimen_/4;
+"$Q_1$" at Q1.E - (0,dimen_/2);
+"$Q_2$" at Q2.E - (0,dimen_/2);
+"$Q_3$" at Q3.C - (0,dimen_/2);
+"$Q_4$" at Q4.C - (0,dimen_/2);
+D:line "$V_{cc}$" above from C.end - (dimen_/2,0) to B.end + (dimen_/2,0)
+E:line "$V_{ss}$" below from (D.start,F.end) to (D.end,F.end)
+move to Q3.B; dot; rlabel(,V_{en+},)
+move to Q4.B; dot; llabel(,V_{en-},)
+move to Q1.C; line from Q1.C right_ dimen_/2;up_;dot; rlabel(,V_{sa},)
+line invis from D.start + (0,dimen_/4) to D.end + (0,dimen_/4)
+.PE

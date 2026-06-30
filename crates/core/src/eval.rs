@@ -2566,8 +2566,10 @@ mod tests {
         let shim = include_str!("../../../examples/figuras/circuit_macros.pic");
         for body in [
             include_str!("../../../examples/figuras/fig21.pic"),
+            include_str!("../../../examples/figuras/fig23.pic"),
             include_str!("../../../examples/figuras/fig26.pic"),
             include_str!("../../../examples/figuras/fig27.pic"),
+            include_str!("../../../examples/figuras/fig28.pic"),
             include_str!("../../../examples/figuras/fig30.pic"),
             include_str!("../../../examples/figuras/fig33.pic"),
             include_str!("../../../examples/figuras/fig45.pic"),
