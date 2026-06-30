@@ -1,0 +1,19 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+include(libgen.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_*.75
+O:(0,0)
+X:line -> from O-(.5*dimen_,-.5*dimen_) right_ 2*dimen_; "$h$" above;
+Y:line -> from O-(.5*dimen_,-.5*dimen_) down_ 2*dimen_; "$v$" rjust;
+"$0$" at X.start above rjust
+linethick=linethick*(.75)
+B1: box ht 3*dimen_ wid 4.5*dimen_ with .nw at O;
+B2: box ht 1*dimen_ wid 1.5*dimen_ with .nw at O+(1.5*dimen_,-1*dimen_);
+dimension_(from B1.ne to B1.se,.5,$V$,14bp__);
+dimension_(from B2.ne+(1.5*dimen_,0) to B2.se+(1.5*dimen_,0),.2,$\beta V$,14bp__);
+dimension_(from B1.sw to B1.se,-.4,$H$,20bp__);
+dimension_(from B2.sw-(0,1*dimen_) to B2.se-(0,1*dimen_),-.15,$\alpha H$,20bp__);
+.PE

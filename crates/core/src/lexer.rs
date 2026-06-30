@@ -209,15 +209,21 @@ impl Lexer {
     }
 
     fn push(&mut self, tok: Token, line: u32, col: u32) {
-        // A newline right after `then` is a line/spline-path continuation, not a
+        // A newline adjacent to `then` is a line/spline-path continuation, not a
         // statement terminator: circuit_macros figures wrap long paths across
-        // lines without a trailing `\` (e.g. `… then ⏎ left_ …`). `then` only
+        // lines without a trailing `\`, breaking either after `then`
+        // (`… then ⏎ left_ …`) or before it (`… 3*dimen_ ⏎ then …`). `then` only
         // occurs inside a path and always needs a following element, so dropping
-        // the newline is unambiguous.
+        // the newline is unambiguous in both directions.
         if tok == Token::Newline
             && matches!(self.out.last().map(|s| &s.tok), Some(Token::Kw(Kw::Then)))
         {
             return;
+        }
+        if tok == Token::Kw(Kw::Then)
+            && matches!(self.out.last().map(|s| &s.tok), Some(Token::Newline))
+        {
+            self.out.pop();
         }
         self.out.push(Spanned::new(tok, line, col));
     }
@@ -369,7 +375,9 @@ impl Lexer {
             }
         }
         if n.is_empty() {
-            return self.err("expected digit after `$`");
+            // A `$` not followed by a digit or `+` is a literal `$` (e.g. `$f$`
+            // LaTeX text passed unquoted as a macro argument), as in m4/dpic.
+            return Ok(Token::Dollar);
         }
         match n.parse() {
             Ok(v) => Ok(Token::Arg(v)),
@@ -545,6 +553,11 @@ impl Lexer {
                 }
                 _ => Token::Lt,
             },
+            // A `\` that is not a line continuation (handled in the whitespace
+            // skip) is literal text — e.g. a LaTeX command like `\beta` passed
+            // unquoted as a macro argument, as in m4/dpic. (`c` is already
+            // consumed by the `bump()` above.)
+            '\\' => Token::Backslash,
             other => return self.err(format!("unexpected character `{other}`")),
         };
         Ok(Some(tok))
@@ -989,5 +1002,38 @@ mod tests {
                 Token::Eof,
             ]
         );
+    }
+
+    #[test]
+    fn newline_before_then_is_continuation() {
+        // a path may also wrap *before* `then` (`… right\nthen up`).
+        assert_eq!(
+            toks("line right\nthen up"),
+            vec![
+                Token::Prim(Prim::Line),
+                Token::Dir(Dir::Right),
+                Token::Kw(Kw::Then),
+                Token::Dir(Dir::Up),
+                Token::Eof,
+            ]
+        );
+    }
+
+    #[test]
+    fn dollar_and_backslash_are_literal_text() {
+        // `$` not before a digit/`+`, and a non-continuation `\`, are literal
+        // text (e.g. `$\beta$` LaTeX passed unquoted as a macro argument).
+        assert_eq!(
+            toks("$\\beta$"),
+            vec![
+                Token::Dollar,
+                Token::Backslash,
+                Token::Name("beta".into()),
+                Token::Dollar,
+                Token::Eof,
+            ]
+        );
+        // `$1` is still a macro argument.
+        assert_eq!(toks("$1"), vec![Token::Arg(1), Token::Eof]);
     }
 }

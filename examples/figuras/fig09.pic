@@ -1,0 +1,21 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+include(libgen.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+O:(0,0)
+X:line -> from O-(2.5*dimen_,0) right_ 5*dimen_; "$\Re$" below;
+Y:line -> from O-(0,.5*dimen_) up_ 2*dimen_; "$\Im$" rjust;
+"$0$" at O below rjust
+L1: line from O-(1.5*dimen_,0) up_ dimen_ then right_ 3*dimen_
+then down_ dimen_ then left_ 3*dimen_
+L2:line -> from O left_ .75*dimen_
+"${\scriptsize A}$" at L1.sw below
+"${\scriptsize B}$" at L1.se below
+"${\scriptsize A^\prime}$" at L1.nw above
+"${\scriptsize B^\prime}$" at L1.ne above
+linethick=linethick*(.5)
+dimension_(from L1.se to L1.ne,-.15,$f$,14bp__);
+.PE

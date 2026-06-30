@@ -1,0 +1,27 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+X:line -> right_ 2.5; "$V_1$" ljust
+Y:line -> from X.w up_ 2.5; "$V_2$" rjust
+move to (0,2.5*dimen_);"$2.8$" rjust;
+move to (0,3*dimen_);"$3$" rjust;
+"$0.8$" at (.8*2*dimen_,-.1);
+"$1$" at (1*2*dimen_,-.1);
+D1:line dashed from (2*dimen_,0) to (2*dimen_,3*dimen_);
+D2:line dashed from (0,3*dimen_) to (2*dimen_,3*dimen_);
+C1:circle radius .05 with .c at (D1.n)
+D3:line dashed from (0,2.5*dimen_) to (2*dimen_,2.5*dimen_);
+C2:circle radius .05 with .c at (2*dimen_,2.5*dimen_)
+D4:line dashed from (.8*2*dimen_,0) to (2*.8*dimen_,3*dimen_);
+C3:circle radius .05 with .c at (2*.8*dimen_,3*dimen_)
+dimension_(from C2.c to C1.c,-.2,"$^{0.2}$" ljust);
+dimension_(from C3.c to C1.c,.2,"$^{0.2}$");
+line from (0.5*2*dimen_,3.7*dimen_) to (2.8*dimen_,1.55*dimen_)
+C4:circle radius .05 with .c at (.8*2*dimen_,2.5*dimen_)
+"classe $1$" at (2,2)
+"classe $2$" at (.4,.5)
+.PE
