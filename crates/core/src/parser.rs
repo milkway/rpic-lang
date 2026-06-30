@@ -301,7 +301,12 @@ fn expand(
                         col: c,
                     });
                 }
-                let body = toks[start..i].to_vec();
+                // Trim the newlines a multi-line `{ … }` body picks up right
+                // after `{` and before `}`. They are formatting artifacts: left
+                // in, a labelled call to a multi-line-body macro would expand to
+                // `Label: ⏎ <object>`, which is a parse error. Newlines *between*
+                // the body's statements are preserved.
+                let body = trim_edge_newlines(&toks[start..i]);
                 i += 1; // past `}`
                 macros.insert(name, body);
             }
@@ -473,6 +478,20 @@ fn trim_trailing_newlines(toks: &mut Vec<Spanned>) {
     while matches!(toks.last().map(|s| &s.tok), Some(Token::Newline)) {
         toks.pop();
     }
+}
+
+/// Drop leading and trailing `Newline` tokens (used for macro bodies, where the
+/// newlines around a multi-line `{ … }` are formatting, not structure).
+fn trim_edge_newlines(toks: &[Spanned]) -> Vec<Spanned> {
+    let mut start = 0;
+    let mut end = toks.len();
+    while start < end && toks[start].tok == Token::Newline {
+        start += 1;
+    }
+    while end > start && toks[end - 1].tok == Token::Newline {
+        end -= 1;
+    }
+    toks[start..end].to_vec()
 }
 
 /// Replace `$k` argument tokens in a macro body with the k-th argument's tokens.
