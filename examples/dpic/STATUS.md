@@ -19,11 +19,16 @@ Brian W. Kernighan's paper/manual:
 - `[ ... ]` block assignments to variables and environment parameters are local.
 - Unknown variables are errors instead of implicit zeroes.
 - Standalone text occupies the invisible `textwid` by `n * textht` box.
-- `same`, `chop r1 chop r2`, dash lengths, `linethick`, `rand()`, and
-  arbitrary-delimiter `define` bodies follow dpic/classic behavior more closely.
+- `same`, `chop r1 chop r2` (including negative chops that extend endpoints),
+  dash lengths, `linethick`, and arbitrary-delimiter `define` bodies follow
+  dpic/classic behavior more closely.
+- `rand(seed)` is the practical oracle for deterministic random examples;
+  unseeded `dpic rand()` is initialized from `time()` and is not a stable
+  visual-parity target by itself.
 - SVG output now follows dpic more closely for two-point lines, open-object
   fills (`line`/`spline`/`arc`), arc arrowheads, stroke-aware picture sizing,
-  block-attached text, and compass anchors on circles/ellipses.
+  block-attached text, `textoffset` on left/right-justified text, and compass
+  anchors on circles/ellipses.
 
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.

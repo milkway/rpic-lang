@@ -522,10 +522,16 @@ impl Svg {
                 _ => "middle",
             };
             let just_offset = xheight / 2.0 + line.text_offset * PPI;
+            let x = c.x
+                + match line.halign {
+                    -1 => line.text_offset * PPI,
+                    1 => -line.text_offset * PPI,
+                    _ => 0.0,
+                };
             let y = c.y + dy - (line.valign as f64) * just_offset;
             self.out.push_str(&format!(
                 "<text x=\"{}\" y=\"{}\" text-anchor=\"{}\" dominant-baseline=\"central\">{}</text>\n",
-                num(c.x),
+                num(x),
                 num(y),
                 anchor,
                 escape(&line.s)
@@ -715,6 +721,13 @@ mod tests {
         y.split('"').next().unwrap().parse().unwrap()
     }
 
+    fn text_x(svg: &str, text: &str) -> f64 {
+        let needle = format!(">{text}</text>");
+        let line = svg.lines().find(|line| line.contains(&needle)).unwrap();
+        let x = line.split(" x=\"").nth(1).unwrap();
+        x.split('"').next().unwrap().parse().unwrap()
+    }
+
     #[test]
     fn pipeline_svg_has_elements() {
         let s = svg(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\n.PE");
@@ -805,6 +818,17 @@ mod tests {
         let below = text_y(&s, "BBBB");
         assert!(above < below, "above={above} below={below}");
         assert!((below - above) < 40.0, "above/below offset too large: {s}");
+    }
+
+    #[test]
+    fn horizontal_text_justification_uses_textoffset() {
+        let s = svg("textoffset = 0.1\n\"L\" ljust at (0,0)\n\"R\" rjust at (0,0)");
+        let l = text_x(&s, "L");
+        let r = text_x(&s, "R");
+        assert!(
+            (l - r - 19.2).abs() < 1e-9,
+            "expected opposite 0.1in offsets in SVG px: {s}"
+        );
     }
 
     #[test]

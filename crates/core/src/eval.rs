@@ -1057,22 +1057,23 @@ impl State {
             }
         }
 
-        // `chop`: trim each end (default circlerad) so connectors meet shapes cleanly
+        // `chop`: positive values trim each end; negative values extend it,
+        // as in dpic examples such as `chop 0 chop -0.1`.
         if let Some((start_chop, end_chop)) = self.chop_of(obj)?
             && pts.len() >= 2
         {
             let n = pts.len();
-            if start_chop > 0.0 {
+            if start_chop != 0.0 {
                 let d0 = pts[1] - pts[0];
                 let l0 = d0.len();
-                if l0 > start_chop {
+                if start_chop < 0.0 || l0 > start_chop {
                     pts[0] = pts[0] + d0 / l0 * start_chop;
                 }
             }
-            if end_chop > 0.0 {
+            if end_chop != 0.0 {
                 let d1 = pts[n - 2] - pts[n - 1];
                 let l1 = d1.len();
-                if l1 > end_chop {
+                if end_chop < 0.0 || l1 > end_chop {
                     pts[n - 1] = pts[n - 1] + d1 / l1 * end_chop;
                 }
             }
@@ -1254,23 +1255,12 @@ impl State {
         Ok(self.record(PKind::Text, at, bb, start, end, 0.0, Some(sh)))
     }
 
-    /// Union an estimated text extent (centered at `center`) into the drawing
-    /// bbox, so wide labels and bare text objects aren't clipped by the SVG
-    /// viewBox. Uses the same 11pt font the SVG backend renders with; the
-    /// average glyph width is approximated (slightly generous to avoid clipping).
+    /// Union an estimated text extent into the drawing bbox, so wide labels and
+    /// bare text objects aren't clipped by the SVG viewBox.
     fn union_text(&mut self, center: Point, lines: &[TextLine]) {
-        if !has_visible_text(lines) {
-            return;
-        }
-        const EM: f64 = 11.0 / 72.0; // font height in inches (matches svg FONT_PT)
-        let char_w = 0.6 * EM;
-        let line_h = 1.2 * EM;
-        let cols = lines.iter().map(|l| l.s.chars().count()).max().unwrap_or(0) as f64;
-        let half = Point::new(cols * char_w / 2.0, lines.len() as f64 * line_h / 2.0);
-        self.layout_bbox.add(center + half);
-        self.layout_bbox.add(center - half);
-        self.bbox.add(center + half);
-        self.bbox.add(center - half);
+        let bb = text_bbox(center, lines);
+        self.layout_bbox.union(&bb);
+        self.bbox.union(&bb);
     }
 
     fn block(&mut self, stmts: &[Stmt], obj: &Object) -> ER<usize> {
@@ -2302,10 +2292,29 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
     const EM: f64 = 11.0 / 72.0;
     let char_w = 0.6 * EM;
     let line_h = 1.2 * EM;
-    let cols = lines.iter().map(|l| l.s.chars().count()).max().unwrap_or(0) as f64;
-    let half = Point::new(cols * char_w / 2.0, lines.len() as f64 * line_h / 2.0);
-    bb.add(center + half);
-    bb.add(center - half);
+    let xheight = 0.66 * EM;
+    let n = lines.len() as f64;
+    for (i, line) in lines.iter().enumerate() {
+        if line.s.is_empty() {
+            continue;
+        }
+        let w = line.s.chars().count() as f64 * char_w;
+        let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * line_h;
+        let y = base_y + line.valign as f64 * (xheight / 2.0 + line.text_offset);
+        let x = center.x
+            + match line.halign {
+                -1 => line.text_offset,
+                1 => -line.text_offset,
+                _ => 0.0,
+            };
+        let (min_x, max_x) = match line.halign {
+            -1 => (x, x + w),
+            1 => (x - w, x),
+            _ => (x - w / 2.0, x + w / 2.0),
+        };
+        bb.add(Point::new(min_x, y - line_h / 2.0));
+        bb.add(Point::new(max_x, y + line_h / 2.0));
+    }
     bb
 }
 
@@ -3055,6 +3064,13 @@ mod tests {
         };
         assert!((pts[0].x - 0.5).abs() < 1e-9, "{pts:?}");
         assert!((pts[1].x - 2.0).abs() < 1e-9, "{pts:?}");
+
+        let d = draw("line from (0,0) to (2,0) chop -.25 chop -.5");
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((pts[0].x + 0.25).abs() < 1e-9, "{pts:?}");
+        assert!((pts[1].x - 2.5).abs() < 1e-9, "{pts:?}");
     }
 
     #[test]
@@ -3187,6 +3203,21 @@ mod tests {
         // text wider than its box widens the bbox beyond the box
         let d2 = draw("box wid 0.2 ht 0.2 \"a very wide label\"");
         assert!(d2.bbox.width() > 0.3, "w = {}", d2.bbox.width());
+    }
+
+    #[test]
+    fn text_position_and_offset_expand_bbox_in_the_rendered_direction() {
+        let d = draw("textoffset = 0.1\n\"abc\" ljust at (0,0)");
+        assert!(d.bbox.min.x >= 0.1 - 1e-9, "{:?}", d.bbox);
+
+        let d = draw("textoffset = 0.1\n\"abc\" rjust at (0,0)");
+        assert!(d.bbox.max.x <= -0.1 + 1e-9, "{:?}", d.bbox);
+
+        let d = draw("textoffset = 0.1\n\"abc\" above at (0,0)");
+        assert!(d.bbox.min.y > 0.0, "{:?}", d.bbox);
+
+        let d = draw("textoffset = 0.1\n\"abc\" below at (0,0)");
+        assert!(d.bbox.max.y < 0.0, "{:?}", d.bbox);
     }
 
     #[test]
