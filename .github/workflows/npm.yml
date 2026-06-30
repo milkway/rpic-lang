@@ -1,0 +1,32 @@
+name: npm
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm Trusted Publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Ensure npm supports OIDC trusted publishing
+        run: npm install -g npm@latest
+      - name: Publish (wasm built by prepack; auth via OIDC, no token)
+        working-directory: bindings/js
+        run: npm publish --access public --provenance
