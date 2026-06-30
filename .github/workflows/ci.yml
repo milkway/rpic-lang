@@ -45,7 +45,9 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - uses: jetli/wasm-pack-action@v0.4.0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - name: Build WASM package
         run: wasm-pack build crates/wasm --target web --out-dir pkg
       - name: Build Python wheel
