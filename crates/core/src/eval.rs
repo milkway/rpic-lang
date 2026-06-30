@@ -304,8 +304,8 @@ impl State {
     }
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
-    fn parse_body(&self, body: &Body) -> ER<Vec<Stmt>> {
-        crate::parser::parse_body_tokens(body, &self.macros, self.base_dir.as_deref())
+    fn parse_body(&mut self, body: &Body) -> ER<Vec<Stmt>> {
+        crate::parser::parse_body_tokens(body, &mut self.macros, self.base_dir.as_deref())
             .map_err(|e| EvalError { msg: e.to_string() })
     }
 
@@ -2003,6 +2003,41 @@ mod tests {
             panic!()
         };
         assert!((*w0 - 0.5).abs() < 1e-9 && (*w1 - 1.25).abs() < 1e-9);
+    }
+
+    #[test]
+    fn copied_forward_macro_expands_in_deferred_multiline_call() {
+        let dir = std::env::temp_dir().join(format!("rpic_forward_macro_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("lib.pic"),
+            "define outer { if gate then { inner(0.2,\n  0.3) } }\ndefine inner { box wid $1 ht $2 }\n",
+        )
+        .unwrap();
+
+        let pic = parse_in_dir(
+            "if 1 then { copy \"lib.pic\" }\ngate = 1\nouter()",
+            Some(dir.as_path()),
+        )
+        .unwrap();
+        let d = eval(&pic).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 0.2).abs() < 1e-9 && (*h - 0.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn deferred_body_uses_macro_frame_from_own_expansion() {
+        let d = draw(
+            "define draw_one { [\n  scalev = 2\n  define project { $1/scalev }\n  if use_it then { box wid project(4) ht 0.1 }\n] }\ndefine draw_two { define project { $1/future_scale } }\nuse_it = 1\ndraw_one()\ndraw_two()",
+        );
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 2.0).abs() < 1e-9, "w = {w}");
     }
 
     #[test]

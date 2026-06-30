@@ -57,15 +57,35 @@ pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseErro
 /// are never parsed.
 pub fn parse_body_tokens(
     toks: &[Spanned],
-    macros: &Macros,
+    macros: &mut Macros,
     base: Option<&Path>,
 ) -> Result<Vec<Stmt>, ParseError> {
-    let mut m = macros.clone();
+    let before = body_macro_frame(toks).unwrap_or_else(|| macros.clone());
+    let mut m = before.clone();
     let mut input = toks.to_vec();
     input.push(Spanned::new(Token::Eof, 0, 0));
     let expanded = expand(&input, &mut m, 0, base)?;
+    propagate_macro_changes(macros, &before, &m);
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
+}
+
+fn body_macro_frame(toks: &[Spanned]) -> Option<Macros> {
+    toks.iter()
+        .find_map(|s| s.macro_frame.as_ref().map(|m| m.as_ref().clone()))
+}
+
+fn propagate_macro_changes(macros: &mut Macros, before: &Macros, after: &Macros) {
+    for name in before.keys() {
+        if !after.contains_key(name) {
+            macros.remove(name);
+        }
+    }
+    for (name, body) in after {
+        if before.get(name) != Some(body) {
+            macros.insert(name.clone(), body.clone());
+        }
+    }
 }
 
 /// Parse pic source produced by `exec`, applying the caller's macro argument
@@ -336,7 +356,7 @@ fn expand(
                 *out.last_mut().unwrap() = if_tok;
                 out.extend(cond);
                 out.push(toks[te].clone()); // `then`
-                i = copy_braced(toks, te + 1, &mut out)?;
+                i = copy_braced(toks, te + 1, &mut out, macros)?;
                 // optional `else { … }` (possibly across newlines)
                 let mut j = i;
                 while matches!(toks.get(j).map(|s| &s.tok), Some(Token::Newline)) {
@@ -344,7 +364,7 @@ fn expand(
                 }
                 if matches!(toks.get(j).map(|s| &s.tok), Some(Token::Kw(Kw::Else))) {
                     out.push(toks[j].clone());
-                    i = copy_braced(toks, j + 1, &mut out)?;
+                    i = copy_braced(toks, j + 1, &mut out, macros)?;
                 }
             }
             Token::Kw(Kw::For) => {
@@ -355,7 +375,7 @@ fn expand(
                 };
                 out.extend(expand(&toks[i..de], macros, depth + 1, base)?);
                 out.push(toks[de].clone()); // `do`
-                i = copy_braced(toks, de + 1, &mut out)?;
+                i = copy_braced(toks, de + 1, &mut out, macros)?;
             }
             Token::Name(n) | Token::Label(n) if macros.contains_key(n) => {
                 let body = macros.get(n).unwrap().clone();
@@ -421,6 +441,7 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
             }
             Token::Rparen if depth == 0 => {
                 i += 1;
+                trim_trailing_newlines(&mut cur);
                 if !cur.is_empty() || !args.is_empty() {
                     args.push(cur);
                 }
@@ -432,7 +453,11 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
                 i += 1;
             }
             Token::Comma if depth == 0 => {
+                trim_trailing_newlines(&mut cur);
                 args.push(std::mem::take(&mut cur));
+                i += 1;
+            }
+            Token::Newline if depth == 0 && cur.is_empty() => {
                 i += 1;
             }
             _ => {
@@ -444,11 +469,25 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
     Ok((args, i))
 }
 
+fn trim_trailing_newlines(toks: &mut Vec<Spanned>) {
+    while matches!(toks.last().map(|s| &s.tok), Some(Token::Newline)) {
+        toks.pop();
+    }
+}
+
 /// Replace `$k` argument tokens in a macro body with the k-th argument's tokens.
 fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < body.len() {
+        if matches!(body[i].tok, Token::Kw(Kw::Define))
+            && let Some((define, next)) = copy_define_verbatim(body, i)
+        {
+            out.extend(define);
+            i = next;
+            continue;
+        }
+
         if let Some((pasted, next)) = paste_adjacent_args(body, args, i) {
             out.push(pasted.with_arg_frame(args));
             i = next;
@@ -479,6 +518,48 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
         i += 1;
     }
     out
+}
+
+fn copy_define_verbatim(body: &[Spanned], start: usize) -> Option<(Vec<Spanned>, usize)> {
+    let mut name_idx = start + 1;
+    while matches!(body.get(name_idx).map(|s| &s.tok), Some(Token::Newline)) {
+        name_idx += 1;
+    }
+    if !matches!(
+        body.get(name_idx).map(|s| &s.tok),
+        Some(Token::Name(_)) | Some(Token::Label(_))
+    ) {
+        return None;
+    }
+
+    let mut out = Vec::new();
+    let mut i = start;
+    while let Some(s) = body.get(i) {
+        out.push(s.clone());
+        i += 1;
+        if matches!(s.tok, Token::LeftBrace) {
+            break;
+        }
+    }
+
+    if !matches!(out.last().map(|s| &s.tok), Some(Token::LeftBrace)) {
+        return None;
+    }
+
+    let mut depth = 1i32;
+    while let Some(s) = body.get(i) {
+        match &s.tok {
+            Token::LeftBrace => depth += 1,
+            Token::RightBrace => depth -= 1,
+            _ => {}
+        }
+        out.push(s.clone());
+        i += 1;
+        if depth == 0 {
+            return Some((out, i));
+        }
+    }
+    None
 }
 
 fn paste_adjacent_args(
@@ -674,6 +755,7 @@ fn copy_braced(
     toks: &[Spanned],
     mut i: usize,
     out: &mut Vec<Spanned>,
+    macros: &HashMap<String, Vec<Spanned>>,
 ) -> Result<usize, ParseError> {
     while matches!(toks.get(i).map(|s| &s.tok), Some(Token::Newline)) {
         out.push(toks[i].clone());
@@ -683,11 +765,14 @@ fn copy_braced(
         return Ok(i); // no body; the parser will report the problem
     }
     let mut depth = 0i32;
+    let mut tagged_body = false;
     while let Some(s) = toks.get(i) {
+        let mut s = s.clone();
+        let outer_left_brace = depth == 0 && matches!(s.tok, Token::LeftBrace);
         match &s.tok {
             Token::LeftBrace => depth += 1,
             Token::RightBrace => {
-                out.push(s.clone());
+                out.push(s);
                 i += 1;
                 depth -= 1;
                 if depth == 0 {
@@ -697,7 +782,11 @@ fn copy_braced(
             }
             _ => {}
         }
-        out.push(s.clone());
+        if depth == 1 && !outer_left_brace && !tagged_body {
+            s = s.with_macro_frame(macros);
+            tagged_body = true;
+        }
+        out.push(s);
         i += 1;
     }
     Err(ParseError {
