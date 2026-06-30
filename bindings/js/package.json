@@ -1,5 +1,5 @@
 {
-  "name": "@milkway/rpic",
+  "name": "rpic",
   "version": "0.1.0",
   "description": "The pic graphics language compiled to SVG with animation manifests, via WebAssembly. Browser + Node.",
   "type": "module",
