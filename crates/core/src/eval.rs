@@ -2576,32 +2576,55 @@ fn scale_bbox_in_place(bb: &mut Bbox, f: f64) {
     *bb = b;
 }
 
+fn scale_style(style: &mut Style, f: f64) {
+    let f = f.abs();
+    style.arrow_ht *= f;
+    style.arrow_wid *= f;
+    match &mut style.dash {
+        Dash::Dashed(w) => *w *= f,
+        Dash::Dotted(Some(w)) => *w *= f,
+        Dash::Solid | Dash::Dotted(None) => {}
+    }
+}
+
 /// Uniformly scale a shape's geometry about the origin (font size unchanged).
 fn scale_shape(sh: &mut Shape, f: f64) {
     match sh {
-        Shape::Box { c, w, h, rad, .. } => {
+        Shape::Box {
+            c,
+            w,
+            h,
+            rad,
+            style,
+            ..
+        } => {
             *c = *c * f;
             *w *= f;
             *h *= f;
             *rad *= f;
+            scale_style(style, f);
         }
-        Shape::Circle { c, r, .. } => {
+        Shape::Circle { c, r, style, .. } => {
             *c = *c * f;
             *r *= f;
+            scale_style(style, f);
         }
-        Shape::Ellipse { c, w, h, .. } => {
+        Shape::Ellipse { c, w, h, style, .. } => {
             *c = *c * f;
             *w *= f;
             *h *= f;
+            scale_style(style, f);
         }
-        Shape::Path { pts, .. } | Shape::Spline { pts, .. } => {
+        Shape::Path { pts, style, .. } | Shape::Spline { pts, style, .. } => {
             for p in pts {
                 *p = *p * f;
             }
+            scale_style(style, f);
         }
-        Shape::Arc { c, r, .. } => {
+        Shape::Arc { c, r, style, .. } => {
             *c = *c * f;
             *r *= f;
+            scale_style(style, f);
         }
         Shape::Text { at, .. } => *at = *at * f,
     }
@@ -3462,6 +3485,28 @@ mod tests {
         );
         assert!(
             (style.arrow_wid - 0.2).abs() < 1e-9,
+            "wid = {}",
+            style.arrow_wid
+        );
+    }
+
+    #[test]
+    fn scaling_existing_geometry_scales_arrowhead_metadata() {
+        // manual/man35 draws at a temporary scale, then restores `scale`.
+        // The points are scaled at restore time, and the arrowhead dimensions
+        // attached to the already-emitted path must scale with them.
+        let factor = 6.6 / 8.2;
+        let d = draw("scale = 6.6/8.2\nline <-\nscale = 1");
+        let Shape::Path { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (style.arrow_ht - 0.1 * factor).abs() < 1e-9,
+            "ht = {}",
+            style.arrow_ht
+        );
+        assert!(
+            (style.arrow_wid - 0.05 * factor).abs() < 1e-9,
             "wid = {}",
             style.arrow_wid
         );
