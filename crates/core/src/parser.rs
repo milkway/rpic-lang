@@ -1459,7 +1459,8 @@ impl Parser {
             other => return self.err(format!("expected assignment target, found {other:?}")),
         };
         let op = match self.bump() {
-            Token::Eq | Token::ColonEq => AssignOp::Set,
+            Token::Eq => AssignOp::Set,
+            Token::ColonEq => AssignOp::ColonSet,
             Token::PlusEq => AssignOp::Add,
             Token::MinusEq => AssignOp::Sub,
             Token::MultEq => AssignOp::Mul,

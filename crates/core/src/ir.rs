@@ -30,8 +30,8 @@ pub enum Dash {
     Solid,
     /// Dash/gap base length in inches.
     Dashed(f64),
-    /// Dot spacing in inches.
-    Dotted(f64),
+    /// Explicit dot spacing in inches; `None` means dpic's stroke-relative default.
+    Dotted(Option<f64>),
 }
 
 /// Fill specification.
@@ -49,6 +49,9 @@ pub struct Style {
     /// Stroke color (CSS), or `None` to use the default.
     pub stroke: Option<String>,
     pub fill: Option<Fill>,
+    /// Whether open paths/splines/arcs should emit a filled area. `color` on an
+    /// open object only changes the stroke; `fill` and `shaded` fill.
+    pub fill_open: bool,
     pub dash: Dash,
     /// Stroke thickness in points; `None` = backend default.
     pub thick: Option<f64>,
@@ -69,6 +72,7 @@ impl Default for Style {
         Style {
             stroke: None,
             fill: None,
+            fill_open: false,
             dash: Dash::Solid,
             thick: None,
             invis: false,

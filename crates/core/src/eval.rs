@@ -11,8 +11,8 @@
 //! Approximations (documented; refined later): `arc` renders a default quarter
 //! turn.
 
-use std::collections::HashMap;
-use std::f64::consts::PI;
+use std::collections::{HashMap, HashSet};
+use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use crate::ast::*;
 use crate::geom::{Bbox, Point};
@@ -66,27 +66,26 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
 /// either, scale the whole picture down uniformly to fit (never up), matching
 /// pic's PostScript page-fit behaviour.
 fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
-    if d.bbox.is_empty() {
-        return;
+    for _ in 0..4 {
+        if d.bbox.is_empty() {
+            return;
+        }
+        let (w, h) = (d.bbox.width(), d.bbox.height());
+        let mut factor = 1.0_f64;
+        if maxw > 0.0 && w > maxw {
+            factor = factor.min(maxw / w);
+        }
+        if maxh > 0.0 && h > maxh {
+            factor = factor.min(maxh / h);
+        }
+        if factor >= 1.0 - 1e-9 {
+            return;
+        }
+        for sh in &mut d.shapes {
+            scale_shape(sh, factor);
+        }
+        d.bbox = drawing_painted_bbox(&d.shapes);
     }
-    let (w, h) = (d.bbox.width(), d.bbox.height());
-    let mut factor = 1.0_f64;
-    if maxw > 0.0 && w > maxw {
-        factor = factor.min(maxw / w);
-    }
-    if maxh > 0.0 && h > maxh {
-        factor = factor.min(maxh / h);
-    }
-    if factor >= 1.0 - 1e-9 {
-        return;
-    }
-    for sh in &mut d.shapes {
-        scale_shape(sh, factor);
-    }
-    let mut bb = Bbox::new();
-    bb.add(d.bbox.min * factor);
-    bb.add(d.bbox.max * factor);
-    d.bbox = bb;
 }
 
 /// Apply `.PS <width> [<height>]` sizing: uniformly scale the whole drawing so
@@ -107,10 +106,7 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
     for sh in &mut d.shapes {
         scale_shape(sh, factor);
     }
-    let mut bb = Bbox::new();
-    bb.add(d.bbox.min * factor);
-    bb.add(d.bbox.max * factor);
-    d.bbox = bb;
+    d.bbox = drawing_painted_bbox(&d.shapes);
 }
 
 /// The dimension variables that track `scale`.
@@ -219,6 +215,9 @@ struct Placed {
 
 impl Placed {
     fn corner(&self, c: Corner) -> Point {
+        if matches!(self.kind, PKind::Circle | PKind::Ellipse) {
+            return self.ellipse_corner(c);
+        }
         let (lo, hi) = (self.bbox.min, self.bbox.max);
         let mid = self.center;
         match c {
@@ -235,6 +234,25 @@ impl Placed {
             Corner::End => self.end,
         }
     }
+
+    fn ellipse_corner(&self, c: Corner) -> Point {
+        let (rx, ry) = (self.bbox.width() / 2.0, self.bbox.height() / 2.0);
+        let diag = |sx: f64, sy: f64| Point::new(sx * rx * FRAC_1_SQRT_2, sy * ry * FRAC_1_SQRT_2);
+        let off = match c {
+            Corner::N => Point::new(0.0, ry),
+            Corner::S => Point::new(0.0, -ry),
+            Corner::E => Point::new(rx, 0.0),
+            Corner::W => Point::new(-rx, 0.0),
+            Corner::Ne => diag(1.0, 1.0),
+            Corner::Se => diag(1.0, -1.0),
+            Corner::Nw => diag(-1.0, 1.0),
+            Corner::Sw => diag(-1.0, -1.0),
+            Corner::Center => Point::ZERO,
+            Corner::Start => return self.start,
+            Corner::End => return self.end,
+        };
+        self.center + off
+    }
 }
 
 // ---- evaluator state -------------------------------------------------------
@@ -243,6 +261,8 @@ struct State {
     pos: Point,
     dir: Dir,
     vars: HashMap<String, f64>,
+    inherited_vars: HashSet<String>,
+    export_vars: HashSet<String>,
     env: EnvVars,
     macros: Macros,
     base_dir: Option<std::path::PathBuf>,
@@ -262,7 +282,7 @@ struct State {
     anims: Vec<Anim>,
     anim_cursor: f64,
     anim_end: HashMap<usize, f64>,
-    rng: u64,
+    rng: GlibcRand,
 }
 
 const DEFAULT_ANIM_DUR: f64 = 0.6;
@@ -287,6 +307,8 @@ impl State {
             pos: Point::ZERO,
             dir: Dir::Right,
             vars,
+            inherited_vars: HashSet::new(),
+            export_vars: HashSet::new(),
             env: EnvVars::new(),
             macros: HashMap::new(),
             base_dir: None,
@@ -299,7 +321,7 @@ impl State {
             anims: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
-            rng: 0x9e37_79b9_7f4a_7c15,
+            rng: GlibcRand::new(1),
         }
     }
 
@@ -522,12 +544,21 @@ impl State {
                     None => return err(format!("variable not found `{key}`")),
                 };
                 let val = apply_op(a.op, cur, rhs)?;
+                if !matches!(a.op, AssignOp::Set) && self.inherited_vars.contains(&key) {
+                    self.export_vars.insert(key.clone());
+                }
                 self.vars.insert(key, val);
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
                 let val = apply_op(a.op, cur, rhs)?;
                 if matches!(e, EnvVar::Scale) {
+                    if val.abs() < 1e-12 {
+                        return err("scale must be non-zero");
+                    }
+                    if cur.abs() >= 1e-12 {
+                        self.scale_existing_geometry(cur / val);
+                    }
                     // Changing `scale` rescales all scaled dimension variables by
                     // the ratio (dpic semantics). They remain in user units;
                     // geometry converts them to internal inches by dividing by
@@ -542,6 +573,21 @@ impl State {
             }
         }
         Ok(())
+    }
+
+    fn scale_existing_geometry(&mut self, factor: f64) {
+        if (factor - 1.0).abs() < 1e-12 {
+            return;
+        }
+        self.pos = self.pos * factor;
+        for sh in &mut self.shapes {
+            scale_shape(sh, factor);
+        }
+        for pl in &mut self.placed {
+            scale_placed(pl, factor);
+        }
+        scale_bbox_in_place(&mut self.bbox, factor);
+        scale_bbox_in_place(&mut self.layout_bbox, factor);
     }
 
     // ---- objects -----------------------------------------------------------
@@ -643,16 +689,18 @@ impl State {
         let visible = match &mut self.shapes[idx] {
             Shape::Path { pts: p, style, .. } | Shape::Spline { pts: p, style, .. } => {
                 p.extend_from_slice(&new);
-                !style.invis
+                (!style.invis, stroke_half_width(style))
             }
             _ => unreachable!(),
         };
         let end = *pts.last().unwrap();
+        let mut bb = Bbox::new();
         for q in &new {
             self.layout_bbox.add(*q);
-            if visible {
-                self.bbox.add(*q);
-            }
+            bb.add(*q);
+        }
+        if visible.0 {
+            self.bbox.union(&painted_bbox(&bb, visible.1));
         }
         self.pos = end;
         self.dir = last_dir;
@@ -721,8 +769,9 @@ impl State {
         bb.add(center - Point::new(w / 2.0, h / 2.0));
         bb.add(center + Point::new(w / 2.0, h / 2.0));
         self.layout_bbox.union(&bb);
-        if !style.invis {
-            self.bbox.union(&bb);
+        if closed_shape_is_visible(&style) {
+            self.bbox
+                .union(&painted_bbox(&bb, stroke_half_width(&style)));
         }
         self.union_text(center, &text);
 
@@ -890,7 +939,8 @@ impl State {
         }
         self.layout_bbox.union(&bb);
         if !style.invis {
-            self.bbox.union(&bb);
+            self.bbox
+                .union(&painted_bbox(&bb, stroke_half_width(&style)));
         }
 
         let end = *pts.last().unwrap();
@@ -988,7 +1038,8 @@ impl State {
         }
         self.layout_bbox.union(&bb);
         if !style.invis {
-            self.bbox.union(&bb);
+            self.bbox
+                .union(&painted_bbox(&bb, stroke_half_width(&style)));
         }
         self.union_text(center, &text);
 
@@ -1057,15 +1108,18 @@ impl State {
     }
 
     fn block(&mut self, stmts: &[Stmt], obj: &Object) -> ER<usize> {
+        let block_text = self.text_of(obj)?;
         // Evaluate the block in a local scope at its own origin. Labels from
         // the containing scope are visible for references such as `$1.start`
         // inside macro-generated blocks, but are not captured as new members.
         let mut sub = State::new();
         sub.env = self.env.clone();
         sub.vars = self.vars.clone();
+        sub.inherited_vars = self.vars.keys().cloned().collect();
+        sub.export_vars.clear();
         sub.macros = self.macros.clone();
         sub.base_dir = self.base_dir.clone();
-        sub.rng = self.rng;
+        sub.rng = self.rng.clone();
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
         for (name, &i) in &self.labels {
@@ -1075,7 +1129,15 @@ impl State {
         sub.eval_stmts(stmts)?;
         // Variables, parameters and direction changes inside `[ ... ]` are
         // local to the block. Random draws still consume the shared sequence.
-        self.rng = sub.rng;
+        self.rng = sub.rng.clone();
+        for key in &sub.export_vars {
+            if let Some(val) = sub.vars.get(key).copied() {
+                self.vars.insert(key.clone(), val);
+                if self.inherited_vars.contains(key) {
+                    self.export_vars.insert(key.clone());
+                }
+            }
+        }
 
         let layout_sub_bb = if sub.layout_bbox.is_empty() {
             let mut b = Bbox::new();
@@ -1120,6 +1182,13 @@ impl State {
             visible_bb.add(sub.bbox.min + shift);
             visible_bb.add(sub.bbox.max + shift);
             self.bbox.union(&visible_bb);
+        }
+        self.union_text(target, &block_text);
+        if has_visible_text(&block_text) {
+            self.shapes.push(Shape::Text {
+                at: target,
+                text: block_text,
+            });
         }
 
         let half = dir_unit(dir) * (extent / 2.0);
@@ -1362,11 +1431,10 @@ impl State {
                         s.dash = Dash::Dashed(w);
                     }
                     LineType::Dotted => {
-                        let w = match opt {
-                            Some(e) => self.expr_dim(e)?,
-                            None => self.env_dim(EnvVar::Dashwid)?,
-                        };
-                        s.dash = Dash::Dotted(w);
+                        s.dash = Dash::Dotted(match opt {
+                            Some(e) => Some(self.expr_dim(e)?),
+                            None => None,
+                        });
                     }
                     LineType::Invis => s.invis = true,
                 },
@@ -1376,6 +1444,7 @@ impl State {
                         None => self.env.get(EnvVar::Fillval),
                     };
                     s.fill = Some(Fill::Gray(g));
+                    s.fill_open = true;
                 }
                 Attr::Color(kind, se) => {
                     let name = stringexpr_lit(se);
@@ -1385,10 +1454,16 @@ impl State {
                             s.stroke = Some(name.clone());
                             s.fill = Some(Fill::Color(name));
                         }
-                        token::Color::Shaded => s.fill = Some(Fill::Color(name)),
+                        token::Color::Shaded => {
+                            s.fill = Some(Fill::Color(name));
+                            s.fill_open = true;
+                        }
                     }
                 }
                 Attr::Dim(DimKind::Thick, e) => s.thick = Some(self.eval_expr(e)?),
+                Attr::Arrowhead(_, Some(e)) => {
+                    s.arrow_filled = self.eval_expr(e)?.round() as i64 != 0;
+                }
                 _ => {}
             }
         }
@@ -1783,13 +1858,9 @@ impl State {
 
     fn rand(&mut self, seed: Option<f64>) -> f64 {
         if let Some(seed) = seed {
-            self.rng = seed_rng(seed);
+            self.rng.seed(seed.trunc() as i64);
         }
-        self.rng = self
-            .rng
-            .wrapping_mul(6_364_136_223_846_793_005)
-            .wrapping_add(1_442_695_040_888_963_407);
-        ((self.rng >> 11) as f64) * (1.0 / ((1_u64 << 53) as f64))
+        self.rng.next_f64()
     }
 }
 
@@ -1797,7 +1868,7 @@ impl State {
 
 fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
     Ok(match op {
-        AssignOp::Set => rhs,
+        AssignOp::Set | AssignOp::ColonSet => rhs,
         AssignOp::Add => cur + rhs,
         AssignOp::Sub => cur - rhs,
         AssignOp::Mul => cur * rhs,
@@ -1816,11 +1887,60 @@ fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
     })
 }
 
-fn seed_rng(seed: f64) -> u64 {
-    let mut x = seed.to_bits() ^ 0xa076_1d64_78bd_642f;
-    x ^= x >> 32;
-    x = x.wrapping_mul(0xe703_7ed1_a0b4_28db);
-    if x == 0 { 1 } else { x }
+#[derive(Clone)]
+struct GlibcRand {
+    state: [u32; 31],
+    f: usize,
+    r: usize,
+}
+
+impl GlibcRand {
+    fn new(seed: i64) -> Self {
+        let mut rng = GlibcRand {
+            state: [0; 31],
+            f: 3,
+            r: 0,
+        };
+        rng.seed(seed);
+        rng
+    }
+
+    fn seed(&mut self, seed: i64) {
+        let seed = if seed == 0 { 1 } else { seed };
+        let mut x = seed.rem_euclid(2_147_483_647) as u32;
+        if x == 0 {
+            x = 1;
+        }
+        self.state[0] = x;
+        for i in 1..31 {
+            let prev = self.state[i - 1] as i64;
+            let hi = prev / 127_773;
+            let lo = prev % 127_773;
+            let mut next = 16_807 * lo - 2_836 * hi;
+            if next < 0 {
+                next += 2_147_483_647;
+            }
+            self.state[i] = next as u32;
+        }
+        self.f = 3;
+        self.r = 0;
+        for _ in 0..310 {
+            self.next_i31();
+        }
+    }
+
+    fn next_i31(&mut self) -> u32 {
+        let x = self.state[self.f].wrapping_add(self.state[self.r]);
+        self.state[self.f] = x;
+        let out = (x >> 1) & 0x7fff_ffff;
+        self.f = (self.f + 1) % 31;
+        self.r = (self.r + 1) % 31;
+        out
+    }
+
+    fn next_f64(&mut self) -> f64 {
+        self.next_i31() as f64 / 2_147_483_647.0
+    }
 }
 
 fn bool_f(b: bool) -> f64 {
@@ -1829,6 +1949,135 @@ fn bool_f(b: bool) -> f64 {
 
 fn has_visible_text(lines: &[TextLine]) -> bool {
     lines.iter().any(|line| !line.s.is_empty())
+}
+
+fn closed_shape_is_visible(style: &Style) -> bool {
+    !style.invis || style.fill.is_some()
+}
+
+fn stroke_half_width(style: &Style) -> f64 {
+    if style.invis {
+        0.0
+    } else {
+        style.thick.unwrap_or(0.8) / 144.0
+    }
+}
+
+fn painted_bbox(bb: &Bbox, pad: f64) -> Bbox {
+    if bb.is_empty() || pad <= 0.0 {
+        return *bb;
+    }
+    let mut out = Bbox::new();
+    out.add(bb.min - Point::new(pad, pad));
+    out.add(bb.max + Point::new(pad, pad));
+    out
+}
+
+fn drawing_painted_bbox(shapes: &[Shape]) -> Bbox {
+    let mut out = Bbox::new();
+    for sh in shapes {
+        out.union(&shape_painted_bbox(sh));
+    }
+    out
+}
+
+fn shape_painted_bbox(sh: &Shape) -> Bbox {
+    let mut out = Bbox::new();
+    match sh {
+        Shape::Box {
+            c,
+            w,
+            h,
+            style,
+            text,
+            ..
+        } => {
+            let mut bb = Bbox::new();
+            bb.add(*c - Point::new(*w / 2.0, *h / 2.0));
+            bb.add(*c + Point::new(*w / 2.0, *h / 2.0));
+            if closed_shape_is_visible(style) {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            }
+            out.union(&text_bbox(*c, text));
+        }
+        Shape::Circle { c, r, style, text } => {
+            let mut bb = Bbox::new();
+            bb.add(*c - Point::new(*r, *r));
+            bb.add(*c + Point::new(*r, *r));
+            if closed_shape_is_visible(style) {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            }
+            out.union(&text_bbox(*c, text));
+        }
+        Shape::Ellipse {
+            c,
+            w,
+            h,
+            style,
+            text,
+        } => {
+            let mut bb = Bbox::new();
+            bb.add(*c - Point::new(*w / 2.0, *h / 2.0));
+            bb.add(*c + Point::new(*w / 2.0, *h / 2.0));
+            if closed_shape_is_visible(style) {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            }
+            out.union(&text_bbox(*c, text));
+        }
+        Shape::Path {
+            pts, style, text, ..
+        }
+        | Shape::Spline {
+            pts, style, text, ..
+        } => {
+            let mut bb = Bbox::new();
+            for p in pts {
+                bb.add(*p);
+            }
+            if !style.invis {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            }
+            if let (Some(first), Some(last)) = (pts.first(), pts.last()) {
+                out.union(&text_bbox((*first + *last) * 0.5, text));
+            }
+        }
+        Shape::Arc {
+            c,
+            r,
+            a0,
+            a1,
+            style,
+            text,
+            ..
+        } => {
+            let at = |t: f64| *c + Point::new(t.cos(), t.sin()) * *r;
+            let mut bb = Bbox::new();
+            for k in 0..=12 {
+                bb.add(at(*a0 + (*a1 - *a0) * (k as f64 / 12.0)));
+            }
+            if !style.invis {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            }
+            out.union(&text_bbox(*c, text));
+        }
+        Shape::Text { at, text } => out.union(&text_bbox(*at, text)),
+    }
+    out
+}
+
+fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
+    let mut bb = Bbox::new();
+    if !has_visible_text(lines) {
+        return bb;
+    }
+    const EM: f64 = 11.0 / 72.0;
+    let char_w = 0.6 * EM;
+    let line_h = 1.2 * EM;
+    let cols = lines.iter().map(|l| l.s.chars().count()).max().unwrap_or(0) as f64;
+    let half = Point::new(cols * char_w / 2.0, lines.len() as f64 * line_h / 2.0);
+    bb.add(center + half);
+    bb.add(center - half);
+    bb
 }
 
 /// Render a number the way pic's `%g`/string contexts do (no trailing zeros).
@@ -2045,6 +2294,16 @@ fn rebase_placed(pl: &mut Placed, d: Point, shape_off: usize) {
     }
 }
 
+fn scale_placed(pl: &mut Placed, f: f64) {
+    pl.center = pl.center * f;
+    pl.start = pl.start * f;
+    pl.end = pl.end * f;
+    scale_bbox_in_place(&mut pl.bbox, f);
+    for m in pl.members.values_mut() {
+        scale_placed(m, f);
+    }
+}
+
 fn translate_shape(sh: &mut Shape, d: Point) {
     let mv = |p: &mut Point| *p = *p + d;
     match sh {
@@ -2057,6 +2316,16 @@ fn translate_shape(sh: &mut Shape, d: Point) {
         Shape::Arc { c, .. } => mv(c),
         Shape::Text { at, .. } => mv(at),
     }
+}
+
+fn scale_bbox_in_place(bb: &mut Bbox, f: f64) {
+    if bb.is_empty() {
+        return;
+    }
+    let mut b = Bbox::new();
+    b.add(bb.min * f);
+    b.add(bb.max * f);
+    *bb = b;
 }
 
 /// Uniformly scale a shape's geometry about the origin (font size unchanged).
@@ -2099,6 +2368,8 @@ mod tests {
         eval(&parse(src).unwrap()).unwrap()
     }
 
+    const DEFAULT_STROKE_IN: f64 = 0.8 / 72.0;
+
     #[test]
     fn pipeline_chains_left_to_right() {
         let d = draw(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\narrow\nbox \"TROFF\"\n.PE");
@@ -2113,7 +2384,7 @@ mod tests {
         }
         // bbox grows to the right
         assert!(d.bbox.width() > 2.0);
-        assert!((d.bbox.height() - 0.5).abs() < 1e-9);
+        assert!((d.bbox.height() - (0.5 + DEFAULT_STROKE_IN)).abs() < 1e-9);
     }
 
     #[test]
@@ -2148,6 +2419,18 @@ mod tests {
             (c.x - 0.75).abs() < 1e-9 && (c.y - 0.75).abs() < 1e-9,
             "c = {c:?}"
         );
+    }
+
+    #[test]
+    fn circle_corner_anchors_are_on_the_circumference() {
+        let d = draw("C: circle rad 1 at 0,0\nline from C.sw to C.ne");
+        let Shape::Path { pts, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        let a = 1.0 / 2.0_f64.sqrt();
+        assert_eq!(pts.len(), 2);
+        assert!((pts[0].x + a).abs() < 1e-9 && (pts[0].y + a).abs() < 1e-9);
+        assert!((pts[1].x - a).abs() < 1e-9 && (pts[1].y - a).abs() < 1e-9);
     }
 
     #[test]
@@ -2373,6 +2656,16 @@ mod tests {
             panic!()
         };
         assert!((*w - 1.0).abs() < 1e-9, "w = {w}");
+
+        let d = draw("scale = 2\nbox wid 2 ht 1\nscale = 1\nbox wid 1 ht .5");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 2.0).abs() < 1e-9, "w = {w}");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 2.5).abs() < 1e-9, "center = {c:?}");
     }
 
     #[test]
@@ -2449,6 +2742,9 @@ mod tests {
             .eval_expr(&Expr::Rand(Some(Box::new(Expr::Num(1.0)))))
             .unwrap();
         assert_eq!(seeded_a, seeded_b);
+        assert!((seeded_a - 0.840_187_717).abs() < 1e-9, "{seeded_a}");
+        let next = st.eval_expr(&Expr::Rand(None)).unwrap();
+        assert!((next - 0.394_382_927).abs() < 1e-9, "{next}");
     }
 
     #[test]
@@ -2475,15 +2771,20 @@ mod tests {
         let Shape::Path { style, .. } = &d.shapes[1] else {
             panic!()
         };
-        assert_eq!(style.dash, Dash::Dotted(0.05));
+        assert_eq!(style.dash, Dash::Dotted(Some(0.05)));
     }
 
     #[test]
     fn ps_width_scales_drawing() {
-        // issue #4: `.PS 6` scales the whole picture to 6 units wide
+        // issue #4, dpic oracle: `.PS 6` scales the painted picture, so the
+        // box geometry is slightly under 6in once default stroke is reserved.
         let d = draw(".PS 6\nbox\n.PE");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 5.912_408_759).abs() < 1e-9, "w = {w}");
         assert!(
-            (d.bbox.width() - 6.0).abs() < 1e-6,
+            (d.bbox.width() - 5.923_519_870).abs() < 1e-9,
             "w = {}",
             d.bbox.width()
         );
@@ -2505,24 +2806,24 @@ mod tests {
         let d =
             draw("box invis wid 1000 ht 1000 at (0,0)\nmove to (0,-1000)\nbox wid 1 ht 1 at (0,0)");
         assert!(
-            (d.bbox.width() - 1.0).abs() < 1e-9,
+            (d.bbox.width() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "w = {}",
             d.bbox.width()
         );
         assert!(
-            (d.bbox.height() - 1.0).abs() < 1e-9,
+            (d.bbox.height() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "h = {}",
             d.bbox.height()
         );
 
         let d2 = draw("line invis from (0,0) to (1000,1000)\nbox wid 1 ht 1 at (0,0)");
         assert!(
-            (d2.bbox.width() - 1.0).abs() < 1e-9,
+            (d2.bbox.width() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "w = {}",
             d2.bbox.width()
         );
         assert!(
-            (d2.bbox.height() - 1.0).abs() < 1e-9,
+            (d2.bbox.height() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "h = {}",
             d2.bbox.height()
         );
@@ -2533,12 +2834,12 @@ mod tests {
         };
         assert!(c.dist(Point::new(500.5, 500.5)) < 1e-9, "c = {c:?}");
         assert!(
-            (d3.bbox.width() - 1.0).abs() < 1e-9,
+            (d3.bbox.width() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "w = {}",
             d3.bbox.width()
         );
         assert!(
-            (d3.bbox.height() - 1.0).abs() < 1e-9,
+            (d3.bbox.height() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "h = {}",
             d3.bbox.height()
         );
@@ -2601,6 +2902,17 @@ mod tests {
             panic!()
         };
         assert!(c.dist(Point::new(4.0, 3.0)) < 1e-9, "circle center = {c:?}");
+    }
+
+    #[test]
+    fn block_object_renders_attached_text() {
+        let d = draw("[ box ] \"block label\"");
+        assert!(d.shapes.iter().any(|s| {
+            matches!(
+                s,
+                Shape::Text { text, .. } if text.iter().any(|line| line.s == "block label")
+            )
+        }));
     }
 
     #[test]
@@ -2749,6 +3061,18 @@ mod tests {
             panic!()
         };
         assert!(!style.arrow_filled, "arrowhead=0 should be open");
+
+        let d3 = draw("arrowhead = 0\nline <- 1 up");
+        let Shape::Path { style, .. } = &d3.shapes[0] else {
+            panic!()
+        };
+        assert!(style.arrow_filled, "`<- 1` should override the global");
+
+        let d4 = draw("line <- 0 up");
+        let Shape::Path { style, .. } = &d4.shapes[0] else {
+            panic!()
+        };
+        assert!(!style.arrow_filled, "`<- 0` should override the global");
     }
 
     #[test]
@@ -2764,13 +3088,13 @@ mod tests {
         // raising the limits disables the clamp
         let d2 = draw("maxpsht = 200; maxpswid = 50\nbox wid 20 ht 30");
         assert!(
-            (d2.bbox.height() - 30.0).abs() < 1e-6,
+            (d2.bbox.height() - (30.0 + DEFAULT_STROKE_IN)).abs() < 1e-6,
             "h = {}",
             d2.bbox.height()
         );
         // a small drawing is untouched
         let d3 = draw("box wid 2 ht 1");
-        assert!((d3.bbox.width() - 2.0).abs() < 1e-6);
+        assert!((d3.bbox.width() - (2.0 + DEFAULT_STROKE_IN)).abs() < 1e-6);
     }
 
     #[test]
@@ -2791,6 +3115,29 @@ mod tests {
             panic!()
         };
         assert!((*w - 2.0).abs() < 1e-9, "inner w = {w}");
+        let Shape::Box { w, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((*w - 0.75).abs() < 1e-9, "outer w = {w}");
+    }
+
+    #[test]
+    fn block_mutating_var_assignments_update_inherited_vars() {
+        let d = draw("x = 1\n[ x := 5 ]\nbox wid x ht 0.3");
+        let Shape::Box { w, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((*w - 5.0).abs() < 1e-9, "w = {w}");
+
+        let d = draw("x = 1\n[ x += 2 ]\nbox wid x ht 0.3");
+        let Shape::Box { w, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((*w - 3.0).abs() < 1e-9, "w = {w}");
+
+        assert!(eval(&parse("[ x = 1; x += 2 ]\nbox wid x ht 0.3").unwrap()).is_err());
+
+        let d = draw("boxwid = 0.75\n[ boxwid := 2; box ]\nbox");
         let Shape::Box { w, .. } = &d.shapes[1] else {
             panic!()
         };
