@@ -1483,24 +1483,28 @@ impl State {
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
-        let mut lines = Vec::new();
-        let mut halign = 0i8;
-        let mut valign = 0i8;
+        let mut lines: Vec<TextLine> = Vec::new();
+        let mut pending_halign = 0i8;
+        let mut pending_valign = 0i8;
         for a in &obj.attrs {
             match a {
-                Attr::TextPos(tp) => match tp {
-                    token::TextPos::Ljust => halign = -1,
-                    token::TextPos::Rjust => halign = 1,
-                    token::TextPos::Center => {
-                        halign = 0;
-                        valign = 0;
+                Attr::TextPos(tp) => {
+                    if let Some(line) = lines.last_mut() {
+                        apply_text_pos(&mut line.halign, &mut line.valign, *tp);
+                    } else {
+                        apply_text_pos(&mut pending_halign, &mut pending_valign, *tp);
                     }
-                    token::TextPos::Above => valign = 1,
-                    token::TextPos::Below => valign = -1,
-                },
+                }
                 Attr::Text(se) => {
                     let s = self.eval_stringexpr(se)?;
-                    lines.push(TextLine { s, halign, valign });
+                    lines.push(TextLine {
+                        s,
+                        halign: pending_halign,
+                        valign: pending_valign,
+                        text_offset: self.env_dim(EnvVar::Textoffset)?,
+                    });
+                    pending_halign = 0;
+                    pending_valign = 0;
                 }
                 _ => {}
             }
@@ -1996,6 +2000,19 @@ fn dpic_int_pow(x: f64, y: i64) -> f64 {
     } else {
         let half = dpic_int_pow(x, y >> 1);
         half * half
+    }
+}
+
+fn apply_text_pos(halign: &mut i8, valign: &mut i8, pos: token::TextPos) {
+    match pos {
+        token::TextPos::Ljust => *halign = -1,
+        token::TextPos::Rjust => *halign = 1,
+        token::TextPos::Center => {
+            *halign = 0;
+            *valign = 0;
+        }
+        token::TextPos::Above => *valign = 1,
+        token::TextPos::Below => *valign = -1,
     }
 }
 
@@ -2899,6 +2916,35 @@ mod tests {
             panic!()
         };
         assert!((c.x - 1.1).abs() < 1e-9, "box center {c:?}");
+    }
+
+    #[test]
+    fn text_position_modifies_the_preceding_string_only() {
+        let d = draw("\"LLLL\" ljust");
+        let Shape::Text { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].halign, -1);
+
+        let d = draw("\"RRRR\" rjust");
+        let Shape::Text { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].halign, 1);
+
+        let d = draw("box wid 1 ht .6 \"AAAA\" above \"BBBB\" below");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].valign, 1);
+        assert_eq!(text[1].valign, -1);
+
+        let d = draw("box \"AAAA\" above \"BBBB\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].valign, 1);
+        assert_eq!(text[1].valign, 0);
     }
 
     #[test]

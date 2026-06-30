@@ -481,7 +481,9 @@ impl Svg {
             return;
         }
         let c = self.p(center);
-        let lh = FONT_PT * PPI / 72.0 * 1.2;
+        let font_px = FONT_PT * PPI / 72.0;
+        let lh = font_px * 1.2;
+        let xheight = font_px * 0.66;
         let n = lines.len() as f64;
         for (i, line) in lines.iter().enumerate() {
             let dy = (i as f64 - (n - 1.0) / 2.0) * lh;
@@ -490,7 +492,8 @@ impl Svg {
                 1 => "end",
                 _ => "middle",
             };
-            let y = c.y + dy - (line.valign as f64) * lh;
+            let just_offset = xheight / 2.0 + line.text_offset * PPI;
+            let y = c.y + dy - (line.valign as f64) * just_offset;
             self.out.push_str(&format!(
                 "<text x=\"{}\" y=\"{}\" text-anchor=\"{}\" dominant-baseline=\"central\">{}</text>\n",
                 num(c.x),
@@ -630,6 +633,13 @@ mod tests {
         to_svg(&eval(&parse(src).unwrap()).unwrap())
     }
 
+    fn text_y(svg: &str, text: &str) -> f64 {
+        let needle = format!(">{text}</text>");
+        let line = svg.lines().find(|line| line.contains(&needle)).unwrap();
+        let y = line.split(" y=\"").nth(1).unwrap();
+        y.split('"').next().unwrap().parse().unwrap()
+    }
+
     #[test]
     fn pipeline_svg_has_elements() {
         let s = svg(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\n.PE");
@@ -705,6 +715,21 @@ mod tests {
     fn xml_is_escaped() {
         let s = svg("box \"a < b & c\"");
         assert!(s.contains("a &lt; b &amp; c"));
+    }
+
+    #[test]
+    fn text_justification_is_per_string() {
+        let s = svg("\"LLLL\" ljust\n\"RRRR\" rjust");
+        assert!(s.contains("text-anchor=\"start\""));
+        assert!(s.contains(">LLLL</text>"));
+        assert!(s.contains("text-anchor=\"end\""));
+        assert!(s.contains(">RRRR</text>"));
+
+        let s = svg("box wid 1 ht .6 \"AAAA\" above \"BBBB\" below");
+        let above = text_y(&s, "AAAA");
+        let below = text_y(&s, "BBBB");
+        assert!(above < below, "above={above} below={below}");
+        assert!((below - above) < 40.0, "above/below offset too large: {s}");
     }
 
     #[test]
