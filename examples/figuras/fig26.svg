@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="136.64" height="155.04" viewBox="0 0 136.64 155.04" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<circle cx="68.48" cy="92.32" r="28.8" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s1">
+<polyline points="62.72,107.68 62.72,76.96" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s2">
+<polyline points="22.4,92.32 62.72,92.32" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s3">
+<polyline points="62.72,85.6 83.84,71.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s4">
+<polyline points="83.84,71.2 83.84,52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s5">
+<polyline points="62.72,99.04 83.84,113.44" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="83.84,113.44 74.556,110.015 77.26,106.049" fill="black"/>
+</g>
+<g id="s6">
+<polyline points="83.84,113.44 83.84,132.64" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+</g>
+<g id="s8">
+<polyline points="83.84,52 83.84,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+</g>
+<g id="s10">
+<polyline points="83.84,42.4 83.84,54.4 83.84,54.4 77.12,50.801 77.12,50.801 90.56,43.6 90.56,43.6 77.12,36.399 77.12,36.399 90.56,29.201 90.56,29.201 77.12,22 77.12,22 90.56,14.799 90.56,14.799 83.84,11.2 83.84,11.2 83.84,23.2" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<polyline points="83.84,23.2 83.84,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s12">
+<polyline points="64.64,13.6 103.04,13.6" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="83.84" y="13.6" text-anchor="middle" dominant-baseline="central">$V_{cc}$</text>
+</g>
+<g id="s13">
+</g>
+<g id="s14">
+<polyline points="83.84,132.64 83.84,142.24" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<polyline points="64.64,142.24 103.04,142.24" fill="none" stroke="black" stroke-width="1.067"/>
+<text x="83.84" y="142.24" text-anchor="middle" dominant-baseline="central">$V_{ss}$</text>
+</g>
+<g id="s16">
+</g>
+<g id="s17">
+<polyline points="22.4,92.32 12.8,92.32" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s18">
+<circle cx="12.8" cy="96.16" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s19">
+<text x="30.4" y="92.32" text-anchor="middle" dominant-baseline="central">V_{en}</text>
+</g>
+<g id="s20">
+</g>
+<g id="s21">
+<polyline points="83.84,52 103.04,52" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s22">
+<circle cx="103.04" cy="48.16" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s23">
+<text x="106.24" y="52" text-anchor="middle" dominant-baseline="central">V_{sa}</text>
+</g>
+<g id="s24">
+</g>
+</svg>

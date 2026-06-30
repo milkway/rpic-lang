@@ -15,7 +15,9 @@ define dot { circle rad 0.035 fill 0 at $1 }
 define wire { line from $1 to $2 }
 
 # --- resistor (zig-zag) ---------------------------------------------------
-define resistor {
+# two-point geometry (shared by the two-point API below and the circuit_macros
+# direction+length adapter)
+define __resistor {
   rsx=$1.x; rsy=$1.y; rex=$2.x; rey=$2.y
   rdx=rex-rsx; rdy=rey-rsy; rL=sqrt(rdx*rdx+rdy*rdy)
   rux=rdx/rL; ruy=rdy/rL; rpx=0-ruy; rpy=rux
@@ -30,9 +32,10 @@ define resistor {
     then to (rsx+rux*(rld+rb),rsy+ruy*(rld+rb)) \
     then to (rex,rey)
 }
+define resistor { __resistor($1, $2) }
 
 # --- capacitor (two plates) ----------------------------------------------
-define capacitor {
+define __capacitor {
   csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
   cdx=cex-csx; cdy=cey-csy; cL=sqrt(cdx*cdx+cdy*cdy)
   cux=cdx/cL; cuy=cdy/cL; cpx=0-cuy; cpy=cux
@@ -44,9 +47,10 @@ define capacitor {
     to   (csx+cux*(cm+cg/2)-cpx*ch, csy+cuy*(cm+cg/2)-cpy*ch)
   line from (csx+cux*(cm+cg/2),csy+cuy*(cm+cg/2)) to (cex,cey)
 }
+define capacitor { __capacitor($1, $2) }
 
 # --- inductor (coils as a spline) ----------------------------------------
-define inductor {
+define __inductor {
   isx=$1.x; isy=$1.y; iex=$2.x; iey=$2.y
   idx=iex-isx; idy=iey-isy; iL=sqrt(idx*idx+idy*idy)
   iux=idx/iL; iuy=idy/iL; ipx=0-iuy; ipy=iux
@@ -63,9 +67,10 @@ define inductor {
     to (isx+iux*(id+ib),isy+iuy*(id+ib))
   line from (isx+iux*(id+ib),isy+iuy*(id+ib)) to (iex,iey)
 }
+define inductor { __inductor($1, $2) }
 
 # --- diode (triangle + cathode bar) --------------------------------------
-define diode {
+define __diode {
   dsx=$1.x; dsy=$1.y; dex=$2.x; dey=$2.y
   ddx=dex-dsx; ddy=dey-dsy; dL=sqrt(ddx*ddx+ddy*ddy)
   dux=ddx/dL; duy=ddy/dL; dpx=0-duy; dpy=dux
@@ -79,6 +84,7 @@ define diode {
     to   (dsx+dux*(dd+db)-dpx*dh,dsy+duy*(dd+db)-dpy*dh)
   line from (dsx+dux*(dd+db),dsy+duy*(dd+db)) to (dex,dey)
 }
+define diode { __diode($1, $2) }
 
 # --- battery / DC source (long + short plates) ---------------------------
 define battery {
@@ -95,13 +101,14 @@ define battery {
 }
 
 # --- ground (one terminal, points downward from $1) ----------------------
-define ground {
+define __ground {
   gx=$1.x; gy=$1.y
   line from (gx,gy) to (gx,gy-0.12)
   line from (gx-0.13,gy-0.12) to (gx+0.13,gy-0.12)
   line from (gx-0.08,gy-0.17) to (gx+0.08,gy-0.17)
   line from (gx-0.03,gy-0.22) to (gx+0.03,gy-0.22)
 }
+define ground { __ground($1) }
 
 # =========================================================================
 # Batch 2: logic gates (ANSI/MIL distinctive shapes). Each is centered at a
@@ -220,44 +227,54 @@ define xnor_gate {
 # right; two-terminal ones (ac_source, switch, potentiometer) span $1..$2.
 
 # --- op-amp (triangle, + / - inputs) -------------------------------------
-define opamp {
-  px=$1.x; py=$1.y; pw=0.7; ph=0.7
-  pxl=px-pw/2; pxr=px+pw/2
+# sign-parameterized op-amp geometry. $1 center, $2 osx (x mirror: +1 inputs
+# left / output right, -1 inputs right / output left). The opamp wrapper draws
+# the canonical right-facing form; the bi_tr-style shim reuses this with osx=-1
+# for the left_ orientation of circuit_macros.
+define __opamp {
+  px=$1.x; py=$1.y; pw=0.7; ph=0.7; osx=$2
+  pxl=px-osx*pw/2; pxr=px+osx*pw/2
   line from (pxl,py+ph/2) to (pxr,py) then to (pxl,py-ph/2) then to (pxl,py+ph/2)
-  line from (pxl-0.18,py+ph/4) to (pxl,py+ph/4)
-  line from (pxl-0.18,py-ph/4) to (pxl,py-ph/4)
-  line from (pxr,py) to (pxr+0.18,py)
-  line from (pxl+0.04,py+ph/4) to (pxl+0.11,py+ph/4)
-  line from (pxl+0.04,py-ph/4) to (pxl+0.11,py-ph/4)
-  line from (pxl+0.075,py-ph/4+0.035) to (pxl+0.075,py-ph/4-0.035)
-  gIm_x=pxl-0.18; gIm_y=py+ph/4; gIp_x=pxl-0.18; gIp_y=py-ph/4; gY_x=pxr+0.18; gY_y=py
+  line from (pxl-osx*0.18,py+ph/4) to (pxl,py+ph/4)
+  line from (pxl-osx*0.18,py-ph/4) to (pxl,py-ph/4)
+  line from (pxr,py) to (pxr+osx*0.18,py)
+  line from (pxl+osx*0.04,py+ph/4) to (pxl+osx*0.11,py+ph/4)
+  line from (pxl+osx*0.04,py-ph/4) to (pxl+osx*0.11,py-ph/4)
+  line from (pxl+osx*0.075,py-ph/4+0.035) to (pxl+osx*0.075,py-ph/4-0.035)
+  gIm_x=pxl-osx*0.18; gIm_y=py+ph/4; gIp_x=pxl-osx*0.18; gIp_y=py-ph/4; gY_x=pxr+osx*0.18; gY_y=py
+}
+
+define opamp { __opamp($1, 1) }
+
+# --- bipolar transistor geometry (sign-parameterized) --------------------
+# $1 center, $2 sx (x mirror: +1 base left, -1 base right),
+# $3 sy (y mirror: +1 collector up, -1 collector down), $4 isPNP (0 npn / 1 pnp).
+# The npn/pnp wrappers below draw the canonical (base-left, collector-up) form;
+# the bi_tr compatibility shim reuses this with other sign pairs for the
+# reflected/down orientations of circuit_macros.
+define __bjt {
+  tx=$1.x; ty=$1.y; tr=0.3; bsx=$2; bsy=$3
+  circle rad tr at (tx,ty)
+  line from (tx+bsx*(0-0.06),ty+bsy*(0-0.16)) to (tx+bsx*(0-0.06),ty+bsy*0.16)
+  line from (tx+bsx*(0-tr-0.18),ty) to (tx+bsx*(0-0.06),ty)
+  line from (tx+bsx*(0-0.06),ty+bsy*0.07) to (tx+bsx*0.16,ty+bsy*0.22)
+  line from (tx+bsx*0.16,ty+bsy*0.22) to (tx+bsx*0.16,ty+bsy*(tr+0.12))
+  if $4 == 1 then {
+    arrow from (tx+bsx*0.16,ty+bsy*(0-0.22)) to (tx+bsx*(0-0.06),ty+bsy*(0-0.07))
+  } else {
+    arrow from (tx+bsx*(0-0.06),ty+bsy*(0-0.07)) to (tx+bsx*0.16,ty+bsy*(0-0.22))
+  }
+  line from (tx+bsx*0.16,ty+bsy*(0-0.22)) to (tx+bsx*0.16,ty+bsy*(0-tr-0.12))
+  gBase_x=tx+bsx*(0-tr-0.18); gBase_y=ty
+  gColl_x=tx+bsx*0.16; gColl_y=ty+bsy*(tr+0.12)
+  gEmit_x=tx+bsx*0.16; gEmit_y=ty+bsy*(0-tr-0.12)
 }
 
 # --- NPN bipolar transistor ----------------------------------------------
-define npn {
-  tx=$1.x; ty=$1.y; tr=0.3
-  circle rad tr at (tx,ty)
-  line from (tx-0.06,ty-0.16) to (tx-0.06,ty+0.16)
-  line from (tx-tr-0.18,ty) to (tx-0.06,ty)
-  line from (tx-0.06,ty+0.07) to (tx+0.16,ty+0.22)
-  line from (tx+0.16,ty+0.22) to (tx+0.16,ty+tr+0.12)
-  arrow from (tx-0.06,ty-0.07) to (tx+0.16,ty-0.22)
-  line from (tx+0.16,ty-0.22) to (tx+0.16,ty-tr-0.12)
-  gBase_x=tx-tr-0.18; gBase_y=ty; gColl_x=tx+0.16; gColl_y=ty+tr+0.12; gEmit_x=tx+0.16; gEmit_y=ty-tr-0.12
-}
+define npn { __bjt($1, 1, 1, 0) }
 
 # --- PNP bipolar transistor (emitter arrow toward base) ------------------
-define pnp {
-  tx=$1.x; ty=$1.y; tr=0.3
-  circle rad tr at (tx,ty)
-  line from (tx-0.06,ty-0.16) to (tx-0.06,ty+0.16)
-  line from (tx-tr-0.18,ty) to (tx-0.06,ty)
-  line from (tx-0.06,ty+0.07) to (tx+0.16,ty+0.22)
-  line from (tx+0.16,ty+0.22) to (tx+0.16,ty+tr+0.12)
-  arrow from (tx+0.16,ty-0.22) to (tx-0.06,ty-0.07)
-  line from (tx+0.16,ty-0.22) to (tx+0.16,ty-tr-0.12)
-  gBase_x=tx-tr-0.18; gBase_y=ty; gColl_x=tx+0.16; gColl_y=ty+tr+0.12; gEmit_x=tx+0.16; gEmit_y=ty-tr-0.12
-}
+define pnp { __bjt($1, 1, 1, 1) }
 
 # --- AC source (circle + sine) -------------------------------------------
 define ac_source {

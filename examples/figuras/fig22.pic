@@ -1,0 +1,55 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4); cct_init; linethick=linethick*(1.5)
+Q1:bi_tr(up_ dimen_,R); "$Q_1$" at Q1.C - (0,dimen_/2); line from Q1.B right_ 1.5*dimen_
+Q2:bi_tr(up_) with .B at Here; "$Q_2$" at Q2.B - (0,dimen_/3)
+line from Q2.B right_ 2.75*dimen_
+Q3:bi_tr(up_) with .B at Here; "$Q_3$" at Q3.C - (0,dimen_/2)
+move from Q3.B right_ 1.5*dimen_
+Q4:bi_tr(down_,R,P) with .B at Here; "$Q_4$" at Q4.E - (0,dimen_/2)
+L12:line from Q4.E up_ 3*dimen_
+Q5:bi_tr(up_) with .E at Here; "$Q_5$" at Q5.C - (0,dimen_/2)
+move from Q5.B left_ 1.5*dimen_
+Q6:bi_tr(down_,R,P) with .B at Here; "$Q_6$" at Q6.E - (0,dimen_/2)
+move from Q6.B left_ 1.85*dimen_
+Q8:bi_tr(down_,R,P) with .B at Here; "$Q_8$" at Q8.E - (0,dimen_/2)
+move from Q8.B left_ .5*dimen_
+Q9:bi_tr(down_,,P) with .B at Here; "$Q_9$" at Q9.E - (0,dimen_/2)
+move from Q8.C down_ .5*dimen_
+Q7:bi_tr(up_,R,) with .C at Here; "$Q_7$" at Q7.C - (0,dimen_/2)
+move from Q9.C down_ .5*dimen_
+Q10:bi_tr(up_,,) with .C at Here; "$Q_{10}$" at Q10.C - (0,dimen_/2)
+move to Q1.C; line up_ dimen_/4; R0: resistor(up_ dimen_); rlabel(,R_0,)
+L1:line from Q1.E down_ dimen_/4; line from Q2.E down_ dimen_/4
+line from Q3.E down_ dimen_/4; L2:line from Q4.C down_ dimen_/4
+L3:line from Q5.C up_ dimen_/4; line from Q6.E up_ dimen_/4
+line from Q8.E up_ dimen_/4; line from Q9.E up_ dimen_/4
+L4:line from R0.end up_ to (R0,L3.end)
+line "$V_{ss}$" below right_ from L1.end to L2.end
+line "$V_{cc}$" above right from L4.end to L3.end
+line from Q1.C to (Q1.B,Q1.C) to Q1.B
+line from Q9.B to (Q9.B,Q9.C) to Q9.C
+line from Q9.C to Q10.C; line from Q8.C to Q7.C
+L5:line from Q5.B left_ dimen_/4; L6:line from Q4.B left_ dimen_/4
+L7:line from L5.end to L6.end; L8:line from Q6.C to Q3.C
+line from L7.c to L8.c; line from Q8.B to Q9.B
+line from Q6.B left_ dimen_/4 then down_ .75*dimen_
+Cap:line from Here to (Q8.C,Here)
+move to Cap.start;line dotted right_ dimen_/3; capacitor(right_ dimen_/5);
+rlabel(,C,);line dotted right_ dimen_/3;
+L9:line from Q7.E down_ dimen_/2
+L10:line from Q10.E down_ dimen_/2
+L11: line from L9.end to L10.end; line from Q2.C to L11.c
+line from L12.c right_ dimen_/2; down_;dot; llabel(,V_{sa},)
+move to Q7.B; dot; llabel(,V_{en+},); move to Q10.B; dot; rlabel(,V_{en-},)
+linethick=linethick*(.5); move to L1.end - (dimen_/4,dimen_/2)
+B1:line dotted "\tiny \Gray{1}" above right_ 1.4*dimen_
+B2:line dotted "\tiny \Gray{2}" above right_ 3.25*dimen_
+B3:line dotted "\tiny \Gray{3}" above right_ 1.5*dimen_
+B4:line dotted "\tiny \Gray{4}" above right_ 1.35*dimen_
+line dotted from B1.end up_ 6.5*dimen_
+line dotted from B2.end up_ 6.5*dimen_
+line dotted from B3.end up_ 6.5*dimen_
+line dotted from B4.end up_ 6.5*dimen_
+line dotted left_ to (B1.s,Here) then down to B1.s
+.PE

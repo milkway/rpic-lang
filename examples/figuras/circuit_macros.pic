@@ -1,0 +1,49 @@
+# circuit_macros direction+length compatibility layer for rpic.
+#
+# circuit_macros (J. D. Aplevich) draws elements along a `direction length`
+# argument (e.g. `resistor(up_ dimen_)`), advancing the pen, with named
+# terminals. rpic's native library (load with -c) draws the same elements
+# between two points (`resistor(A, B)`). This shim adapts the former to the
+# latter, REUSING the native element geometry: each element draws an invisible
+# spine along `$1` (giving .start/.end and advancing the pen) and then calls the
+# native two-point geometry (`__resistor`, …). Load native first (`rpic -c`),
+# then this file.
+
+define include {}              # m4 include() — no-op
+define cct_init {}             # circuit_macros setup — no-op
+dimen_ = 0.4                   # default element length
+define right_ {right}
+define left_ {left}
+define up_ {up}
+define down_ {down}
+
+# linear elements: invisible spine + reuse of the native two-point geometry
+define resistor  { line invis $1; __resistor(last line.start, last line.end) }
+define capacitor { line invis $1; __capacitor(last line.start, last line.end) }
+define inductor  { line invis $1; __inductor(last line.start, last line.end) }
+define diode     { line invis $1; __diode(last line.start, last line.end) }
+
+# a connecting line (crossover hops not modelled — drawn as a plain line)
+define crossover { line $1 }
+
+# ground at the current point, pointing down (`ground` or `ground(,type)`)
+define ground { __ground(Here) }
+
+# a junction dot: bare `dot` (at Here), `dot(at P)`, or `dot at P` all work —
+# the optional argument / trailing modifier flows straight onto the circle.
+define dot { circle rad 0.04 fill 0 $1 }
+
+# bipolar transistor: a block exposing .B/.E/.C terminals, reusing the native
+# sign-parameterized geometry (__bjt). $1 direction (up_/down_), $2 R = reflect
+# horizontally, $3 P = PNP. The block lets `Q1: bi_tr(...)` carry Q1.B/.E/.C.
+define bi_tr { [ bpnp = 0; if "$3" == "P" then { bpnp = 1 }; bsx = 1; bsy = 1; if "$2" == "R" then { bsx = 0 - 1 }; if "$1" == "down_" then { bsy = 0 - 1; bsx = 0 - bsx }; __bjt((0,0), bsx, bsy, bpnp); B:(gBase_x,gBase_y); C:(gColl_x,gColl_y); E:(gEmit_x,gEmit_y) ] }
+
+# op-amp: a block exposing .In1/.In2/.Out, reusing the native sign-parameterized
+# geometry (__opamp). An invisible spine along $1 detects the orientation
+# (right_ → inputs left, left_ → inputs right). Optional +/- label args ignored.
+define opamp { [ line invis $1; oosx = 1; if (last line.end.x - last line.start.x) < 0 then { oosx = 0 - 1 }; __opamp((0,0), oosx); In1:(gIm_x,gIm_y); In2:(gIp_x,gIp_y); Out:(gY_x,gY_y) ] }
+
+# element labels (right/left/below of the last element's centre)
+define rlabel { "$2" at last line.c + (dimen_/3, 0) ljust }
+define llabel { "$2" at last line.c - (dimen_/3, 0) rjust }
+define dlabel { "$2" at last line.c below }
