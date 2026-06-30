@@ -236,8 +236,15 @@ impl Svg {
         );
         match style.dash {
             Dash::Solid => {}
-            Dash::Dashed => s.push_str(" stroke-dasharray=\"4,3\""),
-            Dash::Dotted => s.push_str(" stroke-dasharray=\"1,3\" stroke-linecap=\"round\""),
+            Dash::Dashed(w) => s.push_str(&format!(
+                " stroke-dasharray=\"{},{}\"",
+                num(w * PPI * 7.0 / 6.0),
+                num(w * PPI * 5.0 / 6.0)
+            )),
+            Dash::Dotted(w) => s.push_str(&format!(
+                " stroke-dasharray=\"0.5,{}\" stroke-linecap=\"round\"",
+                num(w * PPI)
+            )),
         }
         s
     }

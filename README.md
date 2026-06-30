@@ -43,6 +43,12 @@ to the modern web era:
 - One core, **many targets**: a native CLI, WebAssembly, and bindings for
   **Python**, **R**, and **JavaScript/TypeScript**.
 
+The compatibility rule is deliberately **Kernighan-first**: the 1982 paper and
+manual set the language philosophy and the meaning of classic pic constructs.
+When the texts leave room for interpretation, `dpic` is the practical oracle:
+we compare against `dpic -v`, keep its well-tested geometry and macro behavior
+in view, and document any intentional rpic extension separately.
+
 ## The language
 
 ```pic

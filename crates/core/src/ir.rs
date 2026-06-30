@@ -24,12 +24,14 @@ pub struct Anim {
 }
 
 /// Line dash style.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Dash {
     #[default]
     Solid,
-    Dashed,
-    Dotted,
+    /// Dash/gap base length in inches.
+    Dashed(f64),
+    /// Dot spacing in inches.
+    Dotted(f64),
 }
 
 /// Fill specification.

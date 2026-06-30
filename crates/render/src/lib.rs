@@ -22,6 +22,10 @@ const EMBEDDED_FONT_FAMILY: &str = "Go";
 pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     use resvg::{tiny_skia, usvg};
 
+    if !scale.is_finite() || scale <= 0.0 {
+        return Err("scale must be a positive finite number".into());
+    }
+
     let mut opt = usvg::Options::default();
     {
         let db = opt.fontdb_mut();
@@ -83,6 +87,12 @@ mod tests {
         assert_eq!(&one[..4], &[0x89, 0x50, 0x4E, 0x47]); // PNG signature
         let two = to_png(SVG, 2.0).unwrap();
         assert!(two.len() > one.len()); // larger raster at 2x
+    }
+
+    #[test]
+    fn png_rejects_invalid_scale() {
+        assert!(to_png(SVG, 0.0).is_err());
+        assert!(to_png(SVG, f32::NAN).is_err());
     }
 
     #[test]

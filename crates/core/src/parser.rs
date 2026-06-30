@@ -3,8 +3,8 @@
 //! Follows dpic's `grammar.txt`. Implemented: pictures (`.PS … .PE`), primitives
 //! with the full attribute set, positions (pairs, places, corners, ordinals,
 //! `between`, `± shifts`), expressions with proper precedence, `[ … ]` blocks,
-//! `{ … }` groups, labels and assignments. Control constructs
-//! (`if`/`for`/`define`/`print`/`sh`/…) are reported as unsupported for now.
+//! `{ … }` groups, labels, assignments, macros, includes, conditionals, loops,
+//! `print` and `exec`.
 
 use crate::ast::*;
 use crate::lexer::{LexError, Spanned, lex};
@@ -265,49 +265,69 @@ fn expand(
                     }
                 };
                 i += 1;
-                // the `{` body may begin on a following line
+                // the macro body delimiter may begin on a following line
                 while toks.get(i).map(|s| &s.tok) == Some(&Token::Newline) {
                     i += 1;
                 }
-                if toks.get(i).map(|s| &s.tok) != Some(&Token::LeftBrace) {
-                    let (l, c) = loc(toks, i);
+                let Some(delim) = toks.get(i).map(|s| s.tok.clone()) else {
                     return Err(ParseError {
-                        msg: "define: expected `{` (only `define name { body }` is supported)"
-                            .into(),
+                        msg: "define: expected a body delimiter".into(),
                         line: l,
                         col: c,
                     });
-                }
-                i += 1; // past `{`
-                let start = i;
-                let mut bd = 1;
-                while i < toks.len() && bd > 0 {
-                    match &toks[i].tok {
-                        Token::LeftBrace => bd += 1,
-                        Token::RightBrace => {
-                            bd -= 1;
-                            if bd == 0 {
-                                break;
+                };
+                let body = if delim == Token::LeftBrace {
+                    i += 1; // past `{`
+                    let start = i;
+                    let mut bd = 1;
+                    while i < toks.len() && bd > 0 {
+                        match &toks[i].tok {
+                            Token::LeftBrace => bd += 1,
+                            Token::RightBrace => {
+                                bd -= 1;
+                                if bd == 0 {
+                                    break;
+                                }
                             }
+                            _ => {}
                         }
-                        _ => {}
+                        i += 1;
                     }
-                    i += 1;
-                }
-                if bd != 0 {
-                    return Err(ParseError {
-                        msg: "define: unterminated `{` body".into(),
-                        line: l,
-                        col: c,
-                    });
-                }
-                // Trim the newlines a multi-line `{ … }` body picks up right
-                // after `{` and before `}`. They are formatting artifacts: left
-                // in, a labelled call to a multi-line-body macro would expand to
-                // `Label: ⏎ <object>`, which is a parse error. Newlines *between*
-                // the body's statements are preserved.
-                let body = trim_edge_newlines(&toks[start..i]);
-                i += 1; // past `}`
+                    if bd != 0 {
+                        return Err(ParseError {
+                            msg: "define: unterminated `{` body".into(),
+                            line: l,
+                            col: c,
+                        });
+                    }
+                    let body = trim_edge_newlines(&toks[start..i]);
+                    i += 1; // past `}`
+                    body
+                } else {
+                    if matches!(delim, Token::Eof | Token::Newline) {
+                        let (l, c) = loc(toks, i);
+                        return Err(ParseError {
+                            msg: "define: expected a body delimiter".into(),
+                            line: l,
+                            col: c,
+                        });
+                    }
+                    i += 1; // past delimiter
+                    let start = i;
+                    while i < toks.len() && toks[i].tok != delim {
+                        i += 1;
+                    }
+                    if i >= toks.len() {
+                        return Err(ParseError {
+                            msg: "define: unterminated delimited body".into(),
+                            line: l,
+                            col: c,
+                        });
+                    }
+                    let body = trim_edge_newlines(&toks[start..i]);
+                    i += 1; // past closing delimiter
+                    body
+                };
                 macros.insert(name, body);
             }
             Token::Kw(Kw::Undef) => {

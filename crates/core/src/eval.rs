@@ -9,7 +9,7 @@
 //! (`last`/`nth`) resolve against previously placed objects.
 //!
 //! Approximations (documented; refined later): `arc` renders a default quarter
-//! turn; `rand()` is deterministic (0.5); unknown variables read as 0.
+//! turn.
 
 use std::collections::HashMap;
 use std::f64::consts::PI;
@@ -262,6 +262,7 @@ struct State {
     anims: Vec<Anim>,
     anim_cursor: f64,
     anim_end: HashMap<usize, f64>,
+    rng: u64,
 }
 
 const DEFAULT_ANIM_DUR: f64 = 0.6;
@@ -298,6 +299,7 @@ impl State {
             anims: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
+            rng: 0x9e37_79b9_7f4a_7c15,
         }
     }
 
@@ -482,21 +484,54 @@ impl State {
         Ok(())
     }
 
+    fn scale_value(&self) -> ER<f64> {
+        let scale = self.env.get(EnvVar::Scale);
+        if scale.abs() < 1e-12 {
+            return err("scale must be non-zero");
+        }
+        Ok(scale)
+    }
+
+    /// Convert a pic dimension from the current user units to internal inches.
+    fn to_internal_dim(&self, v: f64) -> ER<f64> {
+        Ok(v / self.scale_value()?)
+    }
+
+    fn env_dim(&self, e: EnvVar) -> ER<f64> {
+        self.to_internal_dim(self.env.get(e))
+    }
+
+    fn expr_dim(&mut self, e: &Expr) -> ER<f64> {
+        let v = self.eval_expr(e)?;
+        self.to_internal_dim(v)
+    }
+
+    /// Convert an internal geometric length back to pic's current user units.
+    fn to_user_dim(&self, v: f64) -> f64 {
+        v * self.env.get(EnvVar::Scale)
+    }
+
     fn eval_assignment(&mut self, a: &Assignment) -> ER<()> {
         let rhs = self.eval_expr(&a.value)?;
         match &a.target {
             AssignTarget::Var(name, subscript) => {
                 let key = self.indexed_name(name, subscript.as_ref())?;
-                let cur = *self.vars.get(&key).unwrap_or(&0.0);
-                let val = apply_op(a.op, cur, rhs);
+                let cur = match self.vars.get(&key).copied() {
+                    Some(v) => v,
+                    None if matches!(a.op, AssignOp::Set) => 0.0,
+                    None => return err(format!("variable not found `{key}`")),
+                };
+                let val = apply_op(a.op, cur, rhs)?;
                 self.vars.insert(key, val);
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
-                let val = apply_op(a.op, cur, rhs);
+                let val = apply_op(a.op, cur, rhs)?;
                 if matches!(e, EnvVar::Scale) {
                     // Changing `scale` rescales all scaled dimension variables by
-                    // the ratio (dpic semantics), so default sizes follow.
+                    // the ratio (dpic semantics). They remain in user units;
+                    // geometry converts them to internal inches by dividing by
+                    // the current scale at use sites.
                     let ratio = if cur != 0.0 { val / cur } else { val };
                     for sv in SCALED_VARS {
                         let v = self.env.get(sv);
@@ -539,8 +574,8 @@ impl State {
             Shape::Path { pts, .. } | Shape::Spline { pts, .. } => *pts.last().unwrap(),
             _ => unreachable!(),
         };
-        let deflen_h = self.env.get(EnvVar::Linewid);
-        let deflen_v = self.env.get(EnvVar::Lineht);
+        let deflen_h = self.env_dim(EnvVar::Linewid)?;
+        let deflen_v = self.env_dim(EnvVar::Lineht)?;
 
         let mut pts = vec![start];
         let mut pend = Point::ZERO;
@@ -550,7 +585,7 @@ impl State {
             match a {
                 Attr::Direction(d, opt) => {
                     let dist = match opt {
-                        Some(e) => self.eval_expr(e)?,
+                        Some(e) => self.expr_dim(e)?,
                         None => {
                             if horizontal(*d) {
                                 deflen_h
@@ -583,7 +618,7 @@ impl State {
                     any = true;
                 }
                 Attr::Dist(e) => {
-                    let dist = self.eval_expr(e)?;
+                    let dist = self.expr_dim(e)?;
                     pend = pend + dir_unit(last_dir) * dist;
                     any = true;
                 }
@@ -649,7 +684,7 @@ impl State {
             Prim::Circle => {
                 let def_r = prev
                     .map(|(pw, _)| pw / 2.0)
-                    .unwrap_or(self.env.get(EnvVar::Circlerad));
+                    .unwrap_or(self.env_dim(EnvVar::Circlerad)?);
                 let r = self.dim(obj, DimKind::Rad)?.unwrap_or(def_r);
                 let r = self.dim(obj, DimKind::Diam)?.map(|d| d / 2.0).unwrap_or(r);
                 w = 2.0 * r;
@@ -658,8 +693,8 @@ impl State {
             }
             Prim::Ellipse => {
                 let (dw, dh) = prev.unwrap_or((
-                    self.env.get(EnvVar::Ellipsewid),
-                    self.env.get(EnvVar::Ellipseht),
+                    self.env_dim(EnvVar::Ellipsewid)?,
+                    self.env_dim(EnvVar::Ellipseht)?,
                 ));
                 w = self.dim(obj, DimKind::Wid)?.unwrap_or(dw);
                 h = self.dim(obj, DimKind::Ht)?.unwrap_or(dh);
@@ -667,12 +702,12 @@ impl State {
             }
             _ => {
                 let (dw, dh) =
-                    prev.unwrap_or((self.env.get(EnvVar::Boxwid), self.env.get(EnvVar::Boxht)));
+                    prev.unwrap_or((self.env_dim(EnvVar::Boxwid)?, self.env_dim(EnvVar::Boxht)?));
                 w = self.dim(obj, DimKind::Wid)?.unwrap_or(dw);
                 h = self.dim(obj, DimKind::Ht)?.unwrap_or(dh);
                 rad = self
                     .dim(obj, DimKind::Rad)?
-                    .unwrap_or(self.env.get(EnvVar::Boxrad));
+                    .unwrap_or(self.env_dim(EnvVar::Boxrad)?);
             }
         }
         w *= scale;
@@ -738,9 +773,20 @@ impl State {
             style.invis = true;
         }
         let (deflen_h, deflen_v) = if is_move {
-            (self.env.get(EnvVar::Movewid), self.env.get(EnvVar::Moveht))
+            (
+                self.env_dim(EnvVar::Movewid)?,
+                self.env_dim(EnvVar::Moveht)?,
+            )
         } else {
-            (self.env.get(EnvVar::Linewid), self.env.get(EnvVar::Lineht))
+            (
+                self.env_dim(EnvVar::Linewid)?,
+                self.env_dim(EnvVar::Lineht)?,
+            )
+        };
+        let same_vec = if obj.attrs.iter().any(|a| matches!(a, Attr::Same)) {
+            self.last_open_vector(p)
+        } else {
+            None
         };
 
         // starting point
@@ -754,7 +800,7 @@ impl State {
             match a {
                 Attr::Direction(d, opt) => {
                     let dist = match opt {
-                        Some(e) => self.eval_expr(e)?,
+                        Some(e) => self.expr_dim(e)?,
                         None => {
                             if horizontal(*d) {
                                 deflen_h
@@ -787,7 +833,7 @@ impl State {
                     any = true;
                 }
                 Attr::Dist(e) => {
-                    let dist = self.eval_expr(e)?;
+                    let dist = self.expr_dim(e)?;
                     pend = pend + dir_unit(last_dir) * dist;
                     any = true;
                 }
@@ -799,31 +845,39 @@ impl State {
             pts.push(np);
         }
         if pts.len() == 1 && !any {
-            // bare line/arrow/move in the current direction
-            let dist = if horizontal(self.dir) {
-                deflen_h
+            if let Some(v) = same_vec.filter(|v| v.len() > 1e-12) {
+                pts.push(start + v);
+                last_dir = nearest_dir(v);
             } else {
-                deflen_v
-            };
-            pts.push(start + dir_unit(self.dir) * dist);
-            last_dir = self.dir;
+                // bare line/arrow/move in the current direction
+                let dist = if horizontal(self.dir) {
+                    deflen_h
+                } else {
+                    deflen_v
+                };
+                pts.push(start + dir_unit(self.dir) * dist);
+                last_dir = self.dir;
+            }
         }
 
         // `chop`: trim each end (default circlerad) so connectors meet shapes cleanly
-        if let Some(amt) = self.chop_of(obj)?
+        if let Some((start_chop, end_chop)) = self.chop_of(obj)?
             && pts.len() >= 2
-            && amt > 0.0
         {
             let n = pts.len();
-            let d0 = pts[1] - pts[0];
-            let l0 = d0.len();
-            if l0 > amt {
-                pts[0] = pts[0] + d0 / l0 * amt;
+            if start_chop > 0.0 {
+                let d0 = pts[1] - pts[0];
+                let l0 = d0.len();
+                if l0 > start_chop {
+                    pts[0] = pts[0] + d0 / l0 * start_chop;
+                }
             }
-            let d1 = pts[n - 2] - pts[n - 1];
-            let l1 = d1.len();
-            if l1 > amt {
-                pts[n - 1] = pts[n - 1] + d1 / l1 * amt;
+            if end_chop > 0.0 {
+                let d1 = pts[n - 2] - pts[n - 1];
+                let l1 = d1.len();
+                if l1 > end_chop {
+                    pts[n - 1] = pts[n - 1] + d1 / l1 * end_chop;
+                }
             }
         }
 
@@ -909,7 +963,7 @@ impl State {
             (center, r, a0, a1)
         } else {
             // default: a quarter turn from the current heading
-            let r = rad_attr.unwrap_or(self.env.get(EnvVar::Arcrad));
+            let r = rad_attr.unwrap_or(self.env_dim(EnvVar::Arcrad)?);
             let din = dir_unit(self.dir);
             let normal = if cw {
                 Point::new(din.y, -din.x)
@@ -963,14 +1017,24 @@ impl State {
 
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
         let text = self.text_of(obj)?;
-        let at = self.at_of(obj)?.unwrap_or(self.pos);
+        let dir = self.dir_of(obj);
+        let w = self.env_dim(EnvVar::Textwid)?;
+        let h = self.env_dim(EnvVar::Textht)? * text.len().max(1) as f64;
+        let extent = if horizontal(dir) { w } else { h };
+        let at = self.place_center(obj, dir, extent, w, h)?;
         let mut bb = Bbox::new();
-        bb.add(at);
+        bb.add(at - Point::new(w / 2.0, h / 2.0));
+        bb.add(at + Point::new(w / 2.0, h / 2.0));
         self.layout_bbox.union(&bb);
         self.union_text(at, &text);
         self.shapes.push(Shape::Text { at, text });
+        let half = dir_unit(dir) * (extent / 2.0);
+        let start = at - half;
+        let end = at + half;
+        self.pos = end;
+        self.dir = dir;
         let sh = self.shapes.len() - 1;
-        Ok(self.record(PKind::Text, at, bb, at, at, 0.0, Some(sh)))
+        Ok(self.record(PKind::Text, at, bb, start, end, 0.0, Some(sh)))
     }
 
     /// Union an estimated text extent (centered at `center`) into the drawing
@@ -1001,6 +1065,7 @@ impl State {
         sub.vars = self.vars.clone();
         sub.macros = self.macros.clone();
         sub.base_dir = self.base_dir.clone();
+        sub.rng = self.rng;
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
         for (name, &i) in &self.labels {
@@ -1008,11 +1073,9 @@ impl State {
                 .insert(name.clone(), self.placed[i].clone());
         }
         sub.eval_stmts(stmts)?;
-        // pic variables and environment parameters are global: assignments made
-        // inside a block propagate out (e.g. library macros that return values
-        // by assigning to a caller-named variable from within a `[ … ]`).
-        self.vars = sub.vars.clone();
-        self.env = sub.env.clone();
+        // Variables, parameters and direction changes inside `[ ... ]` are
+        // local to the block. Random draws still consume the shared sequence.
+        self.rng = sub.rng;
 
         let layout_sub_bb = if sub.layout_bbox.is_empty() {
             let mut b = Bbox::new();
@@ -1101,7 +1164,12 @@ impl State {
             if let Attr::Dim(k, e) = a
                 && *k == kind
             {
-                return Ok(Some(self.eval_expr(e)?));
+                return Ok(Some(match kind {
+                    DimKind::Thick | DimKind::Scaled => self.eval_expr(e)?,
+                    DimKind::Ht | DimKind::Wid | DimKind::Rad | DimKind::Diam => {
+                        self.expr_dim(e)?
+                    }
+                }));
             }
         }
         Ok(None)
@@ -1149,18 +1217,24 @@ impl State {
         Ok(None)
     }
 
-    /// The `chop` amount (explicit value, or `circlerad`), if the object has it.
-    fn chop_of(&mut self, obj: &Object) -> ER<Option<f64>> {
+    /// The start/end `chop` amounts. `chop r1 chop r2` trims each end
+    /// independently; a single `chop` applies to both ends.
+    fn chop_of(&mut self, obj: &Object) -> ER<Option<(f64, f64)>> {
+        let mut vals = Vec::new();
         for a in &obj.attrs {
             if let Attr::Chop(opt) = a {
                 let amt = match opt {
-                    Some(e) => self.eval_expr(e)?,
-                    None => self.env.get(EnvVar::Circlerad),
+                    Some(e) => self.expr_dim(e)?,
+                    None => self.env_dim(EnvVar::Circlerad)?,
                 };
-                return Ok(Some(amt));
+                vals.push(amt);
             }
         }
-        Ok(None)
+        Ok(match vals.as_slice() {
+            [] => None,
+            [one] => Some((*one, *one)),
+            [start, end, ..] => Some((*start, *end)),
+        })
     }
 
     /// Width/height of the last placed object of the same closed kind (for `same`).
@@ -1178,6 +1252,21 @@ impl State {
             .map(|pl| (pl.bbox.width(), pl.bbox.height()))
     }
 
+    /// End-to-end vector of the last placed open object of the same kind.
+    fn last_open_vector(&self, p: Prim) -> Option<Point> {
+        let want = match p {
+            Prim::Move => PKind::Move,
+            Prim::Spline => PKind::Spline,
+            Prim::Line | Prim::Arrow => PKind::Line,
+            _ => return None,
+        };
+        self.placed
+            .iter()
+            .rev()
+            .find(|pl| pl.kind == want)
+            .map(|pl| pl.end - pl.start)
+    }
+
     /// Compute the center of a closed object given direction and extents.
     fn place_center(&mut self, obj: &Object, dir: Dir, extent: f64, w: f64, h: f64) -> ER<Point> {
         if let Some(at) = self.at_of(obj)? {
@@ -1188,7 +1277,7 @@ impl State {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
                     WithAnchor::Corner(c) => corner_offset(*c, w, h),
-                    WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Pair(x, y) => Point::new(self.expr_dim(x)?, self.expr_dim(y)?),
                     WithAnchor::Place(_) => {
                         return err("`with .label` anchors are only valid on blocks");
                     }
@@ -1219,7 +1308,7 @@ impl State {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
                     WithAnchor::Corner(c) => corner_offset(*c, w, h),
-                    WithAnchor::Pair(x, y) => Point::new(self.eval_expr(x)?, self.eval_expr(y)?),
+                    WithAnchor::Pair(x, y) => Point::new(self.expr_dim(x)?, self.expr_dim(y)?),
                     WithAnchor::Place(place) => sub.place_point(place)? - local_center,
                     WithAnchor::Plain => Point::ZERO,
                 };
@@ -1250,19 +1339,35 @@ impl State {
     fn style_of(&mut self, obj: &Object) -> ER<Style> {
         // arrowhead dimensions follow the current `arrowht`/`arrowwid` globals
         let mut s = Style {
-            arrow_ht: self.env.get(EnvVar::Arrowht),
-            arrow_wid: self.env.get(EnvVar::Arrowwid),
+            arrow_ht: self.env_dim(EnvVar::Arrowht)?,
+            arrow_wid: self.env_dim(EnvVar::Arrowwid)?,
             // `arrowhead = 0` draws an open (two-stroke) head; anything else
             // (default 2) is a filled triangle.
             arrow_filled: self.env.get(EnvVar::Arrowhead).round() as i64 != 0,
             ..Default::default()
         };
+        let lt = self.env.get(EnvVar::Linethick);
+        if lt > 0.0 {
+            s.thick = Some(lt);
+        }
         for a in &obj.attrs {
             match a {
-                Attr::LineStyle(lt, _) => match lt {
+                Attr::LineStyle(lt, opt) => match lt {
                     LineType::Solid => s.dash = Dash::Solid,
-                    LineType::Dashed => s.dash = Dash::Dashed,
-                    LineType::Dotted => s.dash = Dash::Dotted,
+                    LineType::Dashed => {
+                        let w = match opt {
+                            Some(e) => self.expr_dim(e)?,
+                            None => self.env_dim(EnvVar::Dashwid)?,
+                        };
+                        s.dash = Dash::Dashed(w);
+                    }
+                    LineType::Dotted => {
+                        let w = match opt {
+                            Some(e) => self.expr_dim(e)?,
+                            None => self.env_dim(EnvVar::Dashwid)?,
+                        };
+                        s.dash = Dash::Dotted(w);
+                    }
                     LineType::Invis => s.invis = true,
                 },
                 Attr::Fill(opt) => {
@@ -1320,7 +1425,7 @@ impl State {
 
     fn eval_pos(&mut self, pos: &Position) -> ER<Point> {
         match pos {
-            Position::Pair(x, y) => Ok(Point::new(self.eval_expr(x)?, self.eval_expr(y)?)),
+            Position::Pair(x, y) => Ok(Point::new(self.expr_dim(x)?, self.expr_dim(y)?)),
             Position::Place(loc) => self.eval_loc(loc),
             Position::Between { frac, a, b, .. } => {
                 let f = self.eval_expr(frac)?;
@@ -1520,12 +1625,7 @@ impl State {
                 }
                 sprintf_fmt(&f, &vals)
             }
-            StringExpr::SvgFont(args) => {
-                for e in args {
-                    self.eval_printf_arg(e)?;
-                }
-                String::new()
-            }
+            StringExpr::SvgFont(_) => String::new(),
         })
     }
 
@@ -1554,7 +1654,9 @@ impl State {
             Expr::Index(_) => return err("a comma subscript is only valid inside `name[...]`"),
             Expr::Var(name, subscript) => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                *self.vars.get(&key).unwrap_or(&0.0)
+                self.vars.get(&key).copied().ok_or_else(|| EvalError {
+                    msg: format!("variable not found `{key}`"),
+                })?
             }
             Expr::Env(v) => self.env.get(*v),
             Expr::Unary(op, a) => {
@@ -1644,41 +1746,81 @@ impl State {
                     Func2::Pmod => x.rem_euclid(y),
                 }
             }
-            Expr::Rand(_) => 0.5, // deterministic placeholder
+            Expr::Rand(seed) => {
+                let seed = match seed {
+                    Some(e) => Some(self.eval_expr(e)?),
+                    None => None,
+                };
+                self.rand(seed)
+            }
             Expr::Assign(name, subscript, v) => {
                 let val = self.eval_expr(v)?;
                 let key = self.indexed_name(name, subscript.as_deref())?;
                 self.vars.insert(key, val);
                 val
             }
-            Expr::DotX(loc) => self.eval_loc(loc)?.x,
-            Expr::DotY(loc) => self.eval_loc(loc)?.y,
+            Expr::DotX(loc) => {
+                let x = self.eval_loc(loc)?.x;
+                self.to_user_dim(x)
+            }
+            Expr::DotY(loc) => {
+                let y = self.eval_loc(loc)?.y;
+                self.to_user_dim(y)
+            }
             Expr::PlaceAttr(place, param) => {
                 let pl = self.resolve_obj(place)?;
                 match param {
-                    token::Param::Width => pl.bbox.width(),
-                    token::Param::Height => pl.bbox.height(),
-                    token::Param::Radius => pl.bbox.width() / 2.0,
-                    token::Param::Diameter => pl.bbox.width(),
-                    token::Param::Length => pl.start.dist(pl.end),
+                    token::Param::Width => self.to_user_dim(pl.bbox.width()),
+                    token::Param::Height => self.to_user_dim(pl.bbox.height()),
+                    token::Param::Radius => self.to_user_dim(pl.bbox.width() / 2.0),
+                    token::Param::Diameter => self.to_user_dim(pl.bbox.width()),
+                    token::Param::Length => self.to_user_dim(pl.start.dist(pl.end)),
                     token::Param::Thickness => pl.thick,
                 }
             }
         })
     }
+
+    fn rand(&mut self, seed: Option<f64>) -> f64 {
+        if let Some(seed) = seed {
+            self.rng = seed_rng(seed);
+        }
+        self.rng = self
+            .rng
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        ((self.rng >> 11) as f64) * (1.0 / ((1_u64 << 53) as f64))
+    }
 }
 
 // ---- free helpers ----------------------------------------------------------
 
-fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> f64 {
-    match op {
+fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
+    Ok(match op {
         AssignOp::Set => rhs,
         AssignOp::Add => cur + rhs,
         AssignOp::Sub => cur - rhs,
         AssignOp::Mul => cur * rhs,
-        AssignOp::Div => cur / rhs,
-        AssignOp::Rem => cur % rhs,
-    }
+        AssignOp::Div => {
+            if rhs == 0.0 {
+                return err("division by zero in assignment");
+            }
+            cur / rhs
+        }
+        AssignOp::Rem => {
+            if rhs == 0.0 {
+                return err("modulo by zero in assignment");
+            }
+            cur % rhs
+        }
+    })
+}
+
+fn seed_rng(seed: f64) -> u64 {
+    let mut x = seed.to_bits() ^ 0xa076_1d64_78bd_642f;
+    x ^= x >> 32;
+    x = x.wrapping_mul(0xe703_7ed1_a0b4_28db);
+    if x == 0 { 1 } else { x }
 }
 
 fn bool_f(b: bool) -> f64 {
@@ -2045,6 +2187,13 @@ mod tests {
     }
 
     #[test]
+    fn define_accepts_arbitrary_delimiter() {
+        let d = draw("define elem / box /\nelem");
+        assert_eq!(d.shapes.len(), 1);
+        assert!(matches!(d.shapes[0], Shape::Box { .. }));
+    }
+
+    #[test]
     fn labelled_call_to_multiline_body_macro() {
         // A multi-line `{ … }` body picks up newlines after `{` / before `}`.
         // They must not leak into a labelled call (`Q: m()` -> `Q: ⏎ <obj>`),
@@ -2195,16 +2344,35 @@ mod tests {
     }
 
     #[test]
-    fn scale_rescales_default_dims() {
-        // issue #4: `scale = 2` doubles the default box size
+    fn scale_converts_user_units_to_inches() {
+        // `scale = 2` means two user units per inch: defaults stay the same
+        // physical size, while explicit dimensions and coordinates are halved.
         let d = draw("scale = 2\nbox");
         let Shape::Box { w, h, .. } = &d.shapes[0] else {
             panic!()
         };
         assert!(
-            (*w - 1.5).abs() < 1e-9 && (*h - 1.0).abs() < 1e-9,
+            (*w - 0.75).abs() < 1e-9 && (*h - 0.5).abs() < 1e-9,
             "{w} x {h}"
         );
+
+        let d = draw("scale = 2\nbox wid 2 ht 1");
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9 && (*h - 0.5).abs() < 1e-9);
+
+        let d = draw("scale = 2\nline from (0,0) to (2,0)");
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((pts.last().unwrap().x - 1.0).abs() < 1e-9, "{pts:?}");
+
+        let d = draw("scale = 2\nA: (2,0)\nbox wid A.x ht .2");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 1.0).abs() < 1e-9, "w = {w}");
     }
 
     #[test]
@@ -2221,6 +2389,16 @@ mod tests {
     }
 
     #[test]
+    fn same_reuses_previous_open_vector() {
+        let d = draw("line up 1\nright\nline same");
+        let Shape::Path { pts, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(pts[0].dist(Point::new(0.0, 1.0)) < 1e-9, "{pts:?}");
+        assert!(pts[1].dist(Point::new(0.0, 2.0)) < 1e-9, "{pts:?}");
+    }
+
+    #[test]
     fn chop_trims_line_endpoints() {
         // issue #4: `chop` trims circlerad (0.25) off each end
         let d = draw("circle at 0,0\ncircle at 2,0\nline from 1st circle to 2nd circle chop");
@@ -2233,6 +2411,71 @@ mod tests {
             "end {:?}",
             pts.last()
         );
+
+        let d = draw("line from (0,0) to (2,0) chop 0 chop .5");
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((pts[0].x - 0.0).abs() < 1e-9, "{pts:?}");
+        assert!((pts[1].x - 1.5).abs() < 1e-9, "{pts:?}");
+
+        let d = draw("line from (0,0) to (2,0) chop .5 chop 0");
+        let Shape::Path { pts, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((pts[0].x - 0.5).abs() < 1e-9, "{pts:?}");
+        assert!((pts[1].x - 2.0).abs() < 1e-9, "{pts:?}");
+    }
+
+    #[test]
+    fn unknown_variables_are_errors() {
+        assert!(eval(&parse("box wid typo ht 0.2").unwrap()).is_err());
+        assert!(eval(&parse("typo += 1").unwrap()).is_err());
+    }
+
+    #[test]
+    fn rand_advances_and_seed_repeats() {
+        let mut st = State::new();
+        let a = st.eval_expr(&Expr::Rand(None)).unwrap();
+        let b = st.eval_expr(&Expr::Rand(None)).unwrap();
+        assert!((0.0..1.0).contains(&a));
+        assert!((0.0..1.0).contains(&b));
+        assert_ne!(a, b);
+
+        let seeded_a = st
+            .eval_expr(&Expr::Rand(Some(Box::new(Expr::Num(1.0)))))
+            .unwrap();
+        let seeded_b = st
+            .eval_expr(&Expr::Rand(Some(Box::new(Expr::Num(1.0)))))
+            .unwrap();
+        assert_eq!(seeded_a, seeded_b);
+    }
+
+    #[test]
+    fn standalone_text_occupies_invisible_box() {
+        let d = draw("textwid = 1; textht = .2\n\"x\"\nbox wid .2 ht .2");
+        let Shape::Text { at, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((at.x - 0.5).abs() < 1e-9, "text at {at:?}");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 1.1).abs() < 1e-9, "box center {c:?}");
+    }
+
+    #[test]
+    fn style_globals_and_dash_lengths_apply() {
+        let d = draw("linethick = 3\nline dashed .2\nline dotted .05");
+        let Shape::Path { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.thick, Some(3.0));
+        assert_eq!(style.dash, Dash::Dashed(0.2));
+        let Shape::Path { style, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert_eq!(style.dash, Dash::Dotted(0.05));
     }
 
     #[test]
@@ -2531,15 +2774,27 @@ mod tests {
     }
 
     #[test]
-    fn block_variable_assignments_are_global() {
-        // pic variables (and env params) are global: a value set inside a block
-        // is visible after it — needed by library macros that return values by
-        // assigning to a caller-named variable from within a `[ … ]`.
-        let d = draw("x = 0\n[ x = 5 ]\nbox wid x ht 0.3");
+    fn block_variable_assignments_are_local() {
+        let d = draw("x = 1\n[ x = 5 ]\nbox wid x ht 0.3");
         let Shape::Box { w, .. } = d.shapes.last().unwrap() else {
             panic!()
         };
-        assert!((*w - 5.0).abs() < 1e-9, "w = {w}");
+        assert!((*w - 1.0).abs() < 1e-9, "w = {w}");
+
+        assert!(eval(&parse("[ x = 5 ]\nbox wid x ht 0.3").unwrap()).is_err());
+    }
+
+    #[test]
+    fn block_env_assignments_are_local() {
+        let d = draw("[ boxwid = 2; box ]\nbox");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 2.0).abs() < 1e-9, "inner w = {w}");
+        let Shape::Box { w, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((*w - 0.75).abs() < 1e-9, "outer w = {w}");
     }
 
     #[test]
