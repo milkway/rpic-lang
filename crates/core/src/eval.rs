@@ -951,9 +951,21 @@ impl State {
             Prim::Move => PKind::Move,
             _ => PKind::Line,
         };
+        let tension = if matches!(p, Prim::Spline) {
+            let mut t = None;
+            for a in &obj.attrs {
+                if let Attr::SplineTension(e) = a {
+                    t = Some(self.eval_expr(e)?);
+                }
+            }
+            t
+        } else {
+            None
+        };
         let shape = if matches!(p, Prim::Spline) {
             Shape::Spline {
                 pts: pts.clone(),
+                tension,
                 arrows,
                 style,
                 text,
@@ -2689,6 +2701,52 @@ mod tests {
         };
         assert!(pts[0].dist(Point::new(0.0, 1.0)) < 1e-9, "{pts:?}");
         assert!(pts[1].dist(Point::new(0.0, 2.0)) < 1e-9, "{pts:?}");
+    }
+
+    #[test]
+    fn spline_expr_is_tension_not_distance() {
+        // issue #63: `spline <expr>` is a dpic tension parameter, not a bare
+        // distance. The control polygon (and thus start/end) must be unchanged,
+        // and the tension recorded.
+        let d = draw("spline 0.5 from 0,0 to 1,1 to 2,0");
+        let Shape::Spline { pts, tension, .. } = &d.shapes[0] else {
+            panic!("expected a spline")
+        };
+        assert_eq!(*tension, Some(0.5));
+        assert_eq!(pts.len(), 3, "tension must not add a segment: {pts:?}");
+        assert!(pts[0].dist(Point::new(0.0, 0.0)) < 1e-9, "{pts:?}");
+        assert!(pts[2].dist(Point::new(2.0, 0.0)) < 1e-9, "{pts:?}");
+    }
+
+    #[test]
+    fn spline_variable_tension_does_not_drift() {
+        // The doc/spline.pic idiom: `for x … { spline x from 0,0 … }`. Each
+        // tensioned spline must keep the same start/end as the untensioned one
+        // (only the curvature changes), instead of `x` shifting the geometry.
+        let plain = draw("spline from 0,0 up 1.5 then right 2 then down 1.5");
+        let Shape::Spline {
+            pts: p0,
+            tension: t0,
+            ..
+        } = &plain.shapes[0]
+        else {
+            panic!()
+        };
+        assert_eq!(*t0, None);
+
+        let tensioned = draw("x = 0.6\nspline x from 0,0 up 1.5 then right 2 then down 1.5");
+        let Shape::Spline {
+            pts: p1,
+            tension: t1,
+            ..
+        } = &tensioned.shapes[0]
+        else {
+            panic!()
+        };
+        assert_eq!(*t1, Some(0.6));
+        assert_eq!(p0.len(), p1.len());
+        assert!(p0.first().unwrap().dist(*p1.first().unwrap()) < 1e-9);
+        assert!(p0.last().unwrap().dist(*p1.last().unwrap()) < 1e-9);
     }
 
     #[test]

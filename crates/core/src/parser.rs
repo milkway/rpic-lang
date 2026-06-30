@@ -1526,10 +1526,35 @@ impl Parser {
             }
             other => return self.err(format!("expected an object, found {other:?}")),
         };
+        // `spline <expr> <linespec>`: dpic's documented exception to the bare
+        // distance rule — the expression right after `spline` is a tension
+        // parameter, not a length. Parse it here so the attribute loop below
+        // doesn't read it as `Attr::Dist`.
+        if matches!(kind, ObjectKind::Primitive(Prim::Spline)) && self.spline_tension_ahead() {
+            attrs.push(Attr::SplineTension(self.parse_expr()?));
+        }
         while let Some(a) = self.parse_attr()? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
+    }
+
+    /// True if the next token begins a bare scalar expression — the leading
+    /// tension argument of `spline <expr>` — rather than a linespec keyword
+    /// (`from`/`to`/`up`/`then`/…) or another attribute.
+    fn spline_tension_ahead(&self) -> bool {
+        matches!(
+            self.cur(),
+            Token::Float(_)
+                | Token::Lparen
+                | Token::EnvVar(_)
+                | Token::Func1(_)
+                | Token::Func2(_)
+                | Token::Name(_)
+                | Token::Minus
+                | Token::Plus
+                | Token::Kw(Kw::Rand)
+        )
     }
 
     fn parse_attr(&mut self) -> PResult<Option<Attr>> {

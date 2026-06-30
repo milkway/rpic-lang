@@ -136,6 +136,10 @@ pub enum Shape {
     },
     Spline {
         pts: Vec<Point>,
+        /// dpic spline tension. `None` = the classic pic quadratic B-spline
+        /// (straight first/last half-segments, tangent at segment midpoints);
+        /// `Some(t)` = dpic's tensioned cubic spline through `t`.
+        tension: Option<f64>,
         arrows: Arrowheads,
         style: Style,
         text: Vec<TextLine>,

@@ -163,6 +163,9 @@ pub enum Attr {
     /// A bare distance with no direction word (e.g. `move 1`): advance by this
     /// much along the prevailing direction.
     Dist(Expr),
+    /// `spline <expr> …`: the expression right after `spline` is a spline
+    /// tension parameter (dpic semantics), NOT a distance.
+    SplineTension(Expr),
     LineStyle(LineType, Option<Expr>),
     Chop(Option<Expr>),
     Fill(Option<Expr>),
