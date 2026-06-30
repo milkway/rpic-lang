@@ -33,7 +33,7 @@ function ensure() {
 }
 
 /**
- * Compile pic source into `{ svg, animations }` (throws on a pic error).
+ * Compile pic source into `{ svg, animations, diagnostics }` (throws on a pic error).
  * @param {string} src
  * @param {{circuits?: boolean}} [opts]
  */

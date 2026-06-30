@@ -141,15 +141,29 @@ fn run(
             let pic = rpic_core::parse_in_dir(src, base).map_err(|e| e.to_string())?;
             Ok(Output::Text(format!("{pic:#?}\n")))
         }
-        Mode::Svg => Ok(Output::Text(rpic_core::render_svg_in_dir(src, base)?)),
+        Mode::Svg => {
+            let d = rpic_core::compile_in_dir(src, base)?;
+            emit_diagnostics(&d);
+            Ok(Output::Text(rpic_core::to_svg(&d)))
+        }
         Mode::Png => {
-            let svg = rpic_core::render_svg_in_dir(src, base)?;
+            let d = rpic_core::compile_in_dir(src, base)?;
+            emit_diagnostics(&d);
+            let svg = rpic_core::to_svg(&d);
             Ok(Output::Bytes(rpic_render::to_png(&svg, scale)?))
         }
         Mode::Pdf => {
-            let svg = rpic_core::render_svg_in_dir(src, base)?;
+            let d = rpic_core::compile_in_dir(src, base)?;
+            emit_diagnostics(&d);
+            let svg = rpic_core::to_svg(&d);
             Ok(Output::Bytes(rpic_render::to_pdf(&svg)?))
         }
+    }
+}
+
+fn emit_diagnostics(d: &rpic_core::Drawing) {
+    for line in &d.diagnostics {
+        eprintln!("{line}");
     }
 }
 

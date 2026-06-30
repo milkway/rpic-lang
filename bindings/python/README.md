@@ -17,8 +17,9 @@ open("out.pdf", "wb").write(rpic.render_pdf("box \"hi\""))
 # circuit library:
 svg = rpic.render_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
 
-# svg + animation manifest:
+# svg + animation/diagnostic manifest:
 bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
+# bundle["diagnostics"] contains lines emitted by pic `print`
 ```
 
 ## Build

@@ -51,7 +51,8 @@ fn render_pdf<'py>(py: Python<'py>, src: &str, circuits: bool) -> PyResult<Bound
     Ok(PyBytes::new(py, &pdf))
 }
 
-/// Compile to a JSON string `{ "svg": ..., "animations": [...] }`
+/// Compile to a JSON string `{ "svg": ..., "animations": [...],
+/// "diagnostics": [...] }`
 /// (or `{ "error": ... }`). Parse with `json.loads`.
 #[pyfunction]
 #[pyo3(signature = (src, circuits = false))]

@@ -11,6 +11,8 @@ export interface Anim {
 export interface Bundle {
   svg: string;
   animations: Anim[];
+  /** lines emitted by pic `print` statements */
+  diagnostics: string[];
 }
 
 export interface CompileOptions {
@@ -24,7 +26,7 @@ export interface CompileOptions {
  */
 export function ready(wasmInput?: BufferSource | URL | string): Promise<void>;
 
-/** Compile pic source into `{ svg, animations }`. Throws on a pic error. */
+/** Compile pic source into `{ svg, animations, diagnostics }`. Throws on a pic error. */
 export function compile(src: string, opts?: CompileOptions): Bundle;
 
 /** Compile and return only the SVG string. */

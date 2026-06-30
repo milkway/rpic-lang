@@ -68,15 +68,31 @@ pub fn animations_json(d: &Drawing) -> String {
     s
 }
 
-/// Compile to a single JSON object `{ "svg": "...", "animations": [...] }`, or
-/// `{ "error": "..." }` on failure. This is the entry point the WASM wrapper and
-/// browser playground consume.
+/// Build the JSON diagnostic array emitted by pic `print` statements.
+pub fn diagnostics_json(d: &Drawing) -> String {
+    let mut s = String::from("[");
+    for (i, line) in d.diagnostics.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push('"');
+        s.push_str(&json_str(line));
+        s.push('"');
+    }
+    s.push(']');
+    s
+}
+
+/// Compile to a single JSON object `{ "svg": "...", "animations": [...],
+/// "diagnostics": [...] }`, or `{ "error": "..." }` on failure. This is the
+/// entry point the WASM wrapper and browser playground consume.
 pub fn compile_json(src: &str) -> String {
     match compile(src) {
         Ok(d) => format!(
-            "{{\"svg\":\"{}\",\"animations\":{}}}",
+            "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{}}}",
             json_str(&to_svg(&d)),
-            animations_json(&d)
+            animations_json(&d),
+            diagnostics_json(&d)
         ),
         Err(e) => format!("{{\"error\":\"{}\"}}", json_str(&e)),
     }
@@ -109,12 +125,19 @@ mod tests {
         assert!(j.starts_with("{\"svg\":\"<svg"));
         assert!(j.contains("<g id=\\\"s0\\\">")); // stable id, JSON-escaped
         assert!(j.contains("\"animations\":[{\"id\":\"s0\",\"effect\":\"fade\""));
+        assert!(j.contains("\"diagnostics\":[]"));
     }
 
     #[test]
     fn json_reports_errors() {
         let j = compile_json("copy \"oops\"");
         assert!(j.contains("\"error\""));
+    }
+
+    #[test]
+    fn json_reports_print_diagnostics() {
+        let j = compile_json("print \"hi\"\nprint 2+3");
+        assert!(j.contains("\"diagnostics\":[\"hi\",\"5\"]"));
     }
 
     #[test]

@@ -1,15 +1,15 @@
 # rpic
 
 JS/TS bindings for [rpic](https://github.com/milkway/rpic-lang) — the pic
-graphics language compiled to **SVG** with an **animation manifest**, via
-WebAssembly. Works in the browser and in Node, ships TypeScript types.
+graphics language compiled to **SVG** with animation and diagnostic manifests,
+via WebAssembly. Works in the browser and in Node, ships TypeScript types.
 
 ```js
 import * as rpic from '@strategicprojects/rpic';
 
 await rpic.ready();                       // browser: wasm fetched automatically
 
-const { svg, animations } = rpic.compile('box "A"; arrow; box "B"');
+const { svg, animations, diagnostics } = rpic.compile('box "A"; arrow; box "B"');
 document.querySelector('#stage').innerHTML = svg;
 
 // animate with GSAP:
@@ -34,7 +34,7 @@ console.log(rpic.renderSvg('box "hi"'));
 | Function | Description |
 |----------|-------------|
 | `ready(wasmInput?)` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. |
-| `compile(src, {circuits?})` | → `{ svg, animations }` (throws on a pic error). |
+| `compile(src, {circuits?})` | → `{ svg, animations, diagnostics }` (throws on a pic error). |
 | `renderSvg(src, {circuits?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

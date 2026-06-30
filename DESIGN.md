@@ -156,7 +156,7 @@ cd web && python3 -m http.server 8080
 # open http://localhost:8080/
 ```
 
-`crates/wasm` exposes `compile(src) -> JSON {svg, animations}`. `web/app.js`
+`crates/wasm` exposes `compile(src) -> JSON {svg, animations, diagnostics}`. `web/app.js`
 injects the SVG and builds a GSAP timeline from the manifest. Toolchain note:
 `wasm-pack`/the wasm build use the **rustup** stable toolchain (which carries the
 `wasm32-unknown-unknown` std); a Homebrew `rustc` on `PATH` lacks it, so
