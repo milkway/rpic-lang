@@ -1,4 +1,4 @@
-// Type definitions for @milkway/rpic
+// Type definitions for rpic
 
 export interface Anim {
   id: string;

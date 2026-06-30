@@ -1,11 +1,11 @@
-# @milkway/rpic
+# rpic
 
 JS/TS bindings for [rpic](https://github.com/milkway/rpic-lang) — the pic
 graphics language compiled to **SVG** with an **animation manifest**, via
 WebAssembly. Works in the browser and in Node, ships TypeScript types.
 
 ```js
-import * as rpic from '@milkway/rpic';
+import * as rpic from 'rpic';
 
 await rpic.ready();                       // browser: wasm fetched automatically
 
@@ -24,8 +24,8 @@ rpic.renderSvg('A:(0,0); B:(2,0)\nresistor(A,B)', { circuits: true });
 
 ```js
 import { readFileSync } from 'node:fs';
-import * as rpic from '@milkway/rpic';
-await rpic.ready(readFileSync(new URL('./node_modules/@milkway/rpic/pkg/rpic_wasm_bg.wasm', import.meta.url)));
+import * as rpic from 'rpic';
+await rpic.ready(readFileSync(new URL('./node_modules/rpic/pkg/rpic_wasm_bg.wasm', import.meta.url)));
 console.log(rpic.renderSvg('box "hi"'));
 ```
 

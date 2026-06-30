@@ -1,4 +1,4 @@
-// @milkway/rpic — JS/TS bindings for the rpic pic graphics language (WASM).
+// rpic — JS/TS bindings for the rpic pic graphics language (WASM).
 //
 // Browser:  await ready();                         // wasm fetched automatically
 // Node:     await ready(fs.readFileSync(url));      // pass the .wasm bytes/URL
