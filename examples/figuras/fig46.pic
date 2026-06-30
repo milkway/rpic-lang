@@ -1,0 +1,15 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Origem:(0,0)
+Ven:circle radius .05; move to Ven.w;"$V_{en}$" rjust
+L1:line from Ven.e right_ dimen_;
+A1:opamp(right_ dimen_) with .In2 at L1.e;
+L2:line from A1.Out right_ dimen_/4 then up_ dimen_ then
+left_ 3*dimen_/2 then down_ .75*dimen_ then to A1.In1;
+L3:line from A1.Out right_ dimen_;
+T1:circle radius 0.05; move to T1.e; "$V_{sa}$" ljust;
+.PE

@@ -52,14 +52,16 @@ reproductions.
 
 ## Coverage
 
-Of the collection's 48 circuit_macros figures, **43 render** and are included
-here: 27 that draw with raw primitives, plus 16 that exercise the element-API
-compatibility shim (`fig05 21 22 23 24 25 26 27 28 29 30 31 32 33 45 47` —
+Of the collection's 48 circuit_macros figures, **44 render** and are included
+here: 27 that draw with raw primitives, plus 17 that exercise the element-API
+compatibility shim (`fig05 21 22 23 24 25 26 27 28 29 30 31 32 33 45 46 47` —
 linear elements, bipolar transistors, op-amps, element boxes (`ebox`), current
-sources (`source`), and `with .start at …` element placement).
+sources (`source`), `with .start at …` element placement, and lines continued
+across a newline after `then`).
 
-The remaining few use a line continued by a bare direction word on the next
-line (`… then ⏎ left_ …`), which the shim does not yet handle.
+The remaining four (`fig09 11 14 48`) pull in circuit_macros' **`libgen.m4`**
+general-macro library, which uses `m4` argument constructs (`$#`, `$@`, …) that
+rpic's lighter macro layer does not implement.
 
 ## A few highlights
 
