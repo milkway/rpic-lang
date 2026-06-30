@@ -93,6 +93,9 @@ impl Bbox {
 
     /// Extend the box to include a point.
     pub fn add(&mut self, p: Point) {
+        if !p.x.is_finite() || !p.y.is_finite() {
+            return;
+        }
         if self.empty {
             self.min = p;
             self.max = p;
