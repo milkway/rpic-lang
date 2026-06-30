@@ -161,11 +161,11 @@ impl EnvVars {
             (Moveht, 0.5),
             (Movewid, 0.5),
             (Textht, 0.0),
-            (Textoffset, 0.05),
+            (Textoffset, 2.0 / 72.0),
             (Textwid, 0.0),
-            (Arrowhead, 2.0),
+            (Arrowhead, 1.0),
             (Fillval, 0.5),
-            (Linethick, -1.0),
+            (Linethick, 0.8),
             (Maxpsht, 11.0),
             (Maxpswid, 8.5),
             (Scale, 1.0),
@@ -363,15 +363,24 @@ impl Placed {
     fn attr_radius(&self) -> f64 {
         match self.kind {
             PKind::Box => self.box_rad,
+            PKind::Circle => self.bbox.width() / 2.0,
             PKind::Arc => self.radius,
-            _ => self.bbox.width() / 2.0,
+            _ => 0.0,
         }
     }
 
     fn attr_diameter(&self) -> f64 {
         match self.kind {
+            PKind::Circle => self.bbox.width(),
             PKind::Arc => self.radius * 2.0,
-            _ => self.bbox.width(),
+            _ => 0.0,
+        }
+    }
+
+    fn attr_length(&self) -> f64 {
+        match self.kind {
+            PKind::Line | PKind::Move | PKind::Spline => self.start.dist(self.end),
+            _ => 0.0,
         }
     }
 }
@@ -2009,7 +2018,7 @@ impl State {
                     token::Param::Height => self.to_user_dim(pl.attr_height()),
                     token::Param::Radius => self.to_user_dim(pl.attr_radius()),
                     token::Param::Diameter => self.to_user_dim(pl.attr_diameter()),
-                    token::Param::Length => self.to_user_dim(pl.start.dist(pl.end)),
+                    token::Param::Length => self.to_user_dim(pl.attr_length()),
                     token::Param::Thickness => pl.thick,
                 }
             }
@@ -3428,6 +3437,13 @@ mod tests {
     }
 
     #[test]
+    fn dpic_default_env_values_are_readable() {
+        assert!((scalar("textoffset").unwrap() - 2.0 / 72.0).abs() < 1e-9);
+        assert!((scalar("arrowhead").unwrap() - 1.0).abs() < 1e-9);
+        assert!((scalar("linethick").unwrap() - 0.8).abs() < 1e-9);
+    }
+
+    #[test]
     fn print_statements_collect_diagnostics() {
         let d = draw("print 5.5\nprint 5.5%2\nprint \"hello\"\nprint sprintf(\"x=%g\", 1.25)");
         assert_eq!(d.diagnostics, ["5.5", "0", "hello", "x=1.25"]);
@@ -3457,6 +3473,21 @@ mod tests {
 
         let d = draw("C: arc rad 0.7 from (0,0) to (0,1.4)\nbox wid (C.rad) ht (C.diam)");
         assert_box_size(&d.shapes[1], 0.7, 1.4);
+    }
+
+    #[test]
+    fn invalid_type_scalar_attrs_match_dpic_zero() {
+        let prog = parse(
+            "E: ellipse wid 2 ht 1\nB: box wid 1 ht 1\nA: arc rad .5\n\
+             e_rad = E.rad\ne_diam = E.diam\nb_diam = B.diam\na_len = A.len",
+        )
+        .unwrap();
+        let mut st = State::new();
+        st.eval_stmts(&prog.stmts).unwrap();
+        assert_eq!(st.vars["e_rad"], 0.0);
+        assert_eq!(st.vars["e_diam"], 0.0);
+        assert_eq!(st.vars["b_diam"], 0.0);
+        assert_eq!(st.vars["a_len"], 0.0);
     }
 
     #[test]
