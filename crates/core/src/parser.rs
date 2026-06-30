@@ -202,7 +202,8 @@ fn builtin_unit_macros() -> Macros {
     let mut m = Macros::new();
     for (name, body) in defs {
         if let Ok(toks) = lex(body) {
-            let body_toks: Vec<Spanned> = toks.into_iter().filter(|s| s.tok != Token::Eof).collect();
+            let body_toks: Vec<Spanned> =
+                toks.into_iter().filter(|s| s.tok != Token::Eof).collect();
             m.insert(name.to_string(), body_toks);
         }
     }
