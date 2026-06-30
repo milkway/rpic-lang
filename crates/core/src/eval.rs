@@ -1779,13 +1779,8 @@ impl State {
                         }
                         x / y
                     }
-                    BinOp::Mod => {
-                        if y == 0.0 {
-                            return err("modulo by zero");
-                        }
-                        x % y
-                    }
-                    BinOp::Pow => x.powf(y),
+                    BinOp::Mod => dpic_mod(x, y, "modulo by zero")?,
+                    BinOp::Pow => dpic_pow(x, y)?,
                     BinOp::Eq => bool_f(x == y),
                     BinOp::Ne => bool_f(x != y),
                     BinOp::Lt => bool_f(x < y),
@@ -1809,12 +1804,10 @@ impl State {
                     Func1::Log => x.log10(),
                     Func1::Loge => x.ln(),
                     Func1::Sign => {
-                        if x > 0.0 {
+                        if x >= 0.0 {
                             1.0
-                        } else if x < 0.0 {
-                            -1.0
                         } else {
-                            0.0
+                            -1.0
                         }
                     }
                     Func1::Sin => x.sin(),
@@ -1890,12 +1883,7 @@ fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
             }
             cur / rhs
         }
-        AssignOp::Rem => {
-            if rhs == 0.0 {
-                return err("modulo by zero in assignment");
-            }
-            cur % rhs
-        }
+        AssignOp::Rem => dpic_mod(cur, rhs, "modulo by zero in assignment")?,
     })
 }
 
@@ -1957,6 +1945,58 @@ impl GlibcRand {
 
 fn bool_f(b: bool) -> f64 {
     if b { 1.0 } else { 0.0 }
+}
+
+fn dpic_round(x: f64) -> i64 {
+    if x < 0.0 {
+        -((-x + 0.5).floor() as i64)
+    } else {
+        (x + 0.5).floor() as i64
+    }
+}
+
+fn dpic_mod(x: f64, y: f64, zero_msg: &'static str) -> ER<f64> {
+    let i = dpic_round(x);
+    let j = dpic_round(y);
+    if j == 0 {
+        return err(zero_msg);
+    }
+    Ok((i - (i / j) * j) as f64)
+}
+
+fn dpic_pow(x: f64, y: f64) -> ER<f64> {
+    if x == 0.0 && y < 0.0 {
+        return err("zero cannot be raised to a negative power");
+    }
+    let iy = dpic_round(y);
+    if iy as f64 == y {
+        return Ok(dpic_int_pow(x, iy));
+    }
+    if x < 0.0 {
+        return err("negative base with non-integer exponent");
+    }
+    Ok(x.powf(y))
+}
+
+fn dpic_int_pow(x: f64, y: i64) -> f64 {
+    if y == 0 {
+        return 1.0;
+    }
+    if x == 0.0 || y == 1 {
+        return x;
+    }
+    if y < 0 {
+        return dpic_int_pow(1.0 / x, -y);
+    }
+    if y == 2 {
+        return x * x;
+    }
+    if y & 1 == 1 {
+        x * dpic_int_pow(x, y - 1)
+    } else {
+        let half = dpic_int_pow(x, y >> 1);
+        half * half
+    }
 }
 
 fn has_visible_text(lines: &[TextLine]) -> bool {
@@ -2378,6 +2418,13 @@ mod tests {
 
     fn draw(src: &str) -> Drawing {
         eval(&parse(src).unwrap()).unwrap()
+    }
+
+    fn scalar(src: &str) -> ER<f64> {
+        let prog = parse(&format!("x = {src}")).unwrap();
+        let mut st = State::new();
+        st.eval_stmts(&prog.stmts)?;
+        Ok(st.vars["x"])
     }
 
     const DEFAULT_STROKE_IN: f64 = 0.8 / 72.0;
@@ -2803,6 +2850,28 @@ mod tests {
         assert!((seeded_a - 0.840_187_717).abs() < 1e-9, "{seeded_a}");
         let next = st.eval_expr(&Expr::Rand(None)).unwrap();
         assert!((next - 0.394_382_927).abs() < 1e-9, "{next}");
+    }
+
+    #[test]
+    fn arithmetic_matches_dpic_edge_cases() {
+        assert_eq!(scalar("5.5 % 2").unwrap(), 0.0);
+        assert_eq!(scalar("2.5 % 2").unwrap(), 1.0);
+        assert_eq!(scalar("-2.5 % 2").unwrap(), -1.0);
+        assert!(scalar("5 % 0.4").is_err());
+
+        let mut st = State::new();
+        st.eval_stmts(&parse("x = 5.5; x %= 2").unwrap().stmts)
+            .unwrap();
+        assert_eq!(st.vars["x"], 0.0);
+
+        assert_eq!(scalar("sign(0)").unwrap(), 1.0);
+        assert_eq!(scalar("sign(-0.1)").unwrap(), -1.0);
+
+        assert_eq!(scalar("(-2)^3").unwrap(), -8.0);
+        assert_eq!(scalar("(-2)^2").unwrap(), 4.0);
+        assert_eq!(scalar("0^0").unwrap(), 1.0);
+        assert!(scalar("(-2)^0.5").is_err());
+        assert!(scalar("0^-1").is_err());
     }
 
     #[test]
