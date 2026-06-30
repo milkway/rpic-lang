@@ -173,7 +173,7 @@ rpic::rpic_register_knitr()        # ```{rpic} chunks in R Markdown / Quarto
 ### JavaScript / TypeScript — [`bindings/js`](bindings/js)
 
 ```js
-import * as rpic from 'rpic';
+import * as rpic from '@strategicprojects/rpic';
 await rpic.ready();
 const { svg, animations } = rpic.compile('box "A"; arrow; box "B"');
 rpic.animate(stage, animations, gsap);   // GSAP timeline
