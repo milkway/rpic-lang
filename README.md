@@ -166,6 +166,7 @@ import rpic, json
 svg = rpic.render_svg('box "hi"; arrow; circle "x"')
 open("out.png", "wb").write(rpic.render_png('box "hi"', scale=2.0))
 bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
+# bundle["diagnostics"] contains lines emitted by pic `print`
 ```
 
 ### R — [milkway/rpic-r](https://github.com/milkway/rpic-r) (separate repo)
@@ -181,7 +182,7 @@ rpic::rpic_register_knitr()        # ```{rpic} chunks in R Markdown / Quarto
 ```js
 import * as rpic from '@strategicprojects/rpic';
 await rpic.ready();
-const { svg, animations } = rpic.compile('box "A"; arrow; box "B"');
+const { svg, animations, diagnostics } = rpic.compile('box "A"; arrow; box "B"');
 rpic.animate(stage, animations, gsap);   // GSAP timeline
 ```
 

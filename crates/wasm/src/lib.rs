@@ -1,12 +1,14 @@
 //! WASM bindings for rpic.
 //!
 //! Exposes a single `compile` entry point that returns a JSON bundle
-//! `{ "svg": "...", "animations": [...] }` (or `{ "error": "..." }`). The
-//! browser playground injects the SVG and drives the animations with GSAP.
+//! `{ "svg": "...", "animations": [...], "diagnostics": [...] }` (or
+//! `{ "error": "..." }`). The browser playground injects the SVG and drives the
+//! animations with GSAP.
 
 use wasm_bindgen::prelude::*;
 
-/// Compile pic source to a JSON `{svg, animations}` bundle (or `{error}`).
+/// Compile pic source to a JSON `{svg, animations, diagnostics}` bundle (or
+/// `{error}`).
 #[wasm_bindgen]
 pub fn compile(src: &str) -> String {
     rpic_core::compile_json(src)

@@ -56,6 +56,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         shapes: st.shapes,
         bbox: st.bbox,
         anims: st.anims,
+        diagnostics: st.diagnostics,
     };
     apply_ps_size(&mut d, want_w, want_h);
     clamp_to_maxps(&mut d, maxw, maxh);
@@ -400,6 +401,7 @@ struct State {
     layout_bbox: Bbox,
     // animation state
     anims: Vec<Anim>,
+    diagnostics: Vec<String>,
     anim_cursor: f64,
     anim_end: HashMap<usize, f64>,
     rng: GlibcRand,
@@ -439,6 +441,7 @@ impl State {
             bbox: Bbox::new(),
             layout_bbox: Bbox::new(),
             anims: Vec::new(),
+            diagnostics: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
             rng: GlibcRand::new(1),
@@ -567,9 +570,13 @@ impl State {
             }
             Stmt::Print(item) => match item {
                 PrintItem::Expr(e) => {
-                    self.eval_expr(e)?;
+                    let v = self.eval_expr(e)?;
+                    self.diagnostics.push(fmt_num(v));
                 }
-                PrintItem::Str(_) => {}
+                PrintItem::Str(se) => {
+                    let s = self.eval_stringexpr(se)?;
+                    self.diagnostics.push(s);
+                }
             },
             Stmt::Exec { command, arg_frame } => {
                 let src = unescape_exec_source(&self.eval_stringexpr(command)?);
@@ -1280,6 +1287,7 @@ impl State {
         // Variables, parameters and direction changes inside `[ ... ]` are
         // local to the block. Random draws still consume the shared sequence.
         self.rng = sub.rng.clone();
+        self.diagnostics.append(&mut sub.diagnostics);
         for key in &sub.export_vars {
             if let Some(val) = sub.vars.get(key).copied() {
                 self.vars.insert(key.clone(), val);
@@ -3417,6 +3425,15 @@ mod tests {
             "wid = {}",
             style.arrow_wid
         );
+    }
+
+    #[test]
+    fn print_statements_collect_diagnostics() {
+        let d = draw("print 5.5\nprint 5.5%2\nprint \"hello\"\nprint sprintf(\"x=%g\", 1.25)");
+        assert_eq!(d.diagnostics, ["5.5", "0", "hello", "x=1.25"]);
+
+        let d = draw("[ print \"inside\"; box ]\nprint 7");
+        assert_eq!(d.diagnostics, ["inside", "7"]);
     }
 
     #[test]

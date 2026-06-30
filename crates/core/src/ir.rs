@@ -10,6 +10,8 @@ pub struct Drawing {
     pub shapes: Vec<Shape>,
     pub bbox: Bbox,
     pub anims: Vec<Anim>,
+    /// Lines emitted by pic `print` statements, without trailing newlines.
+    pub diagnostics: Vec<String>,
 }
 
 /// A resolved animation entry. `shape` indexes into [`Drawing::shapes`]; the
