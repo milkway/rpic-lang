@@ -85,6 +85,8 @@ rpic --svg examples/dpic/manual/man16.pic -o man16.svg
 
 [`examples/figuras/`](examples/figuras) collects circuit_macros figures from
 **André Leite's** personal collection, rendered by rpic.
+[`examples/lib3d/`](examples/lib3d) shows 3D drawings (axonometric projection,
+à la circuit_macros' `lib3D`) rendered to flat SVG.
 
 ## Animation (GSAP)
 

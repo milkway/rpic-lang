@@ -1,0 +1,53 @@
+# lib3D compatibility layer for rpic.
+#
+# circuit_macros' lib3D.m4 (J. D. Aplevich) is a 3D drawing library: you give 3D
+# coordinates and a viewpoint, it *projects* each 3D point onto the 2D drawing
+# plane (an axonometric projection), then draws with ordinary pic primitives.
+# The output is flat 2D line art — exactly what rpic renders to SVG — so no 3D
+# backend is needed, only the projection math. This shim reimplements that core
+# in rpic's own expression language, reusing the native 2D primitives (same
+# "reuse, don't reinvent" approach as the circuit_macros element shim).
+#
+# Load it with `copy "lib3d.pic"`, call `setview(...)` once, then use
+# `Project(x,y,z)` anywhere a position is expected.
+
+deg3d = atan2(0,-1)/180          # degrees -> radians (pi/180)
+
+# setview(azimuth, elevation [, roll]) — set the viewing angles, in degrees.
+# Mirrors lib3D's projection: rotate by -azimuth about z, by elevation about y,
+# by roll about x, then read off the (y, z) of the result as the 2D (u, v).
+define setview {
+  v3az = ($1)*deg3d; v3el = ($2)*deg3d
+  v3rot = 0; if "$3" != "" then { v3rot = ($3)*deg3d }
+  v3ca = cos(v3az); v3sa = sin(v3az)
+  v3ce = cos(v3el); v3se = sin(v3el)
+  v3cr = cos(v3rot); v3sr = sin(v3rot)
+}
+
+# Project(x, y, z) — the 3D point projected to a 2D coordinate (u, v).
+# Intermediate (before roll): u0 = -x sa + y ca,  v0 = z ce - se(x ca + y sa).
+# Roll about the view axis then mixes (u0, v0): u = u0 cr - v0 sr, v = u0 sr + v0 cr.
+define Project {
+  ( (0-($1)*v3sa+($2)*v3ca)*v3cr - (($3)*v3ce-v3se*(($1)*v3ca+($2)*v3sa))*v3sr, \
+    (0-($1)*v3sa+($2)*v3ca)*v3sr + (($3)*v3ce-v3se*(($1)*v3ca+($2)*v3sa))*v3cr )
+}
+
+# axis3D(len) — draw labelled x/y/z axes of the given length from the origin.
+define axis3D {
+  line -> from Project(0,0,0) to Project($1,0,0); "x" at Project(($1)*1.15,0,0)
+  line -> from Project(0,0,0) to Project(0,$1,0); "y" at Project(0,($1)*1.15,0)
+  line -> from Project(0,0,0) to Project(0,0,$1); "z" at Project(0,0,($1)*1.15)
+}
+
+# box3D(a, b, c) — a wireframe box with one corner at the origin and the
+# opposite corner at (a, b, c): the two end faces plus the four connecting edges.
+define box3D {
+  line from Project(0,0,0) to Project($1,0,0) to Project($1,$2,0) \
+    to Project(0,$2,0) to Project(0,0,0)
+  line from Project(0,0,$3) to Project($1,0,$3) to Project($1,$2,$3) \
+    to Project(0,$2,$3) to Project(0,0,$3)
+  line from Project(0,0,0)  to Project(0,0,$3)
+  line from Project($1,0,0) to Project($1,0,$3)
+  line from Project($1,$2,0) to Project($1,$2,$3)
+  line from Project(0,$2,0) to Project(0,$2,$3)
+}

@@ -1,0 +1,11 @@
+copy "lib3d.pic"
+.PS
+# the same unit cube seen from three viewpoints, side by side
+boxht=0; boxwid=0
+setview(20, 10);  V1: [ box3D(1,1,1) ]
+setview(45, 30);  V2: [ box3D(1,1,1) ] with .w at V1.e + (0.6,0)
+setview(70, 15);  V3: [ box3D(1,1,1) ] with .w at V2.e + (0.6,0)
+"azim 20, elev 10" at V1.s below
+"azim 45, elev 30" at V2.s below
+"azim 70, elev 15" at V3.s below
+.PE
