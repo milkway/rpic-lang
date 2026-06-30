@@ -145,10 +145,11 @@ impl Svg {
                 text,
             } => {
                 if pts.len() >= 2 {
+                    let stroke_pts = self.path_stroke_points(pts, *arrows, style);
                     if pts.len() == 2 {
                         if !style.invis {
-                            let a = self.p(pts[0]);
-                            let b = self.p(pts[1]);
+                            let a = stroke_pts[0];
+                            let b = stroke_pts[1];
                             self.out.push_str(&format!(
                                 "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" {}/>\n",
                                 num(a.x),
@@ -174,9 +175,13 @@ impl Svg {
                             ));
                         }
                         if !style.invis {
+                            let stroke_pstr: Vec<String> = stroke_pts
+                                .iter()
+                                .map(|p| format!("{},{}", num(p.x), num(p.y)))
+                                .collect();
                             self.out.push_str(&format!(
                                 "<polyline points=\"{}\" fill=\"none\" {}/>\n",
-                                pstr.join(" "),
+                                stroke_pstr.join(" "),
                                 self.stroke(style)
                             ));
                         }
@@ -288,6 +293,25 @@ impl Svg {
 
     // ---- painting ----------------------------------------------------------
 
+    fn path_stroke_points(&self, pts: &[Point], arrows: Arrowheads, style: &Style) -> Vec<Point> {
+        let mut out: Vec<Point> = pts.iter().map(|p| self.p(*p)).collect();
+        if style.arrow_filled || out.len() < 2 {
+            return out;
+        }
+        let n = out.len();
+        if matches!(arrows, Arrowheads::End | Arrowheads::Both)
+            && let Some((_, p, _)) = open_arrowhead_points(out[n - 1], out[n - 2], style)
+        {
+            out[n - 1] = p;
+        }
+        if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
+            && let Some((_, p, _)) = open_arrowhead_points(out[0], out[1], style)
+        {
+            out[0] = p;
+        }
+        out
+    }
+
     fn stroke(&self, style: &Style) -> String {
         let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
         let mut s = format!(
@@ -366,13 +390,15 @@ impl Svg {
                     color
                 ));
             } else {
-                // open arrowhead: two strokes meeting at the tip
+                let Some((l, p, r)) = open_arrowhead_points(t, f, style) else {
+                    return;
+                };
                 out.push_str(&format!(
                     "<polyline points=\"{},{} {},{} {},{}\" fill=\"none\" {}/>\n",
                     num(l.x),
                     num(l.y),
-                    num(t.x),
-                    num(t.y),
+                    num(p.x),
+                    num(p.y),
                     num(r.x),
                     num(r.y),
                     self.stroke(style)
@@ -433,12 +459,15 @@ impl Svg {
                     num(rr.y)
                 ));
             } else {
+                let Some((l, p, rr)) = open_arrowhead_points(t, f, style) else {
+                    return;
+                };
                 out.push_str(&format!(
                     "<path d=\"M {} {} L {} {} L {} {}\" fill=\"none\" {}/>\n",
                     num(l.x),
                     num(l.y),
-                    num(t.x),
-                    num(t.y),
+                    num(p.x),
+                    num(p.y),
                     num(rr.x),
                     num(rr.y),
                     self.stroke(style)
@@ -511,6 +540,52 @@ fn thick_px(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
     let pt = style.thick.filter(|t| *t > 0.0).unwrap_or(0.8);
     pt * PPI / 72.0
+}
+
+fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Point, Point, Point)> {
+    let mut u = tip - shaft;
+    let len = u.len();
+    if len < 1e-9 {
+        return None;
+    }
+    u = u / len;
+    let perp = Point::new(-u.y, u.x);
+    let ht = style.arrow_ht * PPI;
+    let wid = style.arrow_wid * PPI;
+    let ltu = thick_px(style);
+    let po = if wid.abs() < 1e-12 {
+        0.0
+    } else {
+        (ltu * (ht * ht + wid * wid / 4.0).sqrt() / wid).min(ht)
+    };
+    let point = tip - u * po;
+    let h = ht - ltu / 2.0;
+    let x = h - po;
+    let v = if ht.abs() < 1e-12 {
+        0.0
+    } else {
+        (wid / 2.0) * x / ht
+    };
+    let left = tip - u * h - perp * v;
+    let right = tip - u * h + perp * v;
+    let y = if ht.abs() < 1e-12 {
+        0.0
+    } else {
+        ht - po + (ltu * wid / ht / 4.0)
+    };
+    Some((
+        prop(point, left, x - y, y, x),
+        point,
+        prop(point, right, x - y, y, x),
+    ))
+}
+
+fn prop(p1: Point, p2: Point, a: f64, b: f64, c: f64) -> Point {
+    if c.abs() < 1e-12 {
+        p2
+    } else {
+        (p1 * a + p2 * b) / c
+    }
 }
 
 fn midpoint(pts: &[Point]) -> Option<Point> {
@@ -730,6 +805,26 @@ mod tests {
         let below = text_y(&s, "BBBB");
         assert!(above < below, "above={above} below={below}");
         assert!((below - above) < 40.0, "above/below offset too large: {s}");
+    }
+
+    #[test]
+    fn open_arrowhead_geometry_matches_dpic_default() {
+        let style = Style {
+            arrow_filled: false,
+            ..Default::default()
+        };
+        let (left, point, right) = open_arrowhead_points(
+            Point::new(97.066_667, 2.933_333),
+            Point::new(1.066_667, 2.933_333),
+            &style,
+        )
+        .unwrap();
+        assert!((point.x - 94.867_677).abs() < 1e-6, "point={point:?}");
+        assert!((point.y - 2.933_333).abs() < 1e-6, "point={point:?}");
+        assert!((left.x - 87.333_333).abs() < 1e-6, "left={left:?}");
+        assert!((left.y - 1.049_747).abs() < 1e-6, "left={left:?}");
+        assert!((right.x - 87.333_333).abs() < 1e-6, "right={right:?}");
+        assert!((right.y - 4.816_919).abs() < 1e-6, "right={right:?}");
     }
 
     #[test]
