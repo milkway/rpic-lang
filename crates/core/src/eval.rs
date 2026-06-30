@@ -1436,16 +1436,21 @@ impl State {
     }
 
     fn nth_index(&mut self, count: &Nth, obj: &PrimObj) -> ER<usize> {
+        // Untyped `last` matches the most recent object of any kind; a typed
+        // reference (`last box`) filters to that kind.
         let want = primobj_kind(obj);
         let matches: Vec<usize> = self
             .placed
             .iter()
             .enumerate()
-            .filter(|(_, pl)| pl.kind == want)
+            .filter(|(_, pl)| want.is_none_or(|w| pl.kind == w))
             .map(|(i, _)| i)
             .collect();
         if matches.is_empty() {
-            return err(format!("no {:?} object to reference", want_name(want)));
+            return match want {
+                Some(w) => err(format!("no {:?} object to reference", want_name(w))),
+                None => err("no object to reference".to_string()),
+            };
         }
         let idx = match count {
             Nth::Last => *matches.last().unwrap(),
@@ -1696,8 +1701,10 @@ fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
     }
 }
 
-fn primobj_kind(o: &PrimObj) -> PKind {
-    match o {
+/// The placed-object kind a `PrimObj` selects, or `None` for untyped `Any`
+/// (matches every kind).
+fn primobj_kind(o: &PrimObj) -> Option<PKind> {
+    Some(match o {
         PrimObj::Prim(p) => match p {
             Prim::Box => PKind::Box,
             Prim::Circle => PKind::Circle,
@@ -1709,7 +1716,8 @@ fn primobj_kind(o: &PrimObj) -> PKind {
         },
         PrimObj::Block | PrimObj::EmptyBrack => PKind::Block,
         PrimObj::Str(_) => PKind::Text,
-    }
+        PrimObj::Any => return None,
+    })
 }
 
 fn want_name(k: PKind) -> &'static str {
@@ -2464,6 +2472,7 @@ mod tests {
         for body in [
             include_str!("../../../examples/figuras/fig21.pic"),
             include_str!("../../../examples/figuras/fig26.pic"),
+            include_str!("../../../examples/figuras/fig27.pic"),
             include_str!("../../../examples/figuras/fig30.pic"),
             include_str!("../../../examples/figuras/fig33.pic"),
             include_str!("../../../examples/figuras/fig45.pic"),
@@ -2599,5 +2608,50 @@ mod tests {
         };
         // from first box east edge to second box west edge
         assert!(pts[0].x > 0.0 && pts.last().unwrap().x < 2.0);
+    }
+
+    #[test]
+    fn untyped_last_references_any_kind() {
+        // `last.c` after a circle resolves to that circle (no `last circle`).
+        let d = draw("circle rad 0.5 at (3,1)\n\"x\" at last.c");
+        let Shape::Text { at, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((at.x - 3.0).abs() < 1e-9 && (at.y - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn untyped_last_corner_after_box() {
+        // `last.n` (north of the most recent object, whatever its kind).
+        let d = draw("box wid 2 ht 1 at (0,0)\n\"y\" at last.n");
+        let Shape::Text { at, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((at.x - 0.0).abs() < 1e-9 && (at.y - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn untyped_nth_last_spans_kinds() {
+        // `2nd last` counts across kinds: box, then circle -> 2nd last is the box.
+        let d = draw("box at (0,0)\ncircle at (2,0)\n\"z\" at 2nd last.c");
+        let Shape::Text { at, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((at.x - 0.0).abs() < 1e-9, "x = {}", at.x);
+    }
+
+    #[test]
+    fn typed_last_still_filters_by_kind() {
+        // an explicit type keyword keeps filtering: `last box` skips the circle.
+        let d = draw("box at (0,0)\ncircle at (2,0)\n\"w\" at last box.c");
+        let Shape::Text { at, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!((at.x - 0.0).abs() < 1e-9, "x = {}", at.x);
+    }
+
+    #[test]
+    fn untyped_last_with_no_object_errors() {
+        assert!(eval(&parse("\"q\" at last.c").unwrap()).is_err());
     }
 }

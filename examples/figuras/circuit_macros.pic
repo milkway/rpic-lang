@@ -43,7 +43,9 @@ define bi_tr { [ bpnp = 0; if "$3" == "P" then { bpnp = 1 }; bsx = 1; bsy = 1; i
 # (right_ → inputs left, left_ → inputs right). Optional +/- label args ignored.
 define opamp { [ line invis $1; oosx = 1; if (last line.end.x - last line.start.x) < 0 then { oosx = 0 - 1 }; __opamp((0,0), oosx); In1:(gIm_x,gIm_y); In2:(gIp_x,gIp_y); Out:(gY_x,gY_y) ] }
 
-# element labels (right/left/below of the last element's centre)
-define rlabel { "$2" at last line.c + (dimen_/3, 0) ljust }
-define llabel { "$2" at last line.c - (dimen_/3, 0) rjust }
-define dlabel { "$2" at last line.c below }
+# element labels (right/left/below the centre of the last drawn object). Using
+# untyped `last` (not `last line`) lets a label follow any element — including a
+# `dot` (circle) — not just a line.
+define rlabel { "$2" at last.c + (dimen_/3, 0) ljust }
+define llabel { "$2" at last.c - (dimen_/3, 0) rjust }
+define dlabel { "$2" at last.c below }
