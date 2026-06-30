@@ -572,11 +572,11 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.0.2"
+version = "0.1.1"
 
 [[package]]
 name = "rpic-python"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "pyo3",
  "rpic-core",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-render"
-version = "0.0.2"
+version = "0.1.1"
 dependencies = [
  "resvg 0.47.0",
  "svg2pdf",
