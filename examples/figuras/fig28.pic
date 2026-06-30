@@ -1,0 +1,22 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+En:dot at (0,0); down_;llabel(,V_{en},);
+line from En.c down_ dimen_/2;
+Z1:ebox(down_ dimen_);llabel(,z_1,)
+Z2:ebox(down_ dimen_);llabel(,z_2,)
+Z3:ebox(down_ dimen_);rlabel(,z_3,)
+Z4:ebox(down_ dimen_);rlabel(,z_4,)
+Z5:ebox(down_ dimen_);rlabel(,z_5,)
+ground;
+A1:line from Z1.e left_ dimen_/3 then down_ 3*dimen_/4 then left_ dimen_/4
+Amp1:opamp(left_ dimen_) with .In2 at Here
+line from Amp1.In1 right_ dimen_/4 then down_ 3*dimen_/4 then right_ dimen_/3
+A2:line from Here right_ dimen_/3 then down_ 3*dimen_/4 then right_ dimen_/4
+Amp2:opamp(right_ dimen_) with .In1 at Here
+line from Amp2.In2 left_ dimen_/4 then down_ 3*dimen_/4 then left_ dimen_/3
+line from Amp1.Out left_ dimen_/4 then down_ 2*dimen_ then right_ dimen_*11/6
+line from Amp2.Out right_ dimen_/4 then up_ 2*dimen_ then left_ dimen_*11/6
+.PE

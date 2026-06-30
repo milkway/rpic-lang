@@ -34,6 +34,36 @@ define __resistor {
 }
 define resistor { __resistor($1, $2) }
 
+# --- element box (rectangular two-terminal box, e.g. a generic impedance) -
+define __ebox {
+  ebsx=$1.x; ebsy=$1.y; ebex=$2.x; ebey=$2.y
+  ebdx=ebex-ebsx; ebdy=ebey-ebsy; ebL=sqrt(ebdx*ebdx+ebdy*ebdy)
+  ebux=ebdx/ebL; ebuy=ebdy/ebL; ebpx=0-ebuy; ebpy=ebux
+  ebb=0.4; ebld=(ebL-ebb)/2; ebh=0.12
+  line from (ebsx,ebsy) to (ebsx+ebux*ebld,ebsy+ebuy*ebld)
+  line from (ebsx+ebux*ebld+ebpx*ebh,ebsy+ebuy*ebld+ebpy*ebh) \
+    then to (ebsx+ebux*(ebld+ebb)+ebpx*ebh,ebsy+ebuy*(ebld+ebb)+ebpy*ebh) \
+    then to (ebsx+ebux*(ebld+ebb)-ebpx*ebh,ebsy+ebuy*(ebld+ebb)-ebpy*ebh) \
+    then to (ebsx+ebux*ebld-ebpx*ebh,ebsy+ebuy*ebld-ebpy*ebh) \
+    then to (ebsx+ebux*ebld+ebpx*ebh,ebsy+ebuy*ebld+ebpy*ebh)
+  line from (ebsx+ebux*(ebld+ebb),ebsy+ebuy*(ebld+ebb)) to (ebex,ebey)
+}
+define ebox { __ebox($1, $2) }
+
+# --- current source (circle with an internal arrow) ----------------------
+define __isource {
+  issx=$1.x; issy=$1.y; isex=$2.x; isey=$2.y
+  isdx=isex-issx; isdy=isey-issy; isL=sqrt(isdx*isdx+isdy*isdy)
+  isux=isdx/isL; isuy=isdy/isL
+  isr=0.2; ism=isL/2
+  line from (issx,issy) to (issx+isux*(ism-isr),issy+isuy*(ism-isr))
+  circle rad isr at (issx+isux*ism,issy+isuy*ism)
+  arrow from (issx+isux*(ism-isr*0.55),issy+isuy*(ism-isr*0.55)) \
+    to (issx+isux*(ism+isr*0.55),issy+isuy*(ism+isr*0.55))
+  line from (issx+isux*(ism+isr),issy+isuy*(ism+isr)) to (isex,isey)
+}
+define isource { __isource($1, $2) }
+
 # --- capacitor (two plates) ----------------------------------------------
 define __capacitor {
   csx=$1.x; csy=$1.y; cex=$2.x; cey=$2.y
