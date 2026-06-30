@@ -253,7 +253,11 @@ struct State {
     shapes: Vec<Shape>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
+    /// Visible geometry and text only; this becomes the final drawing/viewBox.
     bbox: Bbox,
+    /// All evaluated geometry, including invisible helpers, for block sizing
+    /// and anchor placement.
+    layout_bbox: Bbox,
     // animation state
     anims: Vec<Anim>,
     anim_cursor: f64,
@@ -290,6 +294,7 @@ impl State {
             placed: Vec::new(),
             labels: HashMap::new(),
             bbox: Bbox::new(),
+            layout_bbox: Bbox::new(),
             anims: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
@@ -600,13 +605,19 @@ impl State {
         }
 
         let new: Vec<Point> = pts[1..].to_vec();
-        match &mut self.shapes[idx] {
-            Shape::Path { pts: p, .. } | Shape::Spline { pts: p, .. } => p.extend_from_slice(&new),
+        let visible = match &mut self.shapes[idx] {
+            Shape::Path { pts: p, style, .. } | Shape::Spline { pts: p, style, .. } => {
+                p.extend_from_slice(&new);
+                !style.invis
+            }
             _ => unreachable!(),
-        }
+        };
         let end = *pts.last().unwrap();
         for q in &new {
-            self.bbox.add(*q);
+            self.layout_bbox.add(*q);
+            if visible {
+                self.bbox.add(*q);
+            }
         }
         self.pos = end;
         self.dir = last_dir;
@@ -674,6 +685,10 @@ impl State {
         let mut bb = Bbox::new();
         bb.add(center - Point::new(w / 2.0, h / 2.0));
         bb.add(center + Point::new(w / 2.0, h / 2.0));
+        self.layout_bbox.union(&bb);
+        if !style.invis {
+            self.bbox.union(&bb);
+        }
         self.union_text(center, &text);
 
         let shape = match p {
@@ -700,7 +715,6 @@ impl State {
             },
         };
         self.shapes.push(shape);
-        self.bbox.union(&bb);
 
         let half = dir_unit(dir) * (extent / 2.0);
         let start = center - half;
@@ -717,9 +731,12 @@ impl State {
     }
 
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
-        let style = self.style_of(obj)?;
+        let mut style = self.style_of(obj)?;
         let text = self.text_of(obj)?;
         let is_move = matches!(p, Prim::Move);
+        if is_move {
+            style.invis = true;
+        }
         let (deflen_h, deflen_v) = if is_move {
             (self.env.get(EnvVar::Movewid), self.env.get(EnvVar::Moveht))
         } else {
@@ -817,7 +834,10 @@ impl State {
         for pt in &pts {
             bb.add(*pt);
         }
-        self.bbox.union(&bb);
+        self.layout_bbox.union(&bb);
+        if !style.invis {
+            self.bbox.union(&bb);
+        }
 
         let end = *pts.last().unwrap();
         let center = (pts[0] + end) * 0.5;
@@ -827,10 +847,6 @@ impl State {
             Prim::Move => PKind::Move,
             _ => PKind::Line,
         };
-        let mut style = style;
-        if is_move {
-            style.invis = true;
-        }
         let shape = if matches!(p, Prim::Spline) {
             Shape::Spline {
                 pts: pts.clone(),
@@ -916,7 +932,10 @@ impl State {
         for k in 0..=12 {
             bb.add(at(a0 + (a1 - a0) * (k as f64 / 12.0)));
         }
-        self.bbox.union(&bb);
+        self.layout_bbox.union(&bb);
+        if !style.invis {
+            self.bbox.union(&bb);
+        }
         self.union_text(center, &text);
 
         self.shapes.push(Shape::Arc {
@@ -947,7 +966,7 @@ impl State {
         let at = self.at_of(obj)?.unwrap_or(self.pos);
         let mut bb = Bbox::new();
         bb.add(at);
-        self.bbox.union(&bb);
+        self.layout_bbox.union(&bb);
         self.union_text(at, &text);
         self.shapes.push(Shape::Text { at, text });
         let sh = self.shapes.len() - 1;
@@ -959,7 +978,7 @@ impl State {
     /// viewBox. Uses the same 11pt font the SVG backend renders with; the
     /// average glyph width is approximated (slightly generous to avoid clipping).
     fn union_text(&mut self, center: Point, lines: &[TextLine]) {
-        if lines.is_empty() {
+        if !has_visible_text(lines) {
             return;
         }
         const EM: f64 = 11.0 / 72.0; // font height in inches (matches svg FONT_PT)
@@ -967,6 +986,8 @@ impl State {
         let line_h = 1.2 * EM;
         let cols = lines.iter().map(|l| l.s.chars().count()).max().unwrap_or(0) as f64;
         let half = Point::new(cols * char_w / 2.0, lines.len() as f64 * line_h / 2.0);
+        self.layout_bbox.add(center + half);
+        self.layout_bbox.add(center - half);
         self.bbox.add(center + half);
         self.bbox.add(center - half);
     }
@@ -993,16 +1014,16 @@ impl State {
         self.vars = sub.vars.clone();
         self.env = sub.env.clone();
 
-        let sub_bb = if sub.bbox.is_empty() {
+        let layout_sub_bb = if sub.layout_bbox.is_empty() {
             let mut b = Bbox::new();
             b.add(Point::ZERO);
             b
         } else {
-            sub.bbox
+            sub.layout_bbox
         };
-        let local_center = (sub_bb.min + sub_bb.max) * 0.5;
-        let w = sub_bb.width();
-        let h = sub_bb.height();
+        let local_center = (layout_sub_bb.min + layout_sub_bb.max) * 0.5;
+        let w = layout_sub_bb.width();
+        let h = layout_sub_bb.height();
 
         let dir = self.dir_of(obj);
         let extent = if horizontal(dir) { w } else { h };
@@ -1028,9 +1049,15 @@ impl State {
             None
         };
         let mut bb = Bbox::new();
-        bb.add(sub_bb.min + shift);
-        bb.add(sub_bb.max + shift);
-        self.bbox.union(&bb);
+        bb.add(layout_sub_bb.min + shift);
+        bb.add(layout_sub_bb.max + shift);
+        self.layout_bbox.union(&bb);
+        if !sub.bbox.is_empty() {
+            let mut visible_bb = Bbox::new();
+            visible_bb.add(sub.bbox.min + shift);
+            visible_bb.add(sub.bbox.max + shift);
+            self.bbox.union(&visible_bb);
+        }
 
         let half = dir_unit(dir) * (extent / 2.0);
         let start = target - half;
@@ -1658,6 +1685,10 @@ fn bool_f(b: bool) -> f64 {
     if b { 1.0 } else { 0.0 }
 }
 
+fn has_visible_text(lines: &[TextLine]) -> bool {
+    lines.iter().any(|line| !line.s.is_empty())
+}
+
 /// Render a number the way pic's `%g`/string contexts do (no trailing zeros).
 fn fmt_num(v: f64) -> String {
     format!("{v}")
@@ -2224,6 +2255,50 @@ mod tests {
         // text wider than its box widens the bbox beyond the box
         let d2 = draw("box wid 0.2 ht 0.2 \"a very wide label\"");
         assert!(d2.bbox.width() > 0.3, "w = {}", d2.bbox.width());
+    }
+
+    #[test]
+    fn invisible_geometry_and_moves_do_not_expand_drawing_bbox() {
+        let d =
+            draw("box invis wid 1000 ht 1000 at (0,0)\nmove to (0,-1000)\nbox wid 1 ht 1 at (0,0)");
+        assert!(
+            (d.bbox.width() - 1.0).abs() < 1e-9,
+            "w = {}",
+            d.bbox.width()
+        );
+        assert!(
+            (d.bbox.height() - 1.0).abs() < 1e-9,
+            "h = {}",
+            d.bbox.height()
+        );
+
+        let d2 = draw("line invis from (0,0) to (1000,1000)\nbox wid 1 ht 1 at (0,0)");
+        assert!(
+            (d2.bbox.width() - 1.0).abs() < 1e-9,
+            "w = {}",
+            d2.bbox.width()
+        );
+        assert!(
+            (d2.bbox.height() - 1.0).abs() < 1e-9,
+            "h = {}",
+            d2.bbox.height()
+        );
+
+        let d3 = draw("I: box invis wid 1000 ht 1000 at (0,0)\nbox wid 1 ht 1 with .sw at I.ne");
+        let Shape::Box { c, .. } = &d3.shapes[1] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(500.5, 500.5)) < 1e-9, "c = {c:?}");
+        assert!(
+            (d3.bbox.width() - 1.0).abs() < 1e-9,
+            "w = {}",
+            d3.bbox.width()
+        );
+        assert!(
+            (d3.bbox.height() - 1.0).abs() < 1e-9,
+            "h = {}",
+            d3.bbox.height()
+        );
     }
 
     #[test]

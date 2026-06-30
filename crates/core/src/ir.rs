@@ -50,7 +50,8 @@ pub struct Style {
     pub dash: Dash,
     /// Stroke thickness in points; `None` = backend default.
     pub thick: Option<f64>,
-    /// Invisible (used by `move` and `invis`): geometry counts, nothing drawn.
+    /// Invisible (used by `move` and `invis`): geometry is still available for
+    /// placement and anchors, but is not drawn.
     pub invis: bool,
     /// Arrowhead dimensions in inches (`arrowht`/`arrowwid`), used when this
     /// shape carries arrowheads.
