@@ -209,6 +209,16 @@ impl Lexer {
     }
 
     fn push(&mut self, tok: Token, line: u32, col: u32) {
+        // A newline right after `then` is a line/spline-path continuation, not a
+        // statement terminator: circuit_macros figures wrap long paths across
+        // lines without a trailing `\` (e.g. `… then ⏎ left_ …`). `then` only
+        // occurs inside a path and always needs a following element, so dropping
+        // the newline is unambiguous.
+        if tok == Token::Newline
+            && matches!(self.out.last().map(|s| &s.tok), Some(Token::Kw(Kw::Then)))
+        {
+            return;
+        }
         self.out.push(Spanned::new(tok, line, col));
     }
 
@@ -953,6 +963,30 @@ mod tests {
                 Token::Func2(Func2::Atan2),
                 Token::EnvVar(EnvVar::Scale),
                 Token::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn newline_after_then_is_continuation() {
+        // `then` ⏎ continues a path (no statement break); a normal newline does not.
+        assert_eq!(
+            toks("line right then\nup"),
+            vec![
+                Token::Prim(Prim::Line),
+                Token::Dir(Dir::Right),
+                Token::Kw(Kw::Then),
+                Token::Dir(Dir::Up),
+                Token::Eof,
+            ]
+        );
+        assert_eq!(
+            toks("box\nup"),
+            vec![
+                Token::Prim(Prim::Box),
+                Token::Newline,
+                Token::Dir(Dir::Up),
+                Token::Eof,
             ]
         );
     }
