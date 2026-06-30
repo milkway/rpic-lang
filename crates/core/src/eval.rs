@@ -2585,6 +2585,21 @@ mod tests {
     }
 
     #[test]
+    fn lib3d_examples_compile() {
+        // The lib3D shim (3D -> 2D axonometric projection) and its demos must
+        // keep compiling and drawing. The demos `copy` the shim; splice it in.
+        let shim = include_str!("../../../examples/lib3d/lib3d.pic");
+        for body in [
+            include_str!("../../../examples/lib3d/frame.pic"),
+            include_str!("../../../examples/lib3d/views.pic"),
+        ] {
+            let src = body.replace("copy \"lib3d.pic\"", shim);
+            let d = eval(&parse(&src).unwrap()).unwrap();
+            assert!(!d.shapes.is_empty());
+        }
+    }
+
+    #[test]
     fn brace_ncount_as_place() {
         // `{expr}th last box` — a brace-counted ordinal used as a place
         let d = draw(

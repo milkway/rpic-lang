@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="324.314" height="294.945" viewBox="0 0 324.314 294.945" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="135.046,220.284 24.919,274.076" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="24.919,274.076 32.492,267.706 34.598,272.019" fill="black"/>
+</g>
+<g id="s1">
+<text x="8.4" y="282.145" text-anchor="middle" dominant-baseline="central">x</text>
+</g>
+<g id="s2">
+<polyline points="135.046,220.284 292.323,257.95" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="292.323,257.95 282.428,258.048 283.546,253.38" fill="black"/>
+</g>
+<g id="s3">
+<text x="315.914" y="263.6" text-anchor="middle" dominant-baseline="central">y</text>
+</g>
+<g id="s4">
+<polyline points="135.046,220.284 135.046,39.863" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="135.046,39.863 137.446,49.463 132.646,49.463" fill="black"/>
+</g>
+<g id="s5">
+<text x="135.046" y="12.8" text-anchor="middle" dominant-baseline="central">z</text>
+</g>
+<g id="s6">
+<polyline points="135.046,220.284 57.957,257.939 136.596,276.771 213.684,239.117 135.046,220.284" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<polyline points="135.046,148.116 57.957,185.77 136.596,204.603 213.684,166.949 135.046,148.116" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s8">
+<polyline points="135.046,220.284 135.046,148.116" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s9">
+<polyline points="57.957,257.939 57.957,185.77" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<polyline points="136.596,276.771 136.596,204.603" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<polyline points="213.684,239.117 213.684,166.949" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+</svg>
