@@ -51,10 +51,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         Some(e) => Some(st.eval_expr(e)?),
         None => None,
     };
-    let (maxw, maxh) = (
-        st.env.get(EnvVar::Maxpswid),
-        st.env.get(EnvVar::Maxpsht),
-    );
+    let (maxw, maxh) = (st.env.get(EnvVar::Maxpswid), st.env.get(EnvVar::Maxpsht));
     let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
@@ -986,7 +983,8 @@ impl State {
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
         for (name, &i) in &self.labels {
-            sub.outer_labels.insert(name.clone(), self.placed[i].clone());
+            sub.outer_labels
+                .insert(name.clone(), self.placed[i].clone());
         }
         sub.eval_stmts(stmts)?;
         // pic variables and environment parameters are global: assignments made
@@ -2384,7 +2382,11 @@ mod tests {
         );
         // raising the limits disables the clamp
         let d2 = draw("maxpsht = 200; maxpswid = 50\nbox wid 20 ht 30");
-        assert!((d2.bbox.height() - 30.0).abs() < 1e-6, "h = {}", d2.bbox.height());
+        assert!(
+            (d2.bbox.height() - 30.0).abs() < 1e-6,
+            "h = {}",
+            d2.bbox.height()
+        );
         // a small drawing is untouched
         let d3 = draw("box wid 2 ht 1");
         assert!((d3.bbox.width() - 2.0).abs() < 1e-6);

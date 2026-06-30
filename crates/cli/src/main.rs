@@ -122,7 +122,12 @@ enum Output {
     Bytes(Vec<u8>),
 }
 
-fn run(src: &str, mode: &Mode, scale: f32, base: Option<&std::path::Path>) -> Result<Output, String> {
+fn run(
+    src: &str,
+    mode: &Mode,
+    scale: f32,
+    base: Option<&std::path::Path>,
+) -> Result<Output, String> {
     match mode {
         Mode::Tokens => {
             let toks = rpic_core::lex(src).map_err(|e| e.to_string())?;
