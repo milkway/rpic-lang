@@ -1923,7 +1923,14 @@ impl Parser {
             }
             Token::Kw(Kw::Last) | Token::Float(_) | Token::LeftBrace | Token::LeftQuote => {
                 let count = self.parse_nth()?;
-                let obj = self.parse_primobj()?;
+                // A type keyword may follow (`last box`); without one, this is an
+                // untyped reference to the most recent object of any kind
+                // (`last`, `last.c`, `2nd last.n`).
+                let obj = if self.at_primobj() {
+                    self.parse_primobj()?
+                } else {
+                    PrimObj::Any
+                };
                 Ok(Place::Nth { count, obj })
             }
             other => self.err(format!("expected a place, found {other:?}")),
@@ -1964,6 +1971,15 @@ impl Parser {
             }
             other => self.err(format!("expected an ordinal count, found {other:?}")),
         }
+    }
+
+    /// Whether the current token can begin a primitive-object type keyword
+    /// (`box`, `[`, a string, …) — i.e. an explicit type after `last`/ordinal.
+    fn at_primobj(&self) -> bool {
+        matches!(
+            self.cur(),
+            Token::Prim(_) | Token::Block | Token::Str(_) | Token::LeftBrack
+        )
     }
 
     fn parse_primobj(&mut self) -> PResult<PrimObj> {

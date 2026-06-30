@@ -1,0 +1,23 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+In:dot at (0,0); down_;rlabel(,+,);
+line right_ dimen_/4;
+R1:resistor(right_ dimen_);llabel(,R_1,)
+L1:line right_ dimen_/2
+R2:resistor(right_ dimen_);llabel(,R_2,)
+L2:line from L1.c down_ .75*dimen_ then right_ dimen_/4
+Amp:opamp(right_ dimen_) with .In1 at L2.e
+line from R2.e right_ dimen_/4 then down_ dimen_
+line from Amp.Out right_ dimen_;
+Out:dot; down_;llabel(,+,)
+move to In; down_
+L3:line invis "$V_{en}$" down dimen_;
+dot; down_; rlabel(,-,);ground;
+move to Out; down_
+L4:line invis "$V_{sa}$" down dimen_;
+dot; down_; rlabel(,-,);ground;
+line from Amp.In2 left_ dimen_/4 then down_ dimen_/4; ground;
+.PE

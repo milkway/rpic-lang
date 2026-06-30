@@ -275,6 +275,9 @@ pub enum PrimObj {
     Block,
     Str(String),
     EmptyBrack,
+    /// Untyped `last` / `Nth last` — the most recent object of any kind
+    /// (e.g. `last.c`, `2nd last.n`). Used when no type keyword follows.
+    Any,
 }
 
 /// A string-valued expression.
