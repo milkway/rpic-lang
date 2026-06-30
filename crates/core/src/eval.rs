@@ -206,6 +206,9 @@ struct Placed {
     start: Point,
     end: Point,
     thick: f64,
+    points: Vec<Point>,
+    radius: f64,
+    box_rad: f64,
     /// Index of the primary shape in `shapes` (None for point-only labels).
     shape: Option<usize>,
     /// For blocks: inner labels (sub-objects), translated into parent
@@ -215,9 +218,16 @@ struct Placed {
 
 impl Placed {
     fn corner(&self, c: Corner) -> Point {
-        if matches!(self.kind, PKind::Circle | PKind::Ellipse) {
-            return self.ellipse_corner(c);
+        match self.kind {
+            PKind::Circle | PKind::Ellipse => self.ellipse_corner(c),
+            PKind::Line | PKind::Move | PKind::Spline => self.linear_corner(c),
+            PKind::Arc => self.arc_corner(c),
+            PKind::Box => self.box_corner(c),
+            PKind::Block | PKind::Text => self.bbox_corner(c),
         }
+    }
+
+    fn bbox_corner(&self, c: Corner) -> Point {
         let (lo, hi) = (self.bbox.min, self.bbox.max);
         let mid = self.center;
         match c {
@@ -252,6 +262,85 @@ impl Placed {
             Corner::End => return self.end,
         };
         self.center + off
+    }
+
+    fn linear_corner(&self, c: Corner) -> Point {
+        if self.points.is_empty() {
+            return self.bbox_corner(c);
+        }
+        match c {
+            Corner::Center => (self.points[0] + *self.points.last().unwrap()) * 0.5,
+            Corner::Start => self.points[0],
+            Corner::End => *self.points.last().unwrap(),
+            _ => {
+                let mut best = self.points[0];
+                for p in self.points.iter().skip(1) {
+                    let better = match c {
+                        Corner::N => p.y > best.y,
+                        Corner::S => p.y < best.y,
+                        Corner::E => p.x > best.x,
+                        Corner::W => p.x < best.x,
+                        Corner::Ne => {
+                            (p.y > best.y && p.x >= best.x) || (p.y >= best.y && p.x > best.x)
+                        }
+                        Corner::Se => {
+                            (p.y < best.y && p.x >= best.x) || (p.y <= best.y && p.x > best.x)
+                        }
+                        Corner::Sw => {
+                            (p.y < best.y && p.x <= best.x) || (p.y <= best.y && p.x < best.x)
+                        }
+                        Corner::Nw => {
+                            (p.y > best.y && p.x <= best.x) || (p.y >= best.y && p.x < best.x)
+                        }
+                        Corner::Center | Corner::Start | Corner::End => false,
+                    };
+                    if better {
+                        best = *p;
+                    }
+                }
+                best
+            }
+        }
+    }
+
+    fn arc_corner(&self, c: Corner) -> Point {
+        let diag = self.radius * FRAC_1_SQRT_2;
+        let off = match c {
+            Corner::N => Point::new(0.0, self.radius),
+            Corner::S => Point::new(0.0, -self.radius),
+            Corner::E => Point::new(self.radius, 0.0),
+            Corner::W => Point::new(-self.radius, 0.0),
+            Corner::Ne => Point::new(diag, diag),
+            Corner::Se => Point::new(diag, -diag),
+            Corner::Nw => Point::new(-diag, diag),
+            Corner::Sw => Point::new(-diag, -diag),
+            Corner::Center => Point::ZERO,
+            Corner::Start => return self.start,
+            Corner::End => return self.end,
+        };
+        self.center + off
+    }
+
+    fn box_corner(&self, c: Corner) -> Point {
+        match c {
+            Corner::Ne | Corner::Se | Corner::Nw | Corner::Sw if self.box_rad > 0.0 => {
+                let inset = self
+                    .box_rad
+                    .min(self.bbox.width().abs().min(self.bbox.height().abs()) / 2.0)
+                    * (1.0 - FRAC_1_SQRT_2);
+                let x = self.bbox.width() / 2.0 - inset;
+                let y = self.bbox.height() / 2.0 - inset;
+                let off = match c {
+                    Corner::Ne => Point::new(x, y),
+                    Corner::Se => Point::new(x, -y),
+                    Corner::Nw => Point::new(-x, y),
+                    Corner::Sw => Point::new(-x, -y),
+                    _ => Point::ZERO,
+                };
+                self.center + off
+            }
+            _ => self.bbox_corner(c),
+        }
     }
 }
 
@@ -361,6 +450,9 @@ impl State {
                     start: p,
                     end: p,
                     thick: 0.0,
+                    points: Vec::new(),
+                    radius: 0.0,
+                    box_rad: 0.0,
                     shape: None,
                     members: HashMap::new(),
                 });
@@ -710,6 +802,7 @@ impl State {
             self.placed[pi].end = end;
             self.placed[pi].bbox.add(end);
             self.placed[pi].center = (self.placed[pi].start + end) * 0.5;
+            self.placed[pi].points.extend_from_slice(&new);
         }
         Ok(pidx.unwrap_or(idx))
     }
@@ -811,7 +904,11 @@ impl State {
             _ => PKind::Box,
         };
         let sh = self.shapes.len() - 1;
-        Ok(self.record(kind, center, bb, start, end, 0.0, Some(sh)))
+        let idx = self.record(kind, center, bb, start, end, 0.0, Some(sh));
+        if matches!(kind, PKind::Box) {
+            self.placed[idx].box_rad = rad;
+        }
+        Ok(idx)
     }
 
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
@@ -983,7 +1080,9 @@ impl State {
         self.pos = end;
         self.dir = last_dir;
         let sh = self.shapes.len() - 1;
-        Ok(self.record(kind, center, bb, pts[0], end, 0.0, Some(sh)))
+        let idx = self.record(kind, center, bb, pts[0], end, 0.0, Some(sh));
+        self.placed[idx].points = pts;
+        Ok(idx)
     }
 
     fn arc(&mut self, obj: &Object) -> ER<usize> {
@@ -1075,7 +1174,9 @@ impl State {
         self.dir = nearest_dir(tang);
         self.pos = end;
         let sh = self.shapes.len() - 1;
-        Ok(self.record(PKind::Arc, center, bb, start, end, 0.0, Some(sh)))
+        let idx = self.record(PKind::Arc, center, bb, start, end, 0.0, Some(sh));
+        self.placed[idx].radius = r;
+        Ok(idx)
     }
 
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
@@ -1232,6 +1333,9 @@ impl State {
             start,
             end,
             thick,
+            points: Vec::new(),
+            radius: 0.0,
+            box_rad: 0.0,
             shape,
             members: HashMap::new(),
         });
@@ -2351,6 +2455,9 @@ fn rebase_placed(pl: &mut Placed, d: Point, shape_off: usize) {
     pl.center = pl.center + d;
     pl.start = pl.start + d;
     pl.end = pl.end + d;
+    for p in &mut pl.points {
+        *p = *p + d;
+    }
     let mut bb = Bbox::new();
     bb.add(pl.bbox.min + d);
     bb.add(pl.bbox.max + d);
@@ -2367,6 +2474,11 @@ fn scale_placed(pl: &mut Placed, f: f64) {
     pl.center = pl.center * f;
     pl.start = pl.start * f;
     pl.end = pl.end * f;
+    for p in &mut pl.points {
+        *p = *p * f;
+    }
+    pl.radius *= f;
+    pl.box_rad *= f;
     scale_bbox_in_place(&mut pl.bbox, f);
     for m in pl.members.values_mut() {
         scale_placed(m, f);
@@ -2507,6 +2619,29 @@ mod tests {
         assert_eq!(pts.len(), 2);
         assert!((pts[0].x + a).abs() < 1e-9 && (pts[0].y + a).abs() < 1e-9);
         assert!((pts[1].x - a).abs() < 1e-9 && (pts[1].y - a).abs() < 1e-9);
+    }
+
+    #[test]
+    fn type_specific_corner_anchors_match_dpic() {
+        let d = draw("L: line from (0,0) to (1,0) then to (1,1)\ncircle rad .01 at L.nw");
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(0.0, 0.0)) < 1e-9, "line nw = {c:?}");
+
+        let d = draw("A: arc cw rad 0.5 from (0,0) to (0.5,0.5)\ncircle rad .01 at A.s");
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(0.5, -0.5)) < 1e-9, "arc s = {c:?}");
+
+        let d = draw("B: box wid 1 ht 1 rad 0.3 at (0,0)\ncircle rad .01 at B.ne");
+        let Shape::Circle { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        let inset = 0.3 * (1.0 - FRAC_1_SQRT_2);
+        let expected = Point::new(0.5 - inset, 0.5 - inset);
+        assert!(c.dist(expected) < 1e-9, "rounded box ne = {c:?}");
     }
 
     #[test]
