@@ -27,8 +27,9 @@ Brian W. Kernighan's paper/manual:
   visual-parity target by itself.
 - SVG output now follows dpic more closely for two-point lines, open-object
   fills (`line`/`spline`/`arc`), arc arrowheads, stroke-aware picture sizing,
-  block-attached text, `textoffset` on left/right-justified text, and compass
-  anchors on circles/ellipses.
+  block-attached text, `textoffset` on left/right-justified text, scaled
+  arrowhead/dash metadata on already-emitted geometry, and compass anchors on
+  circles/ellipses.
 
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.
