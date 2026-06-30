@@ -11,15 +11,20 @@ jobs:
   publish:
     name: publish to crates.io
     runs-on: ubuntu-latest
-    env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    # Optional gate: add protection rules (required reviewers, tag restriction)
+    # to the `crates-io` environment in repo settings. Auto-created, no-op if left
+    # unprotected.
+    environment: crates-io
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Publish crates in dependency order
+        # The token is scoped to this step only — checkout/toolchain never see it.
         # rpic-wasm is intentionally excluded (npm-only, path-only dep).
         # cargo publish blocks until each version appears in the index, so the
         # next crate's verify build can resolve it from crates.io.
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
           set -uo pipefail
           publish() {
