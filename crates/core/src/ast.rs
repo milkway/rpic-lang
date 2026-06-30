@@ -127,12 +127,13 @@ pub enum AssignTarget {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AssignOp {
-    Set, // =  or  :=
-    Add, // +=
-    Sub, // -=
-    Mul, // *=
-    Div, // /=
-    Rem, // %=
+    Set,      // =
+    ColonSet, // :=
+    Add,      // +=
+    Sub,      // -=
+    Mul,      // *=
+    Div,      // /=
+    Rem,      // %=
 }
 
 /// A drawable object: a base plus a chain of attributes.

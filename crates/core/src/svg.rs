@@ -86,7 +86,7 @@ impl Svg {
                 style,
                 text,
             } => {
-                if !style.invis {
+                if closed_shape_is_visible(style) {
                     let tl = self.p(Point::new(c.x - w / 2.0, c.y + h / 2.0));
                     let mut attrs = format!(
                         "x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"",
@@ -106,7 +106,7 @@ impl Svg {
             Shape::Circle {
                 c, r, style, text, ..
             } => {
-                if !style.invis {
+                if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
                     self.out.push_str(&format!(
                         "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" {}/>\n",
@@ -125,7 +125,7 @@ impl Svg {
                 style,
                 text,
             } => {
-                if !style.invis {
+                if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
                     self.out.push_str(&format!(
                         "<ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" {}/>\n",
@@ -144,20 +144,46 @@ impl Svg {
                 style,
                 text,
             } => {
-                if !style.invis && pts.len() >= 2 {
-                    let pstr: Vec<String> = pts
-                        .iter()
-                        .map(|p| {
-                            let q = self.p(*p);
-                            format!("{},{}", num(q.x), num(q.y))
-                        })
-                        .collect();
-                    self.out.push_str(&format!(
-                        "<polyline points=\"{}\" fill=\"none\" {}/>\n",
-                        pstr.join(" "),
-                        self.stroke(style)
-                    ));
-                    self.arrowheads(pts, *arrows, style);
+                if pts.len() >= 2 {
+                    if pts.len() == 2 {
+                        if !style.invis {
+                            let a = self.p(pts[0]);
+                            let b = self.p(pts[1]);
+                            self.out.push_str(&format!(
+                                "<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" {}/>\n",
+                                num(a.x),
+                                num(a.y),
+                                num(b.x),
+                                num(b.y),
+                                self.stroke(style)
+                            ));
+                        }
+                    } else {
+                        let pstr: Vec<String> = pts
+                            .iter()
+                            .map(|p| {
+                                let q = self.p(*p);
+                                format!("{},{}", num(q.x), num(q.y))
+                            })
+                            .collect();
+                        if style.fill_open {
+                            self.out.push_str(&format!(
+                                "<polyline points=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
+                                pstr.join(" "),
+                                self.fill_value(style)
+                            ));
+                        }
+                        if !style.invis {
+                            self.out.push_str(&format!(
+                                "<polyline points=\"{}\" fill=\"none\" {}/>\n",
+                                pstr.join(" "),
+                                self.stroke(style)
+                            ));
+                        }
+                    }
+                    if !style.invis {
+                        self.arrowheads(pts, *arrows, style);
+                    }
                 }
                 if let Some(c) = midpoint(pts) {
                     self.text(c, text);
@@ -169,13 +195,23 @@ impl Svg {
                 style,
                 text,
             } => {
-                if !style.invis && pts.len() >= 2 {
-                    self.out.push_str(&format!(
-                        "<path d=\"{}\" fill=\"none\" {}/>\n",
-                        self.spline_path(pts),
-                        self.stroke(style)
-                    ));
-                    self.arrowheads(pts, *arrows, style);
+                if pts.len() >= 2 {
+                    let d = self.spline_path(pts);
+                    if style.fill_open {
+                        self.out.push_str(&format!(
+                            "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
+                            d,
+                            self.fill_value(style)
+                        ));
+                    }
+                    if !style.invis {
+                        self.out.push_str(&format!(
+                            "<path d=\"{}\" fill=\"none\" {}/>\n",
+                            d,
+                            self.stroke(style)
+                        ));
+                        self.arrowheads(pts, *arrows, style);
+                    }
                 }
                 if let Some(c) = midpoint(pts) {
                     self.text(c, text);
@@ -191,18 +227,33 @@ impl Svg {
                 style,
                 text,
             } => {
-                if !style.invis {
-                    let start = self.p(*c + Point::new(a0.cos(), a0.sin()) * *r);
-                    let end = self.p(*c + Point::new(a1.cos(), a1.sin()) * *r);
-                    let large = if (a1 - a0).abs() > std::f64::consts::PI {
+                if !style.invis || style.fill_open {
+                    let dir = if a1 >= a0 { 1.0 } else { -1.0 };
+                    let trim = if *arrows == Arrowheads::None || *r <= 1e-9 {
+                        0.0
+                    } else {
+                        (style.arrow_ht / *r * 0.45).min((a1 - a0).abs() / 3.0)
+                    };
+                    let da0 = if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
+                        a0 + dir * trim
+                    } else {
+                        *a0
+                    };
+                    let da1 = if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
+                        a1 - dir * trim
+                    } else {
+                        *a1
+                    };
+                    let start = self.p(*c + Point::new(da0.cos(), da0.sin()) * *r);
+                    let end = self.p(*c + Point::new(da1.cos(), da1.sin()) * *r);
+                    let large = if (da1 - da0).abs() > std::f64::consts::PI {
                         1
                     } else {
                         0
                     };
-                    // y is flipped, so a pic ccw arc sweeps clockwise on screen
-                    let sweep = if *cw { 0 } else { 1 };
-                    self.out.push_str(&format!(
-                        "<path d=\"M {} {} A {} {} 0 {} {} {} {}\" fill=\"none\" {}/>\n",
+                    let sweep = if *cw { 1 } else { 0 };
+                    let d = format!(
+                        "M {} {} A {} {} 0 {} {} {} {}",
                         num(start.x),
                         num(start.y),
                         num(r * PPI),
@@ -210,14 +261,23 @@ impl Svg {
                         large,
                         sweep,
                         num(end.x),
-                        num(end.y),
-                        self.stroke(style)
-                    ));
-                    // arrowheads oriented along the tangent at each tip: pass
-                    // points stepped slightly inward so the head follows the curve
-                    let pt = |t: f64| *c + Point::new(t.cos(), t.sin()) * *r;
-                    let d = if a1 >= a0 { 0.08 } else { -0.08 };
-                    self.arrowheads(&[pt(*a0), pt(a0 + d), pt(a1 - d), pt(*a1)], *arrows, style);
+                        num(end.y)
+                    );
+                    if style.fill_open {
+                        self.out.push_str(&format!(
+                            "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
+                            d,
+                            self.fill_value(style)
+                        ));
+                    }
+                    if !style.invis {
+                        self.out.push_str(&format!(
+                            "<path d=\"{}\" fill=\"none\" {}/>\n",
+                            d,
+                            self.stroke(style)
+                        ));
+                        self.arc_arrowheads(*c, *r, *a0, *a1, *arrows, style);
+                    }
                 }
                 self.text(*c, text);
             }
@@ -234,6 +294,7 @@ impl Svg {
             color,
             num(thick_px(style))
         );
+        let thick = thick_px(style);
         match style.dash {
             Dash::Solid => {}
             Dash::Dashed(w) => s.push_str(&format!(
@@ -241,25 +302,35 @@ impl Svg {
                 num(w * PPI * 7.0 / 6.0),
                 num(w * PPI * 5.0 / 6.0)
             )),
-            Dash::Dotted(w) => s.push_str(&format!(
-                " stroke-dasharray=\"0.5,{}\" stroke-linecap=\"round\"",
-                num(w * PPI)
-            )),
+            Dash::Dotted(w) => {
+                let gap = w.map(|w| w * PPI).unwrap_or(thick * 5.0);
+                s.push_str(&format!(
+                    " stroke-dasharray=\"0.5,{}\" stroke-linecap=\"round\"",
+                    num(gap)
+                ));
+            }
         }
         s
     }
 
     /// stroke + fill for closed shapes.
     fn paint(&self, style: &Style) -> String {
-        let fill = match &style.fill {
+        let fill = self.fill_value(style);
+        if style.invis {
+            return format!("fill=\"{}\" stroke=\"none\"", fill);
+        }
+        format!("fill=\"{}\" {}", fill, self.stroke(style))
+    }
+
+    fn fill_value(&self, style: &Style) -> String {
+        match &style.fill {
             None => "none".to_string(),
             Some(Fill::Gray(g)) => {
                 let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
                 format!("rgb({v},{v},{v})")
             }
             Some(Fill::Color(c)) => attr(c),
-        };
-        format!("fill=\"{}\" {}", fill, self.stroke(style))
+        }
     }
 
     fn arrowheads(&mut self, pts: &[Point], arrows: Arrowheads, style: &Style) {
@@ -313,6 +384,72 @@ impl Svg {
         }
         if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
             head(pts[0], pts[1], &mut buf);
+        }
+        self.out.push_str(&buf);
+    }
+
+    fn arc_arrowheads(
+        &mut self,
+        c: Point,
+        r: f64,
+        a0: f64,
+        a1: f64,
+        arrows: Arrowheads,
+        style: &Style,
+    ) {
+        if arrows == Arrowheads::None || r <= 1e-9 {
+            return;
+        }
+        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
+        let dir = if a1 >= a0 { 1.0 } else { -1.0 };
+        let max_step = ((a1 - a0).abs() / 3.0).max(1e-6);
+        let step = (style.arrow_ht / r * 0.45).clamp(0.02_f64.min(max_step), max_step);
+        let point = |t: f64| c + Point::new(t.cos(), t.sin()) * r;
+        let head = |tip: Point, from: Point, out: &mut String| {
+            let t = self.p(tip);
+            let f = self.p(from);
+            let mut u = t - f;
+            let len = u.len();
+            if len < 1e-9 {
+                return;
+            }
+            u = u / len;
+            let perp = Point::new(-u.y, u.x);
+            let hl = style.arrow_ht * PPI;
+            let hw = style.arrow_wid / 2.0 * PPI;
+            let base = t - u * hl;
+            let l = base + perp * hw;
+            let rr = base - perp * hw;
+            if style.arrow_filled {
+                out.push_str(&format!(
+                    "<path stroke-width=\"0\" fill=\"{}\" d=\"M {},{} L {},{} L {},{} Z\"/>\n",
+                    color,
+                    num(t.x),
+                    num(t.y),
+                    num(l.x),
+                    num(l.y),
+                    num(rr.x),
+                    num(rr.y)
+                ));
+            } else {
+                out.push_str(&format!(
+                    "<path d=\"M {} {} L {} {} L {} {}\" fill=\"none\" {}/>\n",
+                    num(l.x),
+                    num(l.y),
+                    num(t.x),
+                    num(t.y),
+                    num(rr.x),
+                    num(rr.y),
+                    self.stroke(style)
+                ));
+            }
+        };
+        let mut buf = String::new();
+        if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
+            head(point(a1), point(a1 - dir * step), &mut buf);
+        }
+        if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
+            head(point(a0), point(a0 + dir * step), &mut buf);
         }
         self.out.push_str(&buf);
     }
@@ -384,16 +521,20 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
     }
 }
 
-/// Format a float compactly (up to 3 decimals, no trailing zeros). Non-finite
+fn closed_shape_is_visible(style: &Style) -> bool {
+    !style.invis || style.fill.is_some()
+}
+
+/// Format a float compactly (up to 6 decimals, no trailing zeros). Non-finite
 /// values (NaN/Inf, e.g. from a zero-length element) become `0` so the SVG stays
 /// well-formed instead of emitting a literal `NaN`.
 fn num(x: f64) -> String {
     if !x.is_finite() {
         return "0".to_string();
     }
-    let r = (x * 1000.0).round() / 1000.0;
+    let r = (x * 1_000_000.0).round() / 1_000_000.0;
     let r = if r == 0.0 { 0.0 } else { r }; // normalise -0
-    let mut s = format!("{r:.3}");
+    let mut s = format!("{r:.6}");
     while s.contains('.') && (s.ends_with('0') || s.ends_with('.')) {
         s.pop();
     }
@@ -427,10 +568,48 @@ mod tests {
         assert!(s.starts_with("<svg"));
         assert!(s.contains("<ellipse"));
         assert!(s.contains("<rect"));
-        assert!(s.contains("<polyline"));
+        assert!(s.contains("<line"));
         assert!(s.contains("<polygon")); // arrowhead
         assert!(s.contains(">document<"));
         assert!(s.contains("</svg>"));
+    }
+
+    #[test]
+    fn multipoint_path_gets_polyline() {
+        let s = svg("line right then up");
+        assert!(s.contains("<polyline"));
+    }
+
+    #[test]
+    fn closed_path_can_be_filled() {
+        let s = svg("line fill 0.5 right then up then left then down");
+        assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn open_multipoint_path_can_be_filled() {
+        let s = svg("line fill 0.5 right then up then left");
+        assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn spline_can_be_filled() {
+        let s = svg("spline fill 0.5 right then up then left");
+        assert!(s.contains("<path"));
+        assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn arc_can_be_filled() {
+        let s = svg("arc fill 0.5");
+        assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn open_color_changes_stroke_without_area_fill() {
+        let s = svg("arc color \"red\"");
+        assert!(s.contains("stroke=\"red\""));
+        assert!(!s.contains("stroke-width=\"0\" stroke=\"black\""));
     }
 
     #[test]
@@ -444,6 +623,14 @@ mod tests {
         let s = svg("circle fill 0");
         assert!(s.contains("<circle"));
         assert!(s.contains("rgb(0,0,0)"));
+    }
+
+    #[test]
+    fn invisible_filled_closed_shape_keeps_fill_only() {
+        let s = svg("box invis fill 0.5");
+        assert!(s.contains("<rect"));
+        assert!(s.contains("fill=\"rgb(128,128,128)\""));
+        assert!(s.contains("stroke=\"none\""));
     }
 
     #[test]
