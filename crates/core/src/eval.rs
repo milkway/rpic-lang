@@ -2574,6 +2574,8 @@ mod tests {
             include_str!("../../../examples/figuras/fig33.pic"),
             include_str!("../../../examples/figuras/fig45.pic"),
             include_str!("../../../examples/figuras/fig46.pic"),
+            include_str!("../../../examples/figuras/fig09.pic"),
+            include_str!("../../../examples/figuras/fig11.pic"),
         ] {
             let body = body.replace("copy \"circuit_macros.pic\"", shim);
             let src = format!("{}\n{}", crate::CIRCUITS, body);

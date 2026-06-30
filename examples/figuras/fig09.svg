@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="334.4" height="93.6" viewBox="0 0 334.4 93.6" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<polyline points="71.2,70.4 263.2,70.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="263.2,70.4 253.6,72.8 253.6,68" fill="black"/>
+</g>
+<g id="s1">
+<text x="263.2" y="70.4" text-anchor="middle" dominant-baseline="central">$\Re$</text>
+</g>
+<g id="s2">
+<polyline points="167.2,89.6 167.2,12.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="167.2,12.8 169.6,22.4 164.8,22.4" fill="black"/>
+</g>
+<g id="s3">
+<text x="167.2" y="12.8" text-anchor="middle" dominant-baseline="central">$\Im$</text>
+</g>
+<g id="s4">
+<text x="167.2" y="70.4" text-anchor="middle" dominant-baseline="central">$0$</text>
+</g>
+<g id="s5">
+<polyline points="109.6,70.4 109.6,32 224.8,32 224.8,70.4 109.6,70.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<polyline points="167.2,70.4 138.4,70.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="138.4,70.4 148,68 148,72.8" fill="black"/>
+</g>
+<g id="s7">
+<text x="109.6" y="70.4" text-anchor="middle" dominant-baseline="central">${\scriptsize A}$</text>
+</g>
+<g id="s8">
+<text x="224.8" y="70.4" text-anchor="middle" dominant-baseline="central">${\scriptsize B}$</text>
+</g>
+<g id="s9">
+<text x="109.6" y="32" text-anchor="middle" dominant-baseline="central">${\scriptsize A^\prime}$</text>
+</g>
+<g id="s10">
+<text x="224.8" y="32" text-anchor="middle" dominant-baseline="central">${\scriptsize B^\prime}$</text>
+</g>
+<g id="s11">
+</g>
+<g id="s12">
+<polyline points="224.8,70.4 220.533,70.4" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s13">
+<polyline points="224.8,32 220.533,32" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s14">
+<polyline points="239.2,70.4 239.2,32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="239.2,32 241.6,41.6 236.8,41.6" fill="black"/>
+</g>
+<g id="s15">
+<text x="239.2" y="51.2" text-anchor="middle" dominant-baseline="central">$f$</text>
+</g>
+</svg>

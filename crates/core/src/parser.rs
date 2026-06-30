@@ -703,6 +703,8 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
             Token::Mult => s.push('*'),
             Token::Div => s.push('/'),
             Token::Percent => s.push('%'),
+            Token::Dollar => s.push('$'),
+            Token::Backslash => s.push('\\'),
             _ => {}
         }
     }

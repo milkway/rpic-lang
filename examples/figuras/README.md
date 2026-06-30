@@ -45,23 +45,24 @@ In addition:
 - **PStricks colour directives** (`\newrgbcolor`, `\psset`, …) are removed — rpic
   targets SVG, so the geometry renders but the original colours are not applied.
 - **LaTeX math labels** (`"$\omega$"`, `"$Q_4$"`, …) render as **literal text**;
-  rpic does not typeset math.
+  rpic does not typeset math. When such a label is passed *unquoted* through a
+  macro (e.g. `dimension_(…, $\beta V$, …)`), the inter-word spaces are not
+  preserved (`$\beta V$` → `$\beta V$` reads as `$\betaV$`).
 
 So these are **geometry-faithful** renderings of the originals, not pixel-perfect
 reproductions.
 
 ## Coverage
 
-Of the collection's 48 circuit_macros figures, **44 render** and are included
-here: 27 that draw with raw primitives, plus 17 that exercise the element-API
-compatibility shim (`fig05 21 22 23 24 25 26 27 28 29 30 31 32 33 45 46 47` —
-linear elements, bipolar transistors, op-amps, element boxes (`ebox`), current
-sources (`source`), `with .start at …` element placement, and lines continued
-across a newline after `then`).
+**All 48** of the collection's circuit_macros figures render. 27 draw with raw
+primitives; the other 21 exercise the element-API compatibility shim:
 
-The remaining four (`fig09 11 14 48`) pull in circuit_macros' **`libgen.m4`**
-general-macro library, which uses `m4` argument constructs (`$#`, `$@`, …) that
-rpic's lighter macro layer does not implement.
+- linear elements, bipolar transistors (`bi_tr`), op-amps (`opamp`), element
+  boxes (`ebox`), current sources (`source`);
+- `with .start at …` element placement, lines continued across a newline around
+  `then`;
+- the `dimension_` annotation macro from circuit_macros' `libgen.m4`
+  (`fig09 11 14 48`).
 
 ## A few highlights
 

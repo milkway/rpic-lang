@@ -1,0 +1,20 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+include(libgen.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+O:(0,0); "${\scriptsize 0}$" below rjust
+X:line -> from O-(2.5*dimen_,0) right_ 6*dimen_; "$t$" below;
+Y:line -> from O-(0,.5*dimen_) up_ 2.25*dimen_; "$g(t)$" rjust;
+line from O - (1.5*dimen_,0) up_ dimen_/10
+line from O + (1.75*dimen_,0) up_ dimen_/10
+line -> from O - (1*dimen_,-.5*dimen_) right_ dimen_/2
+dimension_(from O - (2*dimen_,-dimen_) right_ 1*dimen_,.1,${\scriptsize \alpha_2}$,14bp__);
+dimension_(from O + (1*dimen_,dimen_) right_ 1.5*dimen_,.1,${\scriptsize \alpha_1}$,14bp__);
+L1:line from O - (2*dimen_,0) up_ dimen_ then right_ 1*dimen_ then down_ dimen_
+L2:line from O + (1*dimen_,0) up_ dimen_ then right_ 1.5*dimen_ then down_ dimen_
+"${\scriptsize t-\beta_2}$" at O - (1.5*dimen_,0) below;
+"${\scriptsize \beta_1}$" at O + (1.75*dimen_,0) below;
+.PE

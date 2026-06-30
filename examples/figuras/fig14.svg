@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="344" height="103.2" viewBox="0 0 344 103.2" font-family="sans-serif" font-size="14.667">
+<g id="s0">
+<text x="171.6" y="80" text-anchor="middle" dominant-baseline="central">${\scriptsize 0}$</text>
+</g>
+<g id="s1">
+<polyline points="75.6,80 306,80" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="306,80 296.4,82.4 296.4,77.6" fill="black"/>
+</g>
+<g id="s2">
+<text x="306" y="80" text-anchor="middle" dominant-baseline="central">$t$</text>
+</g>
+<g id="s3">
+<polyline points="171.6,99.2 171.6,12.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="171.6,12.8 174,22.4 169.2,22.4" fill="black"/>
+</g>
+<g id="s4">
+<text x="171.6" y="12.8" text-anchor="middle" dominant-baseline="central">$g(t)$</text>
+</g>
+<g id="s5">
+<polyline points="114,80 114,76.16" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s6">
+<polyline points="238.8,80 238.8,76.16" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s7">
+<polyline points="133.2,60.8 152.4,60.8" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="152.4,60.8 142.8,63.2 142.8,58.4" fill="black"/>
+</g>
+<g id="s8">
+</g>
+<g id="s9">
+<polyline points="94.8,41.6 94.8,13.333" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s10">
+<polyline points="133.2,41.6 133.2,13.333" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s11">
+<polyline points="94.8,32 133.2,32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="133.2,32 123.6,34.4 123.6,29.6" fill="black"/>
+</g>
+<g id="s12">
+<text x="114" y="32" text-anchor="middle" dominant-baseline="central">${\scriptsize\alpha_2}$</text>
+</g>
+<g id="s13">
+</g>
+<g id="s14">
+<polyline points="210,41.6 210,13.333" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s15">
+<polyline points="267.6,41.6 267.6,13.333" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s16">
+<polyline points="210,32 267.6,32" fill="none" stroke="black" stroke-width="1.067"/>
+<polygon points="267.6,32 258,34.4 258,29.6" fill="black"/>
+</g>
+<g id="s17">
+<text x="238.8" y="32" text-anchor="middle" dominant-baseline="central">${\scriptsize\alpha_1}$</text>
+</g>
+<g id="s18">
+<polyline points="94.8,80 94.8,41.6 133.2,41.6 133.2,80" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s19">
+<polyline points="210,80 210,41.6 267.6,41.6 267.6,80" fill="none" stroke="black" stroke-width="1.067"/>
+</g>
+<g id="s20">
+<text x="114" y="80" text-anchor="middle" dominant-baseline="central">${\scriptsize t-\beta_2}$</text>
+</g>
+<g id="s21">
+<text x="238.8" y="80" text-anchor="middle" dominant-baseline="central">${\scriptsize \beta_1}$</text>
+</g>
+</svg>

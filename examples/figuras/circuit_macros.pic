@@ -58,3 +58,23 @@ define opamp { [ line invis $1; oosx = 1; if (last line.end.x - last line.start.
 define rlabel { "$2" at last.c + (dimen_/3, 0) ljust }
 define llabel { "$2" at last.c - (dimen_/3, 0) rjust }
 define dlabel { "$2" at last.c below }
+
+# dimension annotation (libgen.m4): `dimension_(linespec, offset, label, tick)`.
+# Draws witness lines from the two endpoints of `linespec`, a double-headed
+# dimension line parallel to it at perpendicular distance `offset`, and `label`
+# at the midpoint. `tick` sizes the small gap past the dimension line.
+define __dimension {
+  dmsx=$1.x; dmsy=$1.y; dmex=$2.x; dmey=$2.y; dmoff=$3
+  dmtl = 0.1; if "$4" != "" then { dmtl = $4 }
+  dmdx=dmex-dmsx; dmdy=dmey-dmsy; dmL=sqrt(dmdx*dmdx+dmdy*dmdy)
+  dmpx=0-dmdy/dmL; dmpy=dmdx/dmL
+  line from (dmsx,dmsy) to (dmsx+dmpx*(dmoff+dmtl),dmsy+dmpy*(dmoff+dmtl))
+  line from (dmex,dmey) to (dmex+dmpx*(dmoff+dmtl),dmey+dmpy*(dmoff+dmtl))
+  line <- -> from (dmsx+dmpx*dmoff,dmsy+dmpy*dmoff) to (dmex+dmpx*dmoff,dmey+dmpy*dmoff)
+  gDim_x=(dmsx+dmex)/2+dmpx*dmoff; gDim_y=(dmsy+dmey)/2+dmpy*dmoff
+}
+define dimension_ {
+  line invis $1
+  __dimension(last line.start, last line.end, $2, $4)
+  "$3" at (gDim_x, gDim_y)
+}

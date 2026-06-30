@@ -22,6 +22,12 @@ pub enum Token {
     Arg(u32),
     /// `$+` — the number of arguments passed to the current macro.
     ArgCount,
+    /// A literal `$` not introducing a macro argument (e.g. `$f$` LaTeX text
+    /// passed unquoted as a macro argument). Carried as text by the macro layer.
+    Dollar,
+    /// A literal `\` that is not a line continuation (e.g. `\beta` LaTeX text
+    /// passed unquoted as a macro argument). Carried as text by the macro layer.
+    Backslash,
 
     // ---- structural --------------------------------------------------------
     /// End of statement: newline or `;`.
