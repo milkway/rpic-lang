@@ -2014,6 +2014,26 @@ mod tests {
     }
 
     #[test]
+    fn labelled_call_to_multiline_body_macro() {
+        // A multi-line `{ … }` body picks up newlines after `{` / before `}`.
+        // They must not leak into a labelled call (`Q: m()` -> `Q: ⏎ <obj>`),
+        // which would be a parse error. The block's terminals must still resolve.
+        let d = draw(
+            "define elem {\n  [\n    box wid 0.4 ht 0.2\n    L: last box.w\n    R: last box.e\n  ]\n}\nQ: elem() with .L at (1,1)\n\"x\" at Q.R",
+        );
+        // the block drew its box, and Q.R (a block sub-label) resolved for the text
+        assert!(d.shapes.iter().any(|s| matches!(s, Shape::Box { .. })));
+        let Shape::Text { at, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        // Q placed with .L (west) at (1,1); .R (east) is one box-width to the right
+        assert!(
+            (at.x - 1.4).abs() < 1e-6 && (at.y - 1.0).abs() < 1e-6,
+            "at = {at:?}"
+        );
+    }
+
+    #[test]
     fn copied_forward_macro_expands_in_deferred_multiline_call() {
         let dir = std::env::temp_dir().join(format!("rpic_forward_macro_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
