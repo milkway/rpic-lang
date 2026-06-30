@@ -1259,7 +1259,6 @@ impl State {
     /// bare text objects aren't clipped by the SVG viewBox.
     fn union_text(&mut self, center: Point, lines: &[TextLine]) {
         let bb = text_bbox(center, lines);
-        self.layout_bbox.union(&bb);
         self.bbox.union(&bb);
     }
 
@@ -3355,6 +3354,20 @@ mod tests {
                 Shape::Text { text, .. } if text.iter().any(|line| line.s == "block label")
             )
         }));
+    }
+
+    #[test]
+    fn block_anchors_ignore_attached_text_extents() {
+        // dpic oracle: text contributes to the painted bbox, but not to block
+        // anchors such as `last [].s`; those come from the geometric objects.
+        let d = draw(
+            r#"B: [ right; box "{\bf veryveryverywide}"; move; box ]
+box wid 0.1 ht 0.1 at B.s"#,
+        );
+        let Shape::Box { c, .. } = d.shapes.last().unwrap() else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(1.0, -0.25)) < 1e-9, "c = {c:?}");
     }
 
     #[test]

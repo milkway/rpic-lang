@@ -28,8 +28,9 @@ Brian W. Kernighan's paper/manual:
 - SVG output now follows dpic more closely for two-point lines, open-object
   fills (`line`/`spline`/`arc`), arc arrowheads, stroke-aware picture sizing,
   block-attached text, `textoffset` on left/right-justified text, scaled
-  arrowhead/dash metadata on already-emitted geometry, and compass anchors on
-  circles/ellipses.
+  arrowhead/dash metadata on already-emitted geometry, compass anchors on
+  circles/ellipses, and text extents that enlarge only the rendered bbox, not
+  the geometric bbox used by block anchors such as `last [].s`.
 
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.
