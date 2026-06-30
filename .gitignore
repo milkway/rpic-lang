@@ -21,3 +21,7 @@ bindings/r/src/rust/target/
 # scratch
 *.tmp
 packaging/dist/
+
+# Claude Code (local AI orientation + memory; not committed)
+CLAUDE.md
+.claude/
