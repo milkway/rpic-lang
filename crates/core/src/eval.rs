@@ -996,14 +996,14 @@ impl State {
 
         // (center, radius, start angle, end angle)
         let (center, r, a0, a1) = if let Some(end) = to {
-            // arc from `start` to `to`, optional radius (default: a 90° arc)
+            // arc from `start` to `to`, optional radius
             let chord = end - start;
             let clen = chord.len();
             if clen < 1e-9 {
                 return err("degenerate arc: `from` and `to` coincide");
             }
             let r = rad_attr
-                .unwrap_or(clen / std::f64::consts::SQRT_2)
+                .unwrap_or(self.env_dim(EnvVar::Arcrad)?)
                 .max(clen / 2.0);
             let hd = (r * r - (clen / 2.0) * (clen / 2.0)).max(0.0).sqrt();
             let u = chord / clen;
@@ -2673,10 +2673,24 @@ mod tests {
         let Shape::Arc { c, r, a0, a1, .. } = &d.shapes[0] else {
             panic!()
         };
+        assert!((*r - 2.0_f64.sqrt() / 2.0).abs() < 1e-9, "r = {r}");
         let s = *c + Point::new(a0.cos(), a0.sin()) * *r;
         let e = *c + Point::new(a1.cos(), a1.sin()) * *r;
         assert!(s.dist(Point::new(0.0, 0.0)) < 1e-9, "start {s:?}");
         assert!(e.dist(Point::new(1.0, 1.0)) < 1e-9, "end {e:?}");
+
+        let d_short = draw("arc from (0,0) to (0.3,0)");
+        let Shape::Arc { r, .. } = &d_short.shapes[0] else {
+            panic!()
+        };
+        assert!((*r - 0.25).abs() < 1e-9, "r = {r}");
+
+        let d_custom = draw("arcrad = 0.5\narc from (0,0) to (0.3,0)");
+        let Shape::Arc { r, .. } = &d_custom.shapes[0] else {
+            panic!()
+        };
+        assert!((*r - 0.5).abs() < 1e-9, "r = {r}");
+
         // explicit radius is honored
         let d2 = draw("A:(0,0)\nB:(1,0)\narc from A to B rad 2");
         let Shape::Arc { r, .. } = &d2.shapes[0] else {
