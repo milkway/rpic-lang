@@ -18,6 +18,19 @@
 - **D. Richard Hipp** — author of **pikchr**, which showed the SVG-first,
   self-contained pic-family approach this project follows.
 
+## Semantic Stance
+
+`rpic` is **Kernighan-first**. Brian W. Kernighan's paper and manual define the
+shape of the language: terse textual descriptions, a current point and current
+direction, useful defaults, local blocks, labels, corners, macros, and geometry
+that reads like a drawing being constructed step by step.
+
+`dpic` is our practical oracle. When the original documents are terse or a
+corner case needs executable confirmation, we compare against `dpic -v` and use
+that behavior as the default compatibility target. rpic-specific additions, such
+as animation metadata or native SVG/PNG/PDF output, should stay additive and
+should not change the meaning of classic pic input.
+
 ## Goals
 
 1. **Preserve Kernighan's pic paradigm.** The language stays declarative and

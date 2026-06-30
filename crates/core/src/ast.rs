@@ -1,9 +1,9 @@
 //! Abstract syntax tree for the pic language.
 //!
-//! Mirrors the structure of dpic's `grammar.txt`. The current parser populates
-//! the drawing core (pictures, primitives + attributes, positions, expressions,
-//! blocks, assignments). Control constructs (`if`/`for`/`define`/`print`/…) have
-//! AST slots reserved but are wired up in a later milestone.
+//! Mirrors the structure of dpic's `grammar.txt`. The parser populates the
+//! drawing core (pictures, primitives + attributes, positions, expressions,
+//! blocks, assignments) plus the control constructs (`if`/`for`/`define`/
+//! `print`/`exec`) used by the evaluator and macro preprocessor.
 
 use crate::lexer::Spanned;
 use crate::token::{
