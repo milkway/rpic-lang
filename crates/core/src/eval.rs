@@ -51,10 +51,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         Some(e) => Some(st.eval_expr(e)?),
         None => None,
     };
-    let (maxw, maxh) = (
-        st.env.get(EnvVar::Maxpswid),
-        st.env.get(EnvVar::Maxpsht),
-    );
+    let (maxw, maxh) = (st.env.get(EnvVar::Maxpswid), st.env.get(EnvVar::Maxpsht));
     let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
@@ -307,8 +304,8 @@ impl State {
     }
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
-    fn parse_body(&self, body: &Body) -> ER<Vec<Stmt>> {
-        crate::parser::parse_body_tokens(body, &self.macros, self.base_dir.as_deref())
+    fn parse_body(&mut self, body: &Body) -> ER<Vec<Stmt>> {
+        crate::parser::parse_body_tokens(body, &mut self.macros, self.base_dir.as_deref())
             .map_err(|e| EvalError { msg: e.to_string() })
     }
 
@@ -986,7 +983,8 @@ impl State {
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
         for (name, &i) in &self.labels {
-            sub.outer_labels.insert(name.clone(), self.placed[i].clone());
+            sub.outer_labels
+                .insert(name.clone(), self.placed[i].clone());
         }
         sub.eval_stmts(stmts)?;
         // pic variables and environment parameters are global: assignments made
@@ -2008,6 +2006,41 @@ mod tests {
     }
 
     #[test]
+    fn copied_forward_macro_expands_in_deferred_multiline_call() {
+        let dir = std::env::temp_dir().join(format!("rpic_forward_macro_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("lib.pic"),
+            "define outer { if gate then { inner(0.2,\n  0.3) } }\ndefine inner { box wid $1 ht $2 }\n",
+        )
+        .unwrap();
+
+        let pic = parse_in_dir(
+            "if 1 then { copy \"lib.pic\" }\ngate = 1\nouter()",
+            Some(dir.as_path()),
+        )
+        .unwrap();
+        let d = eval(&pic).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let Shape::Box { w, h, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 0.2).abs() < 1e-9 && (*h - 0.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn deferred_body_uses_macro_frame_from_own_expansion() {
+        let d = draw(
+            "define draw_one { [\n  scalev = 2\n  define project { $1/scalev }\n  if use_it then { box wid project(4) ht 0.1 }\n] }\ndefine draw_two { define project { $1/future_scale } }\nuse_it = 1\ndraw_one()\ndraw_two()",
+        );
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((*w - 2.0).abs() < 1e-9, "w = {w}");
+    }
+
+    #[test]
     fn subscripted_variables_store_by_index() {
         let d = draw("P[1] = 0.4\nP[2] = 0.9\nP[2] += 0.1\nbox wid P[2] ht P[1]");
         let Shape::Box { w, h, .. } = &d.shapes[0] else {
@@ -2384,7 +2417,11 @@ mod tests {
         );
         // raising the limits disables the clamp
         let d2 = draw("maxpsht = 200; maxpswid = 50\nbox wid 20 ht 30");
-        assert!((d2.bbox.height() - 30.0).abs() < 1e-6, "h = {}", d2.bbox.height());
+        assert!(
+            (d2.bbox.height() - 30.0).abs() < 1e-6,
+            "h = {}",
+            d2.bbox.height()
+        );
         // a small drawing is untouched
         let d3 = draw("box wid 2 ht 1");
         assert!((d3.bbox.width() - 2.0).abs() < 1e-6);

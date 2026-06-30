@@ -4,10 +4,13 @@
 //! character scanner — pic sources are small, so we keep the whole input in a
 //! `Vec<char>` and index into it. Line/column are tracked for diagnostics.
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use crate::token::*;
 
 /// A token together with its source position (1-based line/column).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Spanned {
     pub tok: Token,
     pub line: u32,
@@ -15,6 +18,9 @@ pub struct Spanned {
     /// Macro arguments that were in scope when this token was produced by
     /// macro substitution. Used by eval-time `exec` expansion.
     pub arg_frame: Option<Vec<Vec<Spanned>>>,
+    /// Macro definitions that were in scope when a deferred `if`/`for` body was
+    /// copied. Used when that body is parsed later by the evaluator.
+    pub macro_frame: Option<Arc<HashMap<String, Vec<Spanned>>>>,
 }
 
 impl Spanned {
@@ -24,12 +30,38 @@ impl Spanned {
             line,
             col,
             arg_frame: None,
+            macro_frame: None,
         }
     }
 
     pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
         self.arg_frame = Some(args.to_vec());
         self
+    }
+
+    pub fn with_macro_frame(mut self, macros: &HashMap<String, Vec<Spanned>>) -> Self {
+        self.macro_frame = Some(Arc::new(macros.clone()));
+        self
+    }
+}
+
+impl std::fmt::Debug for Spanned {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Spanned")
+            .field("tok", &self.tok)
+            .field("line", &self.line)
+            .field("col", &self.col)
+            .field("arg_frame", &self.arg_frame)
+            .finish_non_exhaustive()
+    }
+}
+
+impl PartialEq for Spanned {
+    fn eq(&self, other: &Self) -> bool {
+        self.tok == other.tok
+            && self.line == other.line
+            && self.col == other.col
+            && self.arg_frame == other.arg_frame
     }
 }
 
