@@ -101,6 +101,8 @@ pub struct TextLine {
     pub halign: i8,
     /// vertical: +1 = above, 0 = center, -1 = below.
     pub valign: i8,
+    /// Extra text-position offset in inches (`textoffset`).
+    pub text_offset: f64,
 }
 
 /// A placed drawing primitive.
