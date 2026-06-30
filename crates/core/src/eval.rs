@@ -209,6 +209,8 @@ struct Placed {
     points: Vec<Point>,
     radius: f64,
     box_rad: f64,
+    line_wid: f64,
+    line_ht: f64,
     /// Index of the primary shape in `shapes` (None for point-only labels).
     shape: Option<usize>,
     /// For blocks: inner labels (sub-objects), translated into parent
@@ -342,6 +344,35 @@ impl Placed {
             _ => self.bbox_corner(c),
         }
     }
+
+    fn attr_width(&self) -> f64 {
+        match self.kind {
+            PKind::Line | PKind::Move | PKind::Spline => self.line_wid,
+            _ => self.bbox.width(),
+        }
+    }
+
+    fn attr_height(&self) -> f64 {
+        match self.kind {
+            PKind::Line | PKind::Move | PKind::Spline => self.line_ht,
+            _ => self.bbox.height(),
+        }
+    }
+
+    fn attr_radius(&self) -> f64 {
+        match self.kind {
+            PKind::Box => self.box_rad,
+            PKind::Arc => self.radius,
+            _ => self.bbox.width() / 2.0,
+        }
+    }
+
+    fn attr_diameter(&self) -> f64 {
+        match self.kind {
+            PKind::Arc => self.radius * 2.0,
+            _ => self.bbox.width(),
+        }
+    }
 }
 
 // ---- evaluator state -------------------------------------------------------
@@ -453,6 +484,8 @@ impl State {
                     points: Vec::new(),
                     radius: 0.0,
                     box_rad: 0.0,
+                    line_wid: 0.0,
+                    line_ht: 0.0,
                     shape: None,
                     members: HashMap::new(),
                 });
@@ -914,6 +947,8 @@ impl State {
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
         let mut style = self.style_of(obj)?;
         let text = self.text_of(obj)?;
+        let line_wid = style.arrow_wid;
+        let line_ht = style.arrow_ht;
         let is_move = matches!(p, Prim::Move);
         if is_move {
             style.invis = true;
@@ -1082,6 +1117,8 @@ impl State {
         let sh = self.shapes.len() - 1;
         let idx = self.record(kind, center, bb, pts[0], end, 0.0, Some(sh));
         self.placed[idx].points = pts;
+        self.placed[idx].line_wid = line_wid;
+        self.placed[idx].line_ht = line_ht;
         Ok(idx)
     }
 
@@ -1336,6 +1373,8 @@ impl State {
             points: Vec::new(),
             radius: 0.0,
             box_rad: 0.0,
+            line_wid: 0.0,
+            line_ht: 0.0,
             shape,
             members: HashMap::new(),
         });
@@ -1958,10 +1997,10 @@ impl State {
             Expr::PlaceAttr(place, param) => {
                 let pl = self.resolve_obj(place)?;
                 match param {
-                    token::Param::Width => self.to_user_dim(pl.bbox.width()),
-                    token::Param::Height => self.to_user_dim(pl.bbox.height()),
-                    token::Param::Radius => self.to_user_dim(pl.bbox.width() / 2.0),
-                    token::Param::Diameter => self.to_user_dim(pl.bbox.width()),
+                    token::Param::Width => self.to_user_dim(pl.attr_width()),
+                    token::Param::Height => self.to_user_dim(pl.attr_height()),
+                    token::Param::Radius => self.to_user_dim(pl.attr_radius()),
+                    token::Param::Diameter => self.to_user_dim(pl.attr_diameter()),
                     token::Param::Length => self.to_user_dim(pl.start.dist(pl.end)),
                     token::Param::Thickness => pl.thick,
                 }
@@ -2479,6 +2518,8 @@ fn scale_placed(pl: &mut Placed, f: f64) {
     }
     pl.radius *= f;
     pl.box_rad *= f;
+    pl.line_wid *= f;
+    pl.line_ht *= f;
     scale_bbox_in_place(&mut pl.bbox, f);
     for m in pl.members.values_mut() {
         scale_placed(m, f);
@@ -2554,6 +2595,14 @@ mod tests {
         let mut st = State::new();
         st.eval_stmts(&prog.stmts)?;
         Ok(st.vars["x"])
+    }
+
+    fn assert_box_size(shape: &Shape, want_w: f64, want_h: f64) {
+        let Shape::Box { w, h, .. } = shape else {
+            panic!()
+        };
+        assert!((*w - want_w).abs() < 1e-9, "w = {w}, want {want_w}");
+        assert!((*h - want_h).abs() < 1e-9, "h = {h}, want {want_h}");
     }
 
     const DEFAULT_STROKE_IN: f64 = 0.8 / 72.0;
@@ -3368,6 +3417,29 @@ mod tests {
             "wid = {}",
             style.arrow_wid
         );
+    }
+
+    #[test]
+    fn open_object_width_height_attrs_are_arrowhead_dimensions() {
+        let d = draw("arrowwid = 0.2; arrowht = 0.3\nA: line right 2\nbox wid (A.wid) ht (A.ht)");
+        assert_box_size(&d.shapes[1], 0.2, 0.3);
+
+        let d = draw("arrowwid = 0.12; arrowht = 0.34\nA: move right 2\nbox wid (A.wid) ht (A.ht)");
+        assert_box_size(&d.shapes[1], 0.12, 0.34);
+
+        let d = draw(
+            "arrowwid = 0.23; arrowht = 0.31\nA: spline from (0,0) to (2,1)\nbox wid (A.wid) ht (A.ht)",
+        );
+        assert_box_size(&d.shapes[1], 0.23, 0.31);
+    }
+
+    #[test]
+    fn radius_and_diameter_attrs_are_type_specific() {
+        let d = draw("B: box rad 0.1 wid 1 ht 1\nbox wid (B.rad) ht 0.3");
+        assert_box_size(&d.shapes[1], 0.1, 0.3);
+
+        let d = draw("C: arc rad 0.7 from (0,0) to (0,1.4)\nbox wid (C.rad) ht (C.diam)");
+        assert_box_size(&d.shapes[1], 0.7, 1.4);
     }
 
     #[test]
