@@ -1,0 +1,23 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+O:(0,0);
+C1:circle radius .03 with .c at O;
+L1:line from C1.e right_ dimen_/2;
+D1:diode(up_ .75*dimen_)
+L2:line right_ 1.5*dimen_
+I1:inductor(right_ dimen_,W); llabel(,L,)
+L3:line right_ dimen_/2 then down_ dimen_/2;
+R0: resistor(down_ dimen_); llabel(,R,)
+L4:line down_ dimen_/2 then left_ 3*dimen_
+D2:diode(up_ .75*dimen_)
+L5:line up_ .5*dimen_
+C2:circle radius .03 with .c at O-(0,.5*dimen_);
+L1:crossover(from C2.e right_ 1.25*dimen_,L,L5);
+move down_ .75*dimen_;
+D3:diode(up_ .75*dimen_)
+L6:line up_ .5*dimen_
+D4:diode(up_ .75*dimen_)
+.PE

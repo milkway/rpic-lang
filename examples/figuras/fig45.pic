@@ -1,0 +1,41 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4); cct_init; linethick=linethick*(1.5)
+dimen_=dimen_; Origem:(0,0)
+Ven:circle radius .05; move to Ven.w;"$V_{en}$" rjust
+L1:line from Ven.e right_ dimen_/2; R1:resistor(right_ dimen_); rlabel(,R_1,);
+L2:line right_ dimen_/4; Amp1:opamp(right_ dimen_) with .In1 at L2.e;
+line from Amp1.In2 left_ dimen_/4 then down_ dimen_/2; ground(,T)
+L3:line from Amp1.Out right_ dimen_/4;
+L5:line up_ dimen_ ; L6:line left_ dimen_/4;
+C1:capacitor(left_ dimen_);rlabel(,C_1,);
+L4:line from C1.end left_ dimen_/4 then down_ to R1.end
+L7:line from L5.n up_ dimen_ then left_ dimen_/4;
+R2:resistor(left_ dimen_);rlabel(,R_2,); L8:line left_ dimen_/4;
+L9:line down_ dimen_; L10:line from L9.n up_ dimen_ then right_ dimen_/4;
+R3:resistor(right_ dimen_);llabel(,R_3,); L11:line right_ dimen_/4
+Amp2:opamp(left_ dimen_,"$+$","$-$",) with .Out at L11.e;
+L12:line from Amp2.In1 right_ dimen_/4 then down_ dimen_/2; ground(,T)
+L13:line from Amp2.In2 right_ dimen_/4
+L14:line up_ dimen_*.75 then left_ dimen_/4
+C2:capacitor(left_ dimen_);rlabel(,C_2,);
+L15:line from C2.end left_ dimen_/4 then down_ to R3.end;
+L16:line from L3.e right_ dimen_/4;
+R4:resistor(right_ dimen_);rlabel(,R_4,); L17:line right_ dimen_/4;
+Amp3:opamp(right_ dimen_) with .In1 at L17.e;
+line from Amp3.In2 left_ dimen_/4 then down_ dimen_/2; ground(,T)
+L18:line from R4.e up_ dimen_*.75 then right_ dimen_/4;
+R5:resistor(right_ dimen_);llabel(,R_5,); L19:line right_ dimen_/4;
+L20:line down_ dimen_; L21:line left_ dimen_/4;
+L22:line from L19.e up_ to (L19.e,Amp2.In2) then left_ dimen_/4;
+R6:resistor(left_ dimen_); rlabel(,R_6,); line left_ dimen_/4;
+L23:line from L20.s right_ dimen_/4; C3:capacitor(right_ dimen_); llabel(,C_3,);
+L24:line right_ dimen_/4; R7:resistor(up_ dimen_);rlabel(,R_7,);
+T1:circle radius 0.05 with .s at R7.end; move to T1.e;"$+10V$" ljust;
+move to L24.e; R8:resistor(down_ dimen_) ;llabel(,R_8,);ground;move to L24.e;
+L25:line right_ dimen_/2; D1:diode(right_ dimen_); llabel(,D_1,)
+L26:line right_ dimen_/2; C4:capacitor(down_ dimen_);rlabel(,C_4,);ground;
+move to L26; L27:line right_ dimen_; R9:resistor(down_ dimen_);
+llabel(,R_9,);ground;move to L27.e; L28:line right_ dimen_/4;
+T1:circle radius 0.05 with .w at L28.end; move to T1.e;"$V_{sa}$" ljust;
+.PE

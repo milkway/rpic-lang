@@ -1,0 +1,32 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Q1:bi_tr(up_ dimen_,R)
+move right 1*dimen_
+Q2:bi_tr(up_ dimen_) with .B at Here
+L1:line from Q1.E down_ dimen_/4
+L2:line from Q2.E down_ dimen_/4
+L3:line from L1.s to L2.s;
+move to L3.c
+resistor(down_ dimen_); llabel(,R_{ee},); ground(,T)
+L4:line from Q2.C up_ dimen_;
+inductor(up_ dimen_,W); llabel(,L,);
+line from L4.end left_ dimen_*3/4;
+resistor(up_ dimen_); llabel(,R,)
+line from L4.end right_ dimen_*3/4;
+capacitor(up_ dimen_); llabel(,C,)
+L5:line "$V_{cc}$" above left_ (Here.x - Q1.C.x)
+line down_ to Q1.C
+L6:line from Q1.C+(0,dimen_/4) right_ dimen_*.75
+L7:line to Q2.B
+L8:line from Q2.C+(0,dimen_/4) left_ dimen_*.75
+crossover(from L8.end to Q1.B,,L7)
+line from L4.end right_ dimen_; circle radius .05;"$V_{sa}$"     ljust_
+move to Q1
+"$Q_1$" rjust_
+move to Q2
+"$Q_2$" ljust_
+.PE

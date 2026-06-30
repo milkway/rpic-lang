@@ -2417,6 +2417,28 @@ mod tests {
     }
 
     #[test]
+    fn figuras_element_examples_compile() {
+        // André Leite's circuit_macros figures that use the *element API*
+        // (resistor(dir len), bi_tr, opamp, …). These render with the circuit
+        // library (-c) plus the compatibility shim, which reuses the native
+        // element geometry. The shim is `copy`-d in by each file; here we splice
+        // it in directly and prepend the circuit library.
+        let shim = include_str!("../../../examples/figuras/circuit_macros.pic");
+        for body in [
+            include_str!("../../../examples/figuras/fig21.pic"),
+            include_str!("../../../examples/figuras/fig26.pic"),
+            include_str!("../../../examples/figuras/fig30.pic"),
+            include_str!("../../../examples/figuras/fig33.pic"),
+            include_str!("../../../examples/figuras/fig45.pic"),
+        ] {
+            let body = body.replace("copy \"circuit_macros.pic\"", shim);
+            let src = format!("{}\n{}", crate::CIRCUITS, body);
+            let d = eval(&parse(&src).unwrap()).unwrap();
+            assert!(!d.shapes.is_empty());
+        }
+    }
+
+    #[test]
     fn brace_ncount_as_place() {
         // `{expr}th last box` — a brace-counted ordinal used as a place
         let d = draw(

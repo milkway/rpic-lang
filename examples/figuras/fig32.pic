@@ -1,0 +1,40 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4); cct_init; linethick=linethick*(1.5)
+dimen_=dimen_; K1:circle radius .05;
+L0:line right_ dimen_/4; Q1:bi_tr(up_ dimen_,);
+line from Q1.E down_ dimen_/4; L1:line right_ dimen_;
+line up_ dimen_/4; Q2:bi_tr(up_ dimen_,R) with .E at Here;
+L2:line from Q2.B right_ dimen_/4; Q3:bi_tr(up_ dimen_,) with .B at Here;
+line from Q3.E down_ dimen_/4; L3:line right_ dimen_;
+line up_ dimen_/4; Q4:bi_tr(up_ dimen_,R) with .E at Here;
+L4:line from L1.c down_ dimen_/2; Q5:bi_tr(up_ dimen_,) with .C at Here;
+line from Q5.E down_ dimen_/4; L5:line right_ to (L3.c.x,Here.y);
+line up_ dimen_/4; Q6:bi_tr(up_ dimen_,R) with .E at Here;
+L10:line from Q6.C up_ dimen_/2; L8:line from L5.c down_ dimen_/4;
+resistor(down_ dimen_); llabel(,R_{ee},); ground(,T);
+L7:line from Q5.B left_ dimen_/4; K2:circle radius .05;
+line from Q6.B right_ dimen_/4; L6:line down_ dimen_;
+crossover(from L6.end left_ to (L7.end.x,Here.y),R,L8);K3:circle radius .05;
+line from Q4.B right_ dimen_/4; L9:line down_ dimen_;
+crossover(from L9.end left_ to (Q3.B,Here),R,L10);
+L12:crossover( from Here left_ to (Q1.B,Here),R,L4);line up_ to Q1.B;
+L11:crossover(from L2.c down_ (dimen_ + .1),,L12)
+L13:crossover(from L11.end to (L0.start,Here),R,L4);left_; K4:circle radius .05;
+L14:line from Q4.C up_ dimen_/2; Rc1:resistor(up_ dimen_); rlabel(,R_c,);
+L15:line from Q3.C up_ dimen_/2; Rc2:resistor(up_ dimen_); llabel(,R_c,);
+line "$V_{cc}$" above from (Here - (dimen_/4,0)) right_ to (Rc1.end+(dimen_/4,0))
+line from Q2.C up_ dimen_/4; crossover(from Here right_ to (Q4.C,Here),,L15);
+line from Q1.C up_ dimen_/2 then to Rc2.start
+L16:line from Rc1.start right_ dimen_; K5:circle radius .05;
+crossover(from Q3.C right_ to (L16.end.x,Q4.C.y),,L14);K6:circle radius .05;
+"$Q_1$" at Q1.B + (3*dimen_/4,0)
+"$Q_2$" at Q2.B - (3*dimen_/4,0)
+"$Q_3$" at Q3.B + (3*dimen_/4,0)
+"$Q_4$" at Q4.B - (3*dimen_/4,0)
+"$Q_5$" at Q5.B + (3*dimen_/4,0)
+"$Q_6$" at Q6.B - (3*dimen_/4,0)
+"$V_{{en}_1}$" at (K1.c.x,(K1.c.y+K4.c.y)/2)
+"$V_{{en}_2}$" at (K2.c.x,(K2.c.y+K3.c.y)/2)
+"$V_{sa}$" at (K5.c.x+ dimen_/2,(K5.c.y+K6.c.y)/2)
+.PE

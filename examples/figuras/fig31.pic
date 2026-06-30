@@ -1,0 +1,34 @@
+copy "circuit_macros.pic"
+.PS
+include(libcct.m4)
+cct_init
+linethick=linethick*(1.5)
+dimen_=dimen_
+Q1:bi_tr(up_ dimen_)
+move right 3*dimen_
+Q2:bi_tr(up_ dimen_,R) with .B at Here
+L1:line from Q1.E down_ dimen_/4
+L2:line from Q2.E down_ dimen_/4
+L3: line from L1.end to L2.end
+move to L3.center
+Ree:resistor(down_ dimen_); llabel(,R_{ee},);
+move to Ree.end + (dimen_/4,0); line "$V_{ee}$" below left_ dimen_/2
+line from Q1.B left_ dimen_/4; K1:circle radius .05; move to K1.s
+resistor(down_ dimen_); llabel(,R,); ground(,T)
+line from Q2.B right_ dimen_/4; K2:circle radius .05; move to K2.s
+resistor(down_ dimen_); llabel(,R,); ground(,T)
+L4:line from Q2.C up_ dimen_
+inductor(up_ dimen_,W); llabel(,L,)
+line from L4.n left_ dimen_*.75
+resistor(up_ dimen_); llabel(,R,)
+line from L4.n right_ dimen_*.75
+C1:capacitor(up_ dimen_/2); llabel(,_{C_1},)
+C2:capacitor(up_ dimen_/2); llabel(,_{C_2},)
+line "$V_{cc}$" above left_ (Here.x - Q1.C.x)
+line down_ to Q1.C
+L5:line from L4.n right_ dimen_*3/2; K3:circle radius .05; "$V_{sa}$" ljust;
+L6:line from C1.end right_ dimen_/2 then up_ dimen_
+line left_ (Here.x - K1.c.x) then down_ to K1.n
+"$Q_1$" at (Q1.C.x,(Q1.C.y + Q1.E.y)/2)
+"$Q_2$" at (Q2.C.x,(Q2.C.y + Q2.E.y)/2)
+.PE
