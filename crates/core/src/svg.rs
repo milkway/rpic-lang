@@ -191,12 +191,13 @@ impl Svg {
             }
             Shape::Spline {
                 pts,
+                tension,
                 arrows,
                 style,
                 text,
             } => {
                 if pts.len() >= 2 {
-                    let d = self.spline_path(pts);
+                    let d = self.spline_path(pts, *tension);
                     if style.fill_open {
                         self.out.push_str(&format!(
                             "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
@@ -454,29 +455,25 @@ impl Svg {
         self.out.push_str(&buf);
     }
 
-    fn spline_path(&self, pts: &[Point]) -> String {
-        // Catmull-Rom through the points, converted to cubic Béziers.
+    /// dpic-compatible spline path. The control-point construction matches
+    /// `dpic`'s SVG backend (verified against `dpic -v` output); since both the
+    /// model→SVG transform and the constructions are affine, we build directly
+    /// in SVG space.
+    fn spline_path(&self, pts: &[Point], tension: Option<f64>) -> String {
         let q: Vec<Point> = pts.iter().map(|p| self.p(*p)).collect();
         let n = q.len();
-        let mut d = format!("M {} {}", num(q[0].x), num(q[0].y));
-        for i in 0..n - 1 {
-            let p0 = q[i.saturating_sub(1)];
-            let p1 = q[i];
-            let p2 = q[i + 1];
-            let p3 = q[(i + 2).min(n - 1)];
-            let c1 = p1 + (p2 - p0) * (1.0 / 6.0);
-            let c2 = p2 - (p3 - p1) * (1.0 / 6.0);
-            d.push_str(&format!(
-                " C {} {} {} {} {} {}",
-                num(c1.x),
-                num(c1.y),
-                num(c2.x),
-                num(c2.y),
-                num(p2.x),
-                num(p2.y)
-            ));
+        // Fewer than 3 control points: just a straight polyline.
+        if n < 3 {
+            let mut d = format!("M {} {}", num(q[0].x), num(q[0].y));
+            for p in &q[1..] {
+                d.push_str(&format!(" L {} {}", num(p.x), num(p.y)));
+            }
+            return d;
         }
-        d
+        match tension {
+            None => classic_spline(&q),
+            Some(t) => tensioned_spline(&q, t),
+        }
     }
 
     fn text(&mut self, center: Point, lines: &[TextLine]) {
@@ -523,6 +520,77 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
 
 fn closed_shape_is_visible(style: &Style) -> bool {
     !style.invis || style.fill.is_some()
+}
+
+/// Classic pic spline (no tension): a quadratic B-spline that interpolates the
+/// first and last control points, passes through the midpoint of every segment,
+/// and has straight first/last half-segments. Each cubic is the segment's
+/// quadratic Bézier (control = the shared vertex) raised to cubic degree.
+fn classic_spline(q: &[Point]) -> String {
+    let n = q.len();
+    // knots: V0, mid(V0,V1), …, mid(V_{n-2},V_{n-1}), V_{n-1}
+    let mut knots = Vec::with_capacity(n + 1);
+    knots.push(q[0]);
+    for i in 0..n - 1 {
+        knots.push((q[i] + q[i + 1]) * 0.5);
+    }
+    knots.push(q[n - 1]);
+    let segs = knots.len() - 1;
+    let mut d = format!("M {} {}", num(knots[0].x), num(knots[0].y));
+    for j in 0..segs {
+        let a = knots[j];
+        let b = knots[j + 1];
+        // quad control: V0 (first segment → straight), V_{n-1} (last → straight),
+        // otherwise the vertex shared by the two flanking midpoints.
+        let w = if j == 0 {
+            q[0]
+        } else if j == segs - 1 {
+            q[n - 1]
+        } else {
+            q[j]
+        };
+        let c1 = a + (w - a) * (2.0 / 3.0);
+        let c2 = b + (w - b) * (2.0 / 3.0);
+        push_cubic(&mut d, c1, c2, b);
+    }
+    d
+}
+
+/// dpic tensioned spline: starts at the first control point, ends at the last,
+/// passes through the midpoints of the *interior* segments, and bends toward
+/// each control vertex by `t`. Control point = endpoint + t·(vertex − endpoint),
+/// matching dpic's SVG backend exactly.
+fn tensioned_spline(q: &[Point], t: f64) -> String {
+    let n = q.len();
+    // knots: V0, mid(V1,V2), …, mid(V_{n-3},V_{n-2}), V_{n-1}
+    let mut knots = Vec::with_capacity(n);
+    knots.push(q[0]);
+    for i in 1..n - 2 {
+        knots.push((q[i] + q[i + 1]) * 0.5);
+    }
+    knots.push(q[n - 1]);
+    let mut d = format!("M {} {}", num(knots[0].x), num(knots[0].y));
+    for j in 0..knots.len() - 1 {
+        let a = knots[j];
+        let b = knots[j + 1];
+        let w = q[j + 1]; // via vertex for this cubic
+        let c1 = a + (w - a) * t;
+        let c2 = b + (w - b) * t;
+        push_cubic(&mut d, c1, c2, b);
+    }
+    d
+}
+
+fn push_cubic(d: &mut String, c1: Point, c2: Point, end: Point) {
+    d.push_str(&format!(
+        " C {} {} {} {} {} {}",
+        num(c1.x),
+        num(c1.y),
+        num(c2.x),
+        num(c2.y),
+        num(end.x),
+        num(end.y)
+    ));
 }
 
 /// Format a float compactly (up to 6 decimals, no trailing zeros). Non-finite
