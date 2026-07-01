@@ -87,13 +87,15 @@ impl Svg {
                 text,
             } => {
                 if closed_shape_is_visible(style) {
-                    let tl = self.p(Point::new(c.x - w / 2.0, c.y + h / 2.0));
+                    let box_w = w.abs();
+                    let box_h = h.abs();
+                    let tl = self.p(Point::new(c.x - box_w / 2.0, c.y + box_h / 2.0));
                     let mut attrs = format!(
                         "x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\"",
                         num(tl.x),
                         num(tl.y),
-                        num(w * PPI),
-                        num(h * PPI)
+                        num(box_w * PPI),
+                        num(box_h * PPI)
                     );
                     if *rad > 0.0 {
                         attrs.push_str(&format!(" rx=\"{}\"", num(rad * PPI)));
@@ -782,6 +784,16 @@ mod tests {
     fn dashed_box_gets_dasharray() {
         let s = svg("box \"x\" dashed");
         assert!(s.contains("stroke-dasharray"));
+    }
+
+    #[test]
+    fn negative_box_dimensions_emit_positive_svg_rect() {
+        let s = svg("box wid -0.5 ht -0.25");
+        assert!(s.contains("<rect"));
+        assert!(s.contains("width=\"48\""), "{s}");
+        assert!(s.contains("height=\"24\""), "{s}");
+        assert!(!s.contains("width=\"-"), "{s}");
+        assert!(!s.contains("height=\"-"), "{s}");
     }
 
     #[test]
