@@ -31,6 +31,11 @@ that behavior as the default compatibility target. rpic-specific additions, such
 as animation metadata or native SVG/PNG/PDF output, should stay additive and
 should not change the meaning of classic pic input.
 
+Pikchr is treated as a modern pic-family design reference, not as the oracle for
+classic semantics. Features inspired by Pikchr must be explicit rpic extensions:
+opt-in, documented, credited, and inert for existing dpic-compatible input. The
+current research notes and adoption matrix live in [`docs/pikchr.md`](docs/pikchr.md).
+
 ## Goals
 
 1. **Preserve Kernighan's pic paradigm.** The language stays declarative and
