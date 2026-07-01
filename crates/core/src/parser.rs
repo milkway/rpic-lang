@@ -1798,6 +1798,10 @@ impl Parser {
                 };
                 Attr::Color(c, s)
             }
+            Token::Name(n) if n == "behind" => {
+                self.bump();
+                Attr::Behind(self.parse_place()?)
+            }
             // a bare expression distance with no direction word, e.g. `move 1`,
             // `move -0.1`, `spline x` (length in the prevailing direction)
             Token::Float(_)
@@ -2518,6 +2522,26 @@ ellipse "typesetter"
         assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Ht, _)));
         assert!(matches!(object.attrs[1], Attr::Dim(DimKind::Wid, _)));
         assert!(matches!(object.attrs[2], Attr::At(Position::Pair(_, _))));
+    }
+
+    #[test]
+    fn behind_parses_as_contextual_extension_attribute() {
+        let p = pic("A: box\nbox behind A");
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        let Some(Attr::Behind(Place::Name {
+            name, subscript, ..
+        })) = object.attrs.last()
+        else {
+            panic!("expected behind attribute");
+        };
+        assert_eq!(name, "A");
+        assert!(subscript.is_none());
+
+        let p = pic("behind = 2\nbox wid behind");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
     }
 
     #[test]

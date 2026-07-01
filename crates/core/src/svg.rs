@@ -75,7 +75,10 @@ impl Svg {
             num(h),
             num(FONT_PT * PPI / 72.0),
         ));
-        for (i, s) in d.shapes.iter().enumerate() {
+        let mut order: Vec<usize> = (0..d.shapes.len()).collect();
+        order.sort_by_key(|&i| (d.shape_layers.get(i).copied().unwrap_or(0), i));
+        for i in order {
+            let s = &d.shapes[i];
             self.out.push_str(&format!("<g id=\"s{i}\">\n"));
             self.shape(s);
             self.out.push_str("</g>\n");
@@ -1160,6 +1163,14 @@ mod tests {
         let s = svg("spline fill 0.5 right then up then left");
         assert!(s.contains("<path"));
         assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn behind_renders_lower_layer_first_with_stable_ids() {
+        let s = svg("A: box fill 0 at (0,0)\nB: box fill 1 behind A at (0,0)");
+        let b = s.find("<g id=\"s1\">").unwrap();
+        let a = s.find("<g id=\"s0\">").unwrap();
+        assert!(b < a, "{s}");
     }
 
     #[test]

@@ -8,6 +8,9 @@ use crate::geom::{Bbox, Point};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Drawing {
     pub shapes: Vec<Shape>,
+    /// Render layer per shape. Lower layers are emitted first; equal layers keep
+    /// source order and shape ids stable.
+    pub shape_layers: Vec<i32>,
     pub bbox: Bbox,
     /// Global `linethick` in points after picture-wide sizing, used only for
     /// dpic-style backend prelude padding. Per-shape strokes keep their own
