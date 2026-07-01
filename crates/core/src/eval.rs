@@ -38,6 +38,8 @@ const TEXT_EM: f64 = 11.0 / 72.0;
 const TEXT_CHAR_W: f64 = 0.6 * TEXT_EM;
 const TEXT_LINE_H: f64 = 1.2 * TEXT_EM;
 const TEXT_XHEIGHT: f64 = DP_TEXT_RATIO * TEXT_EM;
+const DEFAULT_BRACE_DEPTH: f64 = 0.18;
+const DEFAULT_BRACE_POS: f64 = 0.5;
 
 fn err<T>(msg: impl Into<String>) -> ER<T> {
     Err(EvalError { msg: msg.into() })
@@ -227,6 +229,7 @@ enum PKind {
     Move,
     Spline,
     Arc,
+    Brace,
     Block,
     Text,
 }
@@ -256,7 +259,7 @@ impl Placed {
     fn corner(&self, c: Corner) -> Point {
         match self.kind {
             PKind::Circle | PKind::Ellipse => self.ellipse_corner(c),
-            PKind::Line | PKind::Move | PKind::Spline => self.linear_corner(c),
+            PKind::Line | PKind::Move | PKind::Spline | PKind::Brace => self.linear_corner(c),
             PKind::Arc => self.arc_corner(c),
             PKind::Box => self.box_corner(c),
             PKind::Block | PKind::Text => self.bbox_corner(c),
@@ -381,6 +384,7 @@ impl Placed {
 
     fn attr_width(&self) -> f64 {
         match self.kind {
+            PKind::Brace => self.bbox.width(),
             PKind::Line | PKind::Move | PKind::Spline => self.line_wid,
             _ => self.bbox.width(),
         }
@@ -388,6 +392,7 @@ impl Placed {
 
     fn attr_height(&self) -> f64 {
         match self.kind {
+            PKind::Brace => self.bbox.height(),
             PKind::Line | PKind::Move | PKind::Spline => self.line_ht,
             _ => self.bbox.height(),
         }
@@ -412,7 +417,7 @@ impl Placed {
 
     fn attr_length(&self) -> f64 {
         match self.kind {
-            PKind::Line | PKind::Move | PKind::Spline => self.start.dist(self.end),
+            PKind::Line | PKind::Move | PKind::Spline | PKind::Brace => self.start.dist(self.end),
             _ => 0.0,
         }
     }
@@ -787,6 +792,7 @@ impl State {
                 Prim::Arc => self.arc(obj),
             },
             ObjectKind::Text => self.text_obj(obj),
+            ObjectKind::Brace => self.brace(obj),
             ObjectKind::Block(stmts) => self.block(stmts, obj),
             ObjectKind::Empty => self.block(&[], obj),
             ObjectKind::Continue => self.continue_obj(obj),
@@ -1041,6 +1047,145 @@ impl State {
             self.placed[idx].box_rad = rad;
         }
         Ok(idx)
+    }
+
+    fn brace(&mut self, obj: &Object) -> ER<usize> {
+        let style = self.style_of(obj)?;
+        let text = self.text_of(obj)?;
+        let start = self.find_from(obj)?.unwrap_or(self.pos);
+        let has_to = obj.attrs.iter().any(|a| matches!(a, Attr::To(_)));
+        let (end, last_dir) = self.brace_end(obj, start, has_to)?;
+        let v = end - start;
+        let len = v.len();
+        if len <= 1e-12 {
+            return err("brace endpoints must be distinct");
+        }
+
+        let depth = self
+            .dim(obj, DimKind::Wid)?
+            .unwrap_or(DEFAULT_BRACE_DEPTH)
+            .abs();
+        let pos = self.brace_pos_of(obj)?;
+        let side = brace_side(v / len, self.brace_side_dir(obj, has_to));
+        let label_at =
+            start + v * pos + side * (depth + self.env_dim(EnvVar::Textoffset)? + TEXT_LINE_H);
+        let cubics = brace_cubics(start, end, side * depth, pos);
+        let mut bb = cubics_bbox(&cubics);
+        self.layout_bbox.union(&bb);
+        if !style.invis {
+            self.bbox
+                .union(&painted_bbox(&bb, stroke_half_width(&style)));
+        } else if style.invis_bounds {
+            self.bbox.union(&bb);
+        }
+        let text_bb = text_bbox(label_at, &text);
+        self.bbox.union(&text_bb);
+        bb.union(&text_bb);
+
+        let shape = Shape::Brace {
+            a: start,
+            b: end,
+            cubics: cubics.clone(),
+            label_at,
+            style,
+            text,
+        };
+        let layer = self.layer_of(obj, 0)?;
+        self.push_shape(shape, layer);
+
+        self.pos = end;
+        self.dir = last_dir;
+        let sh = self.shapes.len() - 1;
+        let idx = self.record(
+            PKind::Brace,
+            (start + end) * 0.5,
+            bb,
+            start,
+            end,
+            0.0,
+            Some(sh),
+        );
+        self.placed[idx].points = sample_cubics(&cubics, 6);
+        Ok(idx)
+    }
+
+    fn brace_end(&mut self, obj: &Object, start: Point, has_to: bool) -> ER<(Point, Dir)> {
+        if has_to {
+            let mut end = None;
+            for a in &obj.attrs {
+                if let Attr::To(pos) = a {
+                    end = Some(self.eval_pos(pos)?);
+                }
+            }
+            let end = end.unwrap();
+            return Ok((end, nearest_dir(end - start)));
+        }
+
+        let mut pend = Point::ZERO;
+        let mut any = false;
+        let mut last_dir = self.dir;
+        for a in &obj.attrs {
+            match a {
+                Attr::Direction(d, opt) => {
+                    let dist = match opt {
+                        Some(e) => self.expr_dim(e)?,
+                        None => {
+                            if horizontal(*d) {
+                                self.env_dim(EnvVar::Linewid)?
+                            } else {
+                                self.env_dim(EnvVar::Lineht)?
+                            }
+                        }
+                    };
+                    pend = pend + dir_unit(*d) * dist;
+                    last_dir = *d;
+                    any = true;
+                }
+                Attr::By(pos) => {
+                    pend = pend + self.eval_pos(pos)?;
+                    any = true;
+                }
+                Attr::Dist(e) => {
+                    let dist = self.expr_dim(e)?;
+                    pend = pend + dir_unit(last_dir) * dist;
+                    any = true;
+                }
+                _ => {}
+            }
+        }
+        if any {
+            Ok((start + pend, last_dir))
+        } else {
+            let dist = if horizontal(self.dir) {
+                self.env_dim(EnvVar::Linewid)?
+            } else {
+                self.env_dim(EnvVar::Lineht)?
+            };
+            Ok((start + dir_unit(self.dir) * dist, self.dir))
+        }
+    }
+
+    fn brace_side_dir(&self, obj: &Object, has_to: bool) -> Option<Dir> {
+        if !has_to {
+            return None;
+        }
+        obj.attrs.iter().rev().find_map(|a| match a {
+            Attr::Direction(d, None) => Some(*d),
+            _ => None,
+        })
+    }
+
+    fn brace_pos_of(&mut self, obj: &Object) -> ER<f64> {
+        let mut pos = DEFAULT_BRACE_POS;
+        for a in &obj.attrs {
+            if let Attr::BracePos(e) = a {
+                pos = self.eval_expr(e)?;
+            }
+        }
+        if !pos.is_finite() || pos <= 0.0 || pos >= 1.0 {
+            return err("bracepos must be between 0 and 1");
+        }
+        Ok(pos)
     }
 
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
@@ -2559,9 +2704,132 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             }
             out.union(&text_bbox(*c, text));
         }
+        Shape::Brace {
+            cubics,
+            label_at,
+            style,
+            text,
+            ..
+        } => {
+            let bb = cubics_bbox(cubics);
+            if !style.invis {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            } else if style.invis_bounds {
+                out.union(&bb);
+            }
+            out.union(&text_bbox(*label_at, text));
+        }
         Shape::Text { bbox, .. } => out.union(bbox),
     }
     out
+}
+
+fn brace_side(unit: Point, side_dir: Option<Dir>) -> Point {
+    let right = Point::new(unit.y, -unit.x);
+    if let Some(d) = side_dir {
+        let target = dir_unit(d);
+        if right.x * target.x + right.y * target.y < 0.0 {
+            right * -1.0
+        } else {
+            right
+        }
+    } else {
+        right
+    }
+}
+
+fn brace_cubics(a: Point, b: Point, depth: Point, pos: f64) -> Vec<[Point; 4]> {
+    let v = b - a;
+    let len = v.len();
+    let depth_len = depth.len();
+    if len <= 1e-12 || depth_len <= 1e-12 {
+        return vec![[a, a, b, b]];
+    }
+    let u = v / len;
+    let side = depth / depth_len;
+    let left_len = len * pos;
+    let right_len = len - left_len;
+    let depth_len = depth_len.min(left_len * 0.45).min(right_len * 0.45);
+    let shoulder = depth_len * 0.45;
+    let curl = depth_len - shoulder;
+    let k = 0.552_284_749_830_793_6;
+    let at = |x: f64, y: f64| a + u * x + side * y;
+    let line = |p0: Point, p1: Point| [p0, p0, p1, p1];
+
+    let p0 = at(0.0, 0.0);
+    let p1 = at(shoulder, shoulder);
+    let p2_x = (left_len - curl).max(shoulder);
+    let p2 = at(p2_x, shoulder);
+    let cusp = at(left_len, depth_len);
+    let p3_x = (left_len + curl).min(len - shoulder);
+    let p3 = at(p3_x, shoulder);
+    let p4_x = len - shoulder;
+    let p4 = at(p4_x, shoulder);
+    let p5 = at(len, 0.0);
+
+    vec![
+        [
+            p0,
+            at(0.0, k * shoulder),
+            at(shoulder - k * shoulder, shoulder),
+            p1,
+        ],
+        line(p1, p2),
+        [
+            p2,
+            at(p2_x + k * curl, shoulder),
+            at(left_len, depth_len - k * curl),
+            cusp,
+        ],
+        [
+            cusp,
+            at(left_len, depth_len - k * curl),
+            at(p3_x - k * curl, shoulder),
+            p3,
+        ],
+        line(p3, p4),
+        [
+            p4,
+            at(p4_x + k * shoulder, shoulder),
+            at(len, k * shoulder),
+            p5,
+        ],
+    ]
+}
+
+fn cubic_at(c: &[Point; 4], t: f64) -> Point {
+    let mt = 1.0 - t;
+    c[0] * (mt * mt * mt)
+        + c[1] * (3.0 * mt * mt * t)
+        + c[2] * (3.0 * mt * t * t)
+        + c[3] * (t * t * t)
+}
+
+fn sample_cubics(cubics: &[[Point; 4]], steps: usize) -> Vec<Point> {
+    let steps = steps.max(1);
+    let mut pts = Vec::new();
+    for (i, c) in cubics.iter().enumerate() {
+        if i == 0 {
+            pts.push(c[0]);
+        }
+        for step in 1..=steps {
+            pts.push(cubic_at(c, step as f64 / steps as f64));
+        }
+    }
+    pts
+}
+
+fn cubics_bbox(cubics: &[[Point; 4]]) -> Bbox {
+    let mut bb = Bbox::new();
+    for c in cubics {
+        for p in c {
+            bb.add(*p);
+        }
+    }
+    for p in sample_cubics(cubics, 12) {
+        bb.add(p);
+    }
+    bb
 }
 
 fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
@@ -2773,6 +3041,7 @@ fn primobj_kind(o: &PrimObj) -> Option<PKind> {
             Prim::Spline => PKind::Spline,
             Prim::Arc => PKind::Arc,
         },
+        PrimObj::Brace => PKind::Brace,
         PrimObj::Block | PrimObj::EmptyBrack => PKind::Block,
         PrimObj::Str(_) => PKind::Text,
         PrimObj::Any => return None,
@@ -2788,6 +3057,7 @@ fn want_name(k: PKind) -> &'static str {
         PKind::Move => "move",
         PKind::Spline => "spline",
         PKind::Arc => "arc",
+        PKind::Brace => "brace",
         PKind::Block => "block",
         PKind::Text => "text",
     }
@@ -2975,6 +3245,22 @@ fn translate_shape(sh: &mut Shape, d: Point) {
             }
         }
         Shape::Arc { c, .. } => mv(c),
+        Shape::Brace {
+            a,
+            b,
+            cubics,
+            label_at,
+            ..
+        } => {
+            mv(a);
+            mv(b);
+            mv(label_at);
+            for cubic in cubics {
+                for p in cubic {
+                    mv(p);
+                }
+            }
+        }
         Shape::Text { at, bbox, .. } => {
             mv(at);
             bbox.min = bbox.min + d;
@@ -3041,6 +3327,24 @@ fn scale_shape(sh: &mut Shape, f: f64) {
         Shape::Arc { c, r, style, .. } => {
             *c = *c * f;
             *r *= f;
+            scale_style(style, f);
+        }
+        Shape::Brace {
+            a,
+            b,
+            cubics,
+            label_at,
+            style,
+            ..
+        } => {
+            *a = *a * f;
+            *b = *b * f;
+            *label_at = *label_at * f;
+            for cubic in cubics {
+                for p in cubic {
+                    *p = *p * f;
+                }
+            }
             scale_style(style, f);
         }
         Shape::Text { at, bbox, w, h, .. } => {
@@ -3787,6 +4091,75 @@ mod tests {
 
         let err = eval(&parse("box \"\" fit").unwrap()).unwrap_err();
         assert!(err.msg.contains("visible text"), "{}", err.msg);
+    }
+
+    #[test]
+    fn brace_draws_curly_annotation_between_points() {
+        let d = draw("brace from (0,0) to (2,0) down \"n\" wid .25 bracepos .25");
+        let Shape::Brace {
+            a,
+            b,
+            cubics,
+            label_at,
+            text,
+            ..
+        } = &d.shapes[0]
+        else {
+            panic!()
+        };
+        assert!(a.dist(Point::new(0.0, 0.0)) < 1e-9, "a = {a:?}");
+        assert!(b.dist(Point::new(2.0, 0.0)) < 1e-9, "b = {b:?}");
+        assert_eq!(text[0].s, "n");
+        assert!(label_at.y < -0.25, "label_at = {label_at:?}");
+        assert!(
+            (cubics[2][3].x - 0.5).abs() < 1e-9,
+            "cusp = {:?}",
+            cubics[2][3]
+        );
+        assert!(cubics[2][3].y < -0.2, "cusp = {:?}", cubics[2][3]);
+        assert!(d.bbox.min.y < -0.25, "bbox = {:?}", d.bbox);
+    }
+
+    #[test]
+    fn brace_side_words_choose_absolute_side() {
+        let up = draw("brace from (0,0) to (2,0) up wid .2");
+        let down = draw("brace from (0,0) to (2,0) down wid .2");
+        let Shape::Brace {
+            label_at: up_label, ..
+        } = &up.shapes[0]
+        else {
+            panic!()
+        };
+        let Shape::Brace {
+            label_at: down_label,
+            ..
+        } = &down.shapes[0]
+        else {
+            panic!()
+        };
+        assert!(up_label.y > 0.0, "up label = {up_label:?}");
+        assert!(down_label.y < 0.0, "down label = {down_label:?}");
+    }
+
+    #[test]
+    fn brace_has_open_object_anchors_and_length() {
+        let d = draw(
+            "B: brace from (0,0) to (2,0) down wid .25\n\
+             box wid (B.len) ht .1 at B.c\n\
+             line from B.start to B.end",
+        );
+        assert_box_size(&d.shapes[1], 2.0, 0.1);
+        let Shape::Path { pts, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert!(pts[0].dist(Point::new(0.0, 0.0)) < 1e-9);
+        assert!(pts[1].dist(Point::new(2.0, 0.0)) < 1e-9);
+    }
+
+    #[test]
+    fn bracepos_must_be_inside_segment() {
+        let err = eval(&parse("brace from (0,0) to (1,0) bracepos 1").unwrap()).unwrap_err();
+        assert!(err.msg.contains("bracepos"), "{}", err.msg);
     }
 
     #[test]

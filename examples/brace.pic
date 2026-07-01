@@ -1,0 +1,9 @@
+.PS
+right
+gap = .16
+A: box "parse" at (0,0)
+B: box "eval" at (1.35,0)
+C: box "svg" at (2.7,0)
+brace from A.nw + (0,gap) to C.ne + (0,gap) up "front end" wid .18 thick 1.8
+brace from A.sw - (0,gap) to C.se - (0,gap) down "regression tests" wid .18 thick 1.8 bracepos .6
+.PE

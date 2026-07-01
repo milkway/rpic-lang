@@ -1,0 +1,11 @@
+.PS
+A: box "A" wid .5 ht .35 at (0,0)
+B: box "B" wid .5 ht .35 at (1.2,0)
+brace from A.nw + (0,.12) to B.ne + (0,.12) up "up" wid .14 thick 1.6
+brace from A.sw - (0,.12) to B.se - (0,.12) down "down" wid .14 thick 1.6
+
+C: box "C" wid .5 ht .35 at (3,0)
+D: box "D" wid .5 ht .35 at (3,-1)
+brace from C.nw - (.12,0) to D.sw - (.12,0) left "left" wid .14 thick 1.6
+brace from C.ne + (.12,0) to D.se + (.12,0) right "right" wid .14 thick 1.6
+.PE

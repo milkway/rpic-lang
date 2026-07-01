@@ -199,6 +199,14 @@ pub enum Shape {
         style: Style,
         text: Vec<TextLine>,
     },
+    Brace {
+        a: Point,
+        b: Point,
+        cubics: Vec<[Point; 4]>,
+        label_at: Point,
+        style: Style,
+        text: Vec<TextLine>,
+    },
     Text {
         at: Point,
         text: Vec<TextLine>,

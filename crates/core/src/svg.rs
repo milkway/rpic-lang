@@ -289,6 +289,39 @@ impl Svg {
                 }
                 self.text(*c, text);
             }
+            Shape::Brace {
+                cubics,
+                label_at,
+                style,
+                text,
+                ..
+            } => {
+                if !style.invis && !cubics.is_empty() {
+                    let mut d = String::new();
+                    let p0 = self.p(cubics[0][0]);
+                    d.push_str(&format!("M {} {}", num(p0.x), num(p0.y)));
+                    for cubic in cubics {
+                        let c1 = self.p(cubic[1]);
+                        let c2 = self.p(cubic[2]);
+                        let p = self.p(cubic[3]);
+                        d.push_str(&format!(
+                            " C {} {}, {} {}, {} {}",
+                            num(c1.x),
+                            num(c1.y),
+                            num(c2.x),
+                            num(c2.y),
+                            num(p.x),
+                            num(p.y)
+                        ));
+                    }
+                    self.out.push_str(&format!(
+                        "<path d=\"{}\" fill=\"none\" {}/>\n",
+                        d,
+                        self.stroke(style)
+                    ));
+                }
+                self.text(*label_at, text);
+            }
             Shape::Text {
                 at,
                 text,
@@ -697,6 +730,22 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
                 }
             }
         }
+        Shape::Brace {
+            cubics,
+            label_at,
+            style,
+            text,
+            ..
+        } => {
+            if !style.invis || style.invis_bounds {
+                for cubic in cubics {
+                    for p in cubic {
+                        out.add(*p);
+                    }
+                }
+            }
+            out.union(&attached_text_bounds(*label_at, text));
+        }
         Shape::Text {
             at,
             text,
@@ -747,6 +796,40 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
         bb.add(Point::new(at.x - half_w, y));
         bb.add(Point::new(at.x + half_w, y + xheight));
         baseline_y -= lineskip;
+    }
+    bb
+}
+
+fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
+    let mut bb = Bbox::new();
+    if text.iter().all(|line| line.s.is_empty()) {
+        return bb;
+    }
+    let em = FONT_PT / 72.0;
+    let char_w = 0.6 * em;
+    let line_h = 1.2 * em;
+    let xheight = DP_TEXT_RATIO * em;
+    let n = text.len() as f64;
+    for (i, line) in text.iter().enumerate() {
+        if line.s.is_empty() {
+            continue;
+        }
+        let w = line.s.chars().count() as f64 * char_w;
+        let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * line_h;
+        let y = base_y + line.valign as f64 * (xheight / 2.0 + line.text_offset);
+        let x = center.x
+            + match line.halign {
+                -1 => line.text_offset,
+                1 => -line.text_offset,
+                _ => 0.0,
+            };
+        let (min_x, max_x) = match line.halign {
+            -1 => (x, x + w),
+            1 => (x - w, x),
+            _ => (x - w / 2.0, x + w / 2.0),
+        };
+        bb.add(Point::new(min_x, y - line_h / 2.0));
+        bb.add(Point::new(max_x, y + line_h / 2.0));
     }
     bb
 }
@@ -1138,6 +1221,15 @@ mod tests {
         assert!(s.contains(">document<"));
         assert!(s.contains(">document</text>"));
         assert!(s.contains("</svg>"));
+    }
+
+    #[test]
+    fn brace_svg_uses_cubic_path_and_label() {
+        let s = svg("brace from (0,0) to (2,0) up \"n\" wid .25");
+        assert!(s.contains("<path d=\"M "));
+        assert!(s.contains(" C "));
+        assert!(s.contains(">n</text>"));
+        assert!(text_y(&s, "n") > 0.0);
     }
 
     #[test]

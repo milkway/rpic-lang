@@ -1492,7 +1492,7 @@ impl Parser {
                 | Token::Str(_)
                 | Token::Arg(_)
                 | Token::Kw(Kw::Sprintf)
-        )
+        ) || matches!(self.cur(), Token::Name(n) if n == "brace")
     }
 
     fn at_assignment_start(&self) -> bool {
@@ -1606,7 +1606,7 @@ impl Parser {
         // places a text-only object.
         if self.at_string_start() {
             attrs.push(Attr::Text(self.parse_stringexpr()?));
-            while let Some(a) = self.parse_attr(false)? {
+            while let Some(a) = self.parse_attr(false, false)? {
                 attrs.push(a);
             }
             return Ok(Object {
@@ -1622,6 +1622,10 @@ impl Parser {
             Token::Block => {
                 self.bump();
                 ObjectKind::Empty
+            }
+            Token::Name(n) if n == "brace" => {
+                self.bump();
+                ObjectKind::Brace
             }
             Token::LeftBrack => {
                 self.bump();
@@ -1651,7 +1655,8 @@ impl Parser {
             kind,
             ObjectKind::Primitive(Prim::Box | Prim::Circle | Prim::Ellipse)
         );
-        while let Some(a) = self.parse_attr(allow_fit)? {
+        let allow_brace = matches!(kind, ObjectKind::Brace);
+        while let Some(a) = self.parse_attr(allow_fit, allow_brace)? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
@@ -1675,7 +1680,7 @@ impl Parser {
         )
     }
 
-    fn parse_attr(&mut self, allow_fit: bool) -> PResult<Option<Attr>> {
+    fn parse_attr(&mut self, allow_fit: bool, allow_brace: bool) -> PResult<Option<Attr>> {
         // any string expression (literal, sprintf, $arg, concatenation) is text
         if self.at_string_start() {
             return Ok(Some(Attr::Text(self.parse_stringexpr()?)));
@@ -1805,6 +1810,10 @@ impl Parser {
             Token::Name(n) if allow_fit && n == "fit" => {
                 self.bump();
                 Attr::Fit
+            }
+            Token::Name(n) if allow_brace && n == "bracepos" => {
+                self.bump();
+                Attr::BracePos(self.parse_expr()?)
             }
             Token::Name(n) if n == "behind" => {
                 self.bump();
@@ -2172,7 +2181,7 @@ impl Parser {
         matches!(
             self.cur(),
             Token::Prim(_) | Token::Block | Token::Str(_) | Token::LeftBrack
-        )
+        ) || matches!(self.cur(), Token::Name(n) if n == "brace")
     }
 
     fn parse_primobj(&mut self) -> PResult<PrimObj> {
@@ -2180,6 +2189,10 @@ impl Parser {
             Token::Prim(p) => {
                 self.bump();
                 Ok(PrimObj::Prim(p))
+            }
+            Token::Name(n) if n == "brace" => {
+                self.bump();
+                Ok(PrimObj::Brace)
             }
             Token::Block => {
                 self.bump();
@@ -2569,6 +2582,35 @@ ellipse "typesetter"
             panic!()
         };
         assert!(matches!(object.attrs[0], Attr::Dist(_)));
+    }
+
+    #[test]
+    fn brace_parses_as_contextual_extension_object() {
+        let p = pic("A: box\nB: box\nbrace from A.e to B.w down \"group\" wid .2 bracepos .4");
+        let Stmt::Object { object, .. } = &p.stmts[2] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Brace);
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::From(_))));
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::To(_))));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::Direction(Dir::Down, None)))
+        );
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Text(_))));
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::BracePos(_))));
+
+        let p = pic("brace = 2\nline right brace");
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Line));
+
+        let p = pic("brace from 0,0 to 1,0\nline from last brace.start to last brace.end");
+        assert_eq!(p.stmts.len(), 2);
     }
 
     #[test]

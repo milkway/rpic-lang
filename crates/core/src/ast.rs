@@ -151,6 +151,8 @@ pub enum ObjectKind {
     Empty,
     /// A bare quoted string places a text-only object.
     Text,
+    /// rpic extension: a curly brace annotation between two points.
+    Brace,
     /// `continue` — extend the previous line with another segment.
     Continue,
 }
@@ -190,6 +192,8 @@ pub enum Attr {
     Color(Color, StringExpr),
     /// rpic extension: draw this object below another already-placed object.
     Behind(Place),
+    /// rpic extension: relative cusp position for a `brace` object.
+    BracePos(Expr),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -280,6 +284,7 @@ pub enum Nth {
 #[derive(Debug, Clone, PartialEq)]
 pub enum PrimObj {
     Prim(Prim),
+    Brace,
     Block,
     Str(String),
     EmptyBrack,
