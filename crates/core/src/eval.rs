@@ -1538,7 +1538,9 @@ impl State {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
                     WithAnchor::Corner(c) => corner_offset(*c, w, h),
-                    WithAnchor::Pair(x, y) => Point::new(self.expr_dim(x)?, self.expr_dim(y)?),
+                    WithAnchor::Pair(x, y) => {
+                        Point::new(self.expr_dim(x)?, self.expr_dim(y)?) - local_center
+                    }
                     WithAnchor::Place(place) => sub.place_point(place)? - local_center,
                     WithAnchor::Plain => Point::ZERO,
                 };
@@ -3343,6 +3345,17 @@ mod tests {
             panic!()
         };
         assert!(c.dist(Point::new(4.0, 3.0)) < 1e-9, "circle center = {c:?}");
+    }
+
+    #[test]
+    fn block_pair_anchor_uses_local_coordinates() {
+        // dpic oracle: for `[ ... ] with (x,y) at P`, `(x,y)` is a point in
+        // the block's local coordinate system, not an offset from its center.
+        let d = draw("[ box wid 2 ht 1 at (1,0) ] with (0,0) at (10,20)");
+        let Shape::Box { c, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(c.dist(Point::new(11.0, 20.0)) < 1e-9, "c = {c:?}");
     }
 
     #[test]
