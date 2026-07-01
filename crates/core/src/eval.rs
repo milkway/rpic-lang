@@ -1148,7 +1148,8 @@ impl State {
         let style = self.style_of(obj)?;
         let text = self.text_of(obj)?;
         let start = self.find_from(obj)?.unwrap_or(self.pos);
-        let cw = obj.attrs.iter().any(|a| matches!(a, Attr::Cw));
+        let cw = self.arc_cw_of(obj);
+        let arc_dir = self.dir_of(obj);
         let rad_attr = self.dim(obj, DimKind::Rad)?;
         let to = self.dest_of(obj)?;
 
@@ -1163,11 +1164,36 @@ impl State {
             let r = rad_attr
                 .unwrap_or(self.env_dim(EnvVar::Arcrad)?)
                 .max(clen / 2.0);
-            let hd = (r * r - (clen / 2.0) * (clen / 2.0)).max(0.0).sqrt();
-            let u = chord / clen;
-            let perp = Point::new(-u.y, u.x);
-            let mid = (start + end) * 0.5;
-            let center = if cw { mid - perp * hd } else { mid + perp * hd };
+            let dx = chord.x;
+            let dy = chord.y;
+            let ts = dx * dx + dy * dy;
+            let mut t = ((4.0 * r * r - ts).max(0.0) / ts).sqrt();
+            let arc_sign = if cw { -1.0 } else { 1.0 };
+            // Dpic uses the prevailing direction to choose between the two
+            // possible circle centers for a chord/radius pair.
+            match arc_dir {
+                Dir::Up => {
+                    if arc_sign * ((-dx) - (t * dy)) < 0.0 {
+                        t = -t;
+                    }
+                }
+                Dir::Down => {
+                    if arc_sign * ((-dx) - (t * dy)) > 0.0 {
+                        t = -t;
+                    }
+                }
+                Dir::Right => {
+                    if arc_sign * (dy - (t * dx)) < 0.0 {
+                        t = -t;
+                    }
+                }
+                Dir::Left => {
+                    if arc_sign * (dy - (t * dx)) > 0.0 {
+                        t = -t;
+                    }
+                }
+            }
+            let center = start + Point::new(0.5 * (dx + t * dy), 0.5 * (dy - t * dx));
             let a0 = (start - center).y.atan2((start - center).x);
             let mut a1 = (end - center).y.atan2((end - center).x);
             // keep the requested handedness (ccw: a1 > a0, cw: a1 < a0)
@@ -1236,6 +1262,18 @@ impl State {
         let idx = self.record(PKind::Arc, center, bb, start, end, 0.0, Some(sh));
         self.placed[idx].radius = r;
         Ok(idx)
+    }
+
+    fn arc_cw_of(&self, obj: &Object) -> bool {
+        obj.attrs
+            .iter()
+            .rev()
+            .find_map(|a| match a {
+                Attr::Cw => Some(true),
+                Attr::Ccw => Some(false),
+                _ => None,
+            })
+            .unwrap_or(false)
     }
 
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
@@ -3101,6 +3139,37 @@ mod tests {
             panic!()
         };
         assert!((*r - 2.0).abs() < 1e-9, "r = {r}");
+    }
+
+    #[test]
+    fn arc_direction_disambiguates_from_to_radius() {
+        let d = draw(
+            "arc left from (0.5,0) to (0,0.5) rad 0.5\n\
+             arc right from (0.5,0) to (0,0.5) rad 0.5 dashed",
+        );
+        let Shape::Arc {
+            c: left,
+            a0: left_a0,
+            a1: left_a1,
+            ..
+        } = &d.shapes[0]
+        else {
+            panic!()
+        };
+        let Shape::Arc {
+            c: right,
+            a0: right_a0,
+            a1: right_a1,
+            ..
+        } = &d.shapes[1]
+        else {
+            panic!()
+        };
+
+        assert!(left.dist(Point::new(0.0, 0.0)) < 1e-9, "left = {left:?}");
+        assert!(right.dist(Point::new(0.5, 0.5)) < 1e-9, "right = {right:?}");
+        assert!((left_a1 - left_a0).abs() < PI);
+        assert!((right_a1 - right_a0).abs() > PI);
     }
 
     #[test]
