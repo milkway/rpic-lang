@@ -1030,6 +1030,12 @@ mod tests {
     }
 
     #[test]
+    fn arc_with_explicit_center_uses_large_clockwise_svg_sweep() {
+        let s = svg("arc cw rad 1 from (0,-1) to (1,0) with .c at (0,0)");
+        assert!(s.contains(" A 96 96 0 1 1 "), "{s}");
+    }
+
+    #[test]
     fn num_guards_non_finite() {
         assert_eq!(num(f64::NAN), "0");
         assert_eq!(num(f64::INFINITY), "0");

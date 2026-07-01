@@ -1145,13 +1145,24 @@ impl State {
     }
 
     fn arc(&mut self, obj: &Object) -> ER<usize> {
-        let style = self.style_of(obj)?;
+        let mut style = self.style_of(obj)?;
+        if let Some(wid) = self.dim(obj, DimKind::Wid)? {
+            style.arrow_wid = wid;
+        }
+        if let Some(ht) = self.dim(obj, DimKind::Ht)? {
+            style.arrow_ht = ht;
+        }
         let text = self.text_of(obj)?;
         let start = self.find_from(obj)?.unwrap_or(self.pos);
         let cw = self.arc_cw_of(obj);
         let arc_dir = self.dir_of(obj);
         let rad_attr = self.dim(obj, DimKind::Rad)?;
         let to = self.dest_of(obj)?;
+        let explicit_center = if to.is_some() {
+            self.arc_explicit_center(obj)?
+        } else {
+            None
+        };
 
         // (center, radius, start angle, end angle)
         let (center, r, a0, a1) = if let Some(end) = to {
@@ -1194,18 +1205,12 @@ impl State {
                 }
             }
             let center = start + Point::new(0.5 * (dx + t * dy), 0.5 * (dy - t * dx));
-            let a0 = (start - center).y.atan2((start - center).x);
-            let mut a1 = (end - center).y.atan2((end - center).x);
-            // keep the requested handedness (ccw: a1 > a0, cw: a1 < a0)
-            if cw {
-                while a1 > a0 {
-                    a1 -= 2.0 * PI;
-                }
+            let (center, r) = if let Some(center) = explicit_center {
+                (center, end.dist(center))
             } else {
-                while a1 < a0 {
-                    a1 += 2.0 * PI;
-                }
-            }
+                (center, r)
+            };
+            let (a0, a1) = arc_angles(center, start, end, cw);
             (center, r, a0, a1)
         } else {
             // default: a quarter turn from the current heading
@@ -1274,6 +1279,22 @@ impl State {
                 _ => None,
             })
             .unwrap_or(false)
+    }
+
+    fn arc_explicit_center(&mut self, obj: &Object) -> ER<Option<Point>> {
+        for a in &obj.attrs {
+            match a {
+                Attr::At(pos) => return Ok(Some(self.eval_pos(pos)?)),
+                Attr::With {
+                    anchor: WithAnchor::Plain | WithAnchor::Corner(Corner::Center),
+                    at,
+                } => {
+                    return Ok(Some(self.eval_pos(at)?));
+                }
+                _ => {}
+            }
+        }
+        Ok(None)
     }
 
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
@@ -2516,6 +2537,21 @@ fn closed_corner_offset(p: Prim, c: Corner, w: f64, h: f64, rad: f64) -> Point {
     }
 }
 
+fn arc_angles(center: Point, start: Point, end: Point, cw: bool) -> (f64, f64) {
+    let a0 = (start - center).y.atan2((start - center).x);
+    let mut a1 = (end - center).y.atan2((end - center).x);
+    if cw {
+        while a1 > a0 {
+            a1 -= 2.0 * PI;
+        }
+    } else {
+        while a1 < a0 {
+            a1 += 2.0 * PI;
+        }
+    }
+    (a0, a1)
+}
+
 fn ellipse_corner_offset(c: Corner, w: f64, h: f64) -> Point {
     let (rx, ry) = (w / 2.0, h / 2.0);
     let diag = |sx: f64, sy: f64| Point::new(sx * rx * FRAC_1_SQRT_2, sy * ry * FRAC_1_SQRT_2);
@@ -3202,6 +3238,44 @@ mod tests {
         assert!(right.dist(Point::new(0.5, 0.5)) < 1e-9, "right = {right:?}");
         assert!((left_a1 - left_a0).abs() < PI);
         assert!((right_a1 - right_a0).abs() > PI);
+    }
+
+    #[test]
+    fn arc_with_center_at_disambiguates_large_clockwise_sweep() {
+        let d = draw("arc cw rad 1 from (0,-1) to (1,0) with .c at (0,0)");
+        let Shape::Arc { c, r, a0, a1, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let start = *c + Point::new(a0.cos(), a0.sin()) * *r;
+        let end = *c + Point::new(a1.cos(), a1.sin()) * *r;
+
+        assert!(c.dist(Point::ZERO) < 1e-9, "center = {c:?}");
+        assert!((*r - 1.0).abs() < 1e-9, "r = {r}");
+        assert!(
+            start.dist(Point::new(0.0, -1.0)) < 1e-9,
+            "start = {start:?}"
+        );
+        assert!(end.dist(Point::new(1.0, 0.0)) < 1e-9, "end = {end:?}");
+        assert!(*a1 - *a0 < -PI, "sweep = {}", *a1 - *a0);
+    }
+
+    #[test]
+    fn arc_width_height_attrs_size_arrowheads() {
+        let d = draw("arc <-> wid .5 ht .75");
+        let Shape::Arc { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+
+        assert!(
+            (style.arrow_wid - 0.5).abs() < 1e-9,
+            "wid = {}",
+            style.arrow_wid
+        );
+        assert!(
+            (style.arrow_ht - 0.75).abs() < 1e-9,
+            "ht = {}",
+            style.arrow_ht
+        );
     }
 
     #[test]
