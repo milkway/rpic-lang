@@ -69,6 +69,10 @@ named labels, compass corners (`.n .ne .center …`), ordinals (`last`,
 Programmability: `define` macros with `$1…$9`, `for`, `if`, `sprintf`,
 environment variables.
 
+Explicit rpic extensions, including canvas margin variables inspired by Pikchr,
+are documented in [`docs/extensions.md`](docs/extensions.md). They are opt-in
+and should not change classic pic/dpic-compatible input when unused.
+
 ## Outputs
 
 ```sh

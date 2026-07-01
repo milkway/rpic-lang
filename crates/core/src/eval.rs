@@ -54,10 +54,12 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         None => None,
     };
     let (maxw, maxh) = (st.env.get(EnvVar::Maxpswid), st.env.get(EnvVar::Maxpsht));
+    let canvas_margin = st.canvas_margin()?;
     let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
+        canvas_margin,
         anims: st.anims,
         diagnostics: st.diagnostics,
     };
@@ -74,7 +76,7 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
         if d.bbox.is_empty() {
             return;
         }
-        let (w, h) = (d.bbox.width(), d.bbox.height());
+        let (w, h) = (canvas_width(d), canvas_height(d));
         let mut factor = 1.0_f64;
         if maxw > 0.0 && w > maxw {
             factor = factor.min(maxw / w);
@@ -89,6 +91,7 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
             scale_shape(sh, factor);
         }
         d.prelude_thick *= factor;
+        d.canvas_margin.scale_by(factor);
         d.bbox = drawing_painted_bbox(&d.shapes);
     }
 }
@@ -112,11 +115,20 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
         scale_shape(sh, factor);
     }
     d.prelude_thick *= factor;
+    d.canvas_margin.scale_by(factor);
     d.bbox = drawing_painted_bbox(&d.shapes);
 }
 
+fn canvas_width(d: &Drawing) -> f64 {
+    d.bbox.width() + d.canvas_margin.horizontal()
+}
+
+fn canvas_height(d: &Drawing) -> f64 {
+    d.bbox.height() + d.canvas_margin.vertical()
+}
+
 /// The dimension variables that track `scale`.
-const SCALED_VARS: [EnvVar; 17] = [
+const SCALED_VARS: [EnvVar; 22] = [
     EnvVar::Arcrad,
     EnvVar::Arrowht,
     EnvVar::Arrowwid,
@@ -134,6 +146,11 @@ const SCALED_VARS: [EnvVar; 17] = [
     EnvVar::Textht,
     EnvVar::Textwid,
     EnvVar::Textoffset,
+    EnvVar::Margin,
+    EnvVar::Topmargin,
+    EnvVar::Rightmargin,
+    EnvVar::Bottommargin,
+    EnvVar::Leftmargin,
 ];
 
 // ---- environment variables -------------------------------------------------
@@ -174,6 +191,11 @@ impl EnvVars {
             (Maxpsht, 11.0),
             (Maxpswid, 8.5),
             (Scale, 1.0),
+            (Margin, 0.0),
+            (Topmargin, 0.0),
+            (Rightmargin, 0.0),
+            (Bottommargin, 0.0),
+            (Leftmargin, 0.0),
         ];
         let mut v = HashMap::new();
         for (e, d) in defaults {
@@ -667,6 +689,16 @@ impl State {
 
     fn env_dim(&self, e: EnvVar) -> ER<f64> {
         self.to_internal_dim(self.env.get(e))
+    }
+
+    fn canvas_margin(&self) -> ER<CanvasMargin> {
+        let all = self.env_dim(EnvVar::Margin)?;
+        Ok(CanvasMargin {
+            top: all + self.env_dim(EnvVar::Topmargin)?,
+            right: all + self.env_dim(EnvVar::Rightmargin)?,
+            bottom: all + self.env_dim(EnvVar::Bottommargin)?,
+            left: all + self.env_dim(EnvVar::Leftmargin)?,
+        })
     }
 
     fn expr_dim(&mut self, e: &Expr) -> ER<f64> {
@@ -3979,6 +4011,47 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert!((scalar("textht").unwrap() - (11.0 / 72.0) * 0.66).abs() < 1e-9);
         assert!((scalar("arrowhead").unwrap() - 1.0).abs() < 1e-9);
         assert!((scalar("linethick").unwrap() - 0.8).abs() < 1e-9);
+        assert_eq!(scalar("margin").unwrap(), 0.0);
+        assert_eq!(scalar("topmargin").unwrap(), 0.0);
+        assert_eq!(scalar("rightmargin").unwrap(), 0.0);
+        assert_eq!(scalar("bottommargin").unwrap(), 0.0);
+        assert_eq!(scalar("leftmargin").unwrap(), 0.0);
+    }
+
+    #[test]
+    fn canvas_margin_vars_are_scaled_dimensions() {
+        let d = draw("margin = 1; topmargin = 0.5; rightmargin = 0.25; line right");
+        assert_eq!(
+            d.canvas_margin,
+            CanvasMargin {
+                top: 1.5,
+                right: 1.25,
+                bottom: 1.0,
+                left: 1.0,
+            }
+        );
+
+        let d = draw("scale = 2; margin = 1; topmargin = 1; line right");
+        assert_eq!(
+            d.canvas_margin,
+            CanvasMargin {
+                top: 1.0,
+                right: 0.5,
+                bottom: 0.5,
+                left: 0.5,
+            }
+        );
+
+        let d = draw("margin = 1; scale = 2; line right");
+        assert_eq!(
+            d.canvas_margin,
+            CanvasMargin {
+                top: 1.0,
+                right: 1.0,
+                bottom: 1.0,
+                left: 1.0,
+            }
+        );
     }
 
     #[test]
@@ -4075,6 +4148,18 @@ box wid 0.1 ht 0.1 at B.s"#,
         // a small drawing is untouched
         let d3 = draw("box wid 2 ht 1");
         assert!((d3.bbox.width() - (2.0 + DEFAULT_STROKE_IN)).abs() < 1e-6);
+
+        let d4 = draw("maxpswid = 2; maxpsht = 100\nmargin = 1\nbox wid 1 ht 0.5");
+        assert!(
+            d4.bbox.width() + d4.canvas_margin.horizontal() <= 2.0 + 1e-6,
+            "canvas width = {}",
+            d4.bbox.width() + d4.canvas_margin.horizontal()
+        );
+        assert!(
+            d4.canvas_margin.left < 1.0 && d4.canvas_margin.right < 1.0,
+            "{:?}",
+            d4.canvas_margin
+        );
     }
 
     #[test]

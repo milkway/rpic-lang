@@ -13,9 +13,38 @@ pub struct Drawing {
     /// dpic-style backend prelude padding. Per-shape strokes keep their own
     /// unscaled point thickness.
     pub prelude_thick: f64,
+    /// Extra canvas whitespace in inches. This is an rpic extension inspired by
+    /// Pikchr: it affects native backend framing only, not pic geometry.
+    pub canvas_margin: CanvasMargin,
     pub anims: Vec<Anim>,
     /// Lines emitted by pic `print` statements, without trailing newlines.
     pub diagnostics: Vec<String>,
+}
+
+/// Extra whitespace around the rendered canvas, in internal inches.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct CanvasMargin {
+    pub top: f64,
+    pub right: f64,
+    pub bottom: f64,
+    pub left: f64,
+}
+
+impl CanvasMargin {
+    pub fn horizontal(self) -> f64 {
+        self.left + self.right
+    }
+
+    pub fn vertical(self) -> f64 {
+        self.top + self.bottom
+    }
+
+    pub fn scale_by(&mut self, factor: f64) {
+        self.top *= factor;
+        self.right *= factor;
+        self.bottom *= factor;
+        self.left *= factor;
+    }
 }
 
 /// A resolved animation entry. `shape` indexes into [`Drawing::shapes`]; the
