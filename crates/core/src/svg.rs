@@ -10,6 +10,7 @@ use crate::ir::*;
 
 const PPI: f64 = 96.0;
 const FONT_PT: f64 = 11.0;
+const DP_TEXT_RATIO: f64 = 0.66;
 
 /// Render a drawing to an SVG document string.
 pub fn to_svg(d: &Drawing) -> String {
@@ -278,7 +279,20 @@ impl Svg {
                 }
                 self.text(*c, text);
             }
-            Shape::Text { at, text, .. } => self.text(*at, text),
+            Shape::Text {
+                at,
+                text,
+                w,
+                h,
+                standalone,
+                ..
+            } => {
+                if *standalone {
+                    self.standalone_text(*at, text, *w, *h);
+                } else {
+                    self.text(*at, text);
+                }
+            }
         }
     }
 
@@ -514,36 +528,78 @@ impl Svg {
     }
 
     fn text(&mut self, center: Point, lines: &[TextLine]) {
+        self.write_text(center, lines, None);
+    }
+
+    fn standalone_text(&mut self, center: Point, lines: &[TextLine], w: f64, h: f64) {
+        self.write_text(center, lines, Some((w, h)));
+    }
+
+    fn write_text(
+        &mut self,
+        center: Point,
+        lines: &[TextLine],
+        standalone_dims: Option<(f64, f64)>,
+    ) {
         if lines.is_empty() {
             return;
         }
-        let c = self.p(center);
-        let font_px = FONT_PT * PPI / 72.0;
-        let lh = font_px * 1.2;
-        let xheight = font_px * 0.66;
+        let standalone = standalone_dims.is_some();
         let n = lines.len() as f64;
-        for (i, line) in lines.iter().enumerate() {
-            let dy = (i as f64 - (n - 1.0) / 2.0) * lh;
+        let v = n - 1.0 + DP_TEXT_RATIO;
+        let lineskip = standalone_dims
+            .map(|(_, h)| h)
+            .filter(|_| v.abs() > 1e-12)
+            .map(|h| h / v)
+            .unwrap_or(FONT_PT / 72.0);
+        let xheight = lineskip * DP_TEXT_RATIO;
+        let font_pt = lineskip * 72.0;
+        let mut y = center.y + (v * lineskip / 2.0) - xheight;
+        for line in lines {
             let anchor = match line.halign {
                 -1 => "start",
                 1 => "end",
                 _ => "middle",
             };
-            let just_offset = xheight / 2.0 + line.text_offset * PPI;
-            let x = c.x
+            let just_offset = xheight / 2.0 + line.text_offset;
+            let standalone_half_width = standalone_dims
+                .map(|(w, _)| {
+                    if w.abs() > 1e-12 {
+                        w / 2.0
+                    } else {
+                        line.text_offset
+                    }
+                })
+                .unwrap_or(0.0);
+            let x = center.x
                 + match line.halign {
-                    -1 => line.text_offset * PPI,
-                    1 => -line.text_offset * PPI,
+                    -1 if standalone => standalone_half_width,
+                    1 if standalone => -standalone_half_width,
+                    -1 => line.text_offset,
+                    1 => -line.text_offset,
                     _ => 0.0,
                 };
-            let y = c.y + dy - (line.valign as f64) * just_offset;
+            let baseline_y = y + if !standalone {
+                (line.valign as f64) * just_offset
+            } else {
+                0.0
+            };
+            let p = self.p(Point::new(x, baseline_y));
+            let text_stroke = if standalone {
+                format!("stroke-width=\"{}\"", num(0.2 * PPI / 72.0))
+            } else {
+                "stroke-width=\"0.2pt\"".to_string()
+            };
             self.out.push_str(&format!(
-                "<text x=\"{}\" y=\"{}\" text-anchor=\"{}\" dominant-baseline=\"central\" fill=\"black\">{}</text>\n",
-                num(x),
-                num(y),
+                "<text font-size=\"{}pt\" {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
+                num(font_pt),
+                text_stroke,
+                num(p.x),
+                num(p.y),
                 anchor,
                 escape(&line.s)
             ));
+            y -= lineskip;
         }
     }
 }
@@ -631,9 +687,38 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
                 }
             }
         }
-        Shape::Text { bbox, .. } => out.union(bbox),
+        Shape::Text {
+            at,
+            text,
+            bbox,
+            w,
+            h,
+            standalone,
+        } => {
+            if *standalone {
+                out.union(&standalone_text_bounds(*at, text, *w, *h));
+            } else {
+                out.union(bbox);
+            }
+        }
     }
     out
+}
+
+fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox {
+    let mut bb = Bbox::new();
+    let mut half_w = w.abs() / 2.0;
+    if half_w <= 1e-12 {
+        half_w = text
+            .iter()
+            .filter(|line| line.halign != 0 && !line.s.is_empty())
+            .map(|line| line.text_offset.abs())
+            .fold(0.0, f64::max);
+    }
+    let half_h = h.abs() / 2.0;
+    bb.add(Point::new(at.x - half_w, at.y - half_h));
+    bb.add(Point::new(at.x + half_w, at.y + half_h));
+    bb
 }
 
 fn spline_path_points(q: &[Point], tension: Option<f64>) -> String {
@@ -1021,7 +1106,7 @@ mod tests {
         assert!(s.contains("<line"));
         assert!(s.contains("<polygon")); // arrowhead
         assert!(s.contains(">document<"));
-        assert!(s.contains("fill=\"black\">document</text>"));
+        assert!(s.contains(">document</text>"));
         assert!(s.contains("</svg>"));
     }
 
@@ -1115,6 +1200,28 @@ mod tests {
             s.contains("<rect x=\"1.066667\" y=\"0.533333\" width=\"19.2\" height=\"48\""),
             "{s}"
         );
+    }
+
+    #[test]
+    fn standalone_text_height_sets_svg_font_size_like_dpic() {
+        let s = svg("\"\\includegraphics{diagA.eps}\" wid 172/72 ht 54/72");
+        assert!(s.contains("font-size=\"81.818182pt\""), "{s}");
+        assert!(
+            s.contains("stroke-width=\"0.266667\" fill=\"black\" x=\"115.733333\" y=\"72.533333\""),
+            "{s}"
+        );
+        assert!(!s.contains("dominant-baseline"), "{s}");
+    }
+
+    #[test]
+    fn attached_text_uses_dpic_svg_baseline() {
+        let s = svg("box wid .2 \"longlonglong\"");
+        assert!(s.contains("font-size=\"11pt\""), "{s}");
+        assert!(
+            s.contains("stroke-width=\"0.2pt\" fill=\"black\" x=\"10.666667\" y=\"29.373333\""),
+            "{s}"
+        );
+        assert!(!s.contains("dominant-baseline"), "{s}");
     }
 
     #[test]
