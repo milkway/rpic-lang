@@ -48,3 +48,31 @@ This changes only backend drawing order. Labels, anchors, ordinals such as
 `last box` and `2nd box`, object ids such as `s0`/`s1`, and animation targets
 continue to follow source/evaluation order. When `behind` is absent, rpic keeps
 the dpic-compatible natural drawing order.
+
+## Fitted Text Objects
+
+`fit` is an rpic-only attribute inspired by Pikchr. It sizes a closed object to
+the visible text already declared on that object, while keeping classic pic
+input unchanged unless the author opts in.
+
+```pic
+.PS
+box "long label" fit
+move right 1
+ellipse "two" "lines" fit
+.PE
+```
+
+The first implementation applies to `box`, `ellipse`, and `circle`:
+
+- only text that appears before `fit` contributes to the fitted size;
+- later text remains attached to the object, but does not change its geometry;
+- explicit dimensions still win: `wid`/`ht` keep their values on boxes and
+  ellipses, while `rad`/`diam` keep their values on circles;
+- `scaled` is applied after fitting, just as it is for explicit dimensions;
+- using `fit` without visible preceding text is an error.
+
+The text metrics are the same approximate metrics rpic already uses for
+rendered text bboxes. That keeps the feature practical and backend-stable
+inside rpic, but it also means `fit` is not a dpic oracle feature. Programs that
+do not use `fit` keep their dpic-compatible dimensions and placement.

@@ -79,13 +79,35 @@ source/evaluation order separate from backend paint order:
 Implementation is tracked in
 [#109](https://github.com/milkway/rpic-lang/issues/109).
 
+## Fit
+
+Pikchr implements `fit` as an attribute on closed objects. In `pikchr.y`, the
+attribute looks only at text declared before `fit`, estimates the text box from
+the current character metrics, and asks the object type to resize itself. Text
+declared later remains normal attached text, but it is not part of the fit
+calculation.
+
+That maps to rpic as a useful explicit extension if it stays conservative:
+
+- keep `fit` contextual, so ordinary variables named `fit` still work in
+  expression positions and on non-fitted object types;
+- use rpic's existing text-bbox estimate instead of adding a second text metric
+  model;
+- apply it only to `box`, `ellipse`, and `circle` at first;
+- preserve explicit dimensions so an author can combine `fit` with fixed
+  `wid`, `ht`, `rad`, or `diam` without hidden overrides;
+- keep every classic pic program unchanged when `fit` is absent.
+
+Implementation is tracked in
+[#108](https://github.com/milkway/rpic-lang/issues/108).
+
 ## Adoption Matrix
 
 | Decision | Candidate | Rationale |
 | --- | --- | --- |
 | Adopt | `margin` and side margin variables | High value, low semantic risk, fixes canvas framing without hidden geometry. Track in #107. |
 | Adopt | `behind <object>` layering | Useful for highlights and backgrounds when implemented as backend paint-order metadata with stable semantic ids. Track in #109. |
-| Maybe | `fit` attribute for text-sized objects | Useful, but text metrics are approximate and backend-sensitive. Needs a spec before implementation. Track in #108. |
+| Adopt | `fit` attribute for text-sized objects | Useful when opt-in and constrained to rpic's own text-bbox estimate. Track in #108. |
 | Maybe | Simple aliases such as `invisible`, `previous`, and `first` | Ergonomic and likely low risk, but aliases should be grouped and tested separately from parity work. |
 | Maybe | New object types: `dot`, `diamond`, `oval`, `file`, `cylinder` | `dot` and `diamond` look tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
 | Maybe | Text styling: `bold`, `italic`, `mono`, `big`, `small`, `aligned` | Good SVG-era ergonomics, but requires IR/text model changes and careful fallback behavior. |

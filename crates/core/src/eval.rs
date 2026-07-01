@@ -34,6 +34,10 @@ impl std::fmt::Display for EvalError {
 type ER<T> = Result<T, EvalError>;
 
 const DP_TEXT_RATIO: f64 = 0.66;
+const TEXT_EM: f64 = 11.0 / 72.0;
+const TEXT_CHAR_W: f64 = 0.6 * TEXT_EM;
+const TEXT_LINE_H: f64 = 1.2 * TEXT_EM;
+const TEXT_XHEIGHT: f64 = DP_TEXT_RATIO * TEXT_EM;
 
 fn err<T>(msg: impl Into<String>) -> ER<T> {
     Err(EvalError { msg: msg.into() })
@@ -900,7 +904,7 @@ impl State {
 
     fn closed(&mut self, p: Prim, obj: &Object) -> ER<usize> {
         let style = self.style_of(obj)?;
-        let text = self.text_of(obj)?;
+        let (text, fit_text) = self.text_and_fit_text_of(obj)?;
         let dir = self.dir_of(obj);
         let scale = self.scale_of(obj)?;
 
@@ -940,6 +944,37 @@ impl State {
                 rad = self
                     .dim(obj, DimKind::Rad)?
                     .unwrap_or(self.env_dim(EnvVar::Boxrad)?);
+            }
+        }
+        if let Some(fit_text) = fit_text {
+            let (fit_w, fit_h) = fitted_text_size(&fit_text).ok_or_else(|| EvalError {
+                msg: "`fit` requires visible text before the attribute".into(),
+            })?;
+            match p {
+                Prim::Circle => {
+                    if !self.has_dim(obj, DimKind::Rad) && !self.has_dim(obj, DimKind::Diam) {
+                        let diam = fit_w.hypot(fit_h);
+                        w = diam;
+                        h = diam;
+                        rad = diam / 2.0;
+                    }
+                }
+                Prim::Ellipse => {
+                    if !self.has_dim(obj, DimKind::Wid) {
+                        w = fit_w;
+                    }
+                    if !self.has_dim(obj, DimKind::Ht) {
+                        h = fit_h;
+                    }
+                }
+                _ => {
+                    if !self.has_dim(obj, DimKind::Wid) {
+                        w = fit_w;
+                    }
+                    if !self.has_dim(obj, DimKind::Ht) {
+                        h = fit_h;
+                    }
+                }
             }
         }
         w *= scale;
@@ -1573,6 +1608,12 @@ impl State {
         Ok(None)
     }
 
+    fn has_dim(&self, obj: &Object, kind: DimKind) -> bool {
+        obj.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Dim(k, _) if *k == kind))
+    }
+
     fn scale_of(&mut self, obj: &Object) -> ER<f64> {
         Ok(self.dim(obj, DimKind::Scaled)?.unwrap_or(1.0))
     }
@@ -1847,7 +1888,12 @@ impl State {
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
+        Ok(self.text_and_fit_text_of(obj)?.0)
+    }
+
+    fn text_and_fit_text_of(&mut self, obj: &Object) -> ER<(Vec<TextLine>, Option<Vec<TextLine>>)> {
         let mut lines: Vec<TextLine> = Vec::new();
+        let mut fit_lines = None;
         let mut pending_halign = 0i8;
         let mut pending_valign = 0i8;
         for a in &obj.attrs {
@@ -1870,10 +1916,13 @@ impl State {
                     pending_halign = 0;
                     pending_valign = 0;
                 }
+                Attr::Fit if fit_lines.is_none() => {
+                    fit_lines = Some(lines.clone());
+                }
                 _ => {}
             }
         }
-        Ok(lines)
+        Ok((lines, fit_lines))
     }
 
     // ---- positions & places ------------------------------------------------
@@ -2520,18 +2569,14 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
     if !has_visible_text(lines) {
         return bb;
     }
-    const EM: f64 = 11.0 / 72.0;
-    let char_w = 0.6 * EM;
-    let line_h = 1.2 * EM;
-    let xheight = 0.66 * EM;
     let n = lines.len() as f64;
     for (i, line) in lines.iter().enumerate() {
         if line.s.is_empty() {
             continue;
         }
-        let w = line.s.chars().count() as f64 * char_w;
-        let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * line_h;
-        let y = base_y + line.valign as f64 * (xheight / 2.0 + line.text_offset);
+        let w = line.s.chars().count() as f64 * TEXT_CHAR_W;
+        let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * TEXT_LINE_H;
+        let y = base_y + line.valign as f64 * (TEXT_XHEIGHT / 2.0 + line.text_offset);
         let x = center.x
             + match line.halign {
                 -1 => line.text_offset,
@@ -2543,10 +2588,26 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
             1 => (x - w, x),
             _ => (x - w / 2.0, x + w / 2.0),
         };
-        bb.add(Point::new(min_x, y - line_h / 2.0));
-        bb.add(Point::new(max_x, y + line_h / 2.0));
+        bb.add(Point::new(min_x, y - TEXT_LINE_H / 2.0));
+        bb.add(Point::new(max_x, y + TEXT_LINE_H / 2.0));
     }
     bb
+}
+
+fn fitted_text_size(lines: &[TextLine]) -> Option<(f64, f64)> {
+    if !has_visible_text(lines) {
+        return None;
+    }
+    let bb = text_bbox(Point::ZERO, lines);
+    if bb.is_empty() {
+        return None;
+    }
+    let half_w = bb.min.x.abs().max(bb.max.x.abs());
+    let half_h = bb.min.y.abs().max(bb.max.y.abs());
+    Some((
+        2.0 * half_w + TEXT_CHAR_W,
+        2.0 * half_h + TEXT_XHEIGHT / 2.0,
+    ))
 }
 
 fn text_object_bbox(center: Point, lines: &[TextLine], w: f64, h: f64) -> Bbox {
@@ -3660,6 +3721,72 @@ mod tests {
         };
         assert_eq!(text[0].valign, 1);
         assert_eq!(text[1].valign, 0);
+    }
+
+    #[test]
+    fn fit_sizes_closed_objects_to_preceding_text() {
+        let d = draw(
+            "box \"wide label\" fit\n\
+             ellipse \"one\" \"two\" \"three\" fit\n\
+             circle \"wide label\" fit",
+        );
+
+        let Shape::Box { w, h, text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let (want_w, want_h) = fitted_text_size(text).unwrap();
+        assert!((*w - want_w).abs() < 1e-9, "box w = {w}, want {want_w}");
+        assert!((*h - want_h).abs() < 1e-9, "box h = {h}, want {want_h}");
+
+        let Shape::Ellipse { w, h, text, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        let (want_w, want_h) = fitted_text_size(text).unwrap();
+        assert!((*w - want_w).abs() < 1e-9, "ellipse w = {w}, want {want_w}");
+        assert!((*h - want_h).abs() < 1e-9, "ellipse h = {h}, want {want_h}");
+
+        let Shape::Circle { r, text, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        let (want_w, want_h) = fitted_text_size(text).unwrap();
+        let want_r = want_w.hypot(want_h) / 2.0;
+        assert!((*r - want_r).abs() < 1e-9, "circle r = {r}, want {want_r}");
+    }
+
+    #[test]
+    fn fit_respects_explicit_dimensions_and_text_order() {
+        let d = draw("box wid 1 ht .2 \"very long label\" fit");
+        assert_box_size(&d.shapes[0], 1.0, 0.2);
+
+        let before = draw("box \"short\" fit");
+        let after = draw("box \"short\" fit \"this later text does not affect fit\"");
+        let Shape::Box {
+            w: before_w,
+            h: before_h,
+            ..
+        } = &before.shapes[0]
+        else {
+            panic!()
+        };
+        let Shape::Box {
+            w: after_w,
+            h: after_h,
+            ..
+        } = &after.shapes[0]
+        else {
+            panic!()
+        };
+        assert!((*before_w - *after_w).abs() < 1e-9);
+        assert!((*before_h - *after_h).abs() < 1e-9);
+    }
+
+    #[test]
+    fn fit_without_preceding_visible_text_errors() {
+        let err = eval(&parse("box fit").unwrap()).unwrap_err();
+        assert!(err.msg.contains("visible text"), "{}", err.msg);
+
+        let err = eval(&parse("box \"\" fit").unwrap()).unwrap_err();
+        assert!(err.msg.contains("visible text"), "{}", err.msg);
     }
 
     #[test]

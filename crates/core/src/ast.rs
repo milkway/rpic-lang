@@ -176,6 +176,8 @@ pub enum Attr {
     Same,
     Continue,
     Text(StringExpr),
+    /// rpic extension: size a closed object to text declared before `fit`.
+    Fit,
     TextPos(TextPos),
     From(Position),
     To(Position),
