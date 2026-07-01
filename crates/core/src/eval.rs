@@ -910,7 +910,12 @@ impl State {
         let mut bb = Bbox::new();
         bb.add(center - Point::new(w / 2.0, h / 2.0));
         bb.add(center + Point::new(w / 2.0, h / 2.0));
-        self.layout_bbox.union(&bb);
+        let layout_bb = if matches!(p, Prim::Box) {
+            dpic_box_layout_bbox(center, w, h)
+        } else {
+            bb
+        };
+        self.layout_bbox.union(&layout_bb);
         if closed_shape_is_visible(&style) {
             self.bbox
                 .union(&painted_bbox(&bb, stroke_half_width(&style)));
@@ -2205,6 +2210,21 @@ fn painted_bbox(bb: &Bbox, pad: f64) -> Bbox {
     out
 }
 
+fn dpic_box_layout_bbox(center: Point, w: f64, h: f64) -> Bbox {
+    fn axis(center: f64, extent: f64) -> (f64, f64) {
+        let lo = center - extent / 2.0;
+        let hi = center + extent / 2.0;
+        if lo <= hi { (lo, hi) } else { (0.0, 0.0) }
+    }
+
+    let (x0, x1) = axis(center.x, w);
+    let (y0, y1) = axis(center.y, h);
+    let mut bb = Bbox::new();
+    bb.add(Point::new(x0, y0));
+    bb.add(Point::new(x1, y1));
+    bb
+}
+
 fn drawing_painted_bbox(shapes: &[Shape]) -> Bbox {
     let mut out = Bbox::new();
     for sh in shapes {
@@ -3425,6 +3445,30 @@ mod tests {
             panic!()
         };
         assert!(c.dist(Point::new(11.0, 20.0)) < 1e-9, "c = {c:?}");
+    }
+
+    #[test]
+    fn block_layout_matches_dpic_for_negative_box_width() {
+        let d = draw("move 1\n[ box wid -0.5 ht 0.5 ]; box wid 0.75 ht 0.75");
+        let boxes: Vec<Point> = d
+            .shapes
+            .iter()
+            .filter_map(|shape| match shape {
+                Shape::Box { c, .. } => Some(*c),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(boxes.len(), 2);
+        assert!(
+            boxes[0].dist(Point::new(0.75, 0.0)) < 1e-9,
+            "negative box center = {:?}",
+            boxes[0]
+        );
+        assert!(
+            boxes[1].dist(Point::new(1.375, 0.0)) < 1e-9,
+            "following box center = {:?}",
+            boxes[1]
+        );
     }
 
     #[test]
