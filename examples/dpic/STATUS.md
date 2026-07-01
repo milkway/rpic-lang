@@ -33,6 +33,8 @@ Brian W. Kernighan's paper/manual:
   the geometric bbox used by block anchors such as `last [].s`. Block placement
   also follows dpic for coordinate-pair anchors such as
   `[ ... ] with (0,0) at P`, where the pair names a local block coordinate.
+  Standalone text objects honor explicit `wid`/`ht` bounds for their rendered
+  bbox instead of deriving the bbox from the literal string length.
 
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.

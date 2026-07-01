@@ -1236,16 +1236,26 @@ impl State {
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
         let text = self.text_of(obj)?;
         let dir = self.dir_of(obj);
-        let w = self.env_dim(EnvVar::Textwid)?;
-        let h = self.env_dim(EnvVar::Textht)? * text.len().max(1) as f64;
+        let w = self
+            .dim(obj, DimKind::Wid)?
+            .unwrap_or(self.env_dim(EnvVar::Textwid)?);
+        let h = match self.dim(obj, DimKind::Ht)? {
+            Some(h) => h,
+            None => self.env_dim(EnvVar::Textht)? * text.len().max(1) as f64,
+        };
         let extent = if horizontal(dir) { w } else { h };
         let at = self.place_center(obj, dir, extent, w, h)?;
         let mut bb = Bbox::new();
         bb.add(at - Point::new(w / 2.0, h / 2.0));
         bb.add(at + Point::new(w / 2.0, h / 2.0));
         self.layout_bbox.union(&bb);
-        self.union_text(at, &text);
-        self.shapes.push(Shape::Text { at, text });
+        let text_bb = text_object_bbox(at, &text, w, h);
+        self.bbox.union(&text_bb);
+        self.shapes.push(Shape::Text {
+            at,
+            text,
+            bbox: text_bb,
+        });
         let half = dir_unit(dir) * (extent / 2.0);
         let start = at - half;
         let end = at + half;
@@ -1339,11 +1349,13 @@ impl State {
             visible_bb.add(sub.bbox.max + shift);
             self.bbox.union(&visible_bb);
         }
-        self.union_text(target, &block_text);
+        let block_text_bb = text_bbox(target, &block_text);
+        self.bbox.union(&block_text_bb);
         if has_visible_text(&block_text) {
             self.shapes.push(Shape::Text {
                 at: target,
                 text: block_text,
+                bbox: block_text_bb,
             });
         }
 
@@ -2280,7 +2292,7 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             }
             out.union(&text_bbox(*c, text));
         }
-        Shape::Text { at, text } => out.union(&text_bbox(*at, text)),
+        Shape::Text { bbox, .. } => out.union(bbox),
     }
     out
 }
@@ -2316,6 +2328,37 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
         bb.add(Point::new(min_x, y - line_h / 2.0));
         bb.add(Point::new(max_x, y + line_h / 2.0));
     }
+    bb
+}
+
+fn text_object_bbox(center: Point, lines: &[TextLine], w: f64, h: f64) -> Bbox {
+    let text_bb = text_bbox(center, lines);
+    if text_bb.is_empty() {
+        return text_bb;
+    }
+    let min_x = if w > 0.0 {
+        center.x - w / 2.0
+    } else {
+        text_bb.min.x
+    };
+    let max_x = if w > 0.0 {
+        center.x + w / 2.0
+    } else {
+        text_bb.max.x
+    };
+    let min_y = if h > 0.0 {
+        center.y - h / 2.0
+    } else {
+        text_bb.min.y
+    };
+    let max_y = if h > 0.0 {
+        center.y + h / 2.0
+    } else {
+        text_bb.max.y
+    };
+    let mut bb = Bbox::new();
+    bb.add(Point::new(min_x, min_y));
+    bb.add(Point::new(max_x, max_y));
     bb
 }
 
@@ -2563,7 +2606,11 @@ fn translate_shape(sh: &mut Shape, d: Point) {
             }
         }
         Shape::Arc { c, .. } => mv(c),
-        Shape::Text { at, .. } => mv(at),
+        Shape::Text { at, bbox, .. } => {
+            mv(at);
+            bbox.min = bbox.min + d;
+            bbox.max = bbox.max + d;
+        }
     }
 }
 
@@ -2627,7 +2674,10 @@ fn scale_shape(sh: &mut Shape, f: f64) {
             *r *= f;
             scale_style(style, f);
         }
-        Shape::Text { at, .. } => *at = *at * f,
+        Shape::Text { at, bbox, .. } => {
+            *at = *at * f;
+            scale_bbox_in_place(bbox, f);
+        }
     }
 }
 
@@ -3227,6 +3277,25 @@ mod tests {
         // text wider than its box widens the bbox beyond the box
         let d2 = draw("box wid 0.2 ht 0.2 \"a very wide label\"");
         assert!(d2.bbox.width() > 0.3, "w = {}", d2.bbox.width());
+    }
+
+    #[test]
+    fn text_object_width_bounds_rendered_bbox() {
+        // dpic oracle: a standalone text object's `wid` controls its bbox;
+        // the literal text width is not used when an explicit width is given.
+        let d = draw("\"abcdefghij\" wid 0.1");
+        assert!(
+            (d.bbox.width() - 0.1).abs() < 1e-9,
+            "w = {}",
+            d.bbox.width()
+        );
+
+        let d = draw(".PS 1\n\"abcdefghij\" wid 0.1\n.PE");
+        assert!(
+            (d.bbox.width() - 1.0).abs() < 1e-9,
+            "w = {}",
+            d.bbox.width()
+        );
     }
 
     #[test]
