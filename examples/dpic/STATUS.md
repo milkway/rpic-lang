@@ -28,13 +28,14 @@ Brian W. Kernighan's paper/manual:
 - SVG output now follows dpic more closely for two-point lines, open-object
   fills (`line`/`spline`/`arc`), arc arrowheads, stroke-aware picture sizing,
   block-attached text, `textoffset` on left/right-justified text, scaled
-  arrowhead/dash metadata on already-emitted geometry, compass anchors on
-  circles/ellipses, and text extents that enlarge only the rendered bbox, not
-  the geometric bbox used by block anchors such as `last [].s`. Block placement
-  also follows dpic for coordinate-pair anchors such as
+  arrowhead/dash metadata on already-emitted geometry, `move` geometry in output
+  bounds, compass anchors on circles/ellipses, and text extents that enlarge
+  only the rendered bbox, not the geometric bbox used by block anchors such as
+  `last [].s`. Block placement also follows dpic for coordinate-pair anchors such as
   `[ ... ] with (0,0) at P`, where the pair names a local block coordinate.
   Standalone text objects honor explicit `wid`/`ht` bounds for their rendered
-  bbox instead of deriving the bbox from the literal string length.
+  bbox instead of deriving the bbox from the literal string length, and their
+  `above`/`below` offsets follow dpic's SVG baseline placement.
 
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.

@@ -62,6 +62,9 @@ pub struct Style {
     /// Invisible (used by `move` and `invis`): geometry is still available for
     /// placement and anchors, but is not drawn.
     pub invis: bool,
+    /// Invisible geometry that still contributes to output bounds. Dpic uses
+    /// this for `move`; explicit `invis` helpers remain bounds-neutral.
+    pub invis_bounds: bool,
     /// Arrowhead dimensions in inches (`arrowht`/`arrowwid`), used when this
     /// shape carries arrowheads.
     pub arrow_ht: f64,
@@ -80,6 +83,7 @@ impl Default for Style {
             dash: Dash::Solid,
             thick: None,
             invis: false,
+            invis_bounds: false,
             arrow_ht: 0.1,
             arrow_wid: 0.05,
             arrow_filled: true,

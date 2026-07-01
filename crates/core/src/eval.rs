@@ -33,6 +33,8 @@ impl std::fmt::Display for EvalError {
 
 type ER<T> = Result<T, EvalError>;
 
+const DP_TEXT_RATIO: f64 = 0.66;
+
 fn err<T>(msg: impl Into<String>) -> ER<T> {
     Err(EvalError { msg: msg.into() })
 }
@@ -161,7 +163,7 @@ impl EnvVars {
             (Linewid, 0.5),
             (Moveht, 0.5),
             (Movewid, 0.5),
-            (Textht, (11.0 / 72.0) * 0.66),
+            (Textht, (11.0 / 72.0) * DP_TEXT_RATIO),
             (Textoffset, 2.0 / 72.0),
             (Textwid, 0.0),
             (Arrowhead, 1.0),
@@ -974,6 +976,7 @@ impl State {
         let is_move = matches!(p, Prim::Move);
         if is_move {
             style.invis = true;
+            style.invis_bounds = true;
         }
         let (deflen_h, deflen_v) = if is_move {
             (
@@ -1096,6 +1099,8 @@ impl State {
         if !style.invis {
             self.bbox
                 .union(&painted_bbox(&bb, stroke_half_width(&style)));
+        } else if style.invis_bounds {
+            self.bbox.union(&bb);
         }
 
         let end = *pts.last().unwrap();
@@ -2399,6 +2404,8 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             }
             if !style.invis {
                 out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            } else if style.invis_bounds {
+                out.union(&bb);
             }
             if let (Some(first), Some(last)) = (pts.first(), pts.last()) {
                 out.union(&text_bbox((*first + *last) * 0.5, text));
@@ -2477,19 +2484,40 @@ fn text_object_bbox(center: Point, lines: &[TextLine], w: f64, h: f64) -> Bbox {
     } else {
         text_bb.max.x
     };
-    let min_y = if h > 0.0 {
-        center.y - h / 2.0
+    let y_bb = if h > 0.0 {
+        text_object_vertical_bbox(center, lines, h)
     } else {
-        text_bb.min.y
+        text_bb
     };
-    let max_y = if h > 0.0 {
-        center.y + h / 2.0
-    } else {
-        text_bb.max.y
-    };
+    let min_y = y_bb.min.y;
+    let max_y = y_bb.max.y;
     let mut bb = Bbox::new();
     bb.add(Point::new(min_x, min_y));
     bb.add(Point::new(max_x, max_y));
+    bb
+}
+
+fn text_object_vertical_bbox(center: Point, lines: &[TextLine], h: f64) -> Bbox {
+    let mut bb = Bbox::new();
+    if !has_visible_text(lines) {
+        return bb;
+    }
+    let n = lines.len() as f64;
+    let v = n - 1.0 + DP_TEXT_RATIO;
+    let lineskip = if v.abs() > 1e-12 { h / v } else { 11.0 / 72.0 };
+    let xheight = lineskip * DP_TEXT_RATIO;
+    let mut baseline_y = center.y + (v * lineskip / 2.0) - xheight;
+    for line in lines {
+        if line.s.is_empty() {
+            baseline_y -= lineskip;
+            continue;
+        }
+        let just_offset = xheight / 2.0 + line.text_offset;
+        let y = baseline_y + (line.valign as f64) * just_offset;
+        bb.add(Point::new(center.x, y));
+        bb.add(Point::new(center.x, y + xheight));
+        baseline_y -= lineskip;
+    }
     bb
 }
 
@@ -3609,21 +3637,16 @@ mod tests {
         let d = draw("textoffset = 0.1\n\"abc\" rjust at (0,0)");
         assert!(d.bbox.max.x <= -0.1 + 1e-9, "{:?}", d.bbox);
 
-        // dpic's SVG backend ignores above/below for standalone text objects.
-        let centered = draw("textoffset = 0.1\n\"abc\" at (0,0)").bbox;
-        let above = draw("textoffset = 0.1\n\"abc\" above at (0,0)").bbox;
-        assert!((above.min.y - centered.min.y).abs() < 1e-9, "{above:?}");
-        assert!((above.max.y - centered.max.y).abs() < 1e-9, "{above:?}");
+        let d = draw("textoffset = 0.1\n\"abc\" above at (0,0)");
+        assert!(d.bbox.min.y > 0.0, "{:?}", d.bbox);
 
-        let below = draw("textoffset = 0.1\n\"abc\" below at (0,0)").bbox;
-        assert!((below.min.y - centered.min.y).abs() < 1e-9, "{below:?}");
-        assert!((below.max.y - centered.max.y).abs() < 1e-9, "{below:?}");
+        let d = draw("textoffset = 0.1\n\"abc\" below at (0,0)");
+        assert!(d.bbox.max.y < 0.0, "{:?}", d.bbox);
     }
 
     #[test]
-    fn invisible_geometry_and_moves_do_not_expand_drawing_bbox() {
-        let d =
-            draw("box invis wid 1000 ht 1000 at (0,0)\nmove to (0,-1000)\nbox wid 1 ht 1 at (0,0)");
+    fn invisible_geometry_does_not_expand_drawing_bbox() {
+        let d = draw("box invis wid 1000 ht 1000 at (0,0)\nbox wid 1 ht 1 at (0,0)");
         assert!(
             (d.bbox.width() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "w = {}",
@@ -3661,6 +3684,16 @@ mod tests {
             (d3.bbox.height() - (1.0 + DEFAULT_STROKE_IN)).abs() < 1e-9,
             "h = {}",
             d3.bbox.height()
+        );
+    }
+
+    #[test]
+    fn move_expands_drawing_bbox_like_dpic() {
+        let d = draw("line from (0,0) to (1,0)\nmove left 0.4 from (0,0)");
+        assert!(
+            (d.bbox.width() - (1.4 + DEFAULT_STROKE_IN / 2.0)).abs() < 1e-9,
+            "w = {}",
+            d.bbox.width()
         );
     }
 
