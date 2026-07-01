@@ -40,6 +40,26 @@ Brian W. Kernighan's paper/manual:
 The `svg_font(...)` backend helper is intentionally a no-op in rpic, so bare font
 names such as `monospace` are accepted without variable lookup.
 
+## Known dpic SVG Quirk: `manual/man50`
+
+`manual/man50.pic` is intentionally kept faithful to the dpic source corpus.
+After the parity fixes in this branch history, rpic's SVG geometry matches
+`dpic -v` for this file, including a visible quirk: both SVGs clip the top of
+the thick red circle.
+
+This is a backend framing issue inherited from dpic's SVG output, not a separate
+rpic geometry bug. With the original `.PS 3.5` input, `dpic -v` emits a viewBox
+that is too tight for the circle's stroke width, so the painted stroke extends
+above the SVG canvas. The same dpic input rendered through PostScript (`dpic -r`)
+uses a high-resolution bounding box that does not show the same top clipping.
+
+The corpus does not add a compensating invisible move or rpic-only `margin`
+variable to `manual/man50.pic`, because these examples are the dpic oracle set:
+their value is that classic pic input keeps the same meaning and output shape
+under rpic and dpic. For presentation-oriented rpic documents outside this
+oracle corpus, prefer the documented canvas margin extension or an explicit
+geometry margin when extra framing is desired.
+
 In this checkout, `dpic -v` itself fails on `3d/EscherCube.pic` and
 `manual/man31.pic`; those remain covered by the rpic render pass above.
 
