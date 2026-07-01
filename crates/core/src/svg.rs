@@ -281,19 +281,32 @@ impl Svg {
 
     fn path_stroke_points(&self, pts: &[Point], arrows: Arrowheads, style: &Style) -> Vec<Point> {
         let mut out: Vec<Point> = pts.iter().map(|p| self.p(*p)).collect();
-        if style.arrow_filled || out.len() < 2 {
+        if out.len() < 2 {
             return out;
         }
         let n = out.len();
-        if matches!(arrows, Arrowheads::End | Arrowheads::Both)
-            && let Some((_, p, _)) = open_arrowhead_points(out[n - 1], out[n - 2], style)
-        {
-            out[n - 1] = p;
-        }
-        if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
-            && let Some((_, p, _)) = open_arrowhead_points(out[0], out[1], style)
-        {
-            out[0] = p;
+        if style.arrow_filled {
+            if matches!(arrows, Arrowheads::End | Arrowheads::Both)
+                && let Some((_, _, _, p)) = filled_arrowhead_points(out[n - 1], out[n - 2], style)
+            {
+                out[n - 1] = p;
+            }
+            if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
+                && let Some((_, _, _, p)) = filled_arrowhead_points(out[0], out[1], style)
+            {
+                out[0] = p;
+            }
+        } else {
+            if matches!(arrows, Arrowheads::End | Arrowheads::Both)
+                && let Some((_, p, _)) = open_arrowhead_points(out[n - 1], out[n - 2], style)
+            {
+                out[n - 1] = p;
+            }
+            if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
+                && let Some((_, p, _)) = open_arrowhead_points(out[0], out[1], style)
+            {
+                out[0] = p;
+            }
         }
         out
     }
@@ -352,25 +365,16 @@ impl Svg {
         let head = |tip: Point, from: Point, out: &mut String| {
             let t = self.p(tip);
             let f = self.p(from);
-            let mut u = t - f;
-            let len = u.len();
-            if len < 1e-9 {
-                return;
-            }
-            u = u / len;
-            let perp = Point::new(-u.y, u.x);
-            let hl = style.arrow_ht * PPI; // arrowht
-            let hw = style.arrow_wid / 2.0 * PPI; // half of arrowwid
-            let base = t - u * hl;
-            let l = base + perp * hw;
-            let r = base - perp * hw;
             if style.arrow_filled {
+                let Some((l, p, r, _)) = filled_arrowhead_points(t, f, style) else {
+                    return;
+                };
                 out.push_str(&format!(
-                    "<polygon points=\"{},{} {},{} {},{}\" fill=\"{}\"/>\n",
-                    num(t.x),
-                    num(t.y),
+                    "<polygon stroke-width=\"0\" points=\"{},{} {},{} {},{}\" fill=\"{}\"/>\n",
                     num(l.x),
                     num(l.y),
+                    num(p.x),
+                    num(p.y),
                     num(r.x),
                     num(r.y),
                     color
@@ -737,6 +741,42 @@ fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Poi
     ))
 }
 
+fn filled_arrowhead_points(
+    tip: Point,
+    shaft: Point,
+    style: &Style,
+) -> Option<(Point, Point, Point, Point)> {
+    let mut u = tip - shaft;
+    let len = u.len();
+    if len < 1e-9 {
+        return None;
+    }
+    u = u / len;
+    let perp = Point::new(-u.y, u.x);
+    let ht = style.arrow_ht * PPI;
+    let wid = style.arrow_wid * PPI;
+    let ltu = thick_px(style);
+    let po = if wid.abs() < 1e-12 {
+        0.0
+    } else {
+        (ltu * (ht * ht + wid * wid / 4.0).sqrt() / wid).min(ht)
+    };
+    let point = tip - u * po;
+    let h = ht - ltu / 2.0;
+    let x = h - po;
+    let v = if ht.abs() < 1e-12 {
+        0.0
+    } else {
+        (wid / 2.0) * x / ht
+    };
+    let left = tip - u * h - perp * v;
+    let right = tip - u * h + perp * v;
+    let t = if x.abs() < 1e-12 { 1.0 } else { ht / x };
+    let left_full = tip + (left - point) * t;
+    let right_full = tip + (right - point) * t;
+    Some((left_full, tip, right_full, point))
+}
+
 fn prop(p1: Point, p2: Point, a: f64, b: f64, c: f64) -> Point {
     if c.abs() < 1e-12 {
         p2
@@ -1026,6 +1066,31 @@ mod tests {
         assert!((left.y - 1.049_747).abs() < 1e-6, "left={left:?}");
         assert!((right.x - 87.333_333).abs() < 1e-6, "right={right:?}");
         assert!((right.y - 4.816_919).abs() < 1e-6, "right={right:?}");
+    }
+
+    #[test]
+    fn filled_arrowhead_geometry_matches_dpic_default() {
+        let style = Style::default();
+        let (left, point, right, stroke_end) = filled_arrowhead_points(
+            Point::new(97.066_667, 2.933_333),
+            Point::new(1.066_667, 2.933_333),
+            &style,
+        )
+        .unwrap();
+        assert!(
+            (stroke_end.x - 94.867_677).abs() < 1e-6,
+            "stroke_end={stroke_end:?}"
+        );
+        assert!(
+            (stroke_end.y - 2.933_333).abs() < 1e-6,
+            "stroke_end={stroke_end:?}"
+        );
+        assert!((point.x - 97.066_667).abs() < 1e-6, "point={point:?}");
+        assert!((point.y - 2.933_333).abs() < 1e-6, "point={point:?}");
+        assert!((left.x - 87.466_667).abs() < 1e-6, "left={left:?}");
+        assert!((left.y - 0.533_333).abs() < 1e-6, "left={left:?}");
+        assert!((right.x - 87.466_667).abs() < 1e-6, "right={right:?}");
+        assert!((right.y - 5.333_333).abs() < 1e-6, "right={right:?}");
     }
 
     #[test]
