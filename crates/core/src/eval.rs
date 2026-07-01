@@ -88,6 +88,7 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
         for sh in &mut d.shapes {
             scale_shape(sh, factor);
         }
+        d.prelude_thick *= factor;
         d.bbox = drawing_painted_bbox(&d.shapes);
     }
 }
@@ -110,6 +111,7 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
     for sh in &mut d.shapes {
         scale_shape(sh, factor);
     }
+    d.prelude_thick *= factor;
     d.bbox = drawing_painted_bbox(&d.shapes);
 }
 

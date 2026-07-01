@@ -9,7 +9,9 @@ use crate::geom::{Bbox, Point};
 pub struct Drawing {
     pub shapes: Vec<Shape>,
     pub bbox: Bbox,
-    /// Final global `linethick` in points, used by dpic-style backend preludes.
+    /// Global `linethick` in points after picture-wide sizing, used only for
+    /// dpic-style backend prelude padding. Per-shape strokes keep their own
+    /// unscaled point thickness.
     pub prelude_thick: f64,
     pub anims: Vec<Anim>,
     /// Lines emitted by pic `print` statements, without trailing newlines.
