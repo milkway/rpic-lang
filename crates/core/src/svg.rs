@@ -757,36 +757,33 @@ fn closed_shape_is_visible(style: &Style) -> bool {
     !style.invis || style.fill.is_some()
 }
 
-/// Classic pic spline (no tension): a quadratic B-spline that interpolates the
-/// first and last control points, passes through the midpoint of every segment,
-/// and has straight first/last half-segments. Each cubic is the segment's
-/// quadratic Bézier (control = the shared vertex) raised to cubic degree.
+/// Classic pic spline (no tension), matching dpic's `svgsplinesegment`.
+/// Dpic emits one SVG `C` command with multiple cubic segments. The control
+/// points are fixed fractions along each original segment, not a raised
+/// quadratic through midpoint knots.
 fn classic_spline(q: &[Point]) -> String {
-    let n = q.len();
-    // knots: V0, mid(V0,V1), …, mid(V_{n-2},V_{n-1}), V_{n-1}
-    let mut knots = Vec::with_capacity(n + 1);
-    knots.push(q[0]);
-    for i in 0..n - 1 {
-        knots.push((q[i] + q[i + 1]) * 0.5);
-    }
-    knots.push(q[n - 1]);
-    let segs = knots.len() - 1;
-    let mut d = format!("M {} {}", num(knots[0].x), num(knots[0].y));
-    for j in 0..segs {
-        let a = knots[j];
-        let b = knots[j + 1];
-        // quad control: V0 (first segment → straight), V_{n-1} (last → straight),
-        // otherwise the vertex shared by the two flanking midpoints.
-        let w = if j == 0 {
-            q[0]
-        } else if j == segs - 1 {
-            q[n - 1]
+    let segs = q.len() - 1;
+    let mut d = format!("M {} {} C", num(q[0].x), num(q[0].y));
+    for i in 0..segs {
+        let a = q[i];
+        let b = q[i + 1];
+        let mut add = |p: Point| d.push_str(&format!(" {} {}", num(p.x), num(p.y)));
+        if i == 0 {
+            add(prop(a, b, 5.0, 1.0, 6.0));
+            add(prop(a, b, 2.0, 1.0, 3.0));
+            add(prop(a, b, 1.0, 1.0, 2.0));
+            add(prop(a, b, 1.0, 5.0, 6.0));
+        } else if i < segs - 1 {
+            add(prop(a, b, 5.0, 1.0, 6.0));
+            add(prop(a, b, 1.0, 1.0, 2.0));
+            add(prop(a, b, 1.0, 5.0, 6.0));
         } else {
-            q[j]
-        };
-        let c1 = a + (w - a) * (2.0 / 3.0);
-        let c2 = b + (w - b) * (2.0 / 3.0);
-        push_cubic(&mut d, c1, c2, b);
+            add(prop(a, b, 5.0, 1.0, 6.0));
+            add(prop(a, b, 1.0, 1.0, 2.0));
+            add(prop(a, b, 1.0, 2.0, 3.0));
+            add(prop(a, b, 1.0, 5.0, 6.0));
+            add(b);
+        }
     }
     d
 }
@@ -916,6 +913,16 @@ mod tests {
         let s = svg("spline fill 0.5 right then up then left");
         assert!(s.contains("<path"));
         assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn classic_spline_control_points_match_dpic() {
+        let d = classic_spline(&[
+            Point::new(0.0, 0.0),
+            Point::new(6.0, 0.0),
+            Point::new(6.0, 6.0),
+        ]);
+        assert_eq!(d, "M 0 0 C 1 0 2 0 3 0 5 0 6 1 6 3 6 4 6 5 6 6");
     }
 
     #[test]
