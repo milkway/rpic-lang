@@ -204,8 +204,8 @@ impl Svg {
                 text,
             } => {
                 if pts.len() >= 2 {
-                    let d = self.spline_path(pts, *tension);
                     if style.fill_open {
+                        let d = self.spline_path(pts, *tension);
                         self.out.push_str(&format!(
                             "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
                             d,
@@ -213,6 +213,8 @@ impl Svg {
                         ));
                     }
                     if !style.invis {
+                        let stroke_pts = self.path_stroke_points(pts, *arrows, style);
+                        let d = spline_path_points(&stroke_pts, *tension);
                         self.out.push_str(&format!(
                             "<path d=\"{}\" fill=\"none\" {}/>\n",
                             d,
@@ -505,19 +507,7 @@ impl Svg {
     /// in SVG space.
     fn spline_path(&self, pts: &[Point], tension: Option<f64>) -> String {
         let q: Vec<Point> = pts.iter().map(|p| self.p(*p)).collect();
-        let n = q.len();
-        // Fewer than 3 control points: just a straight polyline.
-        if n < 3 {
-            let mut d = format!("M {} {}", num(q[0].x), num(q[0].y));
-            for p in &q[1..] {
-                d.push_str(&format!(" L {} {}", num(p.x), num(p.y)));
-            }
-            return d;
-        }
-        match tension {
-            None => classic_spline(&q),
-            Some(t) => tensioned_spline(&q, t),
-        }
+        spline_path_points(&q, tension)
     }
 
     fn text(&mut self, center: Point, lines: &[TextLine]) {
@@ -556,6 +546,22 @@ impl Svg {
 }
 
 // ---- helpers ---------------------------------------------------------------
+
+fn spline_path_points(q: &[Point], tension: Option<f64>) -> String {
+    let n = q.len();
+    // Fewer than 3 control points: just a straight polyline.
+    if n < 3 {
+        let mut d = format!("M {} {}", num(q[0].x), num(q[0].y));
+        for p in &q[1..] {
+            d.push_str(&format!(" L {} {}", num(p.x), num(p.y)));
+        }
+        return d;
+    }
+    match tension {
+        None => classic_spline(q),
+        Some(t) => tensioned_spline(q, t),
+    }
+}
 
 fn thick_px(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
@@ -963,6 +969,26 @@ mod tests {
             Point::new(6.0, 6.0),
         ]);
         assert_eq!(d, "M 0 0 C 1 0 2 0 3 0 5 0 6 1 6 3 6 4 6 5 6 6");
+    }
+
+    #[test]
+    fn filled_spline_arrow_stroke_is_trimmed_like_dpic() {
+        let q0 = Point::new(4.0, 52.0);
+        let q1 = Point::new(52.0, 4.0);
+        let tip = Point::new(100.0, 52.0);
+        let (_, _, _, stroke_end) = filled_arrowhead_points(tip, q1, &Style::default()).unwrap();
+        assert!((stroke_end.x - 98.445_079).abs() < 1e-6);
+        assert!((stroke_end.y - 50.445_079).abs() < 1e-6);
+
+        let d = spline_path_points(&[q0, q1, stroke_end], None);
+        assert!(
+            d.ends_with("98.445079 50.445079"),
+            "spline path should end at the dpic-receded arrow point: {d}"
+        );
+        assert!(
+            !d.ends_with("100 52"),
+            "spline path still reaches the arrow tip: {d}"
+        );
     }
 
     #[test]
