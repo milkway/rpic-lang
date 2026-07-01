@@ -69,6 +69,7 @@ which pulls in `3d/libdp3D.pic`):
 
 ## Parity status
 
-55 examples render faithfully and are included here (corpus pass rate 66/72).
-The full pass/fail matrix — and the dpic-specific features rpic does not yet
-implement — is in [`STATUS.md`](STATUS.md).
+The current pass/fail matrix and known oracle quirks are tracked in
+[`STATUS.md`](STATUS.md). In particular, this corpus preserves dpic source files
+as oracle inputs, including SVG backend quirks such as `manual/man50` clipping
+that are inherited from `dpic -v` rather than introduced by rpic.
