@@ -24,6 +24,7 @@ struct Svg {
     west: f64,
     north: f64,
     pad: f64,
+    margin: CanvasMargin,
 }
 
 impl Svg {
@@ -39,25 +40,31 @@ impl Svg {
             west,
             north,
             pad: d.prelude_thick.max(0.0) / 144.0,
+            margin: d.canvas_margin,
         }
     }
 
     /// Map a pic point to SVG pixel space (y flipped).
     fn p(&self, p: Point) -> Point {
         Point::new(
-            (p.x - self.west + 2.0 * self.pad) * PPI,
-            (self.north - p.y + self.pad) * PPI,
+            (p.x - self.west + 2.0 * self.pad + self.margin.left) * PPI,
+            (self.north - p.y + self.pad + self.margin.top) * PPI,
         )
     }
 
     fn render(&mut self, d: &Drawing) {
         let raw = drawing_svg_bounds(&d.shapes);
+        let raw_w = if raw.is_empty() { 0.0 } else { raw.width() };
+        let raw_h = if raw.is_empty() { 0.0 } else { raw.height() };
         let (w, h) = if raw.is_empty() {
-            (6.0 * self.pad * PPI, 6.0 * self.pad * PPI)
+            (
+                positive_extent(6.0 * self.pad + self.margin.horizontal()) * PPI,
+                positive_extent(6.0 * self.pad + self.margin.vertical()) * PPI,
+            )
         } else {
             (
-                (raw.width() + 6.0 * self.pad) * PPI,
-                (raw.height() + 6.0 * self.pad) * PPI,
+                positive_extent(raw_w + 6.0 * self.pad + self.margin.horizontal()) * PPI,
+                positive_extent(raw_h + 6.0 * self.pad + self.margin.vertical()) * PPI,
             )
         };
         self.out.push_str(&format!(
@@ -608,6 +615,10 @@ fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
         out.union(&shape_svg_bounds(sh));
     }
     out
+}
+
+fn positive_extent(v: f64) -> f64 {
+    if v.is_finite() && v > 0.0 { v } else { 0.0 }
 }
 
 fn shape_svg_bounds(sh: &Shape) -> Bbox {
@@ -1219,6 +1230,32 @@ mod tests {
             "{s}"
         );
         assert!(s.contains("stroke-width=\"36\""), "{s}");
+    }
+
+    #[test]
+    fn canvas_margin_expands_svg_canvas_only_when_used() {
+        let base = svg("line right");
+        assert_eq!(svg("margin = 0; topmargin = 0; line right"), base);
+
+        let s = svg("margin = 0.25\nline right");
+        assert!(
+            s.contains("width=\"99.2\" height=\"51.2\" viewBox=\"0 0 99.2 51.2\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<line x1=\"25.066667\" y1=\"24.533333\" x2=\"73.066667\" y2=\"24.533333\""),
+            "{s}"
+        );
+
+        let s = svg("margin = 0.25\nleftmargin = -0.25\nline right");
+        assert!(
+            s.contains("width=\"75.2\" height=\"51.2\" viewBox=\"0 0 75.2 51.2\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<line x1=\"1.066667\" y1=\"24.533333\" x2=\"49.066667\" y2=\"24.533333\""),
+            "{s}"
+        );
     }
 
     #[test]

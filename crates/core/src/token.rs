@@ -280,4 +280,9 @@ pub enum EnvVar {
     Maxpsht,
     Maxpswid,
     Scale,
+    Margin,
+    Topmargin,
+    Rightmargin,
+    Bottommargin,
+    Leftmargin,
 }

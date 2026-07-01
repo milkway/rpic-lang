@@ -700,6 +700,11 @@ fn word_keyword(w: &str) -> Token {
         "arrowhead" => EnvVar(self::EnvVar::Arrowhead),
         "fillval" => EnvVar(self::EnvVar::Fillval),
         "linethick" => EnvVar(self::EnvVar::Linethick),
+        "margin" => EnvVar(self::EnvVar::Margin),
+        "topmargin" => EnvVar(self::EnvVar::Topmargin),
+        "rightmargin" => EnvVar(self::EnvVar::Rightmargin),
+        "bottommargin" => EnvVar(self::EnvVar::Bottommargin),
+        "leftmargin" => EnvVar(self::EnvVar::Leftmargin),
         "maxpsht" => EnvVar(self::EnvVar::Maxpsht),
         "maxpswid" => EnvVar(self::EnvVar::Maxpswid),
         "scale" => EnvVar(self::EnvVar::Scale),
@@ -967,7 +972,7 @@ mod tests {
     #[test]
     fn func_and_envvar() {
         assert_eq!(
-            toks("sqrt(2) atan2 scale"),
+            toks("sqrt(2) atan2 scale margin topmargin"),
             vec![
                 Token::Func1(Func1::Sqrt),
                 Token::Lparen,
@@ -975,6 +980,8 @@ mod tests {
                 Token::Rparen,
                 Token::Func2(Func2::Atan2),
                 Token::EnvVar(EnvVar::Scale),
+                Token::EnvVar(EnvVar::Margin),
+                Token::EnvVar(EnvVar::Topmargin),
                 Token::Eof
             ]
         );
