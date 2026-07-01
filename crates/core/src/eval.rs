@@ -161,7 +161,7 @@ impl EnvVars {
             (Linewid, 0.5),
             (Moveht, 0.5),
             (Movewid, 0.5),
-            (Textht, 0.0),
+            (Textht, (11.0 / 72.0) * 0.66),
             (Textoffset, 2.0 / 72.0),
             (Textwid, 0.0),
             (Arrowhead, 1.0),
@@ -1320,6 +1320,9 @@ impl State {
             at,
             text,
             bbox: text_bb,
+            w,
+            h,
+            standalone: true,
         });
         let half = dir_unit(dir) * (extent / 2.0);
         let start = at - half;
@@ -1421,6 +1424,9 @@ impl State {
                 at: target,
                 text: block_text,
                 bbox: block_text_bb,
+                w: 0.0,
+                h: 0.0,
+                standalone: false,
             });
         }
 
@@ -2868,9 +2874,11 @@ fn scale_shape(sh: &mut Shape, f: f64) {
             *r *= f;
             scale_style(style, f);
         }
-        Shape::Text { at, bbox, .. } => {
+        Shape::Text { at, bbox, w, h, .. } => {
             *at = *at * f;
             scale_bbox_in_place(bbox, f);
+            *w *= f;
+            *h *= f;
         }
     }
 }
@@ -3601,11 +3609,15 @@ mod tests {
         let d = draw("textoffset = 0.1\n\"abc\" rjust at (0,0)");
         assert!(d.bbox.max.x <= -0.1 + 1e-9, "{:?}", d.bbox);
 
-        let d = draw("textoffset = 0.1\n\"abc\" above at (0,0)");
-        assert!(d.bbox.min.y > 0.0, "{:?}", d.bbox);
+        // dpic's SVG backend ignores above/below for standalone text objects.
+        let centered = draw("textoffset = 0.1\n\"abc\" at (0,0)").bbox;
+        let above = draw("textoffset = 0.1\n\"abc\" above at (0,0)").bbox;
+        assert!((above.min.y - centered.min.y).abs() < 1e-9, "{above:?}");
+        assert!((above.max.y - centered.max.y).abs() < 1e-9, "{above:?}");
 
-        let d = draw("textoffset = 0.1\n\"abc\" below at (0,0)");
-        assert!(d.bbox.max.y < 0.0, "{:?}", d.bbox);
+        let below = draw("textoffset = 0.1\n\"abc\" below at (0,0)").bbox;
+        assert!((below.min.y - centered.min.y).abs() < 1e-9, "{below:?}");
+        assert!((below.max.y - centered.max.y).abs() < 1e-9, "{below:?}");
     }
 
     #[test]
@@ -3929,6 +3941,7 @@ box wid 0.1 ht 0.1 at B.s"#,
     #[test]
     fn dpic_default_env_values_are_readable() {
         assert!((scalar("textoffset").unwrap() - 2.0 / 72.0).abs() < 1e-9);
+        assert!((scalar("textht").unwrap() - (11.0 / 72.0) * 0.66).abs() < 1e-9);
         assert!((scalar("arrowhead").unwrap() - 1.0).abs() < 1e-9);
         assert!((scalar("linethick").unwrap() - 0.8).abs() < 1e-9);
     }
