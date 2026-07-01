@@ -503,7 +503,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-capi"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -511,7 +511,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-cli"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -519,11 +519,11 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.1.1"
+version = "0.2.0"
 
 [[package]]
 name = "rpic-render"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "resvg 0.47.0",
  "svg2pdf",
