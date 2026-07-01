@@ -1606,7 +1606,7 @@ impl Parser {
         // places a text-only object.
         if self.at_string_start() {
             attrs.push(Attr::Text(self.parse_stringexpr()?));
-            while let Some(a) = self.parse_attr()? {
+            while let Some(a) = self.parse_attr(false)? {
                 attrs.push(a);
             }
             return Ok(Object {
@@ -1647,7 +1647,11 @@ impl Parser {
         if matches!(kind, ObjectKind::Primitive(Prim::Spline)) && self.spline_tension_ahead() {
             attrs.push(Attr::SplineTension(self.parse_expr()?));
         }
-        while let Some(a) = self.parse_attr()? {
+        let allow_fit = matches!(
+            kind,
+            ObjectKind::Primitive(Prim::Box | Prim::Circle | Prim::Ellipse)
+        );
+        while let Some(a) = self.parse_attr(allow_fit)? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
@@ -1671,7 +1675,7 @@ impl Parser {
         )
     }
 
-    fn parse_attr(&mut self) -> PResult<Option<Attr>> {
+    fn parse_attr(&mut self, allow_fit: bool) -> PResult<Option<Attr>> {
         // any string expression (literal, sprintf, $arg, concatenation) is text
         if self.at_string_start() {
             return Ok(Some(Attr::Text(self.parse_stringexpr()?)));
@@ -1797,6 +1801,10 @@ impl Parser {
                     _ => self.parse_stringexpr()?,
                 };
                 Attr::Color(c, s)
+            }
+            Token::Name(n) if allow_fit && n == "fit" => {
+                self.bump();
+                Attr::Fit
             }
             Token::Name(n) if n == "behind" => {
                 self.bump();
@@ -2542,6 +2550,25 @@ ellipse "typesetter"
         let p = pic("behind = 2\nbox wid behind");
         assert_eq!(p.stmts.len(), 2);
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+    }
+
+    #[test]
+    fn fit_parses_as_contextual_extension_attribute() {
+        let p = pic("box \"long label\" fit");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Fit)));
+
+        let p = pic("fit = 2\nbox wid fit");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+
+        let p = pic("fit = 2\nline fit");
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dist(_)));
     }
 
     #[test]
