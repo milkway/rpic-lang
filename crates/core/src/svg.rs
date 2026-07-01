@@ -5,11 +5,10 @@
 //! gray fills via pic's `0 = black … 1 = white` convention. Coordinates scale
 //! by 96 px/inch (dpic's `dpPPI`).
 
-use crate::geom::Point;
+use crate::geom::{Bbox, Point};
 use crate::ir::*;
 
 const PPI: f64 = 96.0;
-const MARGIN: f64 = 4.0;
 const FONT_PT: f64 = 11.0;
 
 /// Render a drawing to an SVG document string.
@@ -21,39 +20,43 @@ pub fn to_svg(d: &Drawing) -> String {
 
 struct Svg {
     out: String,
-    min: Point,
-    maxy: f64,
+    west: f64,
+    north: f64,
+    pad: f64,
 }
 
 impl Svg {
     fn new(d: &Drawing) -> Self {
-        let (min, maxy) = if d.bbox.is_empty() {
-            (Point::ZERO, 0.0)
+        let raw = drawing_svg_bounds(&d.shapes);
+        let (west, north) = if raw.is_empty() {
+            (0.0, 0.0)
         } else {
-            (d.bbox.min, d.bbox.max.y)
+            (raw.min.x, raw.max.y)
         };
         Svg {
             out: String::new(),
-            min,
-            maxy,
+            west,
+            north,
+            pad: d.prelude_thick.max(0.0) / 144.0,
         }
     }
 
     /// Map a pic point to SVG pixel space (y flipped).
     fn p(&self, p: Point) -> Point {
         Point::new(
-            (p.x - self.min.x) * PPI + MARGIN,
-            (self.maxy - p.y) * PPI + MARGIN,
+            (p.x - self.west + 2.0 * self.pad) * PPI,
+            (self.north - p.y + self.pad) * PPI,
         )
     }
 
     fn render(&mut self, d: &Drawing) {
-        let (w, h) = if d.bbox.is_empty() {
-            (2.0 * MARGIN, 2.0 * MARGIN)
+        let raw = drawing_svg_bounds(&d.shapes);
+        let (w, h) = if raw.is_empty() {
+            (6.0 * self.pad * PPI, 6.0 * self.pad * PPI)
         } else {
             (
-                d.bbox.width() * PPI + 2.0 * MARGIN,
-                d.bbox.height() * PPI + 2.0 * MARGIN,
+                (raw.width() + 6.0 * self.pad) * PPI,
+                (raw.height() + 6.0 * self.pad) * PPI,
             )
         };
         self.out.push_str(&format!(
@@ -547,6 +550,92 @@ impl Svg {
 
 // ---- helpers ---------------------------------------------------------------
 
+fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
+    let mut out = Bbox::new();
+    for sh in shapes {
+        out.union(&shape_svg_bounds(sh));
+    }
+    out
+}
+
+fn shape_svg_bounds(sh: &Shape) -> Bbox {
+    let mut out = Bbox::new();
+    match sh {
+        Shape::Box {
+            c,
+            w,
+            h,
+            style,
+            text: _,
+            ..
+        } => {
+            if closed_shape_is_visible(style) {
+                out.add(*c - Point::new(*w / 2.0, *h / 2.0));
+                out.add(*c + Point::new(*w / 2.0, *h / 2.0));
+            }
+        }
+        Shape::Circle {
+            c,
+            r,
+            style,
+            text: _,
+        } => {
+            if closed_shape_is_visible(style) {
+                out.add(*c - Point::new(*r, *r));
+                out.add(*c + Point::new(*r, *r));
+            }
+        }
+        Shape::Ellipse {
+            c,
+            w,
+            h,
+            style,
+            text: _,
+        } => {
+            if closed_shape_is_visible(style) {
+                out.add(*c - Point::new(*w / 2.0, *h / 2.0));
+                out.add(*c + Point::new(*w / 2.0, *h / 2.0));
+            }
+        }
+        Shape::Path {
+            pts,
+            style,
+            text: _,
+            ..
+        }
+        | Shape::Spline {
+            pts,
+            style,
+            text: _,
+            ..
+        } => {
+            if !style.invis {
+                for p in pts {
+                    out.add(*p);
+                }
+            }
+        }
+        Shape::Arc {
+            c,
+            r,
+            a0,
+            a1,
+            style,
+            text: _,
+            ..
+        } => {
+            if !style.invis {
+                for k in 0..=12 {
+                    let t = *a0 + (*a1 - *a0) * (k as f64 / 12.0);
+                    out.add(*c + Point::new(t.cos(), t.sin()) * *r);
+                }
+            }
+        }
+        Shape::Text { bbox, .. } => out.union(bbox),
+    }
+    out
+}
+
 fn spline_path_points(q: &[Point], tension: Option<f64>) -> String {
     let n = q.len();
     // Fewer than 3 control points: just a straight polyline.
@@ -988,6 +1077,43 @@ mod tests {
         assert!(
             !d.ends_with("100 52"),
             "spline path still reaches the arrow tip: {d}"
+        );
+    }
+
+    #[test]
+    fn svg_prelude_bounds_match_dpic_for_lines() {
+        let s = svg("line right");
+        assert!(
+            s.contains("width=\"51.2\" height=\"3.2\" viewBox=\"0 0 51.2 3.2\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<line x1=\"1.066667\" y1=\"0.533333\" x2=\"49.066667\" y2=\"0.533333\""),
+            "{s}"
+        );
+
+        let s = svg("linethick = 0.4\nline right");
+        assert!(
+            s.contains("width=\"49.6\" height=\"1.6\" viewBox=\"0 0 49.6 1.6\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<line x1=\"0.533333\" y1=\"0.266667\" x2=\"48.533333\" y2=\"0.266667\""),
+            "{s}"
+        );
+        assert!(s.contains("stroke-width=\"0.533333\""), "{s}");
+    }
+
+    #[test]
+    fn attached_text_does_not_expand_svg_prelude_bounds() {
+        let s = svg("box wid .2 \"longlonglong\"");
+        assert!(
+            s.contains("width=\"22.4\" height=\"51.2\" viewBox=\"0 0 22.4 51.2\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<rect x=\"1.066667\" y=\"0.533333\" width=\"19.2\" height=\"48\""),
+            "{s}"
         );
     }
 
