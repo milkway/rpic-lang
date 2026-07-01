@@ -58,13 +58,34 @@ Recommended rpic behavior:
 Implementation is tracked in
 [#107](https://github.com/milkway/rpic-lang/issues/107).
 
+## Behind
+
+Pikchr implements `behind <object>` as a render-layer adjustment. The current
+object keeps its normal semantic position, but when its layer is not already
+below the referenced object, Pikchr lowers it to one layer behind that target.
+
+That maps well to rpic as an explicit extension if the implementation keeps
+source/evaluation order separate from backend paint order:
+
+- Add `behind <object>` as a contextual object attribute, not a global reserved
+  keyword, so existing variables named `behind` can still parse normally.
+- Store a render layer per shape in the evaluated IR.
+- Sort only the backend emission order by layer, keeping original shape indices
+  stable for ids such as `s0`/`s1` and animation targets.
+- Keep labels, anchors, ordinals, `last`, and object placement based on normal
+  pic evaluation order.
+- Preserve dpic-compatible output order when no object uses `behind`.
+
+Implementation is tracked in
+[#109](https://github.com/milkway/rpic-lang/issues/109).
+
 ## Adoption Matrix
 
 | Decision | Candidate | Rationale |
 | --- | --- | --- |
 | Adopt | `margin` and side margin variables | High value, low semantic risk, fixes canvas framing without hidden geometry. Track in #107. |
+| Adopt | `behind <object>` layering | Useful for highlights and backgrounds when implemented as backend paint-order metadata with stable semantic ids. Track in #109. |
 | Maybe | `fit` attribute for text-sized objects | Useful, but text metrics are approximate and backend-sensitive. Needs a spec before implementation. Track in #108. |
-| Maybe | `behind <object>` layering | Useful for highlights and backgrounds, but it touches render ordering, SVG ids, and animation references. Track in #109. |
 | Maybe | Simple aliases such as `invisible`, `previous`, and `first` | Ergonomic and likely low risk, but aliases should be grouped and tested separately from parity work. |
 | Maybe | New object types: `dot`, `diamond`, `oval`, `file`, `cylinder` | `dot` and `diamond` look tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
 | Maybe | Text styling: `bold`, `italic`, `mono`, `big`, `small`, `aligned` | Good SVG-era ergonomics, but requires IR/text model changes and careful fallback behavior. |

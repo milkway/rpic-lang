@@ -186,6 +186,8 @@ pub enum Attr {
         at: Position,
     },
     Color(Color, StringExpr),
+    /// rpic extension: draw this object below another already-placed object.
+    Behind(Place),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

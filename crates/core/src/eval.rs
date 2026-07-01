@@ -57,6 +57,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
     let canvas_margin = st.canvas_margin()?;
     let mut d = Drawing {
         shapes: st.shapes,
+        shape_layers: st.shape_layers,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
@@ -239,6 +240,7 @@ struct Placed {
     box_rad: f64,
     line_wid: f64,
     line_ht: f64,
+    layer: i32,
     /// Index of the primary shape in `shapes` (None for point-only labels).
     shape: Option<usize>,
     /// For blocks: inner labels (sub-objects), translated into parent
@@ -428,6 +430,7 @@ struct State {
     /// affect its own `last`/nth/bbox, so they live here, not in `placed`.
     outer_labels: HashMap<String, Placed>,
     shapes: Vec<Shape>,
+    shape_layers: Vec<i32>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
     /// Visible geometry and text only; this becomes the final drawing/viewBox.
@@ -472,6 +475,7 @@ impl State {
             base_dir: None,
             outer_labels: HashMap::new(),
             shapes: Vec::new(),
+            shape_layers: Vec::new(),
             placed: Vec::new(),
             labels: HashMap::new(),
             bbox: Bbox::new(),
@@ -525,6 +529,7 @@ impl State {
                     box_rad: 0.0,
                     line_wid: 0.0,
                     line_ht: 0.0,
+                    layer: 0,
                     shape: None,
                     members: HashMap::new(),
                 });
@@ -982,7 +987,8 @@ impl State {
                 text,
             },
         };
-        self.shapes.push(shape);
+        let layer = self.layer_of(obj, 0)?;
+        self.push_shape(shape, layer);
 
         let half = dir_unit(dir) * (extent / 2.0);
         let start = center - half;
@@ -1172,7 +1178,8 @@ impl State {
                 text,
             }
         };
-        self.shapes.push(shape);
+        let layer = self.layer_of(obj, 0)?;
+        self.push_shape(shape, layer);
 
         self.pos = end;
         self.dir = last_dir;
@@ -1284,16 +1291,20 @@ impl State {
         }
         self.union_text(center, &text);
 
-        self.shapes.push(Shape::Arc {
-            c: center,
-            r,
-            a0,
-            a1,
-            cw,
-            arrows,
-            style,
-            text,
-        });
+        let layer = self.layer_of(obj, 0)?;
+        self.push_shape(
+            Shape::Arc {
+                c: center,
+                r,
+                a0,
+                a1,
+                cw,
+                arrows,
+                style,
+                text,
+            },
+            layer,
+        );
 
         // new heading is the tangent at the end point
         let tang = if a1 >= a0 {
@@ -1355,14 +1366,18 @@ impl State {
         self.layout_bbox.union(&bb);
         let text_bb = text_object_bbox(at, &text, w, h);
         self.bbox.union(&text_bb);
-        self.shapes.push(Shape::Text {
-            at,
-            text,
-            bbox: text_bb,
-            w,
-            h,
-            standalone: true,
-        });
+        let layer = self.layer_of(obj, 0)?;
+        self.push_shape(
+            Shape::Text {
+                at,
+                text,
+                bbox: text_bb,
+                w,
+                h,
+                standalone: true,
+            },
+            layer,
+        );
         let half = dir_unit(dir) * (extent / 2.0);
         let start = at - half;
         let end = at + half;
@@ -1437,9 +1452,11 @@ impl State {
             rebase_placed(&mut pl, shift, first_shape);
             members.insert(name.clone(), pl);
         }
-        for mut sh in sub.shapes.into_iter() {
+        let layer_shift =
+            self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
+        for (mut sh, layer) in sub.shapes.into_iter().zip(sub.shape_layers) {
             translate_shape(&mut sh, shift);
-            self.shapes.push(sh);
+            self.push_shape(sh, layer + layer_shift);
         }
         let shape = if self.shapes.len() > first_shape {
             Some(first_shape)
@@ -1459,14 +1476,18 @@ impl State {
         let block_text_bb = text_bbox(target, &block_text);
         self.bbox.union(&block_text_bb);
         if has_visible_text(&block_text) {
-            self.shapes.push(Shape::Text {
-                at: target,
-                text: block_text,
-                bbox: block_text_bb,
-                w: 0.0,
-                h: 0.0,
-                standalone: false,
-            });
+            let layer = self.layer_of(obj, 0)?;
+            self.push_shape(
+                Shape::Text {
+                    at: target,
+                    text: block_text,
+                    bbox: block_text_bb,
+                    w: 0.0,
+                    h: 0.0,
+                    standalone: false,
+                },
+                layer,
+            );
         }
 
         let half = dir_unit(dir) * (extent / 2.0);
@@ -1503,10 +1524,35 @@ impl State {
             box_rad: 0.0,
             line_wid: 0.0,
             line_ht: 0.0,
+            layer: shape
+                .and_then(|s| self.shape_layers.get(s).copied())
+                .unwrap_or(0),
             shape,
             members: HashMap::new(),
         });
         idx
+    }
+
+    fn push_shape(&mut self, shape: Shape, layer: i32) {
+        self.shapes.push(shape);
+        self.shape_layers.push(layer);
+    }
+
+    fn layer_of(&mut self, obj: &Object, current: i32) -> ER<i32> {
+        let mut layer = current;
+        for a in &obj.attrs {
+            if let Attr::Behind(place) = a {
+                let target = self.resolve_obj(place)?;
+                if layer >= target.layer {
+                    layer = target.layer - 1;
+                }
+            }
+        }
+        Ok(layer)
+    }
+
+    fn layer_shift_for(&mut self, obj: &Object, current_max: i32) -> ER<i32> {
+        Ok(self.layer_of(obj, current_max)? - current_max)
     }
 
     // ---- attribute helpers -------------------------------------------------
@@ -3227,6 +3273,35 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn behind_sets_render_layer_without_changing_shape_indices() {
+        let d = draw("A: box\nB: box behind A\nanimate B with \"fade\"");
+        assert_eq!(d.shapes.len(), 2);
+        assert_eq!(d.shape_layers, vec![0, -1]);
+        assert_eq!(d.anims.len(), 1);
+        assert_eq!(d.anims[0].shape, 1);
+    }
+
+    #[test]
+    fn behind_keeps_last_and_ordinals_semantic() {
+        let d =
+            draw("A: box at (0,0)\nB: box behind A at (2,0)\nline from last box.c to 1st box.c");
+        let Shape::Path { pts, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert_eq!(pts.len(), 2);
+        assert!(
+            pts[0].dist(Point::new(2.0, 0.0)) < 1e-9,
+            "start = {:?}",
+            pts[0]
+        );
+        assert!(
+            pts[1].dist(Point::new(0.0, 0.0)) < 1e-9,
+            "end = {:?}",
+            pts[1]
+        );
     }
 
     #[test]
