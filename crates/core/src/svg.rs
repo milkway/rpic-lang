@@ -579,11 +579,7 @@ impl Svg {
                     1 => -line.text_offset,
                     _ => 0.0,
                 };
-            let baseline_y = y + if !standalone {
-                (line.valign as f64) * just_offset
-            } else {
-                0.0
-            };
+            let baseline_y = y + (line.valign as f64) * just_offset;
             let p = self.p(Point::new(x, baseline_y));
             let text_stroke = if standalone {
                 format!("stroke-width=\"{}\"", num(0.2 * PPI / 72.0))
@@ -665,7 +661,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             text: _,
             ..
         } => {
-            if !style.invis {
+            if !style.invis || style.invis_bounds {
                 for p in pts {
                     out.add(*p);
                 }
@@ -707,6 +703,9 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
 
 fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox {
     let mut bb = Bbox::new();
+    if text.is_empty() {
+        return bb;
+    }
     let mut half_w = w.abs() / 2.0;
     if half_w <= 1e-12 {
         half_w = text
@@ -715,9 +714,26 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
             .map(|line| line.text_offset.abs())
             .fold(0.0, f64::max);
     }
-    let half_h = h.abs() / 2.0;
-    bb.add(Point::new(at.x - half_w, at.y - half_h));
-    bb.add(Point::new(at.x + half_w, at.y + half_h));
+    let n = text.len() as f64;
+    let v = n - 1.0 + DP_TEXT_RATIO;
+    let lineskip = if h.abs() > 1e-12 && v.abs() > 1e-12 {
+        h / v
+    } else {
+        FONT_PT / 72.0
+    };
+    let xheight = lineskip * DP_TEXT_RATIO;
+    let mut baseline_y = at.y + (v * lineskip / 2.0) - xheight;
+    for line in text {
+        if line.s.is_empty() {
+            baseline_y -= lineskip;
+            continue;
+        }
+        let just_offset = xheight / 2.0 + line.text_offset;
+        let y = baseline_y + (line.valign as f64) * just_offset;
+        bb.add(Point::new(at.x - half_w, y));
+        bb.add(Point::new(at.x + half_w, y + xheight));
+        baseline_y -= lineskip;
+    }
     bb
 }
 
@@ -1190,6 +1206,20 @@ mod tests {
     }
 
     #[test]
+    fn move_expands_svg_bounds_like_dpic() {
+        let s =
+            svg(".PS\nscale=0.25\nline from (0,0) to (1,0)\nmove left 0.4*scale from (0,0)\n.PE");
+        assert!(
+            s.contains("width=\"425.6\" height=\"3.2\" viewBox=\"0 0 425.6 3.2\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("<line x1=\"39.466667\" y1=\"0.533333\" x2=\"423.466667\" y2=\"0.533333\""),
+            "{s}"
+        );
+    }
+
+    #[test]
     fn attached_text_does_not_expand_svg_prelude_bounds() {
         let s = svg("box wid .2 \"longlonglong\"");
         assert!(
@@ -1211,6 +1241,19 @@ mod tests {
             "{s}"
         );
         assert!(!s.contains("dominant-baseline"), "{s}");
+    }
+
+    #[test]
+    fn standalone_text_below_offsets_svg_baseline_like_dpic() {
+        let s = svg(".PS\nscale=0.25\nline up 0.05 from (0,0)\n\"0\" below at (0,0)\n.PE");
+        assert!(
+            s.contains("width=\"3.2\" height=\"34.746667\" viewBox=\"0 0 3.2 34.746667\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("stroke-width=\"0.266667\" fill=\"black\" x=\"1.066667\" y=\"32.08\""),
+            "{s}"
+        );
     }
 
     #[test]
