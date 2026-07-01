@@ -57,7 +57,7 @@ impl Svg {
             )
         };
         self.out.push_str(&format!(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" font-family=\"sans-serif\" font-size=\"{}\">\n",
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" font-family=\"sans-serif\" font-size=\"{}\" fill=\"none\">\n",
             num(w),
             num(h),
             num(w),
@@ -532,7 +532,7 @@ impl Svg {
                 };
             let y = c.y + dy - (line.valign as f64) * just_offset;
             self.out.push_str(&format!(
-                "<text x=\"{}\" y=\"{}\" text-anchor=\"{}\" dominant-baseline=\"central\">{}</text>\n",
+                "<text x=\"{}\" y=\"{}\" text-anchor=\"{}\" dominant-baseline=\"central\" fill=\"black\">{}</text>\n",
                 num(x),
                 num(y),
                 anchor,
@@ -734,11 +734,13 @@ mod tests {
     fn pipeline_svg_has_elements() {
         let s = svg(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\n.PE");
         assert!(s.starts_with("<svg"));
+        assert!(s.lines().next().unwrap().contains("fill=\"none\""));
         assert!(s.contains("<ellipse"));
         assert!(s.contains("<rect"));
         assert!(s.contains("<line"));
         assert!(s.contains("<polygon")); // arrowhead
         assert!(s.contains(">document<"));
+        assert!(s.contains("fill=\"black\">document</text>"));
         assert!(s.contains("</svg>"));
     }
 
@@ -778,6 +780,13 @@ mod tests {
         let s = svg("arc color \"red\"");
         assert!(s.contains("stroke=\"red\""));
         assert!(!s.contains("stroke-width=\"0\" stroke=\"black\""));
+    }
+
+    #[test]
+    fn root_fill_none_matches_dpic_invalid_color_fallback() {
+        let s = svg("line right then up then left shaded \"Dandelion\"");
+        assert!(s.lines().next().unwrap().contains("fill=\"none\""));
+        assert!(s.contains("fill=\"Dandelion\""), "{s}");
     }
 
     #[test]
