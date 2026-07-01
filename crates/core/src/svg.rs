@@ -1206,6 +1206,22 @@ mod tests {
     }
 
     #[test]
+    fn ps_sizing_scales_svg_prelude_padding_like_dpic() {
+        let s = svg(".PS 3.5\nlinethick = 0.375*72\ncircle rad 3\n.PE");
+        assert!(
+            s.contains(
+                "width=\"375.529412\" height=\"375.529412\" viewBox=\"0 0 375.529412 375.529412\""
+            ),
+            "{s}"
+        );
+        assert!(
+            s.contains("<circle cx=\"177.882353\" cy=\"168\" r=\"158.117647\""),
+            "{s}"
+        );
+        assert!(s.contains("stroke-width=\"36\""), "{s}");
+    }
+
+    #[test]
     fn move_expands_svg_bounds_like_dpic() {
         let s =
             svg(".PS\nscale=0.25\nline from (0,0) to (1,0)\nmove left 0.4*scale from (0,0)\n.PE");
