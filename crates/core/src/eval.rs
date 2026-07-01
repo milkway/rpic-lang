@@ -55,6 +55,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut d = Drawing {
         shapes: st.shapes,
         bbox: st.bbox,
+        prelude_thick: st.env.get(EnvVar::Linethick),
         anims: st.anims,
         diagnostics: st.diagnostics,
     };
