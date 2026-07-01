@@ -725,10 +725,106 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
             Token::Percent => s.push('%'),
             Token::Dollar => s.push('$'),
             Token::Backslash => s.push('\\'),
+            Token::DotX => s.push_str(".x"),
+            Token::DotY => s.push_str(".y"),
+            Token::DotPS => s.push_str(".PS"),
+            Token::DotPE => s.push_str(".PE"),
+            Token::Corner(c) => s.push_str(corner_text(*c)),
+            Token::Param(p) => s.push_str(param_text(*p)),
+            Token::LineType(l) => s.push_str(line_type_text(*l)),
+            Token::TextPos(p) => s.push_str(text_pos_text(*p)),
+            Token::Arrow(a) => s.push_str(arrow_text(*a)),
+            Token::Dir(d) => s.push_str(dir_text(*d)),
+            Token::Prim(p) => s.push_str(prim_text(*p)),
+            Token::Color(c) => s.push_str(color_text(*c)),
             _ => {}
         }
     }
     s
+}
+
+fn corner_text(c: Corner) -> &'static str {
+    match c {
+        Corner::N => ".n",
+        Corner::S => ".s",
+        Corner::E => ".e",
+        Corner::W => ".w",
+        Corner::Ne => ".ne",
+        Corner::Se => ".se",
+        Corner::Nw => ".nw",
+        Corner::Sw => ".sw",
+        Corner::Start => ".start",
+        Corner::End => ".end",
+        Corner::Center => ".c",
+    }
+}
+
+fn param_text(p: Param) -> &'static str {
+    match p {
+        Param::Height => ".ht",
+        Param::Width => ".wid",
+        Param::Radius => ".rad",
+        Param::Diameter => ".diam",
+        Param::Thickness => ".thick",
+        Param::Length => ".len",
+    }
+}
+
+fn line_type_text(l: LineType) -> &'static str {
+    match l {
+        LineType::Solid => "solid",
+        LineType::Dotted => "dotted",
+        LineType::Dashed => "dashed",
+        LineType::Invis => "invis",
+    }
+}
+
+fn text_pos_text(p: TextPos) -> &'static str {
+    match p {
+        TextPos::Center => "center",
+        TextPos::Ljust => "ljust",
+        TextPos::Rjust => "rjust",
+        TextPos::Above => "above",
+        TextPos::Below => "below",
+    }
+}
+
+fn arrow_text(a: Arrow) -> &'static str {
+    match a {
+        Arrow::Left => "<-",
+        Arrow::Right => "->",
+        Arrow::Double => "<->",
+    }
+}
+
+fn dir_text(d: Dir) -> &'static str {
+    match d {
+        Dir::Up => "up",
+        Dir::Down => "down",
+        Dir::Right => "right",
+        Dir::Left => "left",
+    }
+}
+
+fn prim_text(p: Prim) -> &'static str {
+    match p {
+        Prim::Box => "box",
+        Prim::Circle => "circle",
+        Prim::Ellipse => "ellipse",
+        Prim::Arc => "arc",
+        Prim::Line => "line",
+        Prim::Arrow => "arrow",
+        Prim::Move => "move",
+        Prim::Spline => "spline",
+    }
+}
+
+fn color_text(c: Color) -> &'static str {
+    match c {
+        Color::Colored => "color",
+        Color::Outlined => "outlined",
+        Color::Shaded => "shaded",
+    }
 }
 
 /// Read and tokenize a `copy "file"` include, returning its expanded tokens

@@ -4019,6 +4019,20 @@ box wid 0.1 ht 0.1 at B.s"#,
     }
 
     #[test]
+    fn macro_string_substitution_preserves_dot_prefixed_arguments() {
+        let d = draw("define label { \"$1\"; \"$2\" }\nlabel(.ne,above)");
+        let labels: Vec<&str> = d
+            .shapes
+            .iter()
+            .filter_map(|shape| match shape {
+                Shape::Text { text, .. } => Some(text[0].s.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(labels, [".ne", "above"]);
+    }
+
+    #[test]
     fn recursive_macro_terminates() {
         // a self-calling macro bounded by `if`: textual pre-expansion would
         // diverge, but lazy (eval-time) expansion of the taken branch stops it.
