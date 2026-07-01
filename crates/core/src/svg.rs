@@ -230,62 +230,46 @@ impl Svg {
                 r,
                 a0,
                 a1,
-                cw,
+                cw: _,
                 arrows,
                 style,
                 text,
             } => {
-                if !style.invis || style.fill_open {
-                    let dir = if a1 >= a0 { 1.0 } else { -1.0 };
-                    let trim = if *arrows == Arrowheads::None || *r <= 1e-9 {
-                        0.0
-                    } else {
-                        (style.arrow_ht / *r * 0.45).min((a1 - a0).abs() / 3.0)
-                    };
-                    let da0 = if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
-                        a0 + dir * trim
-                    } else {
-                        *a0
-                    };
-                    let da1 = if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
-                        a1 - dir * trim
-                    } else {
-                        *a1
-                    };
-                    let start = self.p(*c + Point::new(da0.cos(), da0.sin()) * *r);
-                    let end = self.p(*c + Point::new(da1.cos(), da1.sin()) * *r);
-                    let large = if (da1 - da0).abs() > std::f64::consts::PI {
-                        1
-                    } else {
-                        0
-                    };
-                    let sweep = if *cw { 1 } else { 0 };
-                    let d = format!(
-                        "M {} {} A {} {} 0 {} {} {} {}",
-                        num(start.x),
-                        num(start.y),
-                        num(r * PPI),
-                        num(r * PPI),
-                        large,
-                        sweep,
-                        num(end.x),
-                        num(end.y)
-                    );
-                    if style.fill_open {
-                        self.out.push_str(&format!(
-                            "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
-                            d,
-                            self.fill_value(style)
-                        ));
+                let start0 = *c + Point::new(a0.cos(), a0.sin()) * *r;
+                let end0 = *c + Point::new(a1.cos(), a1.sin()) * *r;
+                let arc_angle0 = *a1 - *a0;
+                if style.fill_open {
+                    let d = self.arc_path(start0, end0, *r, arc_angle0);
+                    self.out.push_str(&format!(
+                        "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
+                        d,
+                        self.fill_value(style)
+                    ));
+                }
+                if !style.invis {
+                    let mut start = start0;
+                    let mut end = end0;
+                    let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
+                    let mut head_paths = String::new();
+                    if *r > 1e-9 && matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
+                        let head =
+                            self.arc_arrowhead_path(*c, start, *r, arc_angle0, style, &color);
+                        start = head.point;
+                        head_paths.push_str(&head.path);
                     }
-                    if !style.invis {
-                        self.out.push_str(&format!(
-                            "<path d=\"{}\" fill=\"none\" {}/>\n",
-                            d,
-                            self.stroke(style)
-                        ));
-                        self.arc_arrowheads(*c, *r, *a0, *a1, *arrows, style);
+                    if *r > 1e-9 && matches!(arrows, Arrowheads::End | Arrowheads::Both) {
+                        let head = self.arc_arrowhead_path(*c, end, -*r, arc_angle0, style, &color);
+                        end = head.point;
+                        head_paths.push_str(&head.path);
                     }
+                    self.out.push_str(&head_paths);
+                    let arc_angle = arc_angle_between(*c, start, end, arc_angle0);
+                    let d = self.arc_path(start, end, *r, arc_angle);
+                    self.out.push_str(&format!(
+                        "<path d=\"{}\" fill=\"none\" {}/>\n",
+                        d,
+                        self.stroke(style)
+                    ));
                 }
                 self.text(*c, text);
             }
@@ -417,73 +401,98 @@ impl Svg {
         self.out.push_str(&buf);
     }
 
-    fn arc_arrowheads(
-        &mut self,
-        c: Point,
-        r: f64,
-        a0: f64,
-        a1: f64,
-        arrows: Arrowheads,
-        style: &Style,
-    ) {
-        if arrows == Arrowheads::None || r <= 1e-9 {
-            return;
-        }
-        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
-        let dir = if a1 >= a0 { 1.0 } else { -1.0 };
-        let max_step = ((a1 - a0).abs() / 3.0).max(1e-6);
-        let step = (style.arrow_ht / r * 0.45).clamp(0.02_f64.min(max_step), max_step);
-        let point = |t: f64| c + Point::new(t.cos(), t.sin()) * r;
-        let head = |tip: Point, from: Point, out: &mut String| {
-            let t = self.p(tip);
-            let f = self.p(from);
-            let mut u = t - f;
-            let len = u.len();
-            if len < 1e-9 {
-                return;
-            }
-            u = u / len;
-            let perp = Point::new(-u.y, u.x);
-            let hl = style.arrow_ht * PPI;
-            let hw = style.arrow_wid / 2.0 * PPI;
-            let base = t - u * hl;
-            let l = base + perp * hw;
-            let rr = base - perp * hw;
-            if style.arrow_filled {
-                out.push_str(&format!(
-                    "<path stroke-width=\"0\" fill=\"{}\" d=\"M {},{} L {},{} L {},{} Z\"/>\n",
-                    color,
-                    num(t.x),
-                    num(t.y),
-                    num(l.x),
-                    num(l.y),
-                    num(rr.x),
-                    num(rr.y)
-                ));
-            } else {
-                let Some((l, p, rr)) = open_arrowhead_points(t, f, style) else {
-                    return;
-                };
-                out.push_str(&format!(
-                    "<path d=\"M {} {} L {} {} L {} {}\" fill=\"none\" {}/>\n",
-                    num(l.x),
-                    num(l.y),
-                    num(p.x),
-                    num(p.y),
-                    num(rr.x),
-                    num(rr.y),
-                    self.stroke(style)
-                ));
-            }
+    fn arc_path(&self, start: Point, end: Point, r: f64, angle: f64) -> String {
+        let start = self.p(start);
+        let end = self.p(end);
+        let large = if angle.abs() > std::f64::consts::PI {
+            1
+        } else {
+            0
         };
-        let mut buf = String::new();
-        if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
-            head(point(a1), point(a1 - dir * step), &mut buf);
+        let sweep = if angle >= 0.0 { 0 } else { 1 };
+        format!(
+            "M {} {} A {} {} 0 {} {} {} {}",
+            num(start.x),
+            num(start.y),
+            num(r.abs() * PPI),
+            num(r.abs() * PPI),
+            large,
+            sweep,
+            num(end.x),
+            num(end.y)
+        )
+    }
+
+    fn arc_to(&self, end: Point, r: f64, angle: f64, ccw: f64) -> String {
+        let end = self.p(end);
+        let large = if angle.abs() > std::f64::consts::PI {
+            1
+        } else {
+            0
+        };
+        let sweep = if ccw > 0.0 { 0 } else { 1 };
+        format!(
+            " A {} {} 0 {} {} {} {}",
+            num(r.abs() * PPI),
+            num(r.abs() * PPI),
+            large,
+            sweep,
+            num(end.x),
+            num(end.y)
+        )
+    }
+
+    fn arc_arrowhead_path(
+        &self,
+        c: Point,
+        point: Point,
+        signed_r: f64,
+        angle: f64,
+        style: &Style,
+        color: &str,
+    ) -> ArcHead {
+        let atyp = if style.arrow_filled { 2 } else { 0 };
+        let mut geom = arc_head_geometry(
+            c,
+            point,
+            atyp,
+            style.arrow_ht,
+            style.arrow_wid,
+            style.thick.filter(|t| *t > 0.0).unwrap_or(0.8),
+            signed_r,
+            angle,
+        );
+        let r = signed_r.abs();
+        let mut d = String::new();
+        if atyp == 0 && geom.lwi < ((geom.wid - geom.lwi) / 2.0) {
+            d.push_str(&format!("M {}", self.pos(geom.px)));
+            let q = prop(geom.ai, geom.ci, r + geom.lwi, -geom.lwi, r);
+            d.push_str(&self.arc_to(q, r + geom.lwi, 0.0, geom.ccw));
+            d.push_str(&format!(" L {}", self.pos(geom.ai)));
+            d.push_str(&self.arc_to(point, r, 0.0, -geom.ccw));
+            d.push_str(&self.arc_to(geom.ao, r, 0.0, geom.ccw));
+            d.push_str(&format!(
+                " L {}",
+                self.pos(prop(geom.ao, geom.co, r - geom.lwi, geom.lwi, r))
+            ));
+            d.push_str(&self.arc_to(geom.px, r - geom.lwi, 1.0, -geom.ccw));
+        } else {
+            let q = (geom.ao + geom.ai) * 0.5;
+            d.push_str(&format!("M {} L {}", self.pos(q), self.pos(geom.ai)));
+            d.push_str(&self.arc_to(point, r, 0.0, -geom.ccw));
+            d.push_str(&self.arc_to(geom.ao, r, 0.0, geom.ccw));
+            d.push_str(&format!(" L {}", self.pos(q)));
         }
-        if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
-            head(point(a0), point(a0 + dir * step), &mut buf);
-        }
-        self.out.push_str(&buf);
+        geom.path = format!(
+            "<path stroke-width=\"0\" stroke=\"{}\" fill=\"{}\" d=\"{}\"/>\n",
+            color, color, d
+        );
+        geom
+    }
+
+    fn pos(&self, p: Point) -> String {
+        let p = self.p(p);
+        format!("{},{}", num(p.x), num(p.y))
     }
 
     /// dpic-compatible spline path. The control-point construction matches
@@ -548,6 +557,146 @@ fn thick_px(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
     let pt = style.thick.filter(|t| *t > 0.0).unwrap_or(0.8);
     pt * PPI / 72.0
+}
+
+struct ArcHead {
+    point: Point,
+    path: String,
+    ao: Point,
+    ai: Point,
+    co: Point,
+    ci: Point,
+    px: Point,
+    ccw: f64,
+    lwi: f64,
+    wid: f64,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn arc_head_geometry(
+    c: Point,
+    point: Point,
+    atyp: i32,
+    ht: f64,
+    wid: f64,
+    lth: f64,
+    signed_r: f64,
+    angle: f64,
+) -> ArcHead {
+    let ccw = if signed_r * angle > 0.0 { 1.0 } else { -1.0 };
+    let r = signed_r.abs();
+    let ht = ht.abs().min(2.0 * r);
+    let mut wid = if atyp == 0 {
+        wid.abs().min(r)
+    } else {
+        wid.abs()
+    };
+    let lwi = lth.abs() / 72.0;
+    wid = wid.max(lwi);
+
+    let ha = if r == 0.0 { 0.0 } else { ht / r };
+    let q = Point::new(ha.cos(), ccw * ha.sin());
+    let ac = affine(point.x - c.x, point.y - c.y, c, q);
+    let ao = prop(c, ac, wid / -2.0, r + wid / 2.0, r);
+    let ai = prop(c, ac, wid / 2.0, r - wid / 2.0, r);
+    let co = arc_ctr(ao, point, c, ccw);
+    let ci = arc_ctr(ai, point, c, ccw);
+
+    let adjusted = if wid == 0.0 {
+        ao
+    } else if r == 0.0 {
+        c
+    } else {
+        let t = (wid.min(lwi) / wid) * ht / r;
+        let q = Point::new(t.cos(), ccw * t.sin());
+        affine(point.x - c.x, point.y - c.y, c, q)
+    };
+
+    let px = if atyp == 0 {
+        let mut px = c_intersect(co, r - lwi, ci, r + lwi, ccw);
+        if px.dist(point) > ac.dist(point) {
+            px = ac;
+        }
+        px
+    } else {
+        let t = if r == 0.0 {
+            0.0
+        } else {
+            std::f64::consts::FRAC_PI_2.min((ht / r) * 2.0 / 3.0)
+        };
+        let q = Point::new(t.cos(), ccw * t.sin());
+        let mut px = affine(point.x - c.x, point.y - c.y, c, q);
+        if px.dist(point) < adjusted.dist(point) {
+            px = adjusted;
+        }
+        px
+    };
+
+    ArcHead {
+        point: adjusted,
+        path: String::new(),
+        ao,
+        ai,
+        co,
+        ci,
+        px,
+        ccw,
+        lwi,
+        wid,
+    }
+}
+
+fn affine(x: f64, y: f64, origin: Point, cs: Point) -> Point {
+    Point::new(
+        origin.x + cs.x * x - cs.y * y,
+        origin.y + cs.y * x + cs.x * y,
+    )
+}
+
+fn arc_ctr(aa: Point, p: Point, cc: Point, ccw: f64) -> Point {
+    let a = aa - p;
+    let c = cc - p;
+    let asq = a.x * a.x + a.y * a.y;
+    let rsq = c.x * c.x + c.y * c.y;
+    if asq == 0.0 || rsq == 0.0 {
+        return cc;
+    }
+    let qy = ccw * (a.x * c.x + a.y * c.y) / (asq * rsq).sqrt();
+    let qx = (1.0 - qy * qy).max(0.0).sqrt();
+    let br = (1.0 - (asq / (rsq * 4.0))).max(0.0).sqrt();
+    let ax = (aa + p) * 0.5;
+    affine(br * c.x, br * c.y, ax, Point::new(qx, qy))
+}
+
+fn c_intersect(c1: Point, r1: f64, c2: Point, r2: f64, ccw: f64) -> Point {
+    let dx = c1.x - c2.x;
+    let dy = c1.y - c2.y;
+    let cls = dx * dx + dy * dy;
+    if cls == 0.0 {
+        return c1;
+    }
+    let cq = (cls + r1 * r1 - r2 * r2) / 2.0;
+    let mut f = cq / cls;
+    let x = Point::new((1.0 - f) * c1.x + f * c2.x, (1.0 - f) * c1.y + f * c2.y);
+    f = ((cls * r1 * r1 - cq * cq).max(0.0)).sqrt() / cls;
+    Point::new(x.x + dy * f * ccw, x.y - dx * f * ccw)
+}
+
+fn arc_angle_between(c: Point, start: Point, end: Point, old_angle: f64) -> f64 {
+    let a0 = (start - c).y.atan2((start - c).x);
+    let mut da = (end - c).y.atan2((end - c).x) - a0;
+    while da <= -std::f64::consts::PI {
+        da += 2.0 * std::f64::consts::PI;
+    }
+    while da > std::f64::consts::PI {
+        da -= 2.0 * std::f64::consts::PI;
+    }
+    if da < 0.0 && old_angle > 0.0 {
+        da += 2.0 * std::f64::consts::PI;
+    } else if da > 0.0 && old_angle < 0.0 {
+        da -= 2.0 * std::f64::consts::PI;
+    }
+    da
 }
 
 fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Point, Point, Point)> {
@@ -870,6 +1019,14 @@ mod tests {
         assert!((left.y - 1.049_747).abs() < 1e-6, "left={left:?}");
         assert!((right.x - 87.333_333).abs() < 1e-6, "right={right:?}");
         assert!((right.y - 4.816_919).abs() < 1e-6, "right={right:?}");
+    }
+
+    #[test]
+    fn open_arc_arrowhead_uses_curved_stroke_outline() {
+        let s = svg("arrowhead = 0\nlinethick = 4\narc <-> wid .5 ht .5");
+        assert!(s.contains("<path stroke-width=\"0\" stroke=\"black\" fill=\"black\""));
+        assert!(s.contains(" A "), "{s}");
+        assert!(!s.contains("<polyline"), "{s}");
     }
 
     #[test]

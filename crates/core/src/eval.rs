@@ -1692,7 +1692,7 @@ impl State {
                     s.fill_open = true;
                 }
                 Attr::Color(kind, se) => {
-                    let name = stringexpr_lit(se);
+                    let name = self.eval_color_expr(se)?;
                     match kind {
                         token::Color::Outlined => s.stroke = Some(name),
                         token::Color::Colored => {
@@ -1713,6 +1713,24 @@ impl State {
             }
         }
         Ok(s)
+    }
+
+    fn eval_color_expr(&mut self, se: &StringExpr) -> ER<String> {
+        if let StringExpr::Lit(name) = se
+            && let Some(body) = self.macros.get(name).cloned()
+        {
+            if let Some(lit) = single_token_macro_string(&body) {
+                return Ok(lit);
+            }
+            let parsed = crate::parser::parse_stringexpr_tokens(
+                &body,
+                &mut self.macros,
+                self.base_dir.as_deref(),
+            )
+            .map_err(|e| EvalError { msg: e.to_string() })?;
+            return self.eval_stringexpr(&parsed);
+        }
+        self.eval_stringexpr(se)
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
@@ -2667,6 +2685,20 @@ fn stringexpr_lit(se: &StringExpr) -> String {
     }
 }
 
+fn single_token_macro_string(toks: &[crate::lexer::Spanned]) -> Option<String> {
+    let mut toks = toks
+        .iter()
+        .filter(|s| !matches!(s.tok, token::Token::Newline | token::Token::Eof));
+    let tok = &toks.next()?.tok;
+    if toks.next().is_some() {
+        return None;
+    }
+    match tok {
+        token::Token::Str(s) | token::Token::Name(s) | token::Token::Label(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
 fn unescape_exec_source(src: &str) -> String {
     let mut out = String::with_capacity(src.len());
     let mut chars = src.chars();
@@ -3422,6 +3454,22 @@ mod tests {
             panic!()
         };
         assert_eq!(style.dash, Dash::Dotted(Some(0.05)));
+    }
+
+    #[test]
+    fn color_attribute_expands_runtime_macro_string() {
+        let d = draw(
+            "r = 0; g = 0; b = 0.6\n\
+             if dpicopt == optSVG then {\n\
+               define customcolor { sprintf(\"rgb(%g,%g,%g)\", int(r*255), int(g*255), int(b*255)) }\n\
+             }\n\
+             arc color customcolor",
+        );
+        let Shape::Arc { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.stroke.as_deref(), Some("rgb(0,0,153)"));
+        assert_eq!(style.fill, Some(Fill::Color("rgb(0,0,153)".into())));
     }
 
     #[test]

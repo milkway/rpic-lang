@@ -106,6 +106,24 @@ pub(crate) fn parse_exec_source(
     p.parse_elementlist(&[])
 }
 
+pub(crate) fn parse_stringexpr_tokens(
+    toks: &[Spanned],
+    macros: &mut Macros,
+    base: Option<&Path>,
+) -> Result<StringExpr, ParseError> {
+    let mut input = toks.to_vec();
+    input.push(Spanned::new(Token::Eof, 0, 0));
+    let expanded = expand(&input, macros, 0, base)?;
+    let mut p = Parser::new(expanded);
+    p.skip_newlines();
+    let expr = p.parse_stringexpr()?;
+    p.skip_newlines();
+    if !p.at(&Token::Eof) {
+        return p.err(format!("unexpected {:?} after string expression", p.cur()));
+    }
+    Ok(expr)
+}
+
 // ---- backend preamble filter ----------------------------------------------
 
 /// Drop non-SVG backend snippets commonly embedded in dpic examples.
