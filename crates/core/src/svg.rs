@@ -287,7 +287,7 @@ impl Svg {
                 }
                 self.text(*c, text);
             }
-            Shape::Text { at, text } => self.text(*at, text),
+            Shape::Text { at, text, .. } => self.text(*at, text),
         }
     }
 

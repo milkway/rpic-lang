@@ -162,5 +162,6 @@ pub enum Shape {
     Text {
         at: Point,
         text: Vec<TextLine>,
+        bbox: Bbox,
     },
 }
