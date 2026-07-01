@@ -905,7 +905,7 @@ impl State {
         rad *= scale;
 
         let extent = if horizontal(dir) { w } else { h };
-        let center = self.place_center(obj, dir, extent, w, h)?;
+        let center = self.place_closed_center(p, obj, dir, extent, (w, h), rad)?;
 
         let mut bb = Bbox::new();
         bb.add(center - Point::new(w / 2.0, h / 2.0));
@@ -1516,6 +1516,33 @@ impl State {
 
     /// Compute the center of a closed object given direction and extents.
     fn place_center(&mut self, obj: &Object, dir: Dir, extent: f64, w: f64, h: f64) -> ER<Point> {
+        self.place_with_corner_offset(obj, dir, extent, w, h, corner_offset)
+    }
+
+    fn place_closed_center(
+        &mut self,
+        p: Prim,
+        obj: &Object,
+        dir: Dir,
+        extent: f64,
+        dims: (f64, f64),
+        rad: f64,
+    ) -> ER<Point> {
+        let (w, h) = dims;
+        self.place_with_corner_offset(obj, dir, extent, w, h, |c, w, h| {
+            closed_corner_offset(p, c, w, h, rad)
+        })
+    }
+
+    fn place_with_corner_offset(
+        &mut self,
+        obj: &Object,
+        dir: Dir,
+        extent: f64,
+        w: f64,
+        h: f64,
+        corner: impl Fn(Corner, f64, f64) -> Point,
+    ) -> ER<Point> {
         if let Some(at) = self.at_of(obj)? {
             return Ok(at);
         }
@@ -1523,7 +1550,7 @@ impl State {
             if let Attr::With { anchor, at } = a {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
-                    WithAnchor::Corner(c) => corner_offset(*c, w, h),
+                    WithAnchor::Corner(c) => corner(*c, w, h),
                     WithAnchor::Pair(x, y) => Point::new(self.expr_dim(x)?, self.expr_dim(y)?),
                     WithAnchor::Place(_) => {
                         return err("`with .label` anchors are only valid on blocks");
@@ -2425,6 +2452,46 @@ fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
     }
 }
 
+fn closed_corner_offset(p: Prim, c: Corner, w: f64, h: f64, rad: f64) -> Point {
+    match p {
+        Prim::Circle | Prim::Ellipse => ellipse_corner_offset(c, w, h),
+        Prim::Box => box_corner_offset(c, w, h, rad),
+        _ => corner_offset(c, w, h),
+    }
+}
+
+fn ellipse_corner_offset(c: Corner, w: f64, h: f64) -> Point {
+    let (rx, ry) = (w / 2.0, h / 2.0);
+    let diag = |sx: f64, sy: f64| Point::new(sx * rx * FRAC_1_SQRT_2, sy * ry * FRAC_1_SQRT_2);
+    match c {
+        Corner::N => Point::new(0.0, ry),
+        Corner::S => Point::new(0.0, -ry),
+        Corner::E => Point::new(rx, 0.0),
+        Corner::W => Point::new(-rx, 0.0),
+        Corner::Ne => diag(1.0, 1.0),
+        Corner::Se => diag(1.0, -1.0),
+        Corner::Nw => diag(-1.0, 1.0),
+        Corner::Sw => diag(-1.0, -1.0),
+        Corner::Center | Corner::Start | Corner::End => Point::ZERO,
+    }
+}
+
+fn box_corner_offset(c: Corner, w: f64, h: f64, rad: f64) -> Point {
+    if rad > 0.0 && matches!(c, Corner::Ne | Corner::Se | Corner::Nw | Corner::Sw) {
+        let inset = rad.min(w.abs().min(h.abs()) / 2.0) * (1.0 - FRAC_1_SQRT_2);
+        let x = w / 2.0 - inset;
+        let y = h / 2.0 - inset;
+        return match c {
+            Corner::Ne => Point::new(x, y),
+            Corner::Se => Point::new(x, -y),
+            Corner::Nw => Point::new(-x, y),
+            Corner::Sw => Point::new(-x, -y),
+            _ => Point::ZERO,
+        };
+    }
+    corner_offset(c, w, h)
+}
+
 /// The placed-object kind a `PrimObj` selects, or `None` for untyped `Any`
 /// (matches every kind).
 fn primobj_kind(o: &PrimObj) -> Option<PKind> {
@@ -2811,6 +2878,22 @@ mod tests {
         let inset = 0.3 * (1.0 - FRAC_1_SQRT_2);
         let expected = Point::new(0.5 - inset, 0.5 - inset);
         assert!(c.dist(expected) < 1e-9, "rounded box ne = {c:?}");
+    }
+
+    #[test]
+    fn with_corner_uses_ellipse_geometry_for_placed_object() {
+        let d = draw("ellipse; ellipse with .nw at last ellipse.se");
+        let Shape::Ellipse { c: first, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let Shape::Ellipse { c: second, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        let expected = *first + Point::new(0.75 * FRAC_1_SQRT_2, -0.5 * FRAC_1_SQRT_2);
+        assert!(
+            second.dist(expected) < 1e-9,
+            "second center = {second:?}, expected = {expected:?}"
+        );
     }
 
     #[test]
