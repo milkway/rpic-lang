@@ -77,6 +77,46 @@ rendered text bboxes. That keeps the feature practical and backend-stable
 inside rpic, but it also means `fit` is not a dpic oracle feature. Programs that
 do not use `fit` keep their dpic-compatible dimensions and placement.
 
+## Hatch Fills
+
+`hatch` and `crosshatch` are rpic-only fill extensions for closed regions. They
+are inspired by PSTricks' hatch fill styles, but keep pic-style object
+attributes instead of TeX option lists.
+
+```pic
+.PS
+box fill 0.92 hatch hatchangle 30 hatchsep 0.05 hatchwid 1
+circle crosshatch hatchcolor red
+.PE
+```
+
+The supported surface is intentionally small:
+
+- `hatch` draws one family of parallel hatch lines;
+- `crosshatch` draws two perpendicular families;
+- `hatchangle <expr>` sets the line angle in degrees, measured in pic
+  coordinates, defaulting to `45`;
+- `hatchsep <expr>` sets the spacing between hatch lines in pic units,
+  defaulting to `0.08`;
+- `hatchwid <expr>` or `hatchwidth <expr>` sets the hatch line width in points,
+  defaulting to `0.8`, matching PSTricks' documented default;
+- `hatchcolor <color>` accepts the same quoted or bare color names as
+  `outlined`/`shaded`, defaulting to black;
+- when combined with `fill` or `shaded`, the existing fill becomes the pattern
+  background; without a fill, the hatch background is transparent.
+
+As with other pic attributes that accept optional expressions, ordering matters:
+put `hatch`/`crosshatch` before trailing attributes such as `dashed`, `dotted`,
+or `invis` when there is no explicit numeric argument between them.
+
+The SVG backend emits native `<pattern>` fills, so clipping is handled by SVG
+for boxes, circles, ellipses, and filled open paths/splines/arcs. PNG/PDF paths
+that rasterize from SVG inherit the same appearance; future native non-SVG
+backends should either materialize clipped hatch lines or document a fallback.
+
+Classic pic input remains dpic-compatible when these attributes are not used.
+Additional runnable examples are in `examples/hatch.pic`.
+
 ## Curly Brace Annotations
 
 `brace` is an rpic-only object for grouping or annotating a span between two

@@ -1,0 +1,18 @@
+.PS
+boxwid = 0.78
+boxht = 0.52
+
+A: box "hatch" hatch
+move right 1.05
+B: box "crosshatch" crosshatch hatchsep 0.05 hatchwid 1.1
+move right 1.05
+C: circle "angle" "30" diam 0.58 hatch hatchangle 30 hatchcolor blue
+
+move down 0.9
+move left 2.1
+D: ellipse "fill" "+ hatch" fill 0.92 hatch hatchangle -35 hatchsep 0.045
+move right 1.25
+line right 0.85 then up 0.52 then left 0.85 then down 0.52 \
+  crosshatch hatchangle 45 hatchsep 0.045 hatchwid 0.9 hatchcolor red
+"path" at last line.c
+.PE

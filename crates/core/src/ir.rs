@@ -81,12 +81,26 @@ pub enum Fill {
     Color(String),
 }
 
+/// Hatch fill pattern.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Hatch {
+    pub cross: bool,
+    /// Line angle in degrees, measured in pic coordinates.
+    pub angle: f64,
+    /// Distance between hatch lines in inches.
+    pub sep: f64,
+    /// Hatch stroke width in points.
+    pub width: f64,
+    pub color: String,
+}
+
 /// Visual style shared by all shapes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Style {
     /// Stroke color (CSS), or `None` to use the default.
     pub stroke: Option<String>,
     pub fill: Option<Fill>,
+    pub hatch: Option<Hatch>,
     /// Whether open paths/splines/arcs should emit a filled area. `color` on an
     /// open object only changes the stroke; `fill` and `shaded` fill.
     pub fill_open: bool,
@@ -113,6 +127,7 @@ impl Default for Style {
         Style {
             stroke: None,
             fill: None,
+            hatch: None,
             fill_open: false,
             dash: Dash::Solid,
             thick: None,

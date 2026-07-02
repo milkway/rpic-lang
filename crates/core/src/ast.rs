@@ -180,6 +180,16 @@ pub enum Attr {
     Text(StringExpr),
     /// rpic extension: size a closed object to text declared before `fit`.
     Fit,
+    /// rpic extension: hatch-filled closed regions.
+    Hatch(HatchKind),
+    /// rpic extension: hatch line angle in degrees.
+    HatchAngle(Expr),
+    /// rpic extension: hatch line spacing in pic units.
+    HatchSep(Expr),
+    /// rpic extension: hatch line width in points.
+    HatchWidth(Expr),
+    /// rpic extension: hatch line color.
+    HatchColor(StringExpr),
     TextPos(TextPos),
     From(Position),
     To(Position),
@@ -196,6 +206,12 @@ pub enum Attr {
     BracePos(Expr),
     /// rpic extension: extra outward spacing between a `brace` cusp and label.
     BraceLabelOffset(Expr),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HatchKind {
+    Single,
+    Cross,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
