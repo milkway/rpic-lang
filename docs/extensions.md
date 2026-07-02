@@ -98,11 +98,17 @@ The first implementation keeps the surface small:
   assignment;
 - `from`/`to` set the brace endpoints, and `last brace.start` /
   `last brace.end` are available like other open-object anchors;
+- `last brace.c` / `.center` resolve to the brace cusp, so `bracepos` moves
+  the object's logical center; compass anchors such as `.nw` and `.ne` are
+  convenience anchors on the brace curve's bounding box, not semantic curl
+  points;
 - `up`, `down`, `left`, and `right` choose the absolute side where the brace
   opens when explicit endpoints are present;
 - `wid` controls brace depth, defaulting to `0.18`;
 - `bracepos <expr>` moves the cusp along the segment and must be between 0 and
   1, defaulting to `0.5`;
+- `labeloffset <expr>` adds local outward spacing between the brace cusp and
+  attached text;
 - ordinary line styling applies, including `thick`, `dashed`, `dotted`,
   `outlined`, `colored`, `invis`, and the global `linethick`;
 - attached text is placed outside the brace on the chosen side.
@@ -118,5 +124,6 @@ brace from A.nw + (0,gap) to B.ne + (0,gap) up "pipeline"
 This is a native object rather than a macro because the renderer must know its
 bbox, anchors, label position, and SVG cubic path. Classic pic input remains
 dpic-compatible when `brace` is not used. Additional runnable examples are in
-`examples/brace_pos.pic`, `examples/brace_sides.pic`,
-`examples/brace_style.pic`, and `examples/brace_width.pic`.
+`examples/brace_labeloffset.pic`, `examples/brace_pos.pic`,
+`examples/brace_sides.pic`, `examples/brace_style.pic`, and
+`examples/brace_width.pic`.

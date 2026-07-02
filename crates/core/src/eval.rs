@@ -259,7 +259,8 @@ impl Placed {
     fn corner(&self, c: Corner) -> Point {
         match self.kind {
             PKind::Circle | PKind::Ellipse => self.ellipse_corner(c),
-            PKind::Line | PKind::Move | PKind::Spline | PKind::Brace => self.linear_corner(c),
+            PKind::Line | PKind::Move | PKind::Spline => self.linear_corner(c),
+            PKind::Brace => self.brace_corner(c),
             PKind::Arc => self.arc_corner(c),
             PKind::Box => self.box_corner(c),
             PKind::Block | PKind::Text => self.bbox_corner(c),
@@ -342,6 +343,24 @@ impl Placed {
         }
     }
 
+    fn brace_corner(&self, c: Corner) -> Point {
+        match c {
+            Corner::Center => self.center,
+            Corner::Start => self.start,
+            Corner::End => self.end,
+            _ => {
+                let mut bb = Bbox::new();
+                for p in &self.points {
+                    bb.add(*p);
+                }
+                if bb.is_empty() {
+                    return self.bbox_corner(c);
+                }
+                bbox_point(&bb, c)
+            }
+        }
+    }
+
     fn arc_corner(&self, c: Corner) -> Point {
         let diag = self.radius * FRAC_1_SQRT_2;
         let off = match c {
@@ -420,6 +439,25 @@ impl Placed {
             PKind::Line | PKind::Move | PKind::Spline | PKind::Brace => self.start.dist(self.end),
             _ => 0.0,
         }
+    }
+}
+
+fn bbox_point(bb: &Bbox, c: Corner) -> Point {
+    let lo = bb.min;
+    let hi = bb.max;
+    let mid = (lo + hi) * 0.5;
+    match c {
+        Corner::N => Point::new(mid.x, hi.y),
+        Corner::S => Point::new(mid.x, lo.y),
+        Corner::E => Point::new(hi.x, mid.y),
+        Corner::W => Point::new(lo.x, mid.y),
+        Corner::Ne => Point::new(hi.x, hi.y),
+        Corner::Se => Point::new(hi.x, lo.y),
+        Corner::Nw => Point::new(lo.x, hi.y),
+        Corner::Sw => Point::new(lo.x, lo.y),
+        Corner::Center => mid,
+        Corner::Start => lo,
+        Corner::End => hi,
     }
 }
 
@@ -1066,10 +1104,12 @@ impl State {
             .unwrap_or(DEFAULT_BRACE_DEPTH)
             .abs();
         let pos = self.brace_pos_of(obj)?;
+        let label_offset = self.brace_label_offset_of(obj)?;
         let side = brace_side(v / len, self.brace_side_dir(obj, has_to));
-        let label_at =
-            start + v * pos + side * (depth + self.env_dim(EnvVar::Textoffset)? + TEXT_LINE_H);
         let cubics = brace_cubics(start, end, side * depth, pos);
+        let cusp = brace_cusp(&cubics).unwrap_or(start + v * pos);
+        let label_at =
+            cusp + side * (self.env_dim(EnvVar::Textoffset)? + TEXT_LINE_H + label_offset);
         let mut bb = cubics_bbox(&cubics);
         self.layout_bbox.union(&bb);
         if !style.invis {
@@ -1096,15 +1136,7 @@ impl State {
         self.pos = end;
         self.dir = last_dir;
         let sh = self.shapes.len() - 1;
-        let idx = self.record(
-            PKind::Brace,
-            (start + end) * 0.5,
-            bb,
-            start,
-            end,
-            0.0,
-            Some(sh),
-        );
+        let idx = self.record(PKind::Brace, cusp, bb, start, end, 0.0, Some(sh));
         self.placed[idx].points = sample_cubics(&cubics, 6);
         Ok(idx)
     }
@@ -1186,6 +1218,16 @@ impl State {
             return err("bracepos must be between 0 and 1");
         }
         Ok(pos)
+    }
+
+    fn brace_label_offset_of(&mut self, obj: &Object) -> ER<f64> {
+        let mut offset = 0.0;
+        for a in &obj.attrs {
+            if let Attr::BraceLabelOffset(e) = a {
+                offset = self.expr_dim(e)?;
+            }
+        }
+        Ok(offset)
     }
 
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
@@ -2797,6 +2839,10 @@ fn brace_cubics(a: Point, b: Point, depth: Point, pos: f64) -> Vec<[Point; 4]> {
     ]
 }
 
+fn brace_cusp(cubics: &[[Point; 4]]) -> Option<Point> {
+    cubics.get(2).map(|c| c[3])
+}
+
 fn cubic_at(c: &[Point; 4], t: f64) -> Point {
     let mt = 1.0 - t;
     c[0] * (mt * mt * mt)
@@ -4139,6 +4185,71 @@ mod tests {
         };
         assert!(up_label.y > 0.0, "up label = {up_label:?}");
         assert!(down_label.y < 0.0, "down label = {down_label:?}");
+    }
+
+    #[test]
+    fn brace_labeloffset_moves_label_outward_from_cusp() {
+        let base = draw("brace from (0,0) to (2,0) up \"n\" wid .25");
+        let far = draw("brace from (0,0) to (2,0) up \"n\" wid .25 labeloffset .2");
+        let Shape::Brace {
+            label_at: base_label,
+            ..
+        } = &base.shapes[0]
+        else {
+            panic!()
+        };
+        let Shape::Brace {
+            label_at: far_label,
+            ..
+        } = &far.shapes[0]
+        else {
+            panic!()
+        };
+        assert!(
+            (far_label.y - base_label.y - 0.2).abs() < 1e-9,
+            "base = {base_label:?}, far = {far_label:?}"
+        );
+    }
+
+    #[test]
+    fn brace_compass_anchors_use_curve_bbox() {
+        let d = draw(
+            "B: brace from (0,0) to (2,0) up wid .25 bracepos .25\n\
+             circle rad .01 at B.nw\n\
+             circle rad .01 at B.ne\n\
+             circle rad .01 at B.n\n\
+             circle rad .01 at B.c",
+        );
+        let circles: Vec<Point> = d
+            .shapes
+            .iter()
+            .skip(1)
+            .map(|shape| {
+                let Shape::Circle { c, .. } = shape else {
+                    panic!()
+                };
+                *c
+            })
+            .collect();
+
+        assert!(circles[0].x.abs() < 1e-9, "nw = {:?}", circles[0]);
+        assert!((circles[1].x - 2.0).abs() < 1e-9, "ne = {:?}", circles[1]);
+        assert!(
+            (circles[0].y - circles[1].y).abs() < 1e-9,
+            "nw = {:?}, ne = {:?}",
+            circles[0],
+            circles[1]
+        );
+        assert!(
+            (circles[2].x - 1.0).abs() < 1e-9 && circles[2].y > 0.2,
+            "n = {:?}",
+            circles[2]
+        );
+        assert!(
+            (circles[3].x - 0.5).abs() < 1e-9 && circles[3].y > 0.2,
+            "c = {:?}",
+            circles[3]
+        );
     }
 
     #[test]

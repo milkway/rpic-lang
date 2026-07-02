@@ -194,6 +194,8 @@ pub enum Attr {
     Behind(Place),
     /// rpic extension: relative cusp position for a `brace` object.
     BracePos(Expr),
+    /// rpic extension: extra outward spacing between a `brace` cusp and label.
+    BraceLabelOffset(Expr),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
