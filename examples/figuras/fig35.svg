@@ -1,46 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="122.4" height="56" viewBox="0 0 122.4 56" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="75.2" height="52.8" viewBox="0 0 75.2 52.8" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="26" cy="28" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="16" cy="24.8" r="14.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s1">
-<text x="26" y="28" text-anchor="middle" dominant-baseline="central">$a_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="16" y="29.64" text-anchor="middle">$a_1$</text>
 </g>
 <g id="s2">
-<polyline points="40.4,28 54.8,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="54.8,28 45.2,30.4 45.2,25.6" fill="black"/>
-<text x="47.6" y="28" text-anchor="middle" dominant-baseline="central">$w_{1}$</text>
+<line x1="30.4" y1="24.8" x2="41.501515" y2="24.8" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="35.2,22.4 44.8,24.8 35.2,27.2" fill="black"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="37.6" y="22.133333" text-anchor="middle">$w_{1}$</text>
 </g>
 <g id="s3">
-<circle cx="61.2" cy="28" r="6.4" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="51.2" cy="24.8" r="6.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s4">
-<text x="61.2" y="28" text-anchor="middle" dominant-baseline="central">$\sum + \int$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="51.2" y="29.64" text-anchor="middle">$\sum + \int$</text>
 </g>
 <g id="s5">
-<circle cx="26" cy="18.4" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="16" cy="15.2" r="14.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<text x="26" y="18.4" text-anchor="middle" dominant-baseline="central">$a_0$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="16" y="20.04" text-anchor="middle">$a_0$</text>
 </g>
 <g id="s7">
-<polyline points="40.4,18.4 54.8,21.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="54.8,21.6 44.908,21.86 45.949,17.175" fill="black"/>
-<text x="47.6" y="20" text-anchor="middle" dominant-baseline="central">$w_{0}$</text>
+<line x1="30.4" y1="15.2" x2="43.525559" y2="19.292648" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="38.224118,15.125656 46.674517,20.274517 36.795289,19.708062" fill="black"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="38.537258" y="15.070592" text-anchor="middle">$w_{0}$</text>
 </g>
 <g id="s8">
-<circle cx="26" cy="37.6" r="14.4" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="16" cy="34.4" r="14.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<text x="26" y="37.6" text-anchor="middle" dominant-baseline="central">$a_2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="16" y="39.24" text-anchor="middle">$a_2$</text>
 </g>
 <g id="s10">
-<polyline points="40.4,37.6 54.8,34.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="54.8,34.4 45.949,38.825 44.908,34.14" fill="black"/>
-<text x="47.6" y="36" text-anchor="middle" dominant-baseline="central">$w_{2}$</text>
+<line x1="30.4" y1="34.4" x2="43.525559" y2="30.307352" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="36.795289,29.891938 46.674517,29.325483 38.224118,34.474344" fill="black"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="38.537258" y="29.196075" text-anchor="middle">$w_{2}$</text>
 </g>
 <g id="s11">
-<polyline points="67.6,28 82,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="82,28 72.4,30.4 72.4,25.6" fill="black"/>
-<text x="74.8" y="28" text-anchor="middle" dominant-baseline="central">$x_j$</text>
+<line x1="57.6" y1="24.8" x2="68.701515" y2="24.8" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="62.4,22.4 72,24.8 62.4,27.2" fill="black"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="64.8" y="22.133333" text-anchor="middle">$x_j$</text>
 </g>
 </svg>

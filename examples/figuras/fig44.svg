@@ -1,40 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="246.8" height="62.4" viewBox="0 0 246.8 62.4" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="65.6" viewBox="0 0 240 65.6" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="7.6" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="43.6" y="31.2" text-anchor="middle" dominant-baseline="central">Microfone</text>
+<rect x="1.6" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="37.6" y="36.04" text-anchor="middle">Microfone</text>
 </g>
 <g id="s1">
-<polyline points="79.6,31.2 84.4,31.2" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="73.6" y1="31.2" x2="78.4" y2="31.2" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s2">
-<polyline points="84.4,31.2 84.4,24.8 89.2,24.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="89.2,24.8 79.6,27.2 79.6,22.4" fill="black"/>
+<polyline points="78.4,31.2 78.4,24.8 79.901515,24.8" fill="none" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="73.6,22.4 83.2,24.8 73.6,27.2" fill="black"/>
 </g>
 <g id="s3">
-<polyline points="84.4,31.2 84.4,37.6 89.2,37.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="89.2,37.6 79.6,40 79.6,35.2" fill="black"/>
+<polyline points="78.4,31.2 78.4,37.6 79.901515,37.6" fill="none" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="73.6,35.2 83.2,37.6 73.6,40" fill="black"/>
 </g>
 <g id="s4">
-<rect x="89.2" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="125.2" y="19.2" text-anchor="middle" dominant-baseline="central">Filtro PF</text>
-<text x="125.2" y="36.8" text-anchor="middle" dominant-baseline="central">em $f_0$</text>
+<rect x="83.2" y="0.8" width="72" height="48" fill="none" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="119.2" y="22.306667" text-anchor="middle">Filtro PF</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="119.2" y="36.973333" text-anchor="middle">em $f_0$</text>
 </g>
 <g id="s5">
-<rect x="89.2" y="10.4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="125.2" y="25.6" text-anchor="middle" dominant-baseline="central">Filtro PF</text>
-<text x="125.2" y="43.2" text-anchor="middle" dominant-baseline="central">em $f_1$</text>
+<rect x="83.2" y="13.6" width="72" height="48" fill="none" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="119.2" y="35.106667" text-anchor="middle">Filtro PF</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="119.2" y="49.773333" text-anchor="middle">em $f_1$</text>
 </g>
 <g id="s6">
-<polyline points="161.2,28 166,28 166,34 170.8,34" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="170.8,34 161.2,36.4 161.2,31.6" fill="black"/>
+<polyline points="155.2,24.8 160,24.8 160,30.8 161.501515,30.8" fill="none" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="155.2,28.4 164.8,30.8 155.2,33.2" fill="black"/>
 </g>
 <g id="s7">
-<polyline points="161.2,34.4 166,34.4 166,28.4 170.8,28.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="170.8,28.4 161.2,30.8 161.2,26" fill="black"/>
+<polyline points="155.2,37.6 160,37.6 160,31.6 161.501515,31.6" fill="none" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="155.2,29.2 164.8,31.6 155.2,34" fill="black"/>
 </g>
 <g id="s8">
-<rect x="170.8" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="206.8" y="22.4" text-anchor="middle" dominant-baseline="central">Rede</text>
-<text x="206.8" y="40" text-anchor="middle" dominant-baseline="central">Neural</text>
+<rect x="164.8" y="7.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="200.8" y="28.706667" text-anchor="middle">Rede</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="200.8" y="43.373333" text-anchor="middle">Neural</text>
 </g>
 </svg>

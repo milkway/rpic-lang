@@ -1,35 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="356.4" height="304.8" viewBox="0 0 356.4 304.8" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="435.2" height="161.64" viewBox="0 0 435.2 161.64" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="4,152.4 4,8.4 196,8.4 196,152.4" fill="none" stroke="black" stroke-width="0.533" stroke-dasharray="1,3" stroke-linecap="round"/>
+<polyline points="1.066667,158.973333 1.066667,14.973333 193.066667,14.973333 193.066667,158.973333" fill="none" stroke="black" stroke-width="0.533333" stroke-dasharray="0.5,2.666667" stroke-linecap="round"/>
 </g>
 <g id="s1">
-<path d="M 4 152.4 C 4 128.4 -28 32.4 4 8.4 C 36 -15.6 164 -15.6 196 8.4 C 228 32.4 196 128.4 196 152.4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 1.066667 158.973333 C 1.066667 134.973333 1.066667 110.973333 1.066667 86.973333 1.066667 38.973333 33.066667 14.973333 97.066667 14.973333 161.066667 14.973333 193.066667 38.973333 193.066667 86.973333 193.066667 110.973333 193.066667 134.973333 193.066667 158.973333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
-<polyline points="160.4,166.4 160.4,22.4 352.4,22.4 352.4,166.4" fill="none" stroke="black" stroke-width="0.533" stroke-dasharray="1,3" stroke-linecap="round"/>
+<polyline points="241.066667,158.973333 241.066667,14.973333 433.066667,14.973333 433.066667,158.973333" fill="none" stroke="black" stroke-width="0.533333" stroke-dasharray="0.5,2.666667" stroke-linecap="round"/>
 </g>
 <g id="s3">
-<path d="M 160.4 166.4 C 160.4 145.6 128.4 62.4 160.4 41.6 C 192.4 20.8 320.4 17.6 352.4 41.6 C 384.4 65.6 352.4 161.6 352.4 185.6" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 241.066667 158.973333 C 241.066667 130.173333 317.866667 14.973333 337.066667 14.973333 C 356.266667 14.973333 433.066667 130.173333 433.066667 158.973333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s4">
-<path d="M 160.4 166.4 C 160.4 152 128.4 94.4 160.4 80 C 192.4 65.6 320.4 56 352.4 80 C 384.4 104 352.4 200 352.4 224" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 241.066667 158.973333 C 241.066667 72.573333 279.466667 14.973333 337.066667 14.973333 C 394.666667 14.973333 433.066667 72.573333 433.066667 158.973333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<path d="M 160.4 166.4 C 160.4 158.4 128.4 126.4 160.4 118.4 C 192.4 110.4 320.4 94.4 352.4 118.4 C 384.4 142.4 352.4 238.4 352.4 262.4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 241.066667 158.973333 C 241.066667 14.973333 241.066667 14.973333 337.066667 14.973333 C 433.066667 14.973333 433.066667 14.973333 433.066667 158.973333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s6">
-<path d="M 160.4 166.4 C 160.4 164.8 128.4 158.4 160.4 156.8 C 192.4 155.2 320.4 132.8 352.4 156.8 C 384.4 180.8 352.4 276.8 352.4 300.8" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 241.066667 158.973333 C 241.066667 -42.626667 202.666667 14.973333 337.066667 14.973333 C 471.466667 14.973333 433.066667 -42.626667 433.066667 158.973333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<text x="194" y="99.2" text-anchor="middle" dominant-baseline="central">\small x = .2</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="277.333333" y="96.613333" text-anchor="start">\small x = .2</text>
 </g>
 <g id="s8">
-<text x="189.2" y="70.4" text-anchor="middle" dominant-baseline="central">\small .6</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="269.866667" y="67.813333" text-anchor="middle">\small .6</text>
 </g>
 <g id="s9">
-<text x="179.6" y="46.4" text-anchor="middle" dominant-baseline="central">\small 1.0</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="260.266667" y="43.813333" text-anchor="middle">\small 1.0</text>
 </g>
 <g id="s10">
-<text x="198.8" y="12.8" text-anchor="middle" dominant-baseline="central">\small 1.4</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="279.466667" y="10.213333" text-anchor="middle">\small 1.4</text>
 </g>
 </svg>

@@ -1,34 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="852.8" height="184.8" viewBox="0 0 852.8 184.8" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="550.4" height="176.04" viewBox="0 0 550.4 176.04" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="330.4" cy="28" r="24" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067"/>
+<circle cx="178.666667" cy="24.533333" r="24" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
 </g>
 <g id="s2">
-<circle cx="426.4" cy="28" r="24" fill="rgb(102,102,102)" stroke="black" stroke-width="1.067"/>
+<circle cx="274.666667" cy="24.533333" r="24" fill="rgb(102,102,102)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s3">
 </g>
 <g id="s4">
-<circle cx="522.4" cy="28" r="24" fill="rgb(230,230,230)" stroke="black" stroke-width="1.067"/>
+<circle cx="370.666667" cy="24.533333" r="24" fill="rgb(230,230,230)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<text x="426.4" y="66.4" text-anchor="middle" dominant-baseline="central">\small\tt circle fill; move; circle fill 0.4; move; circle fill 0.9</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="274.666667" y="67.773333" text-anchor="middle">\small\tt circle fill; move; circle fill 0.4; move; circle fill 0.9</text>
 </g>
 <g id="s6">
 </g>
 <g id="s7">
-<rect x="306.4" y="100" width="72" height="48" fill="yellow" stroke="yellow" stroke-width="1.067"/>
+<rect x="154.666667" y="96.533333" width="72" height="48" fill="yellow" stroke="yellow" stroke-width="1.066667"/>
 </g>
 <g id="s8">
-<polyline points="378.4,124 426.4,124" fill="none" stroke="cyan" stroke-width="1.067"/>
-<polygon points="426.4,124 416.8,126.4 416.8,121.6" fill="cyan"/>
+<line x1="226.666667" y1="120.533333" x2="272.467677" y2="120.533333" stroke="cyan" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="265.066667,118.133333 274.666667,120.533333 265.066667,122.933333" fill="cyan"/>
 </g>
 <g id="s9">
-<circle cx="450.4" cy="124" r="24" fill="green" stroke="black" stroke-width="1.067"/>
+<circle cx="298.666667" cy="120.533333" r="24" fill="green" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s10">
-<text x="426.4" y="172" text-anchor="middle" dominant-baseline="central">\small\tt box color \"yellow\"; arrow color \"cyan\";
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="274.666667" y="173.373333" text-anchor="middle">\small\tt box color \"yellow\"; arrow color \"cyan\";
  circle shaded \"green\" outline \"black\"</text>
 </g>
 </svg>

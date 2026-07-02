@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="344.48" height="83.2" viewBox="0 0 344.48 83.2" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="232.533333" height="75.2" viewBox="0 0 232.533333 75.2" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<text x="122.8" y="70.4" text-anchor="middle" dominant-baseline="central">\includegraphics{diagA.eps}</text>
+<text font-size="81.818182pt" stroke-width="0.266667" fill="black" x="115.733333" y="72.533333" text-anchor="middle">\includegraphics{diagA.eps}</text>
 </g>
 <g id="s1">
-<text x="146.8" y="12.8" text-anchor="middle" dominant-baseline="central">$u$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="25.066667" y="19.773333" text-anchor="middle">$u$</text>
 </g>
 <g id="s2">
-<text x="266.8" y="22.4" text-anchor="middle" dominant-baseline="central">$G(s)$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="145.066667" y="29.373333" text-anchor="middle">$G(s)$</text>
 </g>
 <g id="s3">
-<text x="327.28" y="12.8" text-anchor="middle" dominant-baseline="central">$y$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="205.546667" y="19.773333" text-anchor="middle">$y$</text>
 </g>
 <g id="s4">
-<text x="175.6" y="41.6" text-anchor="middle" dominant-baseline="central">$-$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="53.866667" y="48.573333" text-anchor="middle">$-$</text>
 </g>
 </svg>

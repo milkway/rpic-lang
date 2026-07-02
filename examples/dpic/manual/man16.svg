@@ -1,271 +1,271 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="550.4" height="203.2" viewBox="0 0 550.4 203.2" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="545.6" height="204.16" viewBox="0 0 545.6 204.16" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="42.4" y="12.8" width="144" height="96" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="39.466667" y="12.213333" width="144" height="96" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
 </g>
 <g id="s2">
-<circle cx="186.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="183.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s3">
-<text x="188.32" y="60.8" text-anchor="middle" dominant-baseline="central"> .e</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="187.386667" y="58.213333" text-anchor="start"> .e</text>
 </g>
 <g id="s4">
-<circle cx="186.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="183.466667" cy="12.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<text x="188.32" y="12.8" text-anchor="middle" dominant-baseline="central"> .ne</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="187.386667" y="17.053333" text-anchor="start"> .ne</text>
 </g>
 <g id="s6">
-<circle cx="186.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="183.466667" cy="108.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<text x="188.32" y="108.8" text-anchor="middle" dominant-baseline="central"> .se</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="187.386667" y="113.053333" text-anchor="start"> .se</text>
 </g>
 <g id="s8">
-<circle cx="114.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="111.466667" cy="108.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s9">
-<text x="116.32" y="108.8" text-anchor="middle" dominant-baseline="central">.s</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="113.386667" y="119.893333" text-anchor="middle">.s</text>
 </g>
 <g id="s10">
-<circle cx="114.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="111.466667" cy="12.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s11">
-<text x="116.32" y="12.8" text-anchor="middle" dominant-baseline="central">.n</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="113.386667" y="10.213333" text-anchor="middle">.n</text>
 </g>
 <g id="s12">
-<circle cx="42.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="39.466667" cy="108.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s13">
-<text x="44.32" y="108.8" text-anchor="middle" dominant-baseline="central">.sw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="39.386667" y="113.053333" text-anchor="end">.sw </text>
 </g>
 <g id="s14">
-<circle cx="42.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="39.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s15">
-<text x="44.32" y="60.8" text-anchor="middle" dominant-baseline="central">.w </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="39.386667" y="65.053333" text-anchor="end">.w </text>
 </g>
 <g id="s16">
-<circle cx="42.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="39.466667" cy="12.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s17">
-<text x="44.32" y="12.8" text-anchor="middle" dominant-baseline="central">.nw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="39.386667" y="17.053333" text-anchor="end">.nw </text>
 </g>
 <g id="s18">
-<circle cx="114.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="111.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s19">
-<text x="116.32" y="60.8" text-anchor="middle" dominant-baseline="central">.c</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="113.386667" y="71.893333" text-anchor="middle">.c</text>
 </g>
 <g id="s20">
-<circle cx="282.4" cy="60.8" r="48" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="279.466667" cy="60.213333" r="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s21">
-<circle cx="330.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="327.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s22">
-<text x="332.32" y="60.8" text-anchor="middle" dominant-baseline="central"> .e</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="331.386667" y="65.053333" text-anchor="start"> .e</text>
 </g>
 <g id="s23">
-<circle cx="330.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="313.407792" cy="26.272208" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s24">
-<text x="332.32" y="12.8" text-anchor="middle" dominant-baseline="central"> .ne</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="317.327792" y="31.112208" text-anchor="start"> .ne</text>
 </g>
 <g id="s25">
-<circle cx="330.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="313.407792" cy="94.154459" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s26">
-<text x="332.32" y="108.8" text-anchor="middle" dominant-baseline="central"> .se</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="317.327792" y="98.994459" text-anchor="start"> .se</text>
 </g>
 <g id="s27">
-<circle cx="282.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="279.466667" cy="108.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s28">
-<text x="284.32" y="108.8" text-anchor="middle" dominant-baseline="central">.s</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="281.386667" y="119.893333" text-anchor="middle">.s</text>
 </g>
 <g id="s29">
-<circle cx="282.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="279.466667" cy="12.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s30">
-<text x="284.32" y="12.8" text-anchor="middle" dominant-baseline="central">.n</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="281.386667" y="10.213333" text-anchor="middle">.n</text>
 </g>
 <g id="s31">
-<circle cx="234.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="245.525541" cy="94.154459" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s32">
-<text x="236.32" y="108.8" text-anchor="middle" dominant-baseline="central">.sw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="245.445541" y="98.994459" text-anchor="end">.sw </text>
 </g>
 <g id="s33">
-<circle cx="234.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="231.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s34">
-<text x="236.32" y="60.8" text-anchor="middle" dominant-baseline="central">.w </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="231.386667" y="65.053333" text-anchor="end">.w </text>
 </g>
 <g id="s35">
-<circle cx="234.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="245.525541" cy="26.272208" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s36">
-<text x="236.32" y="12.8" text-anchor="middle" dominant-baseline="central">.nw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="245.445541" y="31.112208" text-anchor="end">.nw </text>
 </g>
 <g id="s37">
-<circle cx="282.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="279.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s38">
-<text x="284.32" y="60.8" text-anchor="middle" dominant-baseline="central">.c</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="281.386667" y="71.893333" text-anchor="middle">.c</text>
 </g>
 <g id="s39">
-<ellipse cx="450.4" cy="60.8" rx="72" ry="48" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="447.466667" cy="60.213333" rx="72" ry="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s40">
-<circle cx="522.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="519.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s41">
-<text x="524.32" y="60.8" text-anchor="middle" dominant-baseline="central"> .e</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="523.386667" y="65.053333" text-anchor="start"> .e</text>
 </g>
 <g id="s42">
-<circle cx="522.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="498.378355" cy="26.272208" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s43">
-<text x="524.32" y="12.8" text-anchor="middle" dominant-baseline="central"> .ne</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="502.298355" y="31.112208" text-anchor="start"> .ne</text>
 </g>
 <g id="s44">
-<circle cx="522.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="498.378355" cy="94.154459" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s45">
-<text x="524.32" y="108.8" text-anchor="middle" dominant-baseline="central"> .se</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="502.298355" y="98.994459" text-anchor="start"> .se</text>
 </g>
 <g id="s46">
-<circle cx="450.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="447.466667" cy="108.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s47">
-<text x="452.32" y="108.8" text-anchor="middle" dominant-baseline="central">.s</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="449.386667" y="119.893333" text-anchor="middle">.s</text>
 </g>
 <g id="s48">
-<circle cx="450.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="447.466667" cy="12.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s49">
-<text x="452.32" y="12.8" text-anchor="middle" dominant-baseline="central">.n</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="449.386667" y="10.213333" text-anchor="middle">.n</text>
 </g>
 <g id="s50">
-<circle cx="378.4" cy="108.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="396.554978" cy="94.154459" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s51">
-<text x="380.32" y="108.8" text-anchor="middle" dominant-baseline="central">.sw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="396.474978" y="98.994459" text-anchor="end">.sw </text>
 </g>
 <g id="s52">
-<circle cx="378.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="375.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s53">
-<text x="380.32" y="60.8" text-anchor="middle" dominant-baseline="central">.w </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="375.386667" y="65.053333" text-anchor="end">.w </text>
 </g>
 <g id="s54">
-<circle cx="378.4" cy="12.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="396.554978" cy="26.272208" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s55">
-<text x="380.32" y="12.8" text-anchor="middle" dominant-baseline="central">.nw </text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="396.474978" y="31.112208" text-anchor="end">.nw </text>
 </g>
 <g id="s56">
-<circle cx="450.4" cy="60.8" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="447.466667" cy="60.213333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s57">
-<text x="452.32" y="60.8" text-anchor="middle" dominant-baseline="central">.c</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="449.386667" y="71.893333" text-anchor="middle">.c</text>
 </g>
 <g id="s58">
-<polyline points="42.4,190.4 138.4,142.4" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="39.466667" y1="189.813333" x2="135.466667" y2="141.813333" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s59">
-<circle cx="42.4" cy="190.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="39.466667" cy="189.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s60">
-<text x="42.4" y="188.48" text-anchor="middle" dominant-baseline="central">.start</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="37.466667" y="181.053333" text-anchor="end">.start</text>
 </g>
 <g id="s61">
-<circle cx="90.4" cy="166.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="87.466667" cy="165.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s62">
-<text x="90.4" y="164.48" text-anchor="middle" dominant-baseline="central">.center</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="85.466667" y="157.053333" text-anchor="end">.center</text>
 </g>
 <g id="s63">
-<circle cx="138.4" cy="142.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="135.466667" cy="141.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s64">
-<text x="138.4" y="140.48" text-anchor="middle" dominant-baseline="central">.end</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="133.466667" y="133.053333" text-anchor="end">.end</text>
 </g>
 <g id="s65">
 </g>
 <g id="s66">
-<polyline points="162.4,142.4 258.4,142.4 162.4,190.4 258.4,190.4" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="159.466667,141.813333 255.466667,141.813333 159.466667,189.813333 255.466667,189.813333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s67">
-<circle cx="162.4" cy="142.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="159.466667" cy="141.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s68">
-<text x="164.32" y="142.4" text-anchor="middle" dominant-baseline="central">.start</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="163.386667" y="139.813333" text-anchor="start">.start</text>
 </g>
 <g id="s69">
-<circle cx="210.4" cy="166.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="207.466667" cy="165.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s70">
-<text x="212.32" y="166.4" text-anchor="middle" dominant-baseline="central">.center</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="207.386667" y="163.813333" text-anchor="end">.center</text>
 </g>
 <g id="s71">
-<circle cx="258.4" cy="190.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="255.466667" cy="189.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s72">
-<text x="260.32" y="190.4" text-anchor="middle" dominant-baseline="central">.end</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="255.386667" y="187.813333" text-anchor="end">.end</text>
 </g>
 <g id="s73">
 </g>
 <g id="s74">
-<path d="M 354.4 190.4 A 48 48 0 0 1 306.4 142.4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 351.466667 189.813333 A 48 48 0 0 0 303.466667 141.813333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s75">
-<circle cx="306.4" cy="142.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="303.466667" cy="141.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s76">
-<text x="304.48" y="142.4" text-anchor="middle" dominant-baseline="central">.end</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="299.546667" y="146.653333" text-anchor="end">.end</text>
 </g>
 <g id="s77">
-<circle cx="354.4" cy="190.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="351.466667" cy="189.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s78">
-<text x="352.48" y="190.4" text-anchor="middle" dominant-baseline="central">.start</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="347.546667" y="187.813333" text-anchor="end">.start</text>
 </g>
 <g id="s79">
-<circle cx="306.4" cy="190.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="303.466667" cy="189.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s80">
-<text x="304.48" y="190.4" text-anchor="middle" dominant-baseline="central">.center</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="301.546667" y="201.493333" text-anchor="middle">.center</text>
 </g>
 <g id="s81">
-<circle cx="354.4" cy="142.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="337.407792" cy="155.872208" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s82">
-<text x="352.48" y="142.4" text-anchor="middle" dominant-baseline="central"> .ne</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="337.487792" y="153.872208" text-anchor="start"> .ne</text>
 </g>
 <g id="s83">
 </g>
 <g id="s84">
-<path d="M 402.4 142.4 C 426.4 142.4 522.4 139.2 546.4 142.4 C 570.4 145.6 554.4 153.6 546.4 161.6 C 538.4 169.6 522.4 185.6 498.4 190.4 C 474.4 195.2 418.4 190.4 402.4 190.4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 399.466667 141.813333 C 423.466667 141.813333 447.466667 141.813333 471.466667 141.813333 519.466667 141.813333 543.466667 145.013333 543.466667 151.413333 543.466667 157.813333 535.466667 165.813333 519.466667 175.413333 503.466667 185.013333 479.466667 189.813333 447.466667 189.813333 431.466667 189.813333 415.466667 189.813333 399.466667 189.813333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s85">
-<circle cx="402.4" cy="142.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="399.466667" cy="141.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s86">
-<text x="400.48" y="142.4" text-anchor="middle" dominant-baseline="central">.start</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="395.546667" y="139.813333" text-anchor="end">.start</text>
 </g>
 <g id="s87">
-<circle cx="402.4" cy="166.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="399.466667" cy="165.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s88">
-<text x="400.48" y="166.4" text-anchor="middle" dominant-baseline="central">.center</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="395.546667" y="163.813333" text-anchor="end">.center</text>
 </g>
 <g id="s89">
-<circle cx="402.4" cy="190.4" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
+<circle cx="399.466667" cy="189.813333" r="1.92" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s90">
-<text x="400.48" y="190.4" text-anchor="middle" dominant-baseline="central">.end</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="395.546667" y="187.813333" text-anchor="end">.end</text>
 </g>
 </svg>

@@ -1,24 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="464" height="80" viewBox="0 0 464 80" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="411.2" height="75.2" viewBox="0 0 411.2 75.2" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="4" y="4" width="72" height="72" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="1.066667" y="0.533333" width="72" height="72" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<rect x="76" y="28" width="48" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="73.066667" y="24.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
 </g>
 <g id="s3">
-<rect x="220" y="16" width="-48" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="169.066667" y="12.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s4">
-<rect x="172" y="4" width="72" height="72" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="169.066667" y="0.533333" width="72" height="72" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
 </g>
 <g id="s6">
-<rect x="388" y="16" width="-48" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="289.066667" y="12.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<rect x="388" y="4" width="72" height="72" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="337.066667" y="0.533333" width="72" height="72" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

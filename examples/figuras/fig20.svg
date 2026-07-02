@@ -1,46 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="131.6" height="44.8" viewBox="0 0 131.6 44.8" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="38.4" height="46.026667" viewBox="0 0 38.4 46.026667" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="51.6,32 80.4,32" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="80.4,32 70.8,34.4 70.8,29.6" fill="black"/>
+<line x1="6.4" y1="29.68" x2="31.901515" y2="29.68" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="25.6,27.28 35.2,29.68 25.6,32.08" fill="black"/>
 </g>
 <g id="s1">
-<text x="80.4" y="32" text-anchor="middle" dominant-baseline="central">$t$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="35.2" y="42.026667" text-anchor="middle">$t$</text>
 </g>
 <g id="s2">
-<polyline points="56.4,36.8 56.4,12.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="56.4,12.8 58.8,22.4 54,22.4" fill="black"/>
+<line x1="11.2" y1="34.48" x2="11.2" y2="13.778485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="8.8,20.08 11.2,10.48 13.6,20.08" fill="black"/>
 </g>
 <g id="s3">
-<text x="56.4" y="12.8" text-anchor="middle" dominant-baseline="central">$f(t)$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="8.533333" y="10.48" text-anchor="end">$f(t)$</text>
 </g>
 <g id="s4">
-<text x="56.4" y="32" text-anchor="middle" dominant-baseline="central">$0$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="8.533333" y="42.026667" text-anchor="end">$0$</text>
 </g>
 <g id="s5">
-<polyline points="56.4,32 56.4,27.2 61.2,27.2 61.2,22.4 66,22.4 66,17.6 70.8,17.6 70.8,32" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="11.2,29.68 11.2,24.88 16,24.88 16,20.08 20.8,20.08 20.8,15.28 25.6,15.28 25.6,29.68" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<text x="70.8" y="32" text-anchor="middle" dominant-baseline="central">${T}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="25.6" y="42.026667" text-anchor="middle">${T}$</text>
 </g>
 <g id="s7">
-<text x="66" y="32" text-anchor="middle" dominant-baseline="central">$\frac{2T}{3}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="20.8" y="42.026667" text-anchor="middle">$\frac{2T}{3}$</text>
 </g>
 <g id="s8">
-<text x="61.2" y="32" text-anchor="middle" dominant-baseline="central">$\frac{T}{3}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="16" y="42.026667" text-anchor="middle">$\frac{T}{3}$</text>
 </g>
 <g id="s9">
-<text x="56.4" y="27.2" text-anchor="middle" dominant-baseline="central">$1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="8.533333" y="29.72" text-anchor="end">$1$</text>
 </g>
 <g id="s10">
-<text x="56.4" y="22.4" text-anchor="middle" dominant-baseline="central">$2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="8.533333" y="24.92" text-anchor="end">$2$</text>
 </g>
 <g id="s11">
-<text x="56.4" y="17.6" text-anchor="middle" dominant-baseline="central">$3$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="8.533333" y="20.12" text-anchor="end">$3$</text>
 </g>
 <g id="s12">
-<text x="46.8" y="22.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="24.92" text-anchor="middle">$\dots$</text>
 </g>
 <g id="s13">
-<text x="75.6" y="22.4" text-anchor="middle" dominant-baseline="central">$\dots$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="30.4" y="24.92" text-anchor="middle">$\dots$</text>
 </g>
 </svg>

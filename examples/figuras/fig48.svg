@@ -1,95 +1,95 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="292" height="275.2" viewBox="0 0 292 275.2" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="250.133333" height="268.92" viewBox="0 0 250.133333 268.92" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="26,252.8 266,252.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="266,252.8 256.4,255.2 256.4,250.4" fill="black"/>
+<line x1="4.266667" y1="250.48" x2="240.968182" y2="250.48" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="234.666667,248.08 244.266667,250.48 234.666667,252.88" fill="black"/>
 </g>
 <g id="s1">
-<text x="266" y="252.8" text-anchor="middle" dominant-baseline="central">$V_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="246.933333" y="255.32" text-anchor="start">$V_1$</text>
 </g>
 <g id="s2">
-<polyline points="26,252.8 26,12.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="26,12.8 28.4,22.4 23.6,22.4" fill="black"/>
+<line x1="4.266667" y1="250.48" x2="4.266667" y2="13.778485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="1.866667,20.08 4.266667,10.48 6.666667,20.08" fill="black"/>
 </g>
 <g id="s3">
-<text x="26" y="12.8" text-anchor="middle" dominant-baseline="central">$V_2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="10.48" text-anchor="end">$V_2$</text>
 </g>
 <g id="s4">
 </g>
 <g id="s5">
-<text x="26" y="156.8" text-anchor="middle" dominant-baseline="central">$2.8$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="154.48" text-anchor="end">$2.8$</text>
 </g>
 <g id="s6">
 </g>
 <g id="s7">
-<text x="26" y="137.6" text-anchor="middle" dominant-baseline="central">$3$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="135.28" text-anchor="end">$3$</text>
 </g>
 <g id="s8">
-<text x="87.44" y="262.4" text-anchor="middle" dominant-baseline="central">$0.8$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="65.706667" y="264.92" text-anchor="middle">$0.8$</text>
 </g>
 <g id="s9">
-<text x="102.8" y="262.4" text-anchor="middle" dominant-baseline="central">$1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="81.066667" y="264.92" text-anchor="middle">$1$</text>
 </g>
 <g id="s10">
-<polyline points="102.8,252.8 102.8,137.6" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="81.066667" y1="250.48" x2="81.066667" y2="135.28" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s11">
-<polyline points="26,137.6 102.8,137.6" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="4.266667" y1="135.28" x2="81.066667" y2="135.28" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s12">
-<circle cx="102.8" cy="137.6" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="81.066667" cy="135.28" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<polyline points="26,156.8 102.8,156.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="4.266667" y1="154.48" x2="81.066667" y2="154.48" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s14">
-<circle cx="102.8" cy="156.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="81.066667" cy="154.48" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s15">
-<polyline points="87.44,252.8 87.44,137.6" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="65.706667" y1="250.48" x2="65.706667" y2="135.28" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s16">
-<circle cx="87.44" cy="137.6" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="65.706667" cy="135.28" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s17">
 </g>
 <g id="s18">
-<polyline points="102.8,156.8 112.4,156.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="81.066667" y1="154.48" x2="90.666667" y2="154.48" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s19">
-<polyline points="102.8,137.6 112.4,137.6" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="81.066667" y1="135.28" x2="90.666667" y2="135.28" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s20">
-<polyline points="122,156.8 122,137.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="122,137.6 124.4,147.2 119.6,147.2" fill="black"/>
+<line x1="100.266667" y1="154.48" x2="100.266667" y2="138.578485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="97.866667,144.88 100.266667,135.28 102.666667,144.88" fill="black"/>
 </g>
 <g id="s21">
-<text x="122" y="147.2" text-anchor="middle" dominant-baseline="central">$^{0.2}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="100.266667" y="149.72" text-anchor="middle">$^{0.2}$ljust</text>
 </g>
 <g id="s22">
 </g>
 <g id="s23">
-<polyline points="87.44,137.6 87.44,108.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="65.706667" y1="135.28" x2="65.706667" y2="106.48" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s24">
-<polyline points="102.8,137.6 102.8,108.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="81.066667" y1="135.28" x2="81.066667" y2="106.48" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s25">
-<polyline points="87.44,118.4 102.8,118.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="102.8,118.4 93.2,120.8 93.2,116" fill="black"/>
+<line x1="65.706667" y1="116.08" x2="77.768182" y2="116.08" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="71.466667,113.68 81.066667,116.08 71.466667,118.48" fill="black"/>
 </g>
 <g id="s26">
-<text x="95.12" y="118.4" text-anchor="middle" dominant-baseline="central">$^{0.2}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="73.386667" y="120.92" text-anchor="middle">$^{0.2}$</text>
 </g>
 <g id="s27">
-<polyline points="64.4,110.72 133.52,193.28" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="42.666667" y1="108.4" x2="111.786667" y2="190.96" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s28">
-<circle cx="87.44" cy="156.8" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="65.706667" cy="154.48" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s29">
-<text x="218" y="60.8" text-anchor="middle" dominant-baseline="central">classe $1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="196.266667" y="63.32" text-anchor="middle">classe $1$</text>
 </g>
 <g id="s30">
-<text x="64.4" y="204.8" text-anchor="middle" dominant-baseline="central">classe $2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="42.666667" y="207.32" text-anchor="middle">classe $2$</text>
 </g>
 </svg>

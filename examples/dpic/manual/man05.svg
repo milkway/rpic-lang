@@ -1,55 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="332" height="320" viewBox="0 0 332 320" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="327.2" height="315.2" viewBox="0 0 327.2 315.2" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="256" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="253.066667" y="0.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<polyline points="292,52 292,100" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="292,100 289.6,90.4 294.4,90.4" fill="black"/>
+<line x1="289.066667" y1="48.533333" x2="289.066667" y2="94.334344" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="291.466667,86.933333 289.066667,96.533333 286.666667,86.933333" fill="black"/>
 </g>
 <g id="s2">
-<ellipse cx="292" cy="124" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="289.066667" cy="120.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s3">
-<polyline points="292,148 292,196" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="292,196 289.6,186.4 294.4,186.4" fill="black"/>
+<line x1="289.066667" y1="144.533333" x2="289.066667" y2="190.334344" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="291.466667,182.933333 289.066667,192.533333 286.666667,182.933333" fill="black"/>
 </g>
 <g id="s4">
-<circle cx="292" cy="220" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="289.066667" cy="216.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
 </g>
 <g id="s6">
-<rect x="220" y="268" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="217.066667" y="264.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<polyline points="220,292 172,292" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="172,292 181.6,289.6 181.6,294.4" fill="black"/>
+<line x1="217.066667" y1="288.533333" x2="171.265656" y2="288.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="178.666667,290.933333 169.066667,288.533333 178.666667,286.133333" fill="black"/>
 </g>
 <g id="s8">
-<ellipse cx="136" cy="292" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="133.066667" cy="288.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s9">
-<polyline points="100,292 52,292" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="52,292 61.6,289.6 61.6,294.4" fill="black"/>
+<line x1="97.066667" y1="288.533333" x2="51.265656" y2="288.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="58.666667,290.933333 49.066667,288.533333 58.666667,286.133333" fill="black"/>
 </g>
 <g id="s10">
-<circle cx="28" cy="292" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="25.066667" cy="288.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s11">
-<rect x="28" y="52" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="25.066667" y="48.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s12">
-<polyline points="100,76 148,76" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="148,76 138.4,78.4 138.4,73.6" fill="black"/>
+<line x1="97.066667" y1="72.533333" x2="142.867677" y2="72.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="135.466667,70.133333 145.066667,72.533333 135.466667,74.933333" fill="black"/>
 </g>
 <g id="s13">
-<circle cx="172" cy="76" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="169.066667" cy="72.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s14">
-<polyline points="172,100 172,148" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="172,148 169.6,138.4 174.4,138.4" fill="black"/>
+<line x1="169.066667" y1="96.533333" x2="169.066667" y2="142.334344" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="171.466667,134.933333 169.066667,144.533333 166.666667,134.933333" fill="black"/>
 </g>
 <g id="s15">
-<ellipse cx="172" cy="172" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="169.066667" cy="168.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

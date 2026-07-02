@@ -1,27 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="351.2" height="161.6" viewBox="0 0 351.2 161.6" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="358.4" height="156.8" viewBox="0 0 358.4 156.8" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="40" y="8.8" width="288" height="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="49.066667" y="5.333333" width="288" height="9.6" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<circle cx="337.6" cy="13.6" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="346.666667" cy="10.133333" r="9.6" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
 </g>
 <g id="s3">
-<polyline points="40,157.6 232,61.6" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="49.066667" y1="154.133333" x2="241.066667" y2="58.133333" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s4">
-<polyline points="232,61.6 40,61.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="40,61.6 49.6,59.2 49.6,64" fill="black"/>
+<line x1="241.066667" y1="58.133333" x2="51.265656" y2="58.133333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="58.666667,60.533333 49.066667,58.133333 58.666667,55.733333" fill="black"/>
 </g>
 <g id="s5">
 </g>
 <g id="s6">
-<polyline points="30.4,61.6 30.4,157.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="30.4,157.6 28,148 32.8,148" fill="black"/>
-<polygon points="30.4,61.6 32.8,71.2 28,71.2" fill="black"/>
+<line x1="39.466667" y1="60.332323" x2="39.466667" y2="151.934344" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="41.866667,144.533333 39.466667,154.133333 37.066667,144.533333" fill="black"/>
+<polygon stroke-width="0" points="37.066667,67.733333 39.466667,58.133333 41.866667,67.733333" fill="black"/>
 </g>
 <g id="s7">
-<text x="30.4" y="109.6" text-anchor="middle" dominant-baseline="central">height</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.066667" y="110.973333" text-anchor="end">height</text>
 </g>
 </svg>

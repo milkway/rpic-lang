@@ -1,461 +1,485 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="478.4" height="720.971" viewBox="0 0 478.4 720.971" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="406.4" height="689.394677" viewBox="0 0 406.4 689.394677" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="6.4" y="12" width="48" height="72" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="30.4" y="39.2" text-anchor="middle" dominant-baseline="central">line 1</text>
-<text x="30.4" y="56.8" text-anchor="middle" dominant-baseline="central">line 2</text>
+<rect x="1.066667" y="0.533333" width="48" height="72" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="34.04" text-anchor="middle">line 1</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="48.706667" text-anchor="middle">line 2</text>
 </g>
 <g id="s1">
 </g>
 <g id="s2">
-<rect x="64" y="12" width="48" height="72" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="88" y="12.8" text-anchor="middle" dominant-baseline="central">dotted</text>
-<text x="88" y="30.4" text-anchor="middle" dominant-baseline="central">thick</text>
-<text x="88" y="48" text-anchor="middle" dominant-baseline="central">1.5</text>
-<text x="88" y="65.6" text-anchor="middle" dominant-baseline="central">outline</text>
-<text x="88" y="83.2" text-anchor="middle" dominant-baseline="central">magenta</text>
+<rect x="58.666667" y="0.533333" width="48" height="72" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="0.5,4" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="12.04" text-anchor="middle">dotted</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="26.706667" text-anchor="middle">thick</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="41.373333" text-anchor="middle">1.5</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="56.04" text-anchor="middle">outline</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="70.706667" text-anchor="middle">magenta</text>
 </g>
 <g id="s3">
 </g>
 <g id="s4">
-<rect x="121.6" y="12" width="48" height="72" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="145.6" y="39.2" text-anchor="middle" dominant-baseline="central">dashed</text>
-<text x="145.6" y="56.8" text-anchor="middle" dominant-baseline="central">fill</text>
+<rect x="116.266667" y="0.533333" width="48" height="72" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="34.04" text-anchor="middle">dashed</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="48.706667" text-anchor="middle">fill</text>
 </g>
 <g id="s5">
 </g>
 <g id="s6">
-<text x="203.2" y="30.4" text-anchor="middle" dominant-baseline="central">invis</text>
-<text x="203.2" y="48" text-anchor="middle" dominant-baseline="central">shaded</text>
-<text x="203.2" y="65.6" text-anchor="middle" dominant-baseline="central">green</text>
+<rect x="173.866667" y="0.533333" width="48" height="72" fill="green" stroke="none"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="26.706667" text-anchor="middle">invis</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="41.373333" text-anchor="middle">shaded</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="56.04" text-anchor="middle">green</text>
 </g>
 <g id="s7">
 </g>
 <g id="s8">
-<rect x="236.8" y="12" width="48" height="72" fill="yellow" stroke="black" stroke-width="1.067"/>
-<text x="260.8" y="39.2" text-anchor="middle" dominant-baseline="central">shaded</text>
-<text x="260.8" y="56.8" text-anchor="middle" dominant-baseline="central">yellow</text>
+<rect x="231.466667" y="0.533333" width="48" height="72" fill="yellow" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="255.466667" y="34.04" text-anchor="middle">shaded</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="255.466667" y="48.706667" text-anchor="middle">yellow</text>
 </g>
 <g id="s9">
 </g>
 <g id="s10">
-<rect x="294.4" y="12" width="48" height="72" fill="yellow" stroke="red" stroke-width="1.067"/>
-<text x="318.4" y="21.6" text-anchor="middle" dominant-baseline="central">outline</text>
-<text x="318.4" y="39.2" text-anchor="middle" dominant-baseline="central">red</text>
-<text x="318.4" y="56.8" text-anchor="middle" dominant-baseline="central">shaded</text>
-<text x="318.4" y="74.4" text-anchor="middle" dominant-baseline="central">yellow</text>
+<rect x="289.066667" y="0.533333" width="48" height="72" fill="yellow" stroke="red" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="19.373333" text-anchor="middle">outline</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="34.04" text-anchor="middle">red</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="48.706667" text-anchor="middle">shaded</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="63.373333" text-anchor="middle">yellow</text>
 </g>
 <g id="s11">
 </g>
 <g id="s12">
-<rect x="352" y="12" width="48" height="72" fill="Custom" stroke="blue" stroke-width="1.067"/>
-<text x="376" y="21.6" text-anchor="middle" dominant-baseline="central">shaded</text>
-<text x="376" y="39.2" text-anchor="middle" dominant-baseline="central">Custom</text>
-<text x="376" y="56.8" text-anchor="middle" dominant-baseline="central">outline</text>
-<text x="376" y="74.4" text-anchor="middle" dominant-baseline="central">blue</text>
+<rect x="346.666667" y="0.533333" width="48" height="72" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="19.373333" text-anchor="middle">shaded</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="34.04" text-anchor="middle">Custom</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="48.706667" text-anchor="middle">outline</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="63.373333" text-anchor="middle">blue</text>
 </g>
 <g id="s13">
-<rect x="4" y="101.6" width="48" height="72" rx="16" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="28" y="137.6" text-anchor="middle" dominant-baseline="central">1</text>
+<rect x="1.066667" y="82.133333" width="48" height="72" rx="16" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="122.973333" text-anchor="middle">1</text>
 </g>
 <g id="s14">
 </g>
 <g id="s15">
-<rect x="61.6" y="101.6" width="48" height="72" rx="16" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="85.6" y="137.6" text-anchor="middle" dominant-baseline="central">2</text>
+<rect x="58.666667" y="82.133333" width="48" height="72" rx="16" fill="none" stroke="magenta" stroke-width="2.333333" stroke-dasharray="0.5,4.666667" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="122.973333" text-anchor="middle">2</text>
 </g>
 <g id="s16">
 </g>
 <g id="s17">
-<rect x="119.2" y="101.6" width="48" height="72" rx="16" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="143.2" y="137.6" text-anchor="middle" dominant-baseline="central">3</text>
+<rect x="116.266667" y="82.133333" width="48" height="72" rx="16" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="122.973333" text-anchor="middle">3</text>
 </g>
 <g id="s18">
 </g>
 <g id="s19">
-<text x="200.8" y="137.6" text-anchor="middle" dominant-baseline="central">4</text>
+<rect x="173.866667" y="82.133333" width="48" height="72" rx="16" fill="green" stroke="none"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="122.973333" text-anchor="middle">4</text>
 </g>
 <g id="s20">
 </g>
 <g id="s21">
-<rect x="234.4" y="101.6" width="48" height="72" rx="16" fill="yellow" stroke="black" stroke-width="1.067"/>
-<text x="258.4" y="137.6" text-anchor="middle" dominant-baseline="central">5</text>
+<rect x="231.466667" y="82.133333" width="48" height="72" rx="16" fill="yellow" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="255.466667" y="122.973333" text-anchor="middle">5</text>
 </g>
 <g id="s22">
 </g>
 <g id="s23">
-<rect x="292" y="101.6" width="48" height="72" rx="16" fill="yellow" stroke="red" stroke-width="1.067"/>
-<text x="316" y="137.6" text-anchor="middle" dominant-baseline="central">6</text>
+<rect x="289.066667" y="82.133333" width="48" height="72" rx="16" fill="yellow" stroke="red" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="122.973333" text-anchor="middle">6</text>
 </g>
 <g id="s24">
 </g>
 <g id="s25">
-<rect x="349.6" y="101.6" width="48" height="72" rx="16" fill="Custom" stroke="blue" stroke-width="1.067"/>
-<text x="373.6" y="137.6" text-anchor="middle" dominant-baseline="central">7</text>
+<rect x="346.666667" y="82.133333" width="48" height="72" rx="16" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="122.973333" text-anchor="middle">7</text>
 </g>
 <g id="s26">
-<circle cx="28" cy="207.2" r="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="28" y="207.2" text-anchor="middle" dominant-baseline="central">1</text>
+<circle cx="25.066667" cy="187.733333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="192.573333" text-anchor="middle">1</text>
 </g>
 <g id="s27">
 </g>
 <g id="s28">
-<circle cx="85.6" cy="207.2" r="24" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="85.6" y="207.2" text-anchor="middle" dominant-baseline="central">2</text>
+<circle cx="82.666667" cy="187.733333" r="24" fill="none" stroke="magenta" stroke-width="2.666667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="192.573333" text-anchor="middle">2</text>
 </g>
 <g id="s29">
 </g>
 <g id="s30">
-<circle cx="143.2" cy="207.2" r="24" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="143.2" y="207.2" text-anchor="middle" dominant-baseline="central">3</text>
+<circle cx="140.266667" cy="187.733333" r="24" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="192.573333" text-anchor="middle">3</text>
 </g>
 <g id="s31">
 </g>
 <g id="s32">
-<text x="200.8" y="207.2" text-anchor="middle" dominant-baseline="central">4</text>
+<circle cx="197.866667" cy="187.733333" r="24" fill="green" stroke="none"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="192.573333" text-anchor="middle">4</text>
 </g>
 <g id="s33">
 </g>
 <g id="s34">
-<circle cx="258.4" cy="207.2" r="24" fill="yellow" stroke="black" stroke-width="1.067"/>
-<text x="258.4" y="207.2" text-anchor="middle" dominant-baseline="central">5</text>
+<circle cx="255.466667" cy="187.733333" r="24" fill="yellow" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="255.466667" y="192.573333" text-anchor="middle">5</text>
 </g>
 <g id="s35">
 </g>
 <g id="s36">
-<circle cx="316" cy="207.2" r="24" fill="yellow" stroke="red" stroke-width="1.067"/>
-<text x="316" y="207.2" text-anchor="middle" dominant-baseline="central">6</text>
+<circle cx="313.066667" cy="187.733333" r="24" fill="yellow" stroke="red" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="192.573333" text-anchor="middle">6</text>
 </g>
 <g id="s37">
 </g>
 <g id="s38">
-<circle cx="373.6" cy="207.2" r="24" fill="Custom" stroke="blue" stroke-width="1.067"/>
-<text x="373.6" y="207.2" text-anchor="middle" dominant-baseline="central">7</text>
+<circle cx="370.666667" cy="187.733333" r="24" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="192.573333" text-anchor="middle">7</text>
 </g>
 <g id="s39">
-<ellipse cx="28" cy="276.8" rx="24" ry="36" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="28" y="276.8" text-anchor="middle" dominant-baseline="central">1</text>
+<ellipse cx="25.066667" cy="257.333333" rx="24" ry="36" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="262.173333" text-anchor="middle">1</text>
 </g>
 <g id="s40">
 </g>
 <g id="s41">
-<ellipse cx="85.6" cy="276.8" rx="24" ry="36" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="85.6" y="276.8" text-anchor="middle" dominant-baseline="central">2</text>
+<ellipse cx="82.666667" cy="257.333333" rx="24" ry="36" fill="none" stroke="magenta" stroke-width="3" stroke-dasharray="0.5,6" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="262.173333" text-anchor="middle">2</text>
 </g>
 <g id="s42">
 </g>
 <g id="s43">
-<ellipse cx="143.2" cy="276.8" rx="24" ry="36" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="143.2" y="276.8" text-anchor="middle" dominant-baseline="central">3</text>
+<ellipse cx="140.266667" cy="257.333333" rx="24" ry="36" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="262.173333" text-anchor="middle">3</text>
 </g>
 <g id="s44">
 </g>
 <g id="s45">
-<text x="200.8" y="276.8" text-anchor="middle" dominant-baseline="central">4</text>
+<ellipse cx="197.866667" cy="257.333333" rx="24" ry="36" fill="green" stroke="none"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="262.173333" text-anchor="middle">4</text>
 </g>
 <g id="s46">
 </g>
 <g id="s47">
-<ellipse cx="258.4" cy="276.8" rx="24" ry="36" fill="yellow" stroke="black" stroke-width="1.067"/>
-<text x="258.4" y="276.8" text-anchor="middle" dominant-baseline="central">5</text>
+<ellipse cx="255.466667" cy="257.333333" rx="24" ry="36" fill="yellow" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="255.466667" y="262.173333" text-anchor="middle">5</text>
 </g>
 <g id="s48">
 </g>
 <g id="s49">
-<ellipse cx="316" cy="276.8" rx="24" ry="36" fill="yellow" stroke="red" stroke-width="1.067"/>
-<text x="316" y="276.8" text-anchor="middle" dominant-baseline="central">6</text>
+<ellipse cx="313.066667" cy="257.333333" rx="24" ry="36" fill="yellow" stroke="red" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="313.066667" y="262.173333" text-anchor="middle">6</text>
 </g>
 <g id="s50">
 </g>
 <g id="s51">
-<ellipse cx="373.6" cy="276.8" rx="24" ry="36" fill="Custom" stroke="blue" stroke-width="1.067"/>
-<text x="373.6" y="276.8" text-anchor="middle" dominant-baseline="central">7</text>
+<ellipse cx="370.666667" cy="257.333333" rx="24" ry="36" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="262.173333" text-anchor="middle">7</text>
 </g>
 <g id="s52">
-<path d="M 37.371 363.371 A 31.358 31.358 0 0 1 20.4 322.4" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="8.4" y="351.371" text-anchor="middle" dominant-baseline="central">1</text>
+<path d="M 18.037229 350.72801 A 24 24 0 1 0 1.066667 309.757447" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="18.037229" y="331.56801" text-anchor="middle">1</text>
 </g>
 <g id="s53">
 </g>
 <g id="s54">
-<path d="M 94.971 363.371 A 31.358 31.358 0 0 1 78 322.4" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="66" y="351.371" text-anchor="middle" dominant-baseline="central">2</text>
+<path d="M 75.637229 350.72801 A 24 24 0 1 0 58.666667 309.757447" fill="none" stroke="magenta" stroke-width="3.333333" stroke-dasharray="0.5,6.666667" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="75.637229" y="331.56801" text-anchor="middle">2</text>
 </g>
 <g id="s55">
 </g>
 <g id="s56">
-<path d="M 152.571 363.371 A 31.358 31.358 0 0 1 135.6 322.4" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="123.6" y="351.371" text-anchor="middle" dominant-baseline="central">3</text>
+<path d="M 133.237229 350.72801 A 24 24 0 1 0 116.266667 309.757447" fill="rgb(128,128,128)" stroke-width="0" stroke="black"/>
+<path d="M 133.237229 350.72801 A 24 24 0 1 0 116.266667 309.757447" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="133.237229" y="331.56801" text-anchor="middle">3</text>
 </g>
 <g id="s57">
 </g>
 <g id="s58">
-<text x="181.2" y="351.371" text-anchor="middle" dominant-baseline="central">4</text>
+<path d="M 190.837229 350.72801 A 24 24 0 1 0 173.866667 309.757447" fill="green" stroke-width="0" stroke="black"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="190.837229" y="331.56801" text-anchor="middle">4</text>
 </g>
 <g id="s59">
 </g>
 <g id="s60">
-<path d="M 267.771 363.371 A 31.358 31.358 0 0 1 250.8 322.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="250.8,322.4 260.522,324.247 258.509,328.604" fill="black"/>
-<polygon points="267.771,363.371 268.834,353.532 273.339,355.191" fill="black"/>
-<text x="238.8" y="351.371" text-anchor="middle" dominant-baseline="central">5</text>
+<path d="M 248.437229 350.72801 A 24 24 0 1 0 231.466667 309.757447" fill="yellow" stroke-width="0" stroke="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 257.78327,348.833474 L 256.848666,346.622927 A 24 24 0 0 1 248.437229 350.72801 A 24 24 0 0 0 258.717874 351.04402 L 257.78327,348.833474"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 239.414954,304.488438 L 240.317182,306.712395 A 24 24 0 0 0 231.466667 309.757447 A 24 24 0 0 1 238.512727 302.264481 L 239.414954,304.488438"/>
+<path d="M 250.567755 350.633258 A 24 24 0 1 0 233.040175 308.317939" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="248.437229" y="331.56801" text-anchor="middle">5</text>
 </g>
 <g id="s61">
 </g>
 <g id="s62">
-<path d="M 325.371 363.371 A 31.358 31.358 0 0 1 308.4 322.4" fill="none" stroke="red" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="308.4,322.4 318.122,324.247 316.109,328.604" fill="red"/>
-<polygon points="325.371,363.371 326.434,353.532 330.939,355.191" fill="red"/>
-<text x="296.4" y="351.371" text-anchor="middle" dominant-baseline="central">6</text>
+<path d="M 306.037229 350.72801 A 24 24 0 1 0 289.066667 309.757447" fill="yellow" stroke-width="0" stroke="black"/>
+<path stroke-width="0" stroke="red" fill="red" d="M 315.38327,348.833474 L 314.448666,346.622927 A 24 24 0 0 1 306.037229 350.72801 A 24 24 0 0 0 316.317874 351.04402 L 315.38327,348.833474"/>
+<path stroke-width="0" stroke="red" fill="red" d="M 297.014954,304.488438 L 297.917182,306.712395 A 24 24 0 0 0 289.066667 309.757447 A 24 24 0 0 1 296.112727 302.264481 L 297.014954,304.488438"/>
+<path d="M 308.167755 350.633258 A 24 24 0 1 0 290.640175 308.317939" fill="none" stroke="red" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="306.037229" y="331.56801" text-anchor="middle">6</text>
 </g>
 <g id="s63">
 </g>
 <g id="s64">
-<path d="M 382.971 363.371 A 31.358 31.358 0 0 1 366 322.4" fill="none" stroke="blue" stroke-width="2.333" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="366,322.4 375.722,324.247 373.709,328.604" fill="blue"/>
-<polygon points="382.971,363.371 384.034,353.532 388.539,355.191" fill="blue"/>
-<text x="354" y="351.371" text-anchor="middle" dominant-baseline="central">7</text>
+<path d="M 363.637229 350.72801 A 24 24 0 1 0 346.666667 309.757447" fill="Custom" stroke-width="0" stroke="black"/>
+<path stroke-width="0" stroke="blue" fill="blue" d="M 372.98327,348.833474 L 372.048666,346.622927 A 24 24 0 0 1 363.637229 350.72801 A 24 24 0 0 0 373.917874 351.04402 L 372.98327,348.833474"/>
+<path stroke-width="0" stroke="blue" fill="blue" d="M 354.614954,304.488438 L 355.517182,306.712395 A 24 24 0 0 0 346.666667 309.757447 A 24 24 0 0 1 353.712727 302.264481 L 354.614954,304.488438"/>
+<path d="M 370.856982 349.616329 A 24 24 0 1 0 352.55788 305.438388" fill="none" stroke="blue" stroke-width="3.666667" stroke-dasharray="0.5,7.333333" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="363.637229" y="331.56801" text-anchor="middle">7</text>
 </g>
 <g id="s65">
-<polyline points="4,420.971 52,420.971 52,372.971 4,372.971" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="1.066667,408.32801 49.066667,408.32801 49.066667,360.32801 1.066667,360.32801" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s66">
 </g>
 <g id="s67">
-<polyline points="61.6,420.971 109.6,420.971 109.6,372.971 61.6,372.971" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
+<polyline points="58.666667,408.32801 106.666667,408.32801 106.666667,360.32801 58.666667,360.32801" fill="none" stroke="magenta" stroke-width="4" stroke-dasharray="0.5,8" stroke-linecap="round"/>
 </g>
 <g id="s68">
 </g>
 <g id="s69">
-<polyline points="119.2,420.971 167.2,420.971 167.2,372.971 119.2,372.971" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<polyline points="116.266667,408.32801 164.266667,408.32801 164.266667,360.32801 116.266667,360.32801" fill="rgb(128,128,128)" stroke-width="0" stroke="black"/>
+<polyline points="116.266667,408.32801 164.266667,408.32801 164.266667,360.32801 116.266667,360.32801" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s70">
 </g>
 <g id="s71">
+<polyline points="173.866667,408.32801 221.866667,408.32801 221.866667,360.32801 173.866667,360.32801" fill="green" stroke-width="0" stroke="black"/>
 </g>
 <g id="s72">
 </g>
 <g id="s73">
-<polyline points="234.4,420.971 282.4,420.971 282.4,372.971 234.4,372.971" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="234.4,372.971 244,370.571 244,375.371" fill="black"/>
-<polygon points="234.4,420.971 244,418.571 244,423.371" fill="black"/>
+<polyline points="231.466667,408.32801 279.466667,408.32801 279.466667,360.32801 231.466667,360.32801" fill="yellow" stroke-width="0" stroke="black"/>
+<polyline points="233.665656,408.32801 279.466667,408.32801 279.466667,360.32801 233.665656,360.32801" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="241.066667,362.72801 231.466667,360.32801 241.066667,357.92801" fill="black"/>
+<polygon stroke-width="0" points="241.066667,410.72801 231.466667,408.32801 241.066667,405.92801" fill="black"/>
 </g>
 <g id="s74">
 </g>
 <g id="s75">
-<polyline points="292,420.971 340,420.971 340,372.971 292,372.971" fill="none" stroke="red" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="292,372.971 301.6,370.571 301.6,375.371" fill="red"/>
-<polygon points="292,420.971 301.6,418.571 301.6,423.371" fill="red"/>
+<polyline points="289.066667,408.32801 337.066667,408.32801 337.066667,360.32801 289.066667,360.32801" fill="yellow" stroke-width="0" stroke="black"/>
+<polyline points="291.265656,408.32801 337.066667,408.32801 337.066667,360.32801 291.265656,360.32801" fill="none" stroke="red" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<polygon stroke-width="0" points="298.666667,362.72801 289.066667,360.32801 298.666667,357.92801" fill="red"/>
+<polygon stroke-width="0" points="298.666667,410.72801 289.066667,408.32801 298.666667,405.92801" fill="red"/>
 </g>
 <g id="s76">
 </g>
 <g id="s77">
-<polyline points="349.6,420.971 397.6,420.971 397.6,372.971 349.6,372.971" fill="none" stroke="blue" stroke-width="2.333" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="349.6,372.971 359.2,370.571 359.2,375.371" fill="blue"/>
-<polygon points="349.6,420.971 359.2,418.571 359.2,423.371" fill="blue"/>
+<polyline points="346.666667,408.32801 394.666667,408.32801 394.666667,360.32801 346.666667,360.32801" fill="Custom" stroke-width="0" stroke="black"/>
+<polyline points="355.600062,408.32801 394.666667,408.32801 394.666667,360.32801 355.600062,360.32801" fill="none" stroke="blue" stroke-width="4.333333" stroke-dasharray="0.5,8.666667" stroke-linecap="round"/>
+<polygon stroke-width="0" points="356.266667,362.72801 346.666667,360.32801 356.266667,357.92801" fill="blue"/>
+<polygon stroke-width="0" points="356.266667,410.72801 346.666667,408.32801 356.266667,405.92801" fill="blue"/>
 </g>
 <g id="s78">
 </g>
 <g id="s79">
-<path d="M 4 478.571 C 12 478.571 44 486.571 52 478.571 C 60 470.571 60 438.571 52 430.571 C 44 422.571 12 430.571 4 430.571" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 1.066667 465.92801 C 9.066667 465.92801 17.066667 465.92801 25.066667 465.92801 41.066667 465.92801 49.066667 457.92801 49.066667 441.92801 49.066667 425.92801 41.066667 417.92801 25.066667 417.92801 17.066667 417.92801 9.066667 417.92801 1.066667 417.92801" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s80">
 </g>
 <g id="s81">
-<path d="M 61.6 478.571 C 69.6 478.571 101.6 486.571 109.6 478.571 C 117.6 470.571 117.6 438.571 109.6 430.571 C 101.6 422.571 69.6 430.571 61.6 430.571" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
+<path d="M 58.666667 465.92801 C 66.666667 465.92801 74.666667 465.92801 82.666667 465.92801 98.666667 465.92801 106.666667 457.92801 106.666667 441.92801 106.666667 425.92801 98.666667 417.92801 82.666667 417.92801 74.666667 417.92801 66.666667 417.92801 58.666667 417.92801" fill="none" stroke="magenta" stroke-width="4.666667" stroke-dasharray="0.5,9.333333" stroke-linecap="round"/>
 </g>
 <g id="s82">
 </g>
 <g id="s83">
-<path d="M 119.2 478.571 C 127.2 478.571 159.2 486.571 167.2 478.571 C 175.2 470.571 175.2 438.571 167.2 430.571 C 159.2 422.571 127.2 430.571 119.2 430.571" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<path d="M 116.266667 465.92801 C 124.266667 465.92801 132.266667 465.92801 140.266667 465.92801 156.266667 465.92801 164.266667 457.92801 164.266667 441.92801 164.266667 425.92801 156.266667 417.92801 140.266667 417.92801 132.266667 417.92801 124.266667 417.92801 116.266667 417.92801" fill="rgb(128,128,128)" stroke-width="0" stroke="black"/>
+<path d="M 116.266667 465.92801 C 124.266667 465.92801 132.266667 465.92801 140.266667 465.92801 156.266667 465.92801 164.266667 457.92801 164.266667 441.92801 164.266667 425.92801 156.266667 417.92801 140.266667 417.92801 132.266667 417.92801 124.266667 417.92801 116.266667 417.92801" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s84">
 </g>
 <g id="s85">
+<path d="M 173.866667 465.92801 C 181.866667 465.92801 189.866667 465.92801 197.866667 465.92801 213.866667 465.92801 221.866667 457.92801 221.866667 441.92801 221.866667 425.92801 213.866667 417.92801 197.866667 417.92801 189.866667 417.92801 181.866667 417.92801 173.866667 417.92801" fill="green" stroke-width="0" stroke="black"/>
 </g>
 <g id="s86">
 </g>
 <g id="s87">
-<path d="M 234.4 478.571 C 242.4 478.571 274.4 486.571 282.4 478.571 C 290.4 470.571 290.4 438.571 282.4 430.571 C 274.4 422.571 242.4 430.571 234.4 430.571" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="234.4,430.571 244,428.171 244,432.971" fill="black"/>
-<polygon points="234.4,478.571 244,476.171 244,480.971" fill="black"/>
+<path d="M 231.466667 465.92801 C 239.466667 465.92801 247.466667 465.92801 255.466667 465.92801 271.466667 465.92801 279.466667 457.92801 279.466667 441.92801 279.466667 425.92801 271.466667 417.92801 255.466667 417.92801 247.466667 417.92801 239.466667 417.92801 231.466667 417.92801" fill="yellow" stroke-width="0" stroke="black"/>
+<path d="M 233.665656 465.92801 C 241.299158 465.92801 248.93266 465.92801 256.566162 465.92801 271.833165 465.92801 279.466667 457.92801 279.466667 441.92801 279.466667 425.92801 271.833165 417.92801 256.566162 417.92801 248.93266 417.92801 241.299158 417.92801 233.665656 417.92801" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="241.066667,420.32801 231.466667,417.92801 241.066667,415.52801" fill="black"/>
+<polygon stroke-width="0" points="241.066667,468.32801 231.466667,465.92801 241.066667,463.52801" fill="black"/>
 </g>
 <g id="s88">
 </g>
 <g id="s89">
-<path d="M 292 478.571 C 300 478.571 332 486.571 340 478.571 C 348 470.571 348 438.571 340 430.571 C 332 422.571 300 430.571 292 430.571" fill="none" stroke="red" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="292,430.571 301.6,428.171 301.6,432.971" fill="red"/>
-<polygon points="292,478.571 301.6,476.171 301.6,480.971" fill="red"/>
+<path d="M 289.066667 465.92801 C 297.066667 465.92801 305.066667 465.92801 313.066667 465.92801 329.066667 465.92801 337.066667 457.92801 337.066667 441.92801 337.066667 425.92801 329.066667 417.92801 313.066667 417.92801 305.066667 417.92801 297.066667 417.92801 289.066667 417.92801" fill="yellow" stroke-width="0" stroke="black"/>
+<path d="M 291.265656 465.92801 C 298.899158 465.92801 306.53266 465.92801 314.166162 465.92801 329.433165 465.92801 337.066667 457.92801 337.066667 441.92801 337.066667 425.92801 329.433165 417.92801 314.166162 417.92801 306.53266 417.92801 298.899158 417.92801 291.265656 417.92801" fill="none" stroke="red" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<polygon stroke-width="0" points="298.666667,420.32801 289.066667,417.92801 298.666667,415.52801" fill="red"/>
+<polygon stroke-width="0" points="298.666667,468.32801 289.066667,465.92801 298.666667,463.52801" fill="red"/>
 </g>
 <g id="s90">
 </g>
 <g id="s91">
-<path d="M 349.6 478.571 C 357.6 478.571 389.6 486.571 397.6 478.571 C 405.6 470.571 405.6 438.571 397.6 430.571 C 389.6 422.571 357.6 430.571 349.6 430.571" fill="none" stroke="blue" stroke-width="2.333" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="349.6,430.571 359.2,428.171 359.2,432.971" fill="blue"/>
-<polygon points="349.6,478.571 359.2,476.171 359.2,480.971" fill="blue"/>
+<path d="M 346.666667 465.92801 C 354.666667 465.92801 362.666667 465.92801 370.666667 465.92801 386.666667 465.92801 394.666667 457.92801 394.666667 441.92801 394.666667 425.92801 386.666667 417.92801 370.666667 417.92801 362.666667 417.92801 354.666667 417.92801 346.666667 417.92801" fill="Custom" stroke-width="0" stroke="black"/>
+<path d="M 356.266667 465.92801 C 362.666667 465.92801 369.066667 465.92801 375.466667 465.92801 388.266667 465.92801 394.666667 457.92801 394.666667 441.92801 394.666667 425.92801 388.266667 417.92801 375.466667 417.92801 369.066667 417.92801 362.666667 417.92801 356.266667 417.92801" fill="none" stroke="blue" stroke-width="5" stroke-dasharray="0.5,10" stroke-linecap="round"/>
+<polygon stroke-width="0" points="356.266667,420.32801 346.666667,417.92801 356.266667,415.52801" fill="blue"/>
+<polygon stroke-width="0" points="356.266667,468.32801 346.666667,465.92801 356.266667,463.52801" fill="blue"/>
 </g>
 <g id="s92">
 </g>
 <g id="s93">
-<path d="M 4 536.171 C 15.2 536.171 60 544.171 71.2 536.171 C 82.4 528.171 79.2 496.171 71.2 488.171 C 63.2 480.171 31.2 488.171 23.2 488.171" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 1.066667 523.52801 C 10.666667 523.52801 49.066667 504.32801 49.066667 499.52801 C 49.066667 494.72801 10.666667 475.52801 1.066667 475.52801" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s94">
-<text x="28" y="512.171" text-anchor="middle" dominant-baseline="central">0.2</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="25.066667" y="504.36801" text-anchor="middle">0.2</text>
 </g>
 <g id="s95">
 </g>
 <g id="s96">
-<path d="M 61.6 536.171 C 74.4 536.171 125.6 544.171 138.4 536.171 C 151.2 528.171 146.4 496.171 138.4 488.171 C 130.4 480.171 98.4 488.171 90.4 488.171" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
+<path d="M 58.666667 523.52801 C 73.066667 523.52801 106.666667 506.72801 106.666667 499.52801 C 106.666667 492.32801 73.066667 475.52801 58.666667 475.52801" fill="none" stroke="magenta" stroke-width="5.333333" stroke-dasharray="0.5,10.666667" stroke-linecap="round"/>
 </g>
 <g id="s97">
-<text x="85.6" y="512.171" text-anchor="middle" dominant-baseline="central">0.3</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="82.666667" y="504.36801" text-anchor="middle">0.3</text>
 </g>
 <g id="s98">
 </g>
 <g id="s99">
-<path d="M 119.2 536.171 C 133.6 536.171 191.2 544.171 205.6 536.171 C 220 528.171 213.6 496.171 205.6 488.171 C 197.6 480.171 165.6 488.171 157.6 488.171" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<path d="M 116.266667 523.52801 C 135.466667 523.52801 164.266667 509.12801 164.266667 499.52801 C 164.266667 489.92801 135.466667 475.52801 116.266667 475.52801" fill="rgb(128,128,128)" stroke-width="0" stroke="black"/>
+<path d="M 116.266667 523.52801 C 135.466667 523.52801 164.266667 509.12801 164.266667 499.52801 C 164.266667 489.92801 135.466667 475.52801 116.266667 475.52801" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s100">
-<text x="143.2" y="512.171" text-anchor="middle" dominant-baseline="central">0.4</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="140.266667" y="504.36801" text-anchor="middle">0.4</text>
 </g>
 <g id="s101">
 </g>
 <g id="s102">
+<path d="M 173.866667 523.52801 C 197.866667 523.52801 221.866667 511.52801 221.866667 499.52801 C 221.866667 487.52801 197.866667 475.52801 173.866667 475.52801" fill="green" stroke-width="0" stroke="black"/>
 </g>
 <g id="s103">
-<text x="200.8" y="512.171" text-anchor="middle" dominant-baseline="central">0.5</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="197.866667" y="504.36801" text-anchor="middle">0.5</text>
 </g>
 <g id="s104">
 </g>
 <g id="s105">
-<path d="M 234.4 536.171 C 252 536.171 322.4 544.171 340 536.171 C 357.6 528.171 348 496.171 340 488.171 C 332 480.171 300 488.171 292 488.171" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="292,488.171 301.6,485.771 301.6,490.571" fill="black"/>
-<polygon points="234.4,536.171 244,533.771 244,538.571" fill="black"/>
+<path d="M 231.466667 523.52801 C 260.266667 523.52801 279.466667 513.92801 279.466667 499.52801 C 279.466667 485.12801 260.266667 475.52801 231.466667 475.52801" fill="yellow" stroke-width="0" stroke="black"/>
+<path d="M 233.665656 523.52801 C 261.146263 523.52801 279.466667 513.92801 279.466667 499.52801 C 279.466667 485.12801 261.146263 475.52801 233.665656 475.52801" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="241.066667,477.92801 231.466667,475.52801 241.066667,473.12801" fill="black"/>
+<polygon stroke-width="0" points="241.066667,525.92801 231.466667,523.52801 241.066667,521.12801" fill="black"/>
 </g>
 <g id="s106">
-<text x="258.4" y="512.171" text-anchor="middle" dominant-baseline="central">0.6</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="255.466667" y="504.36801" text-anchor="middle">0.6</text>
 </g>
 <g id="s107">
 </g>
 <g id="s108">
-<path d="M 292 536.171 C 311.2 536.171 388 544.171 407.2 536.171 C 426.4 528.171 415.2 496.171 407.2 488.171 C 399.2 480.171 367.2 488.171 359.2 488.171" fill="none" stroke="red" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="359.2,488.171 368.8,485.771 368.8,490.571" fill="red"/>
-<polygon points="292,536.171 301.6,533.771 301.6,538.571" fill="red"/>
+<path d="M 289.066667 523.52801 C 322.666667 523.52801 337.066667 516.32801 337.066667 499.52801 C 337.066667 482.72801 322.666667 475.52801 289.066667 475.52801" fill="yellow" stroke-width="0" stroke="black"/>
+<path d="M 291.265656 523.52801 C 323.326364 523.52801 337.066667 516.32801 337.066667 499.52801 C 337.066667 482.72801 323.326364 475.52801 291.265656 475.52801" fill="none" stroke="red" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<polygon stroke-width="0" points="298.666667,477.92801 289.066667,475.52801 298.666667,473.12801" fill="red"/>
+<polygon stroke-width="0" points="298.666667,525.92801 289.066667,523.52801 298.666667,521.12801" fill="red"/>
 </g>
 <g id="s109">
-<text x="316" y="512.171" text-anchor="middle" dominant-baseline="central">0.7</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="313.066667" y="504.36801" text-anchor="middle">0.7</text>
 </g>
 <g id="s110">
 </g>
 <g id="s111">
-<path d="M 349.6 536.171 C 370.4 536.171 453.6 544.171 474.4 536.171 C 495.2 528.171 482.4 496.171 474.4 488.171 C 466.4 480.171 434.4 488.171 426.4 488.171" fill="none" stroke="blue" stroke-width="2.333" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="426.4,488.171 436,485.771 436,490.571" fill="blue"/>
-<polygon points="349.6,536.171 359.2,533.771 359.2,538.571" fill="blue"/>
+<path d="M 346.666667 523.52801 C 385.066667 523.52801 394.666667 518.72801 394.666667 499.52801 C 394.666667 480.32801 385.066667 475.52801 346.666667 475.52801" fill="Custom" stroke-width="0" stroke="black"/>
+<path d="M 356.266667 523.52801 C 386.986667 523.52801 394.666667 518.72801 394.666667 499.52801 C 394.666667 480.32801 386.986667 475.52801 356.266667 475.52801" fill="none" stroke="blue" stroke-width="5.666667" stroke-dasharray="0.5,11.333333" stroke-linecap="round"/>
+<polygon stroke-width="0" points="356.266667,477.92801 346.666667,475.52801 356.266667,473.12801" fill="blue"/>
+<polygon stroke-width="0" points="356.266667,525.92801 346.666667,523.52801 356.266667,521.12801" fill="blue"/>
 </g>
 <g id="s112">
-<text x="373.6" y="512.171" text-anchor="middle" dominant-baseline="central">0.8</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="370.666667" y="504.36801" text-anchor="middle">0.8</text>
 </g>
 <g id="s113">
 </g>
 <g id="s114">
-<polyline points="4,617.771 52,545.771 52,617.771" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="28" y="608.971" text-anchor="middle" dominant-baseline="central">1</text>
-<text x="28" y="626.571" text-anchor="middle" dominant-baseline="central">2</text>
+<polyline points="1.066667,605.12801 49.066667,533.12801 49.066667,605.12801" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="602.634677" text-anchor="middle">1</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="617.301343" text-anchor="middle">2</text>
 </g>
 <g id="s115">
 </g>
 <g id="s116">
-<polyline points="61.6,617.771 109.6,545.771 109.6,617.771" fill="none" stroke="magenta" stroke-width="2" stroke-dasharray="1,3" stroke-linecap="round"/>
-<text x="85.6" y="608.971" text-anchor="middle" dominant-baseline="central">1</text>
-<text x="85.6" y="626.571" text-anchor="middle" dominant-baseline="central">2</text>
+<polyline points="58.666667,605.12801 106.666667,533.12801 106.666667,605.12801" fill="none" stroke="magenta" stroke-width="6" stroke-dasharray="0.5,12" stroke-linecap="round"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="602.634677" text-anchor="middle">1</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="82.666667" y="617.301343" text-anchor="middle">2</text>
 </g>
 <g id="s117">
 </g>
 <g id="s118">
-<polyline points="119.2,617.771 167.2,545.771" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="116.266667" y1="605.12801" x2="164.266667" y2="533.12801" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s119">
 </g>
 <g id="s120">
-<polyline points="176.8,617.771 224.8,545.771" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="224.8,545.771 221.472,555.09 217.478,552.427" fill="black"/>
-<polygon points="176.8,617.771 180.128,608.452 184.122,611.114" fill="black"/>
+<line x1="175.086447" y1="603.29834" x2="220.646887" y2="534.95768" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<polygon stroke-width="0" points="214.544624,539.784412 221.866667,533.12801 218.538465,542.446973" fill="black"/>
+<polygon stroke-width="0" points="181.188709,598.471608 173.866667,605.12801 177.194868,595.809047" fill="black"/>
 </g>
 <g id="s121">
 </g>
 <g id="s122">
-<polyline points="234.4,617.771 282.4,545.771" fill="none" stroke="Custom" stroke-width="2.333" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="282.4,545.771 279.072,555.09 275.078,552.427" fill="Custom"/>
-<polygon points="234.4,617.771 237.728,608.452 241.722,611.114" fill="Custom"/>
+<line x1="236.791789" y1="597.140327" x2="274.141545" y2="541.115693" stroke="Custom" stroke-width="6.333333" stroke-dasharray="0.5,12.666667" stroke-linecap="round"/>
+<polygon stroke-width="0" points="272.144624,539.784412 279.466667,533.12801 276.138465,542.446973" fill="Custom"/>
+<polygon stroke-width="0" points="238.788709,598.471608 231.466667,605.12801 234.794868,595.809047" fill="Custom"/>
 </g>
 <g id="s123">
 </g>
 <g id="s124">
-<polyline points="292,617.771 340,545.771" fill="none" stroke="red" stroke-width="2.667" stroke-dasharray="1,3" stroke-linecap="round"/>
-<polygon points="340,545.771 336.672,555.09 332.678,552.427" fill="red"/>
-<polygon points="292,617.771 295.328,608.452 299.322,611.114" fill="red"/>
+<line x1="294.391789" y1="597.140327" x2="331.741545" y2="541.115693" stroke="red" stroke-width="6.666667" stroke-dasharray="0.5,13.333333" stroke-linecap="round"/>
+<polygon stroke-width="0" points="329.744624,539.784412 337.066667,533.12801 333.738465,542.446973" fill="red"/>
+<polygon stroke-width="0" points="296.388709,598.471608 289.066667,605.12801 292.394868,595.809047" fill="red"/>
 </g>
 <g id="s125">
 </g>
 <g id="s126">
 </g>
 <g id="s127">
-<polyline points="349.6,557.771 397.6,557.771" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="373.6" y="557.771" text-anchor="middle" dominant-baseline="central">above</text>
+<line x1="346.666667" y1="545.12801" x2="394.666667" y2="545.12801" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="542.461343" text-anchor="middle">above</text>
 </g>
 <g id="s128">
 </g>
 <g id="s129">
-<polyline points="349.6,581.771 397.6,581.771" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="373.6" y="581.771" text-anchor="middle" dominant-baseline="central">on</text>
+<line x1="346.666667" y1="569.12801" x2="394.666667" y2="569.12801" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="573.96801" text-anchor="middle">on</text>
 </g>
 <g id="s130">
 </g>
 <g id="s131">
-<polyline points="349.6,605.771 397.6,605.771" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="373.6" y="605.771" text-anchor="middle" dominant-baseline="central">below</text>
+<line x1="346.666667" y1="593.12801" x2="394.666667" y2="593.12801" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="605.474677" text-anchor="middle">below</text>
 </g>
 <g id="s132">
-<rect x="4" y="644.971" width="35.782" height="72" fill="rgb(0,0,0)" stroke="black" stroke-width="1.067"/>
-<text x="21.891" y="680.971" text-anchor="middle" dominant-baseline="central">0</text>
+<rect x="1.066667" y="614.72801" width="35.781818" height="72" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="18.957576" y="655.56801" text-anchor="middle">0</text>
 </g>
 <g id="s133">
-<rect x="39.782" y="644.971" width="35.782" height="72" fill="rgb(26,26,26)" stroke="black" stroke-width="1.067"/>
-<text x="57.673" y="680.971" text-anchor="middle" dominant-baseline="central">0.1</text>
+<rect x="36.848485" y="614.72801" width="35.781818" height="72" fill="rgb(26,26,26)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="54.739394" y="655.56801" text-anchor="middle">0.1</text>
 </g>
 <g id="s134">
-<rect x="75.564" y="644.971" width="35.782" height="72" fill="rgb(51,51,51)" stroke="black" stroke-width="1.067"/>
-<text x="93.455" y="680.971" text-anchor="middle" dominant-baseline="central">0.2</text>
+<rect x="72.630303" y="614.72801" width="35.781818" height="72" fill="rgb(51,51,51)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="90.521212" y="655.56801" text-anchor="middle">0.2</text>
 </g>
 <g id="s135">
-<rect x="111.345" y="644.971" width="35.782" height="72" fill="rgb(77,77,77)" stroke="black" stroke-width="1.067"/>
-<text x="129.236" y="680.971" text-anchor="middle" dominant-baseline="central">0.30000000000000004</text>
+<rect x="108.412121" y="614.72801" width="35.781818" height="72" fill="rgb(77,77,77)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="126.30303" y="655.56801" text-anchor="middle">0.30000000000000004</text>
 </g>
 <g id="s136">
-<rect x="147.127" y="644.971" width="35.782" height="72" fill="rgb(102,102,102)" stroke="black" stroke-width="1.067"/>
-<text x="165.018" y="680.971" text-anchor="middle" dominant-baseline="central">0.4</text>
+<rect x="144.193939" y="614.72801" width="35.781818" height="72" fill="rgb(102,102,102)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="162.084848" y="655.56801" text-anchor="middle">0.4</text>
 </g>
 <g id="s137">
-<rect x="182.909" y="644.971" width="35.782" height="72" fill="rgb(128,128,128)" stroke="black" stroke-width="1.067"/>
-<text x="200.8" y="680.971" text-anchor="middle" dominant-baseline="central">0.5</text>
+<rect x="179.975758" y="614.72801" width="35.781818" height="72" fill="rgb(128,128,128)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="197.866667" y="655.56801" text-anchor="middle">0.5</text>
 </g>
 <g id="s138">
-<rect x="218.691" y="644.971" width="35.782" height="72" fill="rgb(153,153,153)" stroke="black" stroke-width="1.067"/>
-<text x="236.582" y="680.971" text-anchor="middle" dominant-baseline="central">0.6</text>
+<rect x="215.757576" y="614.72801" width="35.781818" height="72" fill="rgb(153,153,153)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="233.648485" y="655.56801" text-anchor="middle">0.6</text>
 </g>
 <g id="s139">
-<rect x="254.473" y="644.971" width="35.782" height="72" fill="rgb(179,179,179)" stroke="black" stroke-width="1.067"/>
-<text x="272.364" y="680.971" text-anchor="middle" dominant-baseline="central">0.7</text>
+<rect x="251.539394" y="614.72801" width="35.781818" height="72" fill="rgb(179,179,179)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="269.430303" y="655.56801" text-anchor="middle">0.7</text>
 </g>
 <g id="s140">
-<rect x="290.255" y="644.971" width="35.782" height="72" fill="rgb(204,204,204)" stroke="black" stroke-width="1.067"/>
-<text x="308.145" y="680.971" text-anchor="middle" dominant-baseline="central">0.7999999999999999</text>
+<rect x="287.321212" y="614.72801" width="35.781818" height="72" fill="rgb(204,204,204)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="305.212121" y="655.56801" text-anchor="middle">0.7999999999999999</text>
 </g>
 <g id="s141">
-<rect x="326.036" y="644.971" width="35.782" height="72" fill="rgb(229,229,229)" stroke="black" stroke-width="1.067"/>
-<text x="343.927" y="680.971" text-anchor="middle" dominant-baseline="central">0.8999999999999999</text>
+<rect x="323.10303" y="614.72801" width="35.781818" height="72" fill="rgb(229,229,229)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="340.993939" y="655.56801" text-anchor="middle">0.8999999999999999</text>
 </g>
 <g id="s142">
-<rect x="361.818" y="644.971" width="35.782" height="72" fill="rgb(255,255,255)" stroke="black" stroke-width="1.067"/>
-<text x="379.709" y="680.971" text-anchor="middle" dominant-baseline="central">0.9999999999999999</text>
+<rect x="358.884848" y="614.72801" width="35.781818" height="72" fill="rgb(255,255,255)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="376.775758" y="655.56801" text-anchor="middle">0.9999999999999999</text>
 </g>
 </svg>

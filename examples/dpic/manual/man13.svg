@@ -1,54 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="629.6" height="173.6" viewBox="0 0 629.6 173.6" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="502.4" height="213.115887" viewBox="0 0 502.4 213.115887" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<text x="145.6" y="80" text-anchor="middle" dominant-baseline="central">+</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="20.266667" y="82.942553" text-anchor="middle">+</text>
 </g>
 <g id="s1">
 </g>
 <g id="s2">
-<text x="145.6" y="80" text-anchor="middle" dominant-baseline="central">0,0</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="20.266667" y="90.44922" text-anchor="middle">0,0</text>
 </g>
 <g id="s3">
-<path d="M 193.6 80 A 48 48 0 0 1 145.6 32" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="145.6,32 155.288,29.986 155.096,34.782" fill="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 27.91836,24.358093 L 29.07436,26.461344 A 33.941125 33.941125 0 0 0 20.266667 30.102553 A 33.941125 33.941125 0 0 1 26.762361 22.254843 L 27.91836,24.358093"/>
+<path d="M 68.266667 78.102553 A 33.941125 33.941125 0 0 0 21.82156 28.642444" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s4">
-<text x="198.4" y="80" text-anchor="middle" dominant-baseline="central">{\tt arc -&gt; from 0.5,0 to 0,0.5}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="75.733333" y="82.942553" text-anchor="start">{\tt arc -&gt; from 0.5,0 to 0,0.5}</text>
 </g>
 <g id="s5">
-<path d="M 145.6 80 A 75.895 75.895 0 0 0 241.6 32" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="241.6,32 231.711,31.636 233.046,27.025" fill="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 111.230323,21.944751 L 109.30893,23.382891 A 53.665631 53.665631 0 0 1 116.266667 30.102553 A 53.665631 53.665631 0 0 0 113.151716 20.50661 L 111.230323,21.944751"/>
+<path d="M 20.266667 78.102553 A 53.665631 53.665631 0 0 1 115.274941 28.213905" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s6">
-<text x="232" y="12.8" text-anchor="middle" dominant-baseline="central">{\tt arc -&gt; cw from 0,0 to 1,0.5}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="109.333333" y="15.742553" text-anchor="start">{\tt arc -&gt; cw from 0,0 to 1,0.5}</text>
 </g>
 <g id="s7">
-<text x="385.6" y="47.2" text-anchor="middle" dominant-baseline="central">With dpic the radius is half the chord</text>
-<text x="385.6" y="64.8" text-anchor="start" dominant-baseline="central">if the default radius is too small</text>
+<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="262.933333" y="52.119903" text-anchor="start">With dpic the radius is half the chord</text>
+<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="262.933333" y="63.782553" text-anchor="start">if the default radius is too small</text>
 </g>
 <g id="s8">
 </g>
 <g id="s9">
-<path d="M 198 160.8 A 48 48 0 0 1 150 112.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="150,112.8 159.688,110.786 159.496,115.582" fill="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 29.802795,151.059358 L 29.325988,153.411517 A 48 48 0 0 0 20.266667 150.102553 A 48 48 0 0 1 30.279601 148.707198 L 29.802795,151.059358"/>
+<path d="M 68.266667 198.102553 A 48 48 0 0 0 22.399298 150.149953" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s10">
-<text x="150" y="160.8" text-anchor="middle" dominant-baseline="central">+</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="20.266667" y="202.942553" text-anchor="middle">+</text>
 </g>
 <g id="s11">
-<text x="198" y="160.8" text-anchor="middle" dominant-baseline="central">A</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="68.266667" y="210.44922" text-anchor="middle">A</text>
 </g>
 <g id="s12">
-<text x="150" y="112.8" text-anchor="middle" dominant-baseline="central">B</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="17.6" y="154.942553" text-anchor="end">B</text>
 </g>
 <g id="s13">
-<path d="M 198 160.8 A 48 48 0 0 1 150 112.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<polygon points="150,112.8 159.688,110.786 159.496,115.582" fill="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 21.223471,140.566425 L 23.575631,141.043232 A 48 48 0 0 0 20.266667 150.102553 A 48 48 0 0 1 18.871311 140.089619 L 21.223471,140.566425"/>
+<path d="M 68.266667 198.102553 A 48 48 0 1 0 20.314066 147.969922" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s14">
-<text x="150" y="160.8" text-anchor="middle" dominant-baseline="central">+</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="68.266667" y="154.942553" text-anchor="middle">+</text>
 </g>
 <g id="s15">
-<text x="250.4" y="128" text-anchor="middle" dominant-baseline="central">Possible arcs {\tt \"arc from A to B\"}</text>
-<text x="250.4" y="145.6" text-anchor="start" dominant-baseline="central">Add {\tt \"with .c at ...\"} to specify the arc uniquely</text>
+<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="166.933333" y="150.539903" text-anchor="start">Possible arcs {\tt \"arc from A to B\"}</text>
+<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="166.933333" y="162.202553" text-anchor="start">Add {\tt \"with .c at ...\"} to specify the arc uniquely</text>
 </g>
 </svg>

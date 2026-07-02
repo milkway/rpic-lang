@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="11.204" viewBox="0 0 200 11.204" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="195.2" height="6.403563" viewBox="0 0 195.2 6.403563" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<path d="M 4 7.204 A 1440 1440 0 0 0 196 7.204" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="196,7.204 186.339,9.346 186.468,4.548" fill="black"/>
+<path stroke-width="0" stroke="black" fill="black" d="M 183.485961,3.12883 L 183.341929,5.524504 A 1440 1440 0 0 1 193.066667 3.736897 A 1440 1440 0 0 0 183.629994 0.733156 L 183.485961,3.12883"/>
+<path d="M 1.066667 3.736897 A 1440 1440 0 0 1 190.937975 3.596251" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

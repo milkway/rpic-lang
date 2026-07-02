@@ -1,49 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="388" height="361.6" viewBox="0 0 388 361.6" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="362.666667" height="355.32" viewBox="0 0 362.666667 355.32" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="26,348.8 362,348.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="362,348.8 352.4,351.2 352.4,346.4" fill="black"/>
+<line x1="20.8" y1="346.48" x2="353.501515" y2="346.48" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="347.2,344.08 356.8,346.48 347.2,348.88" fill="black"/>
 </g>
 <g id="s1">
-<text x="362" y="348.8" text-anchor="middle" dominant-baseline="central">$a_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="359.466667" y="351.32" text-anchor="start">$a_1$</text>
 </g>
 <g id="s2">
-<polyline points="26,348.8 26,12.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="26,12.8 28.4,22.4 23.6,22.4" fill="black"/>
+<line x1="20.8" y1="346.48" x2="20.8" y2="13.778485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="18.4,20.08 20.8,10.48 23.2,20.08" fill="black"/>
 </g>
 <g id="s3">
-<text x="26" y="12.8" text-anchor="middle" dominant-baseline="central">$a_2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="18.133333" y="10.48" text-anchor="end">$a_2$</text>
 </g>
 <g id="s4">
-<polyline points="6.8,252.8 362,132.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<line x1="1.6" y1="250.48" x2="356.8" y2="130.48" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s5">
-<circle cx="122" cy="252.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="116.8" cy="250.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<circle cx="170" cy="300.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="164.8" cy="298.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s7">
-<circle cx="218" cy="252.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="212.8" cy="250.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s8">
-<circle cx="266" cy="204.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="260.8" cy="202.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<circle cx="314" cy="272" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="308.8" cy="269.68" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<circle cx="26" cy="156.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="20.8" cy="154.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s11">
-<circle cx="122" cy="108.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="116.8" cy="106.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<circle cx="170" cy="132.8" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="164.8" cy="130.48" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<circle cx="146" cy="166.4" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="140.8" cy="164.08" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s14">
-<circle cx="218" cy="99.2" r="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="212.8" cy="96.88" r="9.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 </svg>

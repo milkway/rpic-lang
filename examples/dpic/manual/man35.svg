@@ -1,225 +1,225 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="747.551" height="259.122" viewBox="0 0 747.551 259.122" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="742.75122" height="254.321951" viewBox="0 0 742.75122 254.321951" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="90.634,81.268 52,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="90.634,81.268 82.907,83.2 82.907,79.337" fill="black"/>
+<line x1="85.501823" y1="77.801626" x2="49.066667" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="79.973984,75.869919 87.700813,77.801626 79.973984,79.733333" fill="black"/>
 </g>
 <g id="s1">
-<text x="28" y="81.268" text-anchor="middle" dominant-baseline="central">nums </text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="25.066667" y="82.641626" text-anchor="middle">nums </text>
 </g>
 <g id="s2">
-<ellipse cx="134.098" cy="81.268" rx="43.463" ry="19.317" fill="rgb(179,179,179)" stroke="black" stroke-width="1.067"/>
-<text x="134.098" y="81.268" text-anchor="middle" dominant-baseline="central">generate</text>
+<ellipse cx="131.164228" cy="77.801626" rx="43.463415" ry="19.317073" fill="rgb(179,179,179)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="131.164228" y="82.641626" text-anchor="middle">generate</text>
 </g>
 <g id="s3">
 </g>
 <g id="s4">
-<rect x="216.195" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="245.171" y="81.268" text-anchor="middle" dominant-baseline="central">sort0</text>
+<rect x="213.261789" y="58.484553" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="242.237398" y="82.641626" text-anchor="middle">sort0</text>
 </g>
 <g id="s5">
 </g>
 <g id="s6">
 </g>
 <g id="s7">
-<rect x="216.195" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="245.171" y="158.537" text-anchor="middle" dominant-baseline="central">sort1</text>
+<rect x="213.261789" y="135.752846" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="242.237398" y="159.909919" text-anchor="middle">sort1</text>
 </g>
 <g id="s8">
 </g>
 <g id="s9">
 </g>
 <g id="s10">
-<rect x="216.195" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="245.171" y="235.805" text-anchor="middle" dominant-baseline="central">sort2</text>
+<rect x="213.261789" y="213.021138" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="242.237398" y="237.178211" text-anchor="middle">sort2</text>
 </g>
 <g id="s11">
-<path d="M 177.561 100.585 C 181.424 117.327 194.302 181.717 200.741 201.034 C 207.18 220.351 213.62 213.912 216.195 216.488" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="216.195,216.488 209.366,212.39 212.097,209.658" fill="black"/>
+<path d="M 161.897503 91.460859 C 167.882607 109.145296 173.867712 126.829733 179.852816 144.51417 191.823026 179.883043 200.124586 199.883936 204.757499 204.516849 207.073955 206.833305 209.390412 209.149761 211.706868 211.466218" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="209.164019,206.191521 213.261789,213.021138 206.432172,208.923368" fill="black"/>
 </g>
 <g id="s12">
-<path d="M 177.561 100.585 C 181.424 104.449 194.302 117.327 200.741 123.766 C 207.18 130.205 213.62 136.644 216.195 139.22" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="216.195,139.22 209.366,135.122 212.097,132.39" fill="black"/>
+<path d="M 161.897503 91.460859 C 167.882607 96.267247 173.867712 101.073635 179.852816 105.880023 191.823026 115.492799 200.124586 122.615643 204.757499 127.248556 207.073955 129.565012 209.390412 131.881469 211.706868 134.197925" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="209.164019,128.923229 213.261789,135.752846 206.432172,131.655075" fill="black"/>
 </g>
 <g id="s13">
-<polyline points="177.561,81.268 216.195,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="216.195,81.268 208.468,83.2 208.468,79.337" fill="black"/>
+<line x1="174.627642" y1="77.801626" x2="211.062799" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="205.534959,75.869919 213.261789,77.801626 205.534959,79.733333" fill="black"/>
 </g>
 <g id="s14">
 </g>
 <g id="s15">
-<rect x="312.78" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="341.756" y="81.268" text-anchor="middle" dominant-baseline="central">sample</text>
+<rect x="309.847154" y="58.484553" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="338.822764" y="82.641626" text-anchor="middle">sample</text>
 </g>
 <g id="s16">
-<path d="M 274.146 216.488 C 278.01 199.746 290.888 135.356 297.327 116.039 C 303.766 96.722 310.205 103.161 312.78 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="312.78,100.585 308.683,107.415 305.951,104.683" fill="black"/>
+<path d="M 271.213008 213.021138 C 275.076423 196.279675 278.939837 179.538211 282.803252 162.796748 290.530081 129.313821 296.709952 110.255901 301.342865 105.622989 303.659321 103.306532 305.975778 100.990076 308.292234 98.67362" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="303.017538,101.216469 309.847154,97.118699 305.749384,103.948316" fill="black"/>
 </g>
 <g id="s17">
-<path d="M 274.146 139.22 C 278.01 135.356 290.888 122.478 297.327 116.039 C 303.766 109.6 310.205 103.161 312.78 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="312.78,100.585 308.683,107.415 305.951,104.683" fill="black"/>
+<path d="M 271.213008 135.752846 C 275.076423 131.889431 278.939837 128.026016 282.803252 124.162602 290.530081 116.435772 296.709952 110.255901 301.342865 105.622989 303.659321 103.306532 305.975778 100.990076 308.292234 98.67362" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="303.017538,101.216469 309.847154,97.118699 305.749384,103.948316" fill="black"/>
 </g>
 <g id="s18">
-<polyline points="274.146,81.268 312.78,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="312.78,81.268 305.054,83.2 305.054,79.337" fill="black"/>
+<line x1="271.213008" y1="77.801626" x2="307.648165" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="302.120325,75.869919 309.847154,77.801626 302.120325,79.733333" fill="black"/>
 </g>
 <g id="s19">
-<polyline points="370.732,81.268 409.366,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,81.268 401.639,83.2 401.639,79.337" fill="black"/>
+<line x1="367.798374" y1="77.801626" x2="404.233531" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="398.705691,75.869919 406.43252,77.801626 398.705691,79.733333" fill="black"/>
 </g>
 <g id="s20">
-<rect x="409.366" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="438.341" y="81.268" text-anchor="middle" dominant-baseline="central">split0</text>
+<rect x="406.43252" y="58.484553" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="435.40813" y="82.641626" text-anchor="middle">split0</text>
 </g>
 <g id="s21">
 </g>
 <g id="s22">
 </g>
 <g id="s23">
-<rect x="409.366" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="438.341" y="158.537" text-anchor="middle" dominant-baseline="central">split1</text>
+<rect x="406.43252" y="135.752846" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="435.40813" y="159.909919" text-anchor="middle">split1</text>
 </g>
 <g id="s24">
 </g>
 <g id="s25">
 </g>
 <g id="s26">
-<rect x="409.366" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="438.341" y="235.805" text-anchor="middle" dominant-baseline="central">split2</text>
+<rect x="406.43252" y="213.021138" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="435.40813" y="237.178211" text-anchor="middle">split2</text>
 </g>
 <g id="s27">
-<path d="M 370.732 100.585 C 374.595 117.327 387.473 181.717 393.912 201.034 C 400.351 220.351 406.79 213.912 409.366 216.488" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,216.488 402.536,212.39 405.268,209.658" fill="black"/>
+<path d="M 367.798374 97.118699 C 371.661789 113.860163 375.525203 130.601626 379.388618 147.343089 387.115447 180.826016 393.295318 199.883936 397.928231 204.516849 400.244687 206.833305 402.561143 209.149761 404.8776 211.466218" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="402.33475,206.191521 406.43252,213.021138 399.602904,208.923368" fill="black"/>
 </g>
 <g id="s28">
-<path d="M 370.732 100.585 C 374.595 104.449 387.473 117.327 393.912 123.766 C 400.351 130.205 406.79 136.644 409.366 139.22" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,139.22 402.536,135.122 405.268,132.39" fill="black"/>
+<path d="M 367.798374 97.118699 C 371.661789 100.982114 375.525203 104.845528 379.388618 108.708943 387.115447 116.435772 393.295318 122.615643 397.928231 127.248556 400.244687 129.565012 402.561143 131.881469 404.8776 134.197925" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="402.33475,128.923229 406.43252,135.752846 399.602904,131.655075" fill="black"/>
 </g>
 <g id="s29">
-<polyline points="370.732,81.268 409.366,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,81.268 401.639,83.2 401.639,79.337" fill="black"/>
+<line x1="367.798374" y1="77.801626" x2="404.233531" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="398.705691,75.869919 406.43252,77.801626 398.705691,79.733333" fill="black"/>
 </g>
 <g id="s30">
-<polyline points="274.146,235.805 409.366,235.805" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,235.805 401.639,237.737 401.639,233.873" fill="black"/>
+<line x1="271.213008" y1="232.338211" x2="404.233531" y2="232.338211" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="398.705691,230.406504 406.43252,232.338211 398.705691,234.269919" fill="black"/>
 </g>
 <g id="s31">
-<polyline points="274.146,158.537 409.366,158.537" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="409.366,158.537 401.639,160.468 401.639,156.605" fill="black"/>
+<line x1="271.213008" y1="155.069919" x2="404.233531" y2="155.069919" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="398.705691,153.138211 406.43252,155.069919 398.705691,157.001626" fill="black"/>
 </g>
 <g id="s32">
 </g>
 <g id="s33">
-<polyline points="245.171,61.951 245.171,42.634" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="242.237398" y1="58.484553" x2="242.237398" y2="39.16748" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s34">
-<path d="M 245.171 42.634 A 19.317 19.317 0 0 0 264.488 23.317" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 242.237398 39.16748 A 19.317073 19.317073 0 0 1 261.554472 19.850407" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s35">
 </g>
 <g id="s36">
-<polyline points="438.341,61.951 438.341,42.634" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="438.341,61.951 436.41,54.224 440.273,54.224" fill="black"/>
+<line x1="435.40813" y1="56.285563" x2="435.40813" y2="39.16748" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="437.339837,50.757724 435.40813,58.484553 433.476423,50.757724" fill="black"/>
 </g>
 <g id="s37">
-<path d="M 438.341 42.634 A 19.317 19.317 0 0 1 419.024 23.317" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 435.40813 39.16748 A 19.317073 19.317073 0 0 0 416.091057 19.850407" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s38">
-<polyline points="264.488,23.317 419.024,23.317" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="261.554472" y1="19.850407" x2="416.091057" y2="19.850407" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s39">
 </g>
 <g id="s40">
-<rect x="560.039" y="61.951" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="589.015" y="81.268" text-anchor="middle" dominant-baseline="central">merge0</text>
+<rect x="557.105691" y="58.484553" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="586.081301" y="82.641626" text-anchor="middle">merge0</text>
 </g>
 <g id="s41">
 </g>
 <g id="s42">
 </g>
 <g id="s43">
-<rect x="560.039" y="139.22" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="589.015" y="158.537" text-anchor="middle" dominant-baseline="central">merge1</text>
+<rect x="557.105691" y="135.752846" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="586.081301" y="159.909919" text-anchor="middle">merge1</text>
 </g>
 <g id="s44">
 </g>
 <g id="s45">
 </g>
 <g id="s46">
-<rect x="560.039" y="216.488" width="57.951" height="38.634" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="589.015" y="235.805" text-anchor="middle" dominant-baseline="central">merge2</text>
+<rect x="557.105691" y="213.021138" width="57.95122" height="38.634146" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="586.081301" y="237.178211" text-anchor="middle">merge2</text>
 </g>
 <g id="s47">
-<polyline points="467.317,235.805 560.039,235.805" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,235.805 552.312,237.737 552.312,233.873" fill="black"/>
+<line x1="464.38374" y1="232.338211" x2="554.906701" y2="232.338211" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="549.378862,230.406504 557.105691,232.338211 549.378862,234.269919" fill="black"/>
 </g>
 <g id="s48">
-<path d="M 467.317 177.854 C 480.195 181.717 529.132 194.595 544.585 201.034 C 560.039 207.473 557.463 213.912 560.039 216.488" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,216.488 553.209,212.39 555.941,209.658" fill="black"/>
+<path d="M 464.38374 174.386992 C 477.261789 178.250407 490.139837 182.113821 503.017886 185.977236 528.773984 193.704065 543.968489 199.883936 548.601402 204.516849 550.917858 206.833305 553.234314 209.149761 555.550771 211.466218" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="553.007921,206.191521 557.105691,213.021138 550.276074,208.923368" fill="black"/>
 </g>
 <g id="s49">
-<path d="M 467.317 100.585 C 480.195 117.327 529.132 181.717 544.585 201.034 C 560.039 220.351 557.463 213.912 560.039 216.488" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,216.488 553.209,212.39 555.941,209.658" fill="black"/>
+<path d="M 464.38374 97.118699 C 477.261789 113.860163 490.139837 130.601626 503.017886 147.343089 528.773984 180.826016 543.968489 199.883936 548.601402 204.516849 550.917858 206.833305 553.234314 209.149761 555.550771 211.466218" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="553.007921,206.191521 557.105691,213.021138 550.276074,208.923368" fill="black"/>
 </g>
 <g id="s50">
-<path d="M 467.317 216.488 C 480.195 212.624 529.132 199.746 544.585 193.307 C 560.039 186.868 557.463 180.429 560.039 177.854" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,177.854 555.941,184.683 553.209,181.951" fill="black"/>
+<path d="M 464.38374 213.021138 C 477.261789 209.157724 490.139837 205.294309 503.017886 201.430894 528.773984 193.704065 543.968489 187.524194 548.601402 182.891281 550.917858 180.574825 553.234314 178.258369 555.550771 175.941912" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="550.276074,178.484762 557.105691,174.386992 553.007921,181.216609" fill="black"/>
 </g>
 <g id="s51">
-<polyline points="467.317,158.537 560.039,158.537" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,158.537 552.312,160.468 552.312,156.605" fill="black"/>
+<line x1="464.38374" y1="155.069919" x2="554.906701" y2="155.069919" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="549.378862,153.138211 557.105691,155.069919 549.378862,157.001626" fill="black"/>
 </g>
 <g id="s52">
-<path d="M 467.317 100.585 C 480.195 104.449 529.132 117.327 544.585 123.766 C 560.039 130.205 557.463 136.644 560.039 139.22" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,139.22 553.209,135.122 555.941,132.39" fill="black"/>
+<path d="M 464.38374 97.118699 C 477.261789 100.982114 490.139837 104.845528 503.017886 108.708943 528.773984 116.435772 543.968489 122.615643 548.601402 127.248556 550.917858 129.565012 553.234314 131.881469 555.550771 134.197925" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="553.007921,128.923229 557.105691,135.752846 550.276074,131.655075" fill="black"/>
 </g>
 <g id="s53">
-<path d="M 467.317 216.488 C 480.195 199.746 529.132 135.356 544.585 116.039 C 560.039 96.722 557.463 103.161 560.039 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,100.585 555.941,107.415 553.209,104.683" fill="black"/>
+<path d="M 464.38374 213.021138 C 477.261789 196.279675 490.139837 179.538211 503.017886 162.796748 528.773984 129.313821 543.968489 110.255901 548.601402 105.622989 550.917858 103.306532 553.234314 100.990076 555.550771 98.67362" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="550.276074,101.216469 557.105691,97.118699 553.007921,103.948316" fill="black"/>
 </g>
 <g id="s54">
-<path d="M 467.317 139.22 C 480.195 135.356 529.132 122.478 544.585 116.039 C 560.039 109.6 557.463 103.161 560.039 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,100.585 555.941,107.415 553.209,104.683" fill="black"/>
+<path d="M 464.38374 135.752846 C 477.261789 131.889431 490.139837 128.026016 503.017886 124.162602 528.773984 116.435772 543.968489 110.255901 548.601402 105.622989 550.917858 103.306532 553.234314 100.990076 555.550771 98.67362" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="550.276074,101.216469 557.105691,97.118699 553.007921,103.948316" fill="black"/>
 </g>
 <g id="s55">
-<polyline points="467.317,81.268 560.039,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="560.039,81.268 552.312,83.2 552.312,79.337" fill="black"/>
+<line x1="464.38374" y1="77.801626" x2="554.906701" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="549.378862,75.869919 557.105691,77.801626 549.378862,79.733333" fill="black"/>
 </g>
 <g id="s56">
 </g>
 <g id="s57">
-<ellipse cx="700.088" cy="81.268" rx="43.463" ry="19.317" fill="rgb(179,179,179)" stroke="black" stroke-width="1.067"/>
-<text x="700.088" y="81.268" text-anchor="middle" dominant-baseline="central">output</text>
+<ellipse cx="697.154472" cy="77.801626" rx="43.463415" ry="19.317073" fill="rgb(179,179,179)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="697.154472" y="82.641626" text-anchor="middle">output</text>
 </g>
 <g id="s58">
-<path d="M 617.99 216.488 C 621.854 199.746 634.732 135.356 641.171 116.039 C 647.61 96.722 654.049 103.161 656.624 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="656.624,100.585 652.527,107.415 649.795,104.683" fill="black"/>
+<path d="M 615.056911 213.021138 C 621.042015 195.336702 627.02712 177.652265 633.012224 159.967828 644.982433 124.598955 653.283994 104.598062 657.916907 99.965149 660.233363 97.648693 662.549819 95.332236 664.866276 93.01578" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="659.59158,95.558629 666.421196,91.460859 662.323426,98.290476" fill="black"/>
 </g>
 <g id="s59">
-<path d="M 617.99 139.22 C 621.854 135.356 634.732 122.478 641.171 116.039 C 647.61 109.6 654.049 103.161 656.624 100.585" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="656.624,100.585 652.527,107.415 649.795,104.683" fill="black"/>
+<path d="M 615.056911 135.752846 C 621.042015 130.946458 627.02712 126.14007 633.012224 121.333682 644.982433 111.720906 653.283994 104.598062 657.916907 99.965149 660.233363 97.648693 662.549819 95.332236 664.866276 93.01578" fill="none" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="659.59158,95.558629 666.421196,91.460859 662.323426,98.290476" fill="black"/>
 </g>
 <g id="s60">
-<polyline points="617.99,81.268 656.624,81.268" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="656.624,81.268 648.898,83.2 648.898,79.337" fill="black"/>
+<line x1="615.056911" y1="77.801626" x2="651.492067" y2="77.801626" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="645.964228,75.869919 653.691057,77.801626 645.964228,79.733333" fill="black"/>
 </g>
 <g id="s61">
 </g>
 <g id="s62">
-<polyline points="134.098,61.951 134.098,23.317" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="131.164228" y1="58.484553" x2="131.164228" y2="19.850407" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s63">
-<path d="M 134.098 23.317 A 19.317 19.317 0 0 0 153.415 4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 131.164228 19.850407 A 19.317073 19.317073 0 0 1 150.481301 0.533333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s64">
 </g>
 <g id="s65">
-<polyline points="700.088,61.951 700.088,23.317" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="700.088,61.951 698.156,54.224 702.02,54.224" fill="black"/>
+<line x1="697.154472" y1="56.285563" x2="697.154472" y2="19.850407" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="699.086179,50.757724 697.154472,58.484553 695.222764,50.757724" fill="black"/>
 </g>
 <g id="s66">
-<path d="M 700.088 23.317 A 19.317 19.317 0 0 1 680.771 4" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 697.154472 19.850407 A 19.317073 19.317073 0 0 0 677.837398 0.533333" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s67">
-<polyline points="153.415,4 680.771,4" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="150.481301" y1="0.533333" x2="677.837398" y2="0.533333" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

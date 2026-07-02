@@ -1,28 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="416" height="152" viewBox="0 0 416 152" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="390.111688" height="147.2" viewBox="0 0 390.111688 147.2" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<ellipse cx="40" cy="76" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="37.066667" cy="86.592208" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<ellipse cx="112" cy="124" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="87.978355" cy="120.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
 </g>
 <g id="s3">
-<circle cx="316" cy="28" r="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="316" y="28" text-anchor="middle" dominant-baseline="central">a</text>
+<circle cx="291.978355" cy="24.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="291.978355" y="29.373333" text-anchor="middle">a</text>
 </g>
 <g id="s4">
-<circle cx="244" cy="124" r="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="244" y="124" text-anchor="middle" dominant-baseline="central">b</text>
+<circle cx="219.978355" cy="120.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="219.978355" y="125.373333" text-anchor="middle">b</text>
 </g>
 <g id="s5">
-<circle cx="388" cy="124" r="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="388" y="124" text-anchor="middle" dominant-baseline="central">c</text>
+<circle cx="363.978355" cy="120.533333" r="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="363.978355" y="125.373333" text-anchor="middle">c</text>
 </g>
 <g id="s6">
-<polyline points="301.6,47.2 258.4,104.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="277.578355" y1="43.733333" x2="234.378355" y2="101.333333" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<polyline points="330.4,47.2 373.6,104.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="306.378355" y1="43.733333" x2="349.578355" y2="101.333333" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>
