@@ -33,40 +33,47 @@ lets class lines cluster at the end of a picture like a theme block.
 The picture below carries only classes — every color, the hover reaction
 and the **pulse** come from this page's CSS:
 
+The same vocabulary as above — `storage`, `dataflow`, `critical` — plus
+`pulse`, now with this page's CSS actually loaded:
+
 <div class="class-demo">
 <PicExample code={`.PS
-box "ok" wid 0.6 ht 0.45 class "node"
-move right 0.35
-box "ok" wid 0.6 ht 0.45 class "node"
-move right 0.35
-box "ALERT" wid 0.7 ht 0.45 class "node pulse"
-arrow from 1st box.e to 2nd box.w class "flow"
-arrow from 2nd box.e to 3rd box.w class "flow"
+W: box "web" wid 0.6 ht 0.45
+D: circle "db" rad 0.28 at W + (1.25, 0)
+A: box "ALERT" wid 0.7 ht 0.45 at D + (1.35, 0)
+arrow from W.e to D.w class "dataflow"
+arrow from D.e to A.w class "dataflow"
+class W "storage"
+class D "storage"
+class A "critical pulse"
 .PE`} />
 </div>
 
 <style>{`
-  .class-demo .node rect { fill: #f0fdf4; stroke: #166534; transition: all .15s ease; cursor: pointer; }
-  .class-demo .node:hover rect { fill: #166534; }
-  .class-demo .node:hover text { fill: #f0fdf4; }
-  .class-demo .flow polyline, .class-demo .flow line { stroke: #0f766e; stroke-width: 1.6px; }
-  .class-demo .flow polygon { fill: #0f766e; stroke: #0f766e; }
-  @keyframes rpic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-  .class-demo .pulse rect { fill: #fef2f2; stroke: #b91c1c; animation: rpic-pulse 1.2s infinite; }
-  .class-demo .pulse text { fill: #b91c1c; font-weight: 600; }
+  .class-demo .storage rect, .class-demo .storage circle { fill: #f0fdf4; stroke: #166534; transition: all .15s ease; cursor: pointer; }
+  .class-demo .storage:hover rect, .class-demo .storage:hover circle { fill: #166534; }
+  .class-demo .storage:hover text { fill: #f0fdf4; }
+  .class-demo .dataflow polyline, .class-demo .dataflow line { stroke: #0f766e; stroke-width: 1.6px; stroke-dasharray: 6 3; }
+  .class-demo .dataflow polygon { fill: #0f766e; stroke: #0f766e; }
+  .class-demo .critical rect { fill: #fef2f2; stroke: #b91c1c; stroke-width: 2px; }
+  .class-demo .critical text { fill: #b91c1c; font-weight: 600; }
+  @keyframes rpic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .class-demo .pulse rect { animation: rpic-pulse 1.2s infinite; }
 `}</style>
 
-Hover the boxes; the ALERT one pulses via a CSS `@keyframes` targeting
-`.pulse`. In PNG/PDF (or any page without this CSS) the same picture is
-plain black-and-white — the hook is inert.
+Hover `web` and `db`; the `dataflow` arrows go dashed teal; `ALERT` is
+`critical` **and** `pulse` — classes compose like anywhere in CSS. In
+PNG/PDF (or any page without this CSS) the same picture renders plain —
+the hook is inert.
 
 ## Rules
 
 - **Inert by itself**: without host CSS, SVG/PNG/PDF output is visually
   identical. In the embedding page:
   ```css
-  .critical rect { stroke: #c0392b; stroke-width: 2.5px; }
-  .dataflow    { stroke-dasharray: 6 3; }
+  .critical rect { stroke: #b91c1c; stroke-width: 2px; }
+  .storage rect  { fill: #f0fdf4; }
+  .dataflow      { stroke-dasharray: 6 3; }
   ```
 - Names are validated (`[A-Za-z_][A-Za-z0-9_-]*`, space-separated) — no
   injection surface. Multiple applications append: `class="a b"`.
