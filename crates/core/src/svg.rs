@@ -738,6 +738,29 @@ impl Svg {
                 };
             let baseline_y = y + (line.valign as f64) * just_offset;
             let p = self.p(Point::new(x, baseline_y));
+            // rpic `texlabels` extension: a typeset math line is embedded as a
+            // nested self-contained <svg> fragment (glyph paths), aligned to
+            // the same baseline and anchor the plain <text> would use.
+            if let Some(m) = &line.math {
+                let w = m.width * PPI;
+                let x_left = match anchor {
+                    "start" => p.x,
+                    "end" => p.x - w,
+                    _ => p.x - w / 2.0,
+                };
+                let y_top = p.y - m.height * PPI;
+                let frag = m.svg.replacen(
+                    "<svg ",
+                    &format!("<svg x=\"{}\" y=\"{}\" ", num(x_left), num(y_top)),
+                    1,
+                );
+                self.out.push_str(&frag);
+                if !frag.ends_with('\n') {
+                    self.out.push('\n');
+                }
+                y -= lineskip;
+                continue;
+            }
             let text_stroke = if standalone {
                 format!("stroke-width=\"{}\"", num(0.2 * PPI / 72.0))
             } else {
@@ -1616,6 +1639,31 @@ mod tests {
         let s = svg("circle fill 0");
         assert!(s.contains("<circle"));
         assert!(s.contains("rgb(0,0,0)"));
+    }
+
+    #[test]
+    fn texlabels_embeds_math_fragment_at_the_baseline_anchor() {
+        crate::math::set_math_renderer(|tex, font_pt| {
+            let em = font_pt / 72.0;
+            Ok(crate::math::MathSpan {
+                svg: format!("<svg width=\"19.2\" height=\"14.08\"><!--{tex}--></svg>"),
+                width: 1.0 * em,
+                height: 0.7 * em,
+                depth: 0.2 * em,
+            })
+        });
+
+        let s = svg("texlabels = 1\nbox \"$x$\" wid 1 ht 1");
+        // the fragment is embedded as a nested <svg> with injected x/y
+        assert!(s.contains("<svg x=\""), "{s}");
+        assert!(s.contains("<!--x-->"), "{s}");
+        // no literal `$x$` text element is emitted for the math line
+        assert!(!s.contains(">$x$<"), "{s}");
+
+        // classic output is untouched: no nested svg without texlabels
+        let plain = svg("box \"$x$\" wid 1 ht 1");
+        assert!(!plain.contains("<svg x=\""), "{plain}");
+        assert!(plain.contains(">$x$<"), "{plain}");
     }
 
     #[test]

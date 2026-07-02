@@ -17,6 +17,9 @@ const EMBEDDED_FONT: &[u8] = include_bytes!("../fonts/Go-Regular.ttf");
 /// The bundled font's internal family name.
 const EMBEDDED_FONT_FAMILY: &str = "Go";
 
+#[cfg(feature = "math")]
+pub mod math;
+
 /// Rasterize an SVG string to PNG bytes at the given scale (1.0 = 96 dpi, the
 /// SVG's native resolution).
 pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
@@ -109,6 +112,35 @@ mod tests {
         let flat = to_png(FLAT, 1.0).unwrap();
         assert_ne!(grad, flat);
         assert_eq!(&to_pdf(GRAD).unwrap()[..4], b"%PDF");
+    }
+
+    #[cfg(feature = "math")]
+    #[test]
+    fn texlabels_math_renders_through_png_and_pdf() {
+        // Full pipeline: RaTeX-typeset label -> nested SVG fragment ->
+        // rasterized by resvg / converted by svg2pdf. Pins that the exact
+        // markup the extension emits stays backend-stable.
+        rpic_core::set_math_renderer(math::render_math);
+        let src = "texlabels = 1\nbox \"$-\\\\frac{T}{2}$\" wid 1 ht 0.7";
+        let d = rpic_core::compile(src).unwrap();
+        let svg = rpic_core::to_svg(&d);
+        assert!(svg.contains("<svg x=\""), "{svg}");
+        assert!(!svg.contains("frac"), "raw TeX must not leak: {svg}");
+
+        let png = to_png(&svg, 2.0).unwrap();
+        assert_eq!(&png[..4], &[0x89, 0x50, 0x4E, 0x47]);
+        // the math glyphs must actually paint: materially larger than the
+        // same box with no label at all
+        let blank_d = rpic_core::compile("box wid 1 ht 0.7").unwrap();
+        let blank = to_png(&rpic_core::to_svg(&blank_d), 2.0).unwrap();
+        assert!(
+            png.len() > blank.len(),
+            "png {} <= blank {}",
+            png.len(),
+            blank.len()
+        );
+
+        assert_eq!(&to_pdf(&svg).unwrap()[..4], b"%PDF");
     }
 
     #[test]

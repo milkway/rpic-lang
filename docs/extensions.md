@@ -222,6 +222,50 @@ behavior because those backends are rendered from rpic's SVG.
 
 Additional runnable examples are in `examples/opacity.pic`.
 
+## TeX Math Labels
+
+`texlabels` is an rpic-only extension that typesets label strings written as
+inline TeX math. It is off by default; classic input — including the corpus
+`$G(s)$`-style labels that dpic's SVG mode also prints literally — is
+untouched unless the author opts in:
+
+```pic
+.PS
+texlabels = 1
+box "$-\frac{T}{2}$"
+circle "$\beta$"
+line right "$F_1(\omega)$" above
+.PE
+```
+
+Rules:
+
+- Only label strings **fully delimited** as `$…$` (after trimming spaces) are
+  typeset; everything else renders as plain text exactly as before. A string
+  with interior `$` characters is left alone.
+- Rendering is a pure library call (RaTeX, a Rust port of KaTeX) — no
+  process execution, so the #129 raw-backend policy is not implicated.
+  KaTeX-grade coverage: fractions, radicals, sub/superscripts, operators,
+  Greek, `\mathbb`, matrices, and so on.
+- The formula becomes a self-contained group of glyph paths in the SVG
+  (KaTeX fonts embedded as outlines), so PNG/PDF rasterize it identically
+  with no font installed — and the label uses **exact metrics**
+  (width/height/depth from the layout engine), so bboxes, anchors, `fit`,
+  and baseline alignment are more precise than the classic estimate.
+- If a formula fails to parse, the label falls back to the literal text and
+  a `print`-style diagnostic is emitted — a bad formula never fails the
+  picture.
+- The wasm build ships without the math renderer (size budget): labels fall
+  back to literal there, with a diagnostic. Browser playgrounds can typeset
+  via host-page KaTeX instead (the class-hooks delegation pattern).
+
+The renderer sits behind a neutral hook in the core
+(`set_math_renderer`), so the backend is replaceable: **Typst + mitex is the
+documented alternative** should RaTeX ever stall — see the candidate matrix
+in [`docs/tex-labels.md`](tex-labels.md). dpic compatibility is unaffected:
+in the dpic ecosystem LaTeX typesets labels in the TeX backends, and dpic's
+own SVG mode prints `$…$` literally, exactly like rpic with `texlabels = 0`.
+
 ## Linear Gradients
 
 `gradient` is an rpic-only fill extension, inspired by PSTricks'

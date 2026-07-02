@@ -35,6 +35,8 @@ type ER<T> = Result<T, EvalError>;
 
 const DP_TEXT_RATIO: f64 = 0.66;
 const TEXT_EM: f64 = 11.0 / 72.0;
+/// Label font size in points, matching the SVG backend's `FONT_PT`.
+const FONT_PT_MATH: f64 = 11.0;
 const TEXT_CHAR_W: f64 = 0.6 * TEXT_EM;
 const TEXT_LINE_H: f64 = 1.2 * TEXT_EM;
 const TEXT_XHEIGHT: f64 = DP_TEXT_RATIO * TEXT_EM;
@@ -207,6 +209,7 @@ impl EnvVars {
             (Rightmargin, 0.0),
             (Bottommargin, 0.0),
             (Leftmargin, 0.0),
+            (Texlabels, 0.0),
         ];
         let mut v = HashMap::new();
         for (e, d) in defaults {
@@ -766,6 +769,36 @@ impl State {
             slot @ None => *slot = Some(name.to_string()),
         }
         Ok(())
+    }
+
+    /// rpic `texlabels` extension: typeset a fully `$…$`-delimited label as
+    /// math via the registered renderer. Any failure — extension off, no
+    /// renderer in this build, not fully delimited, or a TeX parse error —
+    /// falls back to the literal text (a parse error also leaves a
+    /// diagnostic). The picture itself never fails because of a math label.
+    fn math_span_for(&mut self, s: &str) -> Option<crate::math::MathSpan> {
+        if self.env.get(EnvVar::Texlabels) == 0.0 {
+            return None;
+        }
+        let t = s.trim();
+        let inner = t.strip_prefix('$')?.strip_suffix('$')?;
+        if inner.is_empty() || inner.contains('$') {
+            return None;
+        }
+        let Some(render) = crate::math::math_renderer() else {
+            self.diagnostics.push(format!(
+                "texlabels: no math renderer in this build; `{t}` kept literal"
+            ));
+            return None;
+        };
+        match render(inner, FONT_PT_MATH) {
+            Ok(span) => Some(span),
+            Err(e) => {
+                self.diagnostics
+                    .push(format!("texlabels: `{t}`: {e}; kept literal"));
+                None
+            }
+        }
     }
 
     fn scale_value(&self) -> ER<f64> {
@@ -2252,8 +2285,10 @@ impl State {
                 }
                 Attr::Text(se) => {
                     let s = self.eval_stringexpr(se)?;
+                    let math = self.math_span_for(&s);
                     lines.push(TextLine {
                         s,
+                        math,
                         halign: pending_halign,
                         valign: pending_valign,
                         text_offset: self.env_dim(EnvVar::Textoffset)?,
@@ -3112,6 +3147,15 @@ fn cubics_bbox(cubics: &[[Point; 4]]) -> Bbox {
     bb
 }
 
+/// Line advance width: exact metrics for typeset math, the classic
+/// 0.6 em/char estimate otherwise.
+fn text_line_width(line: &TextLine) -> f64 {
+    match &line.math {
+        Some(m) => m.width,
+        None => line.s.chars().count() as f64 * TEXT_CHAR_W,
+    }
+}
+
 fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
     let mut bb = Bbox::new();
     if !has_visible_text(lines) {
@@ -3122,7 +3166,7 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
         if line.s.is_empty() {
             continue;
         }
-        let w = line.s.chars().count() as f64 * TEXT_CHAR_W;
+        let w = text_line_width(line);
         let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * TEXT_LINE_H;
         let y = base_y + line.valign as f64 * (TEXT_XHEIGHT / 2.0 + line.text_offset);
         let x = center.x
@@ -3136,8 +3180,15 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
             1 => (x - w, x),
             _ => (x - w / 2.0, x + w / 2.0),
         };
-        bb.add(Point::new(min_x, y - TEXT_LINE_H / 2.0));
-        bb.add(Point::new(max_x, y + TEXT_LINE_H / 2.0));
+        let (up, down) = match &line.math {
+            Some(m) => (
+                (m.height + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
+                (m.depth + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
+            ),
+            None => (TEXT_LINE_H / 2.0, TEXT_LINE_H / 2.0),
+        };
+        bb.add(Point::new(min_x, y - down));
+        bb.add(Point::new(max_x, y + up));
     }
     bb
 }
@@ -5137,6 +5188,62 @@ box wid 0.1 ht 0.1 at B.s"#,
         };
         let g = style.gradient.as_ref().unwrap();
         assert_eq!((g.from.as_str(), g.to.as_str()), ("black", "white"));
+    }
+
+    fn fake_math(tex: &str, font_pt: f64) -> Result<crate::math::MathSpan, String> {
+        if tex.contains("boom") {
+            return Err("fake parse error".into());
+        }
+        let em = font_pt / 72.0;
+        Ok(crate::math::MathSpan {
+            svg: format!("<svg width=\"9.6\" height=\"14.08\"><!--{tex}--></svg>"),
+            width: 2.0 * em,
+            height: 0.8 * em,
+            depth: 0.2 * em,
+        })
+    }
+
+    #[test]
+    fn texlabels_routes_dollar_labels_through_the_math_hook() {
+        crate::math::set_math_renderer(fake_math);
+
+        // off by default: no math span even with a renderer registered
+        let d = draw("box \"$x$\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(text[0].math.is_none());
+
+        // on: fully $-delimited labels are typeset; others stay literal
+        let d = draw("texlabels = 1\nbox \"$x$\" \"plain\" \"$a$b$\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let m = text[0].math.as_ref().expect("math span");
+        assert!((m.width - 2.0 * 11.0 / 72.0).abs() < 1e-9);
+        assert!(text[0].s.contains("$x$")); // literal kept for fallback
+        assert!(text[1].math.is_none());
+        assert!(text[2].math.is_none()); // inner `$` disqualifies
+
+        // exact metrics drive the text bbox (2 em wide, not 3 chars * 0.6 em)
+        let d = draw("texlabels = 1\n\"$x$\" at (0,0)");
+        assert!(
+            (d.bbox.width() - 2.0 * 11.0 / 72.0).abs() < 0.02,
+            "{}",
+            d.bbox.width()
+        );
+
+        // renderer failure: literal fallback plus a diagnostic, never an error
+        let d = draw("texlabels = 1\nbox \"$boom$\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(text[0].math.is_none());
+        assert!(
+            d.diagnostics.iter().any(|l| l.contains("fake parse error")),
+            "{:?}",
+            d.diagnostics
+        );
     }
 
     #[test]

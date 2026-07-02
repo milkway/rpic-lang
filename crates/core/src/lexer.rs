@@ -708,6 +708,7 @@ fn word_keyword(w: &str) -> Token {
         "maxpsht" => EnvVar(self::EnvVar::Maxpsht),
         "maxpswid" => EnvVar(self::EnvVar::Maxpswid),
         "scale" => EnvVar(self::EnvVar::Scale),
+        "texlabels" => EnvVar(self::EnvVar::Texlabels),
         // identifier / label
         _ => {
             if w.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {

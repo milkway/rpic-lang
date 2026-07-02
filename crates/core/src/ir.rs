@@ -173,6 +173,9 @@ pub enum Arrowheads {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextLine {
     pub s: String,
+    /// rpic `texlabels` extension: when set, this line is a typeset math
+    /// formula and `s` keeps the original literal for fallback/diagnostics.
+    pub math: Option<crate::math::MathSpan>,
     /// horizontal: -1 = ljust, 0 = center, +1 = rjust.
     pub halign: i8,
     /// vertical: +1 = above, 0 = center, -1 = below.

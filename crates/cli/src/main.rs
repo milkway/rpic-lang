@@ -15,6 +15,8 @@ enum Mode {
 }
 
 fn main() -> ExitCode {
+    // rpic `texlabels` extension: wire the RaTeX math renderer into the core.
+    rpic_core::set_math_renderer(rpic_render::math::render_math);
     let args: Vec<String> = std::env::args().collect();
     let mut path: Option<String> = None;
     let mut out: Option<String> = None;
