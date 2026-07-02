@@ -70,13 +70,23 @@ arrow from M + (0, -0.45) to M "midpoint" ljust
 
 ## chop
 
-`chop` trims a line back to the boundary of the objects it connects — the
-classic way to join circles without the line poking inside.
+`chop` shortens a line by a **fixed length at each end** — it is not
+boundary-aware. Bare `chop` trims `circlerad` (default 0.25 in), which lands
+exactly on the boundary of default-sized circles; for anything else, say how
+much: `chop expr` for both ends, or `chop a chop b` for start and end.
 
 <PicExample code={`.PS
 A: circle "A" rad 0.3
 B: circle "B" rad 0.3 at A + (1.5, 0.5)
-line from A to B chop
+line from A to B chop 0.3
+.PE`} />
+
+With circles of different sizes, give each end its own amount:
+
+<PicExample code={`.PS
+A: circle "A" rad 0.2
+B: circle "B" rad 0.4 at A + (1.5, 0.5)
+line from A to B chop 0.2 chop 0.4
 .PE`} />
 
 ## Where to go next

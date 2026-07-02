@@ -116,7 +116,7 @@ Attributes read left to right; when two conflict, the later one wins.
 | `by` *position* | `by (0.5, 0.2)` | Step by a relative offset |
 | `then` | `right 1 then up 0.5` | Chain another segment |
 | `close` **(ext)** | `line right 1 then up 1 close` | Close the path into a polygon |
-| `chop` [*expr*] | `line from A to B chop` | Trim ends back to the objects' boundaries |
+| `chop` [*expr*] [`chop` *expr*] | `chop 0.3` · `chop 0.2 chop 0.4` | Trim a fixed length off each end (bare `chop` trims `circlerad`) |
 | `->` · `<-` · `<->` | `line -> right 1` | Arrowheads at end / start / both |
 | `cw` · `ccw` | `arc cw` | Arc direction |
 
