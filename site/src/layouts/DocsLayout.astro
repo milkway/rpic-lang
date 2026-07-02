@@ -3,6 +3,7 @@
 // right on-page TOC, dark mode via `.dark` class persisted in localStorage.
 import '../styles/global.css';
 import { nav } from '../components/nav';
+import logoSvg from '../assets/logo.svg?raw';
 
 interface Props {
   title: string;
@@ -22,6 +23,10 @@ const current = Astro.url.pathname.replace(/\/$/, '');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title} — rpic</title>
     <meta name="description" content={description} />
+    <meta property="og:title" content={`${title} — rpic`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://milkway.github.io/rpic-lang/og.png" />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
     <script is:inline>
       // apply saved theme before paint
@@ -34,9 +39,11 @@ const current = Astro.url.pathname.replace(/\/$/, '');
   <body class="bg-white dark:bg-slate-950 antialiased">
     <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur">
       <div class="max-w-7xl mx-auto flex items-center gap-4 px-4 sm:px-6 h-14">
-        <a href={`${base}/`} class="flex items-center gap-2 font-extrabold text-slate-900 dark:text-white">
-          <span class="inline-block w-6 h-6 rounded bg-gradient-to-br from-emerald-700 to-teal-700"></span>
-          rpic
+        <a href={`${base}/`} class="flex items-center gap-2">
+          <span class="inline-block h-7 [&_svg]:h-full [&_svg]:w-auto" set:html={logoSvg} />
+          <span class="text-lg leading-none">
+            <span class="brand-r text-emerald-950 dark:text-emerald-50">R</span><span class="brand-pic text-teal-700 dark:text-teal-300">PIC</span>
+          </span>
         </a>
         <div class="ml-auto flex items-center gap-4 text-sm">
           <a href={`${base}/`} class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">Home</a>

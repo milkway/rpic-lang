@@ -1,0 +1,24 @@
+# The rpic logo — drawn in rpic itself.
+#
+# A lowercase r annotated like an engineering blueprint: the stem and a
+# spline shoulder, the shoulder's generating circle (dashed, fitted at the
+# circumcenter of the curve: C = (0.04, 0.075), R = 0.16) with its center
+# mark, and a mute vertical dimension with proper drafting gaps.
+# Render: rpic --svg assets/logo.pic -o assets/logo.svg
+.PS
+margin = 0.02
+B: box wid 1 ht 1 rad 0.24 gradient "darkgreen" "seagreen" gradientangle 135 outlined "darkgreen" thick 1.5
+# o r (letterform original: haste + ombro em spline)
+line from B.c + (-0.13, -0.27) to B.c + (-0.13, 0.24) thick 9 outlined "honeydew"
+spline from B.c + (-0.13, 0.06) to B.c + (-0.09, 0.20) to B.c + (0.06, 0.26) to B.c + (0.17, 0.18) thick 9 outlined "honeydew"
+# círculo de construção ajustado à curvatura real do ombro
+# (circuncentro de 3 pontos amostrados do spline: C=(0.04,0.075), R=0.16)
+circle rad 0.16 at B.c + (0.04, 0.075) dashed 0.028 thick 1.1 outlined "gold"
+line from B.c + (0.005, 0.075) to B.c + (0.075, 0.075) thick 1.1 outlined "gold"
+line from B.c + (0.04, 0.04) to B.c + (0.04, 0.11) thick 1.1 outlined "gold"
+# cota vertical muda
+arrowht = 0.05; arrowwid = 0.04
+line from B.c + (-0.22, -0.27) to B.c + (-0.35, -0.27) thick 0.9 outlined "gold"
+line from B.c + (-0.22, 0.24) to B.c + (-0.35, 0.24) thick 0.9 outlined "gold"
+line <- -> from B.c + (-0.31, -0.27) to B.c + (-0.31, 0.24) thick 0.9 outlined "gold"
+.PE

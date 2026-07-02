@@ -1,8 +1,13 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="rpic logo — a lowercase r annotated like an engineering blueprint, drawn in rpic itself" width="110">
+</p>
+
 <h1 align="center">rpic</h1>
 
 <p align="center">
   <strong>A modern reimplementation of the <a href="https://en.wikipedia.org/wiki/Pic_language">pic</a> picture-drawing language in Rust —<br>
-  SVG / PNG / PDF output, GSAP animation, and a native circuit-element library.</strong>
+  SVG / PNG / PDF output, GSAP animation, and a native circuit-element library.</strong><br>
+  <sub>Even the logo is a pic program: <a href="assets/logo.pic">assets/logo.pic</a>, rendered by rpic.</sub>
 </p>
 
 <p align="center">
