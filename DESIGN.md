@@ -47,6 +47,11 @@ hooks and linear gradients are adopted as explicit extensions, named styles are
 the existing `define` macro idiom, and raw CSS from `.pic` sources is rejected
 under the same policy that keeps `command` text out of the output.
 
+TeX math in labels is evaluated in [`docs/tex-labels.md`](docs/tex-labels.md):
+not a dpic parity gap (dpic's SVG mode is also literal), adopted as the opt-in
+`texlabels` extension rendered natively by RaTeX (pure-Rust KaTeX port) with
+exact metrics; JS engines and mandatory TeX installations are rejected.
+
 ## Goals
 
 1. **Preserve Kernighan's pic paradigm.** The language stays declarative and
