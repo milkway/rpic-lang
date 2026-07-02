@@ -23,9 +23,12 @@ dropping primitives" paradigm, relative placement, compass corners,
 ordinals, blocks, macros. rpic treats the original papers as the semantic
 north star and changes nothing about classic meaning.
 
-**gpic (groff).** The most widespread pic today, and how most people first
-meet the language. rpic sources that stay classic run under gpic and vice
-versa, minus each side's extensions.
+**gpic (groff).** GNU's C++ reimplementation (1990s) and the most
+widespread pic today — how most people first meet the language, targeting
+groff and TeX. Feature-wise it tracks classic PIC (macros, `for`/`if`,
+global variables, math typeset by groff), which is why it sits out of the
+table: read the PIC column and add small groff-isms. Classic rpic sources
+run under gpic and vice versa, minus each side's extensions.
 
 **dpic (Aplevich).** The modern reference implementation with the richest
 backend set, and the engine behind circuit_macros. When documents are terse,
