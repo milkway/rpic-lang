@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-capi"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -866,7 +866,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -874,11 +874,11 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.3.0"
+version = "0.4.0"
 
 [[package]]
 name = "rpic-render"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "ratex-layout",
  "ratex-parser",

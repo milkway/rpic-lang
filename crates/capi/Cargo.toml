@@ -14,5 +14,5 @@ name = "rpic"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-rpic-core = { version = "0.3.0", path = "../core" }
-rpic-render = { version = "0.3.0", path = "../render" }
+rpic-core = { version = "0.4.0", path = "../core" }
+rpic-render = { version = "0.4.0", path = "../render" }

@@ -25,7 +25,7 @@ math = [
 [dependencies]
 resvg = "0.47.0"
 svg2pdf = "0.13.0"
-rpic-core = { version = "0.3.0", path = "../core", optional = true }
+rpic-core = { version = "0.4.0", path = "../core", optional = true }
 ratex-parser = { version = "0.1.12", optional = true }
 ratex-layout = { version = "0.1.12", optional = true }
 ratex-svg = { version = "0.1.12", features = ["standalone", "embed-fonts"], optional = true }

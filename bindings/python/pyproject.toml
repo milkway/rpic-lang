@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 # Distribution name on PyPI is `rpiclang` (the module you `import` is still `rpic`).
 name = "rpiclang"
-version = "0.3.0"
+version = "0.4.0"
 description = "Python bindings for rpic — the pic graphics language → SVG/PNG/PDF with animation."
 authors = [{ name = "André Leite", email = "leite@de.ufpe.br" }]
 license = { text = "BSD-2-Clause" }
