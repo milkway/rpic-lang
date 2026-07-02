@@ -1815,6 +1815,10 @@ impl Parser {
                 self.bump();
                 Attr::BracePos(self.parse_expr()?)
             }
+            Token::Name(n) if allow_brace && n == "labeloffset" => {
+                self.bump();
+                Attr::BraceLabelOffset(self.parse_expr()?)
+            }
             Token::Name(n) if n == "behind" => {
                 self.bump();
                 Attr::Behind(self.parse_place()?)
@@ -2586,7 +2590,9 @@ ellipse "typesetter"
 
     #[test]
     fn brace_parses_as_contextual_extension_object() {
-        let p = pic("A: box\nB: box\nbrace from A.e to B.w down \"group\" wid .2 bracepos .4");
+        let p = pic(
+            "A: box\nB: box\nbrace from A.e to B.w down \"group\" wid .2 bracepos .4 labeloffset .1",
+        );
         let Stmt::Object { object, .. } = &p.stmts[2] else {
             panic!()
         };
@@ -2601,6 +2607,12 @@ ellipse "typesetter"
         );
         assert!(object.attrs.iter().any(|a| matches!(a, Attr::Text(_))));
         assert!(object.attrs.iter().any(|a| matches!(a, Attr::BracePos(_))));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::BraceLabelOffset(_)))
+        );
 
         let p = pic("brace = 2\nline right brace");
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
