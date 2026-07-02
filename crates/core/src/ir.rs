@@ -101,6 +101,8 @@ pub struct Style {
     pub stroke: Option<String>,
     pub fill: Option<Fill>,
     pub hatch: Option<Hatch>,
+    /// Fill opacity, applied only to filled or hatched regions.
+    pub fill_opacity: Option<f64>,
     /// Whether open paths/splines/arcs should emit a filled area. `color` on an
     /// open object only changes the stroke; `fill` and `shaded` fill.
     pub fill_open: bool,
@@ -128,6 +130,7 @@ impl Default for Style {
             stroke: None,
             fill: None,
             hatch: None,
+            fill_opacity: None,
             fill_open: false,
             dash: Dash::Solid,
             thick: None,

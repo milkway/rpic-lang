@@ -1575,6 +1575,9 @@ impl State {
 
     fn text_obj(&mut self, obj: &Object) -> ER<usize> {
         let text = self.text_of(obj)?;
+        if obj.attrs.iter().any(|a| matches!(a, Attr::Opacity(_))) {
+            return err("opacity applies only to filled regions");
+        }
         let dir = self.dir_of(obj);
         let w = self
             .dim(obj, DimKind::Wid)?
@@ -1621,6 +1624,7 @@ impl State {
 
     fn block(&mut self, stmts: &[Stmt], obj: &Object) -> ER<usize> {
         let block_text = self.text_of(obj)?;
+        let block_fill_opacity = self.style_of(obj)?.fill_opacity;
         // Evaluate the block in a local scope at its own origin. Labels from
         // the containing scope are visible for references such as `$1.start`
         // inside macro-generated blocks, but are not captured as new members.
@@ -1681,6 +1685,9 @@ impl State {
             self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
         for (mut sh, layer) in sub.shapes.into_iter().zip(sub.shape_layers) {
             translate_shape(&mut sh, shift);
+            if let Some(opacity) = block_fill_opacity {
+                multiply_shape_fill_opacity(&mut sh, opacity);
+            }
             self.push_shape(sh, layer + layer_shift);
         }
         let shape = if self.shapes.len() > first_shape {
@@ -2075,6 +2082,13 @@ impl State {
                     let name = self.eval_color_expr(se)?;
                     ensure_hatch(&mut s).color = name;
                     s.fill_open = true;
+                }
+                Attr::Opacity(e) => {
+                    let opacity = self.eval_expr(e)?;
+                    if !(0.0..=1.0).contains(&opacity) {
+                        return err("opacity must be between 0 and 1");
+                    }
+                    s.fill_opacity = Some(opacity);
                 }
                 Attr::Dim(DimKind::Thick, e) => s.thick = Some(self.eval_expr(e)?),
                 Attr::Arrowhead(_, Some(e)) => {
@@ -3389,6 +3403,21 @@ fn scale_style(style: &mut Style, f: f64) {
     }
 }
 
+fn multiply_shape_fill_opacity(sh: &mut Shape, opacity: f64) {
+    match sh {
+        Shape::Box { style, .. }
+        | Shape::Circle { style, .. }
+        | Shape::Ellipse { style, .. }
+        | Shape::Path { style, .. }
+        | Shape::Spline { style, .. }
+        | Shape::Arc { style, .. }
+        | Shape::Brace { style, .. } => {
+            style.fill_opacity = Some(style.fill_opacity.unwrap_or(1.0) * opacity);
+        }
+        Shape::Text { .. } => {}
+    }
+}
+
 /// Uniformly scale a shape's geometry about the origin (font size unchanged).
 fn scale_shape(sh: &mut Shape, f: f64) {
     match sh {
@@ -4353,6 +4382,42 @@ mod tests {
         assert!((hatch.width - 1.5).abs() < 1e-9);
         assert_eq!(hatch.color, "red");
         assert!(style.fill_open);
+    }
+
+    #[test]
+    fn opacity_style_records_fill_opacity() {
+        let d = draw("box fill .8 opacity .4");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill_opacity, Some(0.4));
+    }
+
+    #[test]
+    fn block_opacity_multiplies_child_fill_opacity() {
+        let d = draw("[ box opacity .5; circle ] opacity .5");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill_opacity, Some(0.25));
+        let Shape::Circle { style, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert_eq!(style.fill_opacity, Some(0.5));
+    }
+
+    #[test]
+    fn opacity_must_be_between_zero_and_one() {
+        let err = eval(&parse("box opacity 1.1").unwrap()).unwrap_err();
+        assert!(err.msg.contains("opacity"), "{}", err.msg);
+        let err = eval(&parse("box opacity -0.1").unwrap()).unwrap_err();
+        assert!(err.msg.contains("opacity"), "{}", err.msg);
+    }
+
+    #[test]
+    fn standalone_text_rejects_opacity() {
+        let err = eval(&parse("\"note\" opacity .5").unwrap()).unwrap_err();
+        assert!(err.msg.contains("filled regions"), "{}", err.msg);
     }
 
     #[test]

@@ -1,0 +1,23 @@
+.PS
+boxwid = 0.95
+boxht = 0.58
+
+A: box fill 0.85 "opaque"
+move right 0.75
+B: box fill 0.45 opacity 0.55 "fill" "0.55"
+move right 0.75
+C: circle diam 0.62 shaded "gold" outlined "black" opacity 0.35 "circle"
+
+move down 0.95
+move left 2.2
+line right 0.95 then up 0.55 then left 0.95 then down 0.55 \
+  crosshatch hatchsep 0.05 hatchcolor red opacity 0.45
+"hatched path" at last line.start + (0.475,0.275)
+
+move right 1.55
+box shaded "orange" outlined "blue" opacity 0.4 "shaded"
+
+move right 1.35
+D: [ box fill 0.6 opacity 0.5 "inner" ] opacity 0.5
+"block" at D.n + (0,0.12)
+.PE

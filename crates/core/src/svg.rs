@@ -190,9 +190,10 @@ impl Svg {
                         if style.fill_open {
                             let fill = self.fill_attr(style);
                             self.out.push_str(&format!(
-                                "<polyline points=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
+                                "<polyline points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
                                 pstr.join(" "),
-                                fill
+                                fill,
+                                fill_opacity_attr(style)
                             ));
                         }
                         if !style.invis {
@@ -227,8 +228,10 @@ impl Svg {
                         let d = self.spline_path(pts, *tension);
                         let fill = self.fill_attr(style);
                         self.out.push_str(&format!(
-                            "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
-                            d, fill
+                            "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                            d,
+                            fill,
+                            fill_opacity_attr(style)
                         ));
                     }
                     if !style.invis {
@@ -263,8 +266,10 @@ impl Svg {
                     let d = self.arc_path(start0, end0, *r, arc_angle0);
                     let fill = self.fill_attr(style);
                     self.out.push_str(&format!(
-                        "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
-                        d, fill
+                        "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                        d,
+                        fill,
+                        fill_opacity_attr(style)
                     ));
                 }
                 if !style.invis {
@@ -407,10 +412,11 @@ impl Svg {
     /// stroke + fill for closed shapes.
     fn paint(&mut self, style: &Style) -> String {
         let fill = self.fill_attr(style);
+        let fill_opacity = fill_opacity_attr(style);
         if style.invis {
-            return format!("fill=\"{}\" stroke=\"none\"", fill);
+            return format!("fill=\"{}\"{} stroke=\"none\"", fill, fill_opacity);
         }
-        format!("fill=\"{}\" {}", fill, self.stroke(style))
+        format!("fill=\"{}\"{} {}", fill, fill_opacity, self.stroke(style))
     }
 
     fn fill_attr(&mut self, style: &Style) -> String {
@@ -807,6 +813,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             w,
             h,
             standalone,
+            ..
         } => {
             if *standalone {
                 out.union(&standalone_text_bounds(*at, text, *w, *h));
@@ -1142,6 +1149,16 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
 
 fn closed_shape_is_visible(style: &Style) -> bool {
     !style.invis || style.fill.is_some() || style.hatch.is_some()
+}
+
+fn fill_opacity_attr(style: &Style) -> String {
+    if style.fill.is_none() && style.hatch.is_none() {
+        return String::new();
+    }
+    match style.fill_opacity {
+        Some(opacity) => format!(" fill-opacity=\"{}\"", num(opacity)),
+        None => String::new(),
+    }
 }
 
 fn open_fill_is_visible(style: &Style) -> bool {
@@ -1534,6 +1551,24 @@ mod tests {
         assert!(s.contains("fill=\"rgb(230,230,230)\""), "{s}");
         assert!(s.contains("stroke=\"red\""), "{s}");
         assert!(s.contains("fill=\"url(#hatch0)\""), "{s}");
+    }
+
+    #[test]
+    fn opacity_emits_as_fill_opacity_only() {
+        let s = svg("box \"label\" fill 0.8 opacity .4");
+        assert!(s.contains("<g id=\"s0\">"), "{s}");
+        assert!(s.contains("fill-opacity=\"0.4\""), "{s}");
+        assert!(!s.contains(" opacity=\"0.4\""), "{s}");
+        assert!(s.contains(">label</text>"), "{s}");
+    }
+
+    #[test]
+    fn opacity_applies_to_open_path_fill_not_stroke_or_text() {
+        let s = svg("line right then up then left then down fill 0.8 opacity .5 \"area\"");
+        assert!(s.contains("fill-opacity=\"0.5\""), "{s}");
+        assert!(s.contains("fill=\"none\" stroke=\"black\""), "{s}");
+        assert!(!s.contains("stroke-opacity"), "{s}");
+        assert!(s.contains(">area</text>"), "{s}");
     }
 
     #[test]

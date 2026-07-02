@@ -190,6 +190,8 @@ pub enum Attr {
     HatchWidth(Expr),
     /// rpic extension: hatch line color.
     HatchColor(StringExpr),
+    /// rpic extension: fill opacity, 0 = transparent and 1 = opaque.
+    Opacity(Expr),
     TextPos(TextPos),
     From(Position),
     To(Position),
