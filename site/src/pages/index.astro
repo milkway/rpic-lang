@@ -33,7 +33,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   </div>
 
   <div class="grid md:grid-cols-2 gap-6 items-stretch mb-16">
-    <div class="min-w-0">
+    <div class="min-w-0 h-full [&_pre]:h-full">
       <Code code={heroSrc} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
     </div>
     <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-100 grid place-items-center p-6"
