@@ -1270,12 +1270,14 @@ impl Parser {
                 Kw::Define | Kw::Undef => {
                     return self.err("only the `define name { body }` macro form is supported");
                 }
-                // `command`/`sh` emit raw backend text or run a shell; neither
-                // affects SVG geometry. The lexer already skipped their raw
-                // argument text while preserving structural delimiters.
+                // Policy (docs/raw-backend-policy in dpic-compat-audit.md):
+                // `command` raw backend text is never injected into the SVG
+                // output, and `sh` is never executed — both are tolerated as
+                // true no-ops so dpic sources keep compiling. The lexer already
+                // skipped their raw argument text.
                 Kw::Command | Kw::Sh => {
                     self.bump();
-                    return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
+                    return Ok(Stmt::Group(Vec::new()));
                 }
                 Kw::Copy => {
                     return self.err("`copy` is not supported yet (planned milestone)");

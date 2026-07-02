@@ -5014,6 +5014,21 @@ box wid 0.1 ht 0.1 at B.s"#,
     }
 
     #[test]
+    fn command_and_sh_are_silent_noops() {
+        // Policy (#129): `command` raw backend text is never injected and `sh`
+        // is never executed. Both are tolerated so dpic sources keep
+        // compiling, and they emit no diagnostic lines and no shapes.
+        let d = draw("box wid 1 ht 1\nsh \"echo hi\"\ncommand \"</g>\"\nbox wid 1 ht 1");
+        assert!(d.diagnostics.is_empty(), "{:?}", d.diagnostics);
+        assert_eq!(d.shapes.len(), 2);
+
+        // Geometry flows across the skipped directives unchanged: the second
+        // box lands exactly where it would without them.
+        let plain = draw("box wid 1 ht 1\nbox wid 1 ht 1");
+        assert_eq!(d.bbox, plain.bbox);
+    }
+
+    #[test]
     fn open_object_width_height_attrs_are_arrowhead_dimensions() {
         let d = draw("arrowwid = 0.2; arrowht = 0.3\nA: line right 2\nbox wid (A.wid) ht (A.ht)");
         assert_box_size(&d.shapes[1], 0.2, 0.3);
