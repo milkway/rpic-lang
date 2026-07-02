@@ -5,6 +5,7 @@
 import initWasm, {
   compile as wasmCompile,
   compile_circuits as wasmCompileCircuits,
+  compile_with as wasmCompileWith,
 } from './pkg/rpic_wasm.js';
 
 let initPromise = null;
@@ -35,11 +36,15 @@ function ensure() {
 /**
  * Compile pic source into `{ svg, animations, diagnostics }` (throws on a pic error).
  * @param {string} src
- * @param {{circuits?: boolean}} [opts]
+ * @param {{circuits?: boolean, texlabels?: boolean}} [opts]
  */
 export function compile(src, opts = {}) {
   ensure();
-  const json = opts.circuits ? wasmCompileCircuits(src) : wasmCompile(src);
+  const json = opts.texlabels
+    ? wasmCompileWith(src, !!opts.circuits, true)
+    : opts.circuits
+      ? wasmCompileCircuits(src)
+      : wasmCompile(src);
   const out = JSON.parse(json);
   if (out.error) throw new Error(out.error);
   return out;

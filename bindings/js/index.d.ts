@@ -18,6 +18,13 @@ export interface Bundle {
 export interface CompileOptions {
   /** prepend the native circuit-element library (resistor, and_gate, …) */
   circuits?: boolean;
+  /**
+   * set `texlabels = 1`, typesetting fully `$…$`-delimited labels as TeX
+   * math. The default wasm build ships without the math renderer (size
+   * budget), so labels fall back to literal text plus a diagnostic; the
+   * option exists for API parity and future math-enabled builds.
+   */
+  texlabels?: boolean;
 }
 
 /**

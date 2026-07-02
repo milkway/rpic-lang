@@ -23,12 +23,14 @@ fn main() -> ExitCode {
     let mut scale: f32 = 1.0;
     let mut mode = Mode::Svg;
     let mut circuits = false;
+    let mut texlabels = false;
 
     let mut i = 1;
     while i < args.len() {
         let a = &args[i];
         match a.as_str() {
             "-c" | "--circuits" => circuits = true,
+            "-t" | "--texlabels" => texlabels = true,
             "--svg" => mode = Mode::Svg,
             "--png" => mode = Mode::Png,
             "--pdf" => mode = Mode::Pdf,
@@ -82,6 +84,14 @@ fn main() -> ExitCode {
 
     let src = if circuits {
         format!("{}\n{}", rpic_core::CIRCUITS, src)
+    } else {
+        src
+    };
+    // Convenience initializer, like `-c`: sets the initial value of the
+    // `texlabels` variable so classic sources render math without edits.
+    // The source stays sovereign — a later `texlabels = 0` wins.
+    let src = if texlabels {
+        format!("texlabels = 1\n{}", src)
     } else {
         src
     };
@@ -181,6 +191,7 @@ fn print_help() {
          --tokens    dump the token stream\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library\n    \
+     -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
          -o, --output FILE   write to FILE (default: stdout)\n    \
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
          -h, --help          show this help\n"
