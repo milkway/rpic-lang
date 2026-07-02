@@ -2,6 +2,18 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: "Alfa Slab One";
+  src: url("../assets/fonts/alfa-slab-one.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* brand wordmark: R in Alfa Slab, PIC in heavier sans with matched cap height */
+.brand-r { font-family: "Alfa Slab One", serif; font-weight: 300; letter-spacing: 1px; }
+.brand-pic { font-weight: 600; font-size: 1.045em; letter-spacing: 0.04em; }
+
 :root {
   --forest: #1b5e20;
   --forest-soft: #2e7d32;
