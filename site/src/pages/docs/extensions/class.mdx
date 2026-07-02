@@ -1,0 +1,51 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: class
+description: CSS hooks on SVG shape groups — rpic extension for host-page styling.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# class
+
+**rpic extension.** `class` attaches CSS class names to the SVG group
+already emitted for each shape (`<g id="sN" class="…">`). It changes
+nothing in rpic's own rendering — styling happens in the **host document**
+that embeds the SVG, the same delegation contract as
+[`animate`](/docs/extensions/animate).
+
+Two forms write to the same hook:
+
+<PicExample code={`.PS
+box "payment" fit class "critical"     # inline, at creation
+
+A: circle "cache" rad 0.3 at last box + (1.3, 0)
+line right 0.6 from A.e
+class A "storage"                      # statement: by label
+class last line "dataflow"             # statement: by ordinal
+.PE`} />
+
+The statement form uses pic's native references — labels and ordinals —
+so it also reaches shapes drawn **inside macros** (circuit elements!), and
+lets class lines cluster at the end of a picture like a theme block.
+
+## Rules
+
+- **Inert by itself**: without host CSS, SVG/PNG/PDF output is visually
+  identical. In the embedding page:
+  ```css
+  .critical rect { stroke: #c0392b; stroke-width: 2.5px; }
+  .dataflow    { stroke-dasharray: 6 3; }
+  ```
+- Names are validated (`[A-Za-z_][A-Za-z0-9_-]*`, space-separated) — no
+  injection surface. Multiple applications append: `class="a b"`.
+- The internal `s<N>` ids stay untouched — they remain the animation
+  targets.
+- Resolution happens at the statement's point in the program (like
+  `animate`); reassigning a label later doesn't move the class.
+- Host CSS reaches **inline-embedded** SVG; an `<img src>` reference
+  isolates the document.
+- Motion from host CSS (hover, transitions) can escape the canvas — unclip
+  with `svg { overflow: visible }` host-side, or reserve room with
+  [`margin`](/docs/extensions/margin) when the picture itself animates.
+
+Design notes: [docs/svg-styles.md](https://github.com/milkway/rpic-lang/blob/main/docs/svg-styles.md).

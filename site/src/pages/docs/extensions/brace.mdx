@@ -1,0 +1,46 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: brace
+description: Curly-brace annotations for spans — rpic extension inspired by PSTricks.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# brace
+
+**rpic extension, inspired by PSTricks' `\psbrace`.** `brace` is a native
+object that annotates the span between two points with a curly brace and
+an optional label on its cusp.
+
+<PicExample code={`.PS
+A: box "parse" fit
+move right 0.4
+B: box "render" fit
+brace from A.nw + (0,0.12) to B.ne + (0,0.12) up "pipeline"
+.PE`} />
+
+## Attributes
+
+| Syntax | Example | Meaning |
+|---|---|---|
+| `from` / `to` | `from A.sw to B.se` | the annotated span |
+| `up` `down` `left` `right` | `down` | which side the brace opens toward |
+| `wid` *expr* | `wid 0.25` | brace depth (default 0.18) |
+| `bracepos` *expr* | `bracepos 0.3` | cusp position along the span, 0–1 (default 0.5) |
+| `labeloffset` *expr* | `labeloffset 0.1` | extra gap between cusp and label |
+
+Ordinary line styling applies — `thick`, `dashed`, `outlined`, `invis`:
+
+<PicExample code={`.PS
+box wid 1.6 ht 0.5 "three phases"
+brace from last box.sw to last box.se down "setup" wid 0.15 bracepos 0.2 outlined "seagreen" thick 1.6
+.PE`} />
+
+## Rules
+
+- `brace` is contextual — `brace = 1` stays an ordinary assignment.
+- `last brace.start/.end` anchor like other open objects; `.c` resolves to
+  the cusp.
+- Leave whitespace between brace and content with plain coordinate
+  arithmetic (`from A.nw + (0, gap)`), as in the first example.
+
+Design notes: [docs/pstricks.md](https://github.com/milkway/rpic-lang/blob/main/docs/pstricks.md).

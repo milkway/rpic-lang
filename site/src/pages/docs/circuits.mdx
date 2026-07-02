@@ -1,0 +1,82 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Circuit library
+description: 79 native circuit elements — a from-scratch re-imagining of circuit_macros.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Circuit library
+
+`rpic -c` loads a native library of **79 circuit elements** — a
+from-scratch re-imagining of Dwight Aplevich's celebrated
+[circuit_macros](https://gitlab.com/aplevich/circuit_macros), written in
+pure pic (no m4). Two-terminal elements take two points; centered devices
+take one and expose their terminals as variables.
+
+<PicExample circuits code={`.PS
+SW:(0,0); NW:(0,1.2); NE:(2.4,1.2); SE:(2.4,0)
+battery(SW,NW); resistor(NW,NE); capacitor(NE,SE); inductor(SE,SW)
+dot(NW); dot(NE); dot(SE); dot(SW)
+.PE`} />
+
+## Two-terminal elements
+
+`resistor`, `capacitor`, `inductor`, `battery`, `diode`, `led`, `fuse`,
+`switch`, sources, meters… — each draws between two named points, wiring
+included:
+
+<PicExample circuits code={`.PS
+A:(0,0); B:(1.3,0); C:(2.6,0)
+resistor(A,B); "R" at 0.5 between A and B + (0, 0.28)
+diode(B,C);   "D" at 0.5 between B and C + (0, 0.28)
+.PE`} />
+
+## Logic gates
+
+Distinctive and IEEE styles; gates take a center point and export their
+terminals (`gA_x/gA_y`, `gB_…`, `gY_…`) as variables:
+
+<PicExample circuits code={`.PS
+P:(0.5,0); and_gate(P)
+Q:(1.9,0); nand_gate(Q)
+R:(3.3,0); xor_gate(R)
+"AND" at (0.5,-0.55); "NAND" at (1.9,-0.55); "XOR" at (3.3,-0.55)
+.PE`} />
+
+## Multi-terminal devices
+
+Transistors, op-amps and gates take a center point and export their
+terminals as variables (`gBase_*`, `gColl_*`, `gEmit_*`, `gA_*`, `gY_*`…):
+
+<PicExample circuits code={`.PS
+margin = 0.08
+npn((0,0))
+line left 0.3 from (gBase_x, gBase_y); "B" rjust at last line.end - (0.04, 0)
+line up 0.25 from (gColl_x, gColl_y); "C" above at last line.end
+line down 0.25 from (gEmit_x, gEmit_y); "E" below at last line.end
+.PE`} />
+
+The circuit_macros compatibility shim goes further and wraps devices as
+[blocks](/docs/blocks) exposing pins as labels (`Q1.B`, `Q1.C`, `Q1.E`) —
+reading [its source](https://github.com/milkway/rpic-lang/blob/main/examples/figuras/circuit_macros.pic)
+is a masterclass in block composition.
+
+## With texlabels
+
+Circuit figures traditionally carry math labels — combine with
+[`texlabels`](/docs/extensions/texlabels):
+
+<PicExample circuits code={String.raw`.PS
+texlabels = 1; margin = 0.08
+A:(0,0); B:(1.4,0)
+resistor(A,B)
+"$R_1$" at 0.5 between A and B + (0, 0.3)
+"$v_{in}$" at A - (0.25, 0)
+.PE`} />
+
+The full element list lives in the
+[library source](https://github.com/milkway/rpic-lang/blob/main/crates/core/src/std/circuits.pic);
+the [gallery of 48 circuit_macros figures](https://github.com/milkway/rpic-lang/tree/main/examples/figuras)
+shows it at full power. There is also a small
+[3D projection library](https://github.com/milkway/rpic-lang/tree/main/examples/lib3d)
+(`setview`/`Project`) for axonometric drawings.

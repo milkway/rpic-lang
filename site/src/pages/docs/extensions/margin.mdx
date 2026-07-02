@@ -1,0 +1,45 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: margin
+description: Canvas whitespace around the drawing — rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# margin
+
+**rpic extension, inspired by Pikchr.** The `margin` variables add
+whitespace around the rendered canvas without moving a single object —
+geometry, anchors, ordinals and the current point are untouched.
+
+<PicExample code={`.PS
+margin = 0.25
+box "breathing room" fit
+.PE`} />
+
+## The variables
+
+| Variable | Effect |
+|---|---|
+| `margin` | all four sides |
+| `topmargin` `rightmargin` `bottommargin` `leftmargin` | one side, **added** to `margin` |
+
+Side values are additive, so this pads everywhere except the left:
+
+<PicExample code={`.PS
+margin = 0.2
+leftmargin = -0.2
+box "asymmetric" fit
+.PE`} />
+
+## Rules
+
+- Margins are pic dimensions: they follow `scale`, `.PS` width sizing and
+  `maxpswid`/`maxpsht` clamping like visible geometry.
+- They affect **only the native SVG/PNG/PDF canvas framing** — never
+  layout. With all margins 0 (the default), output is byte-for-byte
+  classic.
+- The practical use: give labels near the canvas edge headroom (text
+  metrics are estimates, in rpic as in dpic), or reserve space for
+  [animations](/docs/extensions/animate) that overshoot.
+
+Design notes: [docs/pikchr.md](https://github.com/milkway/rpic-lang/blob/main/docs/pikchr.md).

@@ -1,0 +1,45 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: close
+description: Close a multi-segment line into a polygon — rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# close
+
+**rpic extension, inspired by Pikchr.** `close` turns a multi-segment
+`line` into a polygon: rpic appends the closing segment and renders a true
+SVG `<polygon>` — fillable like any closed shape.
+
+<PicExample code={`.PS
+line right 1 then up 0.7 close shaded "gold" outlined "darkgreen"
+"triangle" at (0.5, -0.22)
+line from (1.5, 0) right 0.7 then up 0.7 then left 0.7 close crosshatch hatchsep 0.06
+"square" at (1.85, -0.22)
+.PE`} />
+
+Note the second polygon starts with an explicit `from`: after `close`, the
+current point returns to the polygon's **first point** (as if the closing
+segment walked back), so chaining with bare `move` would overlap.
+
+## Rules
+
+- At least **three vertices** must exist before `close`; fewer is an error.
+- `close` ends the route — `then`, `to`, `by` or a direction after it is
+  an error ("polygon is closed").
+- `.end` and the current point become the first point, as if the final
+  segment explicitly returned there; `.c` and attached labels use the
+  polygon's bounding-box center.
+- All fill machinery applies: `shaded`, `fill`,
+  [`hatch`](/docs/extensions/hatch), [`gradient`](/docs/extensions/gradient),
+  [`opacity`](/docs/extensions/opacity).
+
+dpic has no `close` (it reads it as a variable), so for byte-compatible
+classic sources, close the path the classic way instead:
+
+<PicExample code={`.PS
+A: (0,0); B: (1,0); C: (0.5,0.7)
+line from A to B then to C then to A shaded "honeydew"
+.PE`} />
+
+Design notes: [docs/dpic-compat-audit.md](https://github.com/milkway/rpic-lang/blob/main/docs/dpic-compat-audit.md).

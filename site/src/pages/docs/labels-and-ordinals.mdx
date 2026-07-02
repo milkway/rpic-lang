@@ -47,17 +47,20 @@ filters by kind. This is exactly dpic's behavior.
 use: stash a junction point while walking a wire, then branch from it later —
 
 <PicExample code={`.PS
+define dot { circle rad 0.035 fill 0 at $1 }
 box "in" wid 0.55 ht 0.4
 line right 0.4
 H: Here                # stash the junction
 arrow right 0.4
 box "out" wid 0.55 ht 0.4
-circle rad 0.035 fill 0 at H
+dot(H)
 line -> from H down 0.5 then right 0.4
 box "log" wid 0.55 ht 0.4
 .PE`} />
 
-The filled dot marks exactly the point `H` remembered.
+The dot marks exactly the point `H` remembered. (`dot(…)` isn't core pic —
+the example *defines its own vocabulary* with a one-line macro, the pic way;
+the circuit library ships one, and a native `dot` is under consideration.)
 
 ## Anchors on references
 

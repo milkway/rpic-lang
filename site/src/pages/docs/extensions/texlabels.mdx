@@ -1,0 +1,58 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: texlabels
+description: KaTeX-grade TeX math in labels, rendered natively — rpic extension.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# texlabels
+
+**rpic extension.** With `texlabels = 1`, any label string fully delimited
+as `$…$` is typeset as inline TeX math — natively, by a pure-Rust engine
+(RaTeX, a KaTeX port). No LaTeX installation, no JavaScript, no fonts to
+install.
+
+<PicExample code={String.raw`.PS
+texlabels = 1; margin = 0.1
+  arrow "$u$" above
+S: circle rad 10/72.27
+  line right 0.35
+G: box "$G(s)$" wid 1 ht 0.55
+  arrow "$y$" above
+  line -> down G.ht from last arrow then left last arrow.c.x - S.x then to S.s
+  "$-\;$" below rjust
+.PE`} />
+
+Coverage is KaTeX-grade — fractions, radicals, operators with limits,
+Greek, `\mathbb`, matrices:
+
+<PicExample code={String.raw`.PS
+texlabels = 1
+box "$-\frac{T}{2}$" fit
+move right 0.25
+box "$\sqrt{2}\,V\sin(\omega t)$" fit
+move right 0.25
+box "$\displaystyle\sum_{n=1}^{\infty}\frac{1}{n^2}=\frac{\pi^2}{6}$" fit
+.PE`} />
+
+## Rules
+
+- **Off by default.** With `texlabels = 0`, `$…$` prints literally —
+  exactly what dpic's SVG mode does, so classic sources are untouched.
+- Only strings **fully delimited** by `$…$` (after trimming spaces) are
+  typeset; anything else, including interior `$`, stays literal text.
+- Metrics are **exact** (width, height, depth from the layout engine) —
+  bboxes, anchors, [`fit`](/docs/extensions/fit) and baseline alignment
+  are more precise than the classic estimates.
+- A formula that fails to parse falls back to the literal label plus a
+  diagnostic; a bad formula never fails the picture.
+- Activation can also come from the invocation, source staying sovereign:
+  `rpic -t`, Python `render_svg(src, texlabels=True)`,
+  JS `compile(src, { texlabels: true })`.
+- The default WASM build ships without the math engine (size budget) —
+  labels fall back to literal there.
+
+The dpic ecosystem typesets labels through LaTeX in its TeX backends;
+`texlabels` brings that quality to rpic's native SVG/PNG/PDF. Design and
+the full candidate study:
+[docs/tex-labels.md](https://github.com/milkway/rpic-lang/blob/main/docs/tex-labels.md).

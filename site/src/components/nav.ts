@@ -30,11 +30,23 @@ export const nav: NavSection[] = [
   },
   {
     label: 'rpic extensions',
-    items: [],
+    items: [
+      { title: 'margin', href: '/docs/extensions/margin' },
+      { title: 'fit', href: '/docs/extensions/fit' },
+      { title: 'behind', href: '/docs/extensions/behind' },
+      { title: 'close', href: '/docs/extensions/close' },
+      { title: 'brace', href: '/docs/extensions/brace' },
+      { title: 'hatch', href: '/docs/extensions/hatch' },
+      { title: 'opacity', href: '/docs/extensions/opacity' },
+      { title: 'gradient', href: '/docs/extensions/gradient' },
+      { title: 'class', href: '/docs/extensions/class' },
+      { title: 'texlabels', href: '/docs/extensions/texlabels' },
+      { title: 'animate', href: '/docs/extensions/animate' },
+    ],
   },
   {
     label: 'Circuit library',
-    items: [],
+    items: [{ title: 'Overview', href: '/docs/circuits' }],
   },
   {
     label: 'Bindings',

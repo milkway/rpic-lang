@@ -1,0 +1,43 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: gradient
+description: Two-stop linear gradient fills — rpic extension inspired by PSTricks.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# gradient
+
+**rpic extension, inspired by PSTricks' `fillstyle=gradient`.**
+`gradient "from" "to"` fills a shape with a two-stop linear gradient;
+`gradientangle` sets the direction in pic coordinates — 0 runs left to
+right, 90 bottom to top (the same frame as `hatchangle`).
+
+<PicExample code={`.PS
+box "0°" wid 0.8 ht 0.55 gradient "steelblue" "white"
+move right 0.25
+box "45°" wid 0.8 ht 0.55 gradient "steelblue" "white" gradientangle 45
+move right 0.25
+box "90°" wid 0.8 ht 0.55 gradient "steelblue" "white" gradientangle 90
+.PE`} />
+
+## Rules
+
+- The gradient follows each shape's **own bounding box**, so the same
+  attribute works on boxes, circles, ellipses and
+  [`close`](/docs/extensions/close) polygons:
+
+<PicExample code={`.PS
+circle rad 0.35 gradient "gold" "orangered" gradientangle 90
+move right 0.35
+line right 0.9 then up 0.65 close gradient "plum" "indigo" gradientangle 90 outlined "black"
+.PE`} />
+
+- `gradient` takes the fill slot (wins over `fill`/`shaded`); under
+  [`hatch`](/docs/extensions/hatch) it becomes the pattern background;
+  [`opacity`](/docs/extensions/opacity) applies to the result.
+- Colors use the same grammar as `shaded` — quoted or bare names.
+- Deferred by design: multi-stop lists, radial gradients, per-stop opacity.
+- Rendered as native SVG `<linearGradient>` — PNG/PDF rasterize
+  identically offline.
+
+Design notes: [docs/svg-styles.md](https://github.com/milkway/rpic-lang/blob/main/docs/svg-styles.md).

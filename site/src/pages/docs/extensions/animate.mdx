@@ -1,0 +1,62 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: animate
+description: Declarative GSAP animations on drawing objects — rpic extension.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# animate
+
+**rpic extension.** `animate` declares how objects enter the drawing —
+as metadata. The static SVG is untouched except for its stable per-shape
+ids (`s0`, `s1`, …); a thin web player drives a GSAP timeline against
+those ids.
+
+<PicExample code={`.PS
+B1: box "load" fit
+arrow
+B2: box "run" fit
+arrow
+C: circle "done" rad 0.3
+animate B1 with "pop" for 0.4
+animate 1st arrow with "draw"
+animate B2 with "pop" after 1st arrow
+animate 2nd arrow with "draw"
+animate C with "fade" for 0.8
+.PE`} />
+
+The picture above is the *static* render — the animation plays wherever
+the JSON manifest meets GSAP (the playground, or your page).
+
+## Syntax
+
+| Syntax | Example | Meaning |
+|---|---|---|
+| `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object |
+| `for` *expr* | `for 0.4` | duration in seconds |
+| `after` *place* | `after 1st arrow` | start when that object's animation ends |
+| `at` *expr* | `at 1.5` | start at an absolute time |
+
+Effects: `fade`, `pop`, `draw` (paths draw themselves). Without a timing
+clause, animations run in declaration order.
+
+## Consuming the manifest
+
+`rpic_core::compile_json` (and the JS/Python bindings) return
+`{ svg, animations, diagnostics }`; the JS package ships the player:
+
+```js
+import { ready, compile, animate } from '@strategicprojects/rpic';
+await ready();
+const { svg, animations } = compile(src);
+stage.innerHTML = svg;
+animate(stage, animations, gsap);
+```
+
+## Rules
+
+- Metadata only — PNG/PDF and plain SVG consumers are unaffected.
+- Targets use pic's native references (labels, ordinals), like
+  [`class`](/docs/extensions/class); both ride the same stable `s<N>` ids.
+- Pop/draw overshoot can escape the canvas — reserve room with
+  [`margin`](/docs/extensions/margin).

@@ -1,0 +1,37 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: fit
+description: Size a closed object to its text — rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# fit
+
+**rpic extension, inspired by Pikchr.** `fit` sizes a `box`, `ellipse` or
+`circle` to the text already attached to it — no more guessing `wid`.
+
+<PicExample code={`.PS
+box "short" fit
+move
+box "a considerably longer label" fit
+move
+ellipse "two" "lines" fit
+.PE`} />
+
+## Rules
+
+- Only text **before** `fit` contributes to the fitted size; later text
+  stays attached but doesn't resize.
+- Explicit dimensions win: `wid`/`ht` keep their values on boxes and
+  ellipses, `rad`/`diam` on circles.
+- Using `fit` with no preceding visible text is an error.
+- The metrics are rpic's text estimates — practical and backend-stable,
+  but approximate. With [`texlabels`](/docs/extensions/texlabels) math,
+  metrics are **exact**, so fitted math boxes are tight:
+
+<PicExample code={`.PS
+texlabels = 1
+box "$e^{j\\pi} + 1 = 0$" fit
+.PE`} />
+
+Classic input without `fit` keeps its dpic-compatible dimensions.
