@@ -43,17 +43,21 @@ filters by kind. This is exactly dpic's behavior.
 
 ## Here
 
-`Here` (capitalized, as in classic pic) is the current position — useful to
-stash a point mid-flow:
+`Here` (capitalized, as in classic pic) is the current position. The classic
+use: stash a junction point while walking a wire, then branch from it later —
 
 <PicExample code={`.PS
-box "a" wid 0.6
-arrow right 0.5
-H: Here
-box "b" wid 0.6
-line -> from H down 0.7 then right 0.35
-box "c" wid 0.6 ht 0.4
+box "in" wid 0.55 ht 0.4
+line right 0.4
+H: Here                # stash the junction
+arrow right 0.4
+box "out" wid 0.55 ht 0.4
+circle rad 0.035 fill 0 at H
+line -> from H down 0.5 then right 0.4
+box "log" wid 0.55 ht 0.4
 .PE`} />
+
+The filled dot marks exactly the point `H` remembered.
 
 ## Anchors on references
 
