@@ -11,8 +11,7 @@ const forestLight = JSON.parse(readFileSync('../tools/highlight/themes/rpic-fore
 const forestDark = JSON.parse(readFileSync('../tools/highlight/themes/rpic-forest-dark.json', 'utf8'));
 
 export default defineConfig({
-  site: 'https://milkway.github.io',
-  base: '/rpic-lang',
+  site: 'https://rpic.dev',
   integrations: [mdx()],
   vite: { plugins: [tailwindcss()] },
   markdown: {
