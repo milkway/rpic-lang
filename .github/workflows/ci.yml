@@ -9,6 +9,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  highlight-grammar:
+    name: highlight grammar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test rpic TextMate grammar (Shiki)
+        working-directory: tools/highlight
+        run: |
+          npm ci
+          npm test
+
   test:
     name: test (${{ matrix.os }})
     strategy:
