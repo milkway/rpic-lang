@@ -3,6 +3,7 @@ layout: ../../layouts/MdxLayout.astro
 title: The pic family
 description: How PIC, gpic, dpic, Pikchr and rpic relate — and where they differ.
 ---
+import PicFamilyTable from '../../components/PicFamilyTable.astro';
 
 # The pic family
 
@@ -13,18 +14,7 @@ modern, opt-in extensions.
 
 ## The implementations
 
-| | PIC | gpic | dpic | Pikchr | rpic |
-|---|---|---|---|---|---|
-| Author | Brian W. Kernighan | GNU / James Clark | J. D. Aplevich | D. Richard Hipp | milkway |
-| First release | 1981 | 1990s | 1990s– | 2020 | 2025 |
-| Implementation | C (troff preprocessor) | C++ (groff preprocessor) | C, standalone | C, library/CLI | Rust, library/CLI/WASM |
-| Primary output | troff | groff, TeX (`-t`) | TikZ/PGF, PSTricks, SVG, PDF, xfig, mfpic, … | SVG only | SVG, PNG, PDF natively |
-| Text/math in labels | typeset by troff/eqn | typeset by groff/TeX | passed through to LaTeX (SVG mode prints `$…$` literally) | plain SVG text | SVG text; `texlabels` (ext) typesets `$…$` natively, KaTeX-grade |
-| Macros & includes | `define`, `copy`, `sh` | same | same (`command` for raw backend text) | **removed** (security) | `define`/`copy` native; `sh`/`command` tolerated, never executed |
-| Control flow | `for`, `if` | `for`, `if` | `for`, `if` | **removed** | `for`, `if` |
-| Variable scoping | global | global | global | block-scoped for new-style vars | global (dpic semantics) |
-| Notable additions | — | small groff-isms | backend constants (`dpicopt`), string ops; powers circuit_macros | `fit`, `behind`, `chop` rework, margins, new object types, C-style comments | opt-in extensions: `margin`, `fit`, `behind`, `close`, `brace`, `hatch`, `gradient`, `opacity`, `class`, `texlabels`, `animate` |
-| Formal grammar doc | CSTR #116 | groff manual | dpic manual | [grammar.md](https://pikchr.org/home/doc/trunk/doc/grammar.md) | [Language spec](/docs/spec) |
+<PicFamilyTable />
 
 ## How rpic relates to each
 
