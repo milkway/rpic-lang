@@ -25,6 +25,7 @@ struct Svg {
     north: f64,
     pad: f64,
     margin: CanvasMargin,
+    next_pattern: usize,
 }
 
 impl Svg {
@@ -41,6 +42,7 @@ impl Svg {
             north,
             pad: d.prelude_thick.max(0.0) / 144.0,
             margin: d.canvas_margin,
+            next_pattern: 0,
         }
     }
 
@@ -114,8 +116,8 @@ impl Svg {
                     if *rad > 0.0 {
                         attrs.push_str(&format!(" rx=\"{}\"", num(rad * PPI)));
                     }
-                    self.out
-                        .push_str(&format!("<rect {} {}/>\n", attrs, self.paint(style)));
+                    let paint = self.paint(style);
+                    self.out.push_str(&format!("<rect {} {}/>\n", attrs, paint));
                 }
                 self.text(*c, text);
             }
@@ -124,12 +126,13 @@ impl Svg {
             } => {
                 if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
+                    let paint = self.paint(style);
                     self.out.push_str(&format!(
                         "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" {}/>\n",
                         num(cc.x),
                         num(cc.y),
                         num(r * PPI),
-                        self.paint(style)
+                        paint
                     ));
                 }
                 self.text(*c, text);
@@ -143,13 +146,14 @@ impl Svg {
             } => {
                 if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
+                    let paint = self.paint(style);
                     self.out.push_str(&format!(
                         "<ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" {}/>\n",
                         num(cc.x),
                         num(cc.y),
                         num(w / 2.0 * PPI),
                         num(h / 2.0 * PPI),
-                        self.paint(style)
+                        paint
                     ));
                 }
                 self.text(*c, text);
@@ -184,10 +188,11 @@ impl Svg {
                             })
                             .collect();
                         if style.fill_open {
+                            let fill = self.fill_attr(style);
                             self.out.push_str(&format!(
                                 "<polyline points=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
                                 pstr.join(" "),
-                                self.fill_value(style)
+                                fill
                             ));
                         }
                         if !style.invis {
@@ -220,10 +225,10 @@ impl Svg {
                 if pts.len() >= 2 {
                     if style.fill_open {
                         let d = self.spline_path(pts, *tension);
+                        let fill = self.fill_attr(style);
                         self.out.push_str(&format!(
                             "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
-                            d,
-                            self.fill_value(style)
+                            d, fill
                         ));
                     }
                     if !style.invis {
@@ -256,10 +261,10 @@ impl Svg {
                 let arc_angle0 = *a1 - *a0;
                 if style.fill_open {
                     let d = self.arc_path(start0, end0, *r, arc_angle0);
+                    let fill = self.fill_attr(style);
                     self.out.push_str(&format!(
                         "<path d=\"{}\" fill=\"{}\" stroke-width=\"0\" stroke=\"black\"/>\n",
-                        d,
-                        self.fill_value(style)
+                        d, fill
                     ));
                 }
                 if !style.invis {
@@ -400,12 +405,19 @@ impl Svg {
     }
 
     /// stroke + fill for closed shapes.
-    fn paint(&self, style: &Style) -> String {
-        let fill = self.fill_value(style);
+    fn paint(&mut self, style: &Style) -> String {
+        let fill = self.fill_attr(style);
         if style.invis {
             return format!("fill=\"{}\" stroke=\"none\"", fill);
         }
         format!("fill=\"{}\" {}", fill, self.stroke(style))
+    }
+
+    fn fill_attr(&mut self, style: &Style) -> String {
+        match &style.hatch {
+            Some(hatch) => format!("url(#{})", self.define_hatch_pattern(style, hatch)),
+            None => self.fill_value(style),
+        }
     }
 
     fn fill_value(&self, style: &Style) -> String {
@@ -417,6 +429,48 @@ impl Svg {
             }
             Some(Fill::Color(c)) => attr(c),
         }
+    }
+
+    fn define_hatch_pattern(&mut self, style: &Style, hatch: &Hatch) -> String {
+        let id = format!("hatch{}", self.next_pattern);
+        self.next_pattern += 1;
+        let sep = positive_extent(hatch.sep * PPI).max(1.0);
+        let width = (hatch.width.max(0.0) * PPI / 72.0).max(0.0);
+        let color = attr(&hatch.color);
+        let bg = self.fill_value(style);
+        self.out.push_str(&format!(
+            "<defs><pattern id=\"{}\" patternUnits=\"userSpaceOnUse\" width=\"{}\" height=\"{}\" patternTransform=\"rotate({})\">\n",
+            id,
+            num(sep),
+            num(sep),
+            num(-hatch.angle)
+        ));
+        if bg != "none" {
+            self.out.push_str(&format!(
+                "<rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\" fill=\"{}\"/>\n",
+                num(sep),
+                num(sep),
+                bg
+            ));
+        }
+        self.out.push_str(&format!(
+            "<line x1=\"{}\" y1=\"0\" x2=\"{}\" y2=\"0\" stroke=\"{}\" stroke-width=\"{}\"/>\n",
+            num(-sep),
+            num(2.0 * sep),
+            color,
+            num(width)
+        ));
+        if hatch.cross {
+            self.out.push_str(&format!(
+                "<line x1=\"0\" y1=\"{}\" x2=\"0\" y2=\"{}\" stroke=\"{}\" stroke-width=\"{}\"/>\n",
+                num(-sep),
+                num(2.0 * sep),
+                color,
+                num(width)
+            ));
+        }
+        self.out.push_str("</pattern></defs>\n");
+        id
     }
 
     fn arrowheads(&mut self, pts: &[Point], arrows: Arrowheads, style: &Style) {
@@ -708,7 +762,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             text: _,
             ..
         } => {
-            if !style.invis || style.invis_bounds {
+            if !style.invis || style.invis_bounds || open_fill_is_visible(style) {
                 for p in pts {
                     out.add(*p);
                 }
@@ -723,7 +777,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             text: _,
             ..
         } => {
-            if !style.invis {
+            if !style.invis || open_fill_is_visible(style) {
                 for k in 0..=12 {
                     let t = *a0 + (*a1 - *a0) * (k as f64 / 12.0);
                     out.add(*c + Point::new(t.cos(), t.sin()) * *r);
@@ -1087,7 +1141,11 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
 }
 
 fn closed_shape_is_visible(style: &Style) -> bool {
-    !style.invis || style.fill.is_some()
+    !style.invis || style.fill.is_some() || style.hatch.is_some()
+}
+
+fn open_fill_is_visible(style: &Style) -> bool {
+    style.fill_open && (style.fill.is_some() || style.hatch.is_some())
 }
 
 /// Classic pic spline (no tension), matching dpic's `svgsplinesegment`.
@@ -1464,6 +1522,29 @@ mod tests {
         let s = svg("circle fill 0");
         assert!(s.contains("<circle"));
         assert!(s.contains("rgb(0,0,0)"));
+    }
+
+    #[test]
+    fn hatch_fill_emits_svg_pattern() {
+        let s = svg("box fill 0.9 crosshatch hatchangle 30 hatchsep .05 hatchwid 1 hatchcolor red");
+        assert!(s.contains("<defs><pattern id=\"hatch0\""), "{s}");
+        assert!(s.contains("patternUnits=\"userSpaceOnUse\""), "{s}");
+        assert!(s.contains("patternTransform=\"rotate(-30)\""), "{s}");
+        assert!(s.contains("<rect x=\"0\" y=\"0\""), "{s}");
+        assert!(s.contains("fill=\"rgb(230,230,230)\""), "{s}");
+        assert!(s.contains("stroke=\"red\""), "{s}");
+        assert!(s.contains("fill=\"url(#hatch0)\""), "{s}");
+    }
+
+    #[test]
+    fn invisible_hatched_open_path_still_sets_svg_bounds() {
+        let s = svg("line hatch invis right then up then left then down");
+        assert!(
+            s.contains("width=\"51.2\" height=\"51.2\" viewBox=\"0 0 51.2 51.2\""),
+            "{s}"
+        );
+        assert!(s.contains("fill=\"url(#hatch0)\""), "{s}");
+        assert!(!s.contains("fill=\"none\" stroke=\"black\""), "{s}");
     }
 
     #[test]

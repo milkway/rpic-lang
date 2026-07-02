@@ -1606,7 +1606,7 @@ impl Parser {
         // places a text-only object.
         if self.at_string_start() {
             attrs.push(Attr::Text(self.parse_stringexpr()?));
-            while let Some(a) = self.parse_attr(false, false)? {
+            while let Some(a) = self.parse_attr(false, false, false)? {
                 attrs.push(a);
             }
             return Ok(Object {
@@ -1656,7 +1656,19 @@ impl Parser {
             ObjectKind::Primitive(Prim::Box | Prim::Circle | Prim::Ellipse)
         );
         let allow_brace = matches!(kind, ObjectKind::Brace);
-        while let Some(a) = self.parse_attr(allow_fit, allow_brace)? {
+        let allow_hatch = matches!(
+            kind,
+            ObjectKind::Primitive(
+                Prim::Box
+                    | Prim::Circle
+                    | Prim::Ellipse
+                    | Prim::Line
+                    | Prim::Arrow
+                    | Prim::Spline
+                    | Prim::Arc
+            )
+        );
+        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch)? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
@@ -1680,7 +1692,12 @@ impl Parser {
         )
     }
 
-    fn parse_attr(&mut self, allow_fit: bool, allow_brace: bool) -> PResult<Option<Attr>> {
+    fn parse_attr(
+        &mut self,
+        allow_fit: bool,
+        allow_brace: bool,
+        allow_hatch: bool,
+    ) -> PResult<Option<Attr>> {
         // any string expression (literal, sprintf, $arg, concatenation) is text
         if self.at_string_start() {
             return Ok(Some(Attr::Text(self.parse_stringexpr()?)));
@@ -1810,6 +1827,37 @@ impl Parser {
             Token::Name(n) if allow_fit && n == "fit" => {
                 self.bump();
                 Attr::Fit
+            }
+            Token::Name(n) if allow_hatch && n == "hatch" => {
+                self.bump();
+                Attr::Hatch(HatchKind::Single)
+            }
+            Token::Name(n) if allow_hatch && n == "crosshatch" => {
+                self.bump();
+                Attr::Hatch(HatchKind::Cross)
+            }
+            Token::Name(n) if allow_hatch && n == "hatchangle" => {
+                self.bump();
+                Attr::HatchAngle(self.parse_expr()?)
+            }
+            Token::Name(n) if allow_hatch && n == "hatchsep" => {
+                self.bump();
+                Attr::HatchSep(self.parse_expr()?)
+            }
+            Token::Name(n) if allow_hatch && (n == "hatchwid" || n == "hatchwidth") => {
+                self.bump();
+                Attr::HatchWidth(self.parse_expr()?)
+            }
+            Token::Name(n) if allow_hatch && n == "hatchcolor" => {
+                self.bump();
+                let s = match self.cur().clone() {
+                    Token::Name(n) | Token::Label(n) => {
+                        self.bump();
+                        StringExpr::Lit(n)
+                    }
+                    _ => self.parse_stringexpr()?,
+                };
+                Attr::HatchColor(s)
             }
             Token::Name(n) if allow_brace && n == "bracepos" => {
                 self.bump();
@@ -2586,6 +2634,47 @@ ellipse "typesetter"
             panic!()
         };
         assert!(matches!(object.attrs[0], Attr::Dist(_)));
+    }
+
+    #[test]
+    fn hatch_parses_as_contextual_extension_attribute() {
+        let p = pic("box hatch hatchangle 30 hatchsep .05 hatchwid 1.2 hatchcolor red");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::Hatch(HatchKind::Single)))
+        );
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::HatchAngle(_)))
+        );
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::HatchSep(_))));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::HatchWidth(_)))
+        );
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::HatchColor(_)))
+        );
+
+        let p = pic("hatch = 2\nbox wid hatch");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
     }
 
     #[test]

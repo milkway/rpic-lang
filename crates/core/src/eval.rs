@@ -40,6 +40,9 @@ const TEXT_LINE_H: f64 = 1.2 * TEXT_EM;
 const TEXT_XHEIGHT: f64 = DP_TEXT_RATIO * TEXT_EM;
 const DEFAULT_BRACE_DEPTH: f64 = 0.18;
 const DEFAULT_BRACE_POS: f64 = 0.5;
+const DEFAULT_HATCH_ANGLE: f64 = 45.0;
+const DEFAULT_HATCH_SEP: f64 = 0.08;
+const DEFAULT_HATCH_WIDTH: f64 = 0.8;
 
 fn err<T>(msg: impl Into<String>) -> ER<T> {
     Err(EvalError { msg: msg.into() })
@@ -2046,6 +2049,33 @@ impl State {
                         }
                     }
                 }
+                Attr::Hatch(kind) => {
+                    let h = ensure_hatch(&mut s);
+                    h.cross = matches!(kind, HatchKind::Cross);
+                    s.fill_open = true;
+                }
+                Attr::HatchAngle(e) => ensure_hatch(&mut s).angle = self.eval_expr(e)?,
+                Attr::HatchSep(e) => {
+                    let sep = self.expr_dim(e)?;
+                    if sep <= 0.0 {
+                        return err("hatchsep must be positive");
+                    }
+                    ensure_hatch(&mut s).sep = sep;
+                    s.fill_open = true;
+                }
+                Attr::HatchWidth(e) => {
+                    let width = self.eval_expr(e)?;
+                    if width < 0.0 {
+                        return err("hatchwidth must be non-negative");
+                    }
+                    ensure_hatch(&mut s).width = width;
+                    s.fill_open = true;
+                }
+                Attr::HatchColor(se) => {
+                    let name = self.eval_color_expr(se)?;
+                    ensure_hatch(&mut s).color = name;
+                    s.fill_open = true;
+                }
                 Attr::Dim(DimKind::Thick, e) => s.thick = Some(self.eval_expr(e)?),
                 Attr::Arrowhead(_, Some(e)) => {
                     s.arrow_filled = self.eval_expr(e)?.round() as i64 != 0;
@@ -2616,12 +2646,26 @@ fn apply_text_pos(halign: &mut i8, valign: &mut i8, pos: token::TextPos) {
     }
 }
 
+fn ensure_hatch(style: &mut Style) -> &mut Hatch {
+    style.hatch.get_or_insert_with(|| Hatch {
+        cross: false,
+        angle: DEFAULT_HATCH_ANGLE,
+        sep: DEFAULT_HATCH_SEP,
+        width: DEFAULT_HATCH_WIDTH,
+        color: "black".into(),
+    })
+}
+
 fn has_visible_text(lines: &[TextLine]) -> bool {
     lines.iter().any(|line| !line.s.is_empty())
 }
 
 fn closed_shape_is_visible(style: &Style) -> bool {
-    !style.invis || style.fill.is_some()
+    !style.invis || style.fill.is_some() || style.hatch.is_some()
+}
+
+fn open_fill_is_visible(style: &Style) -> bool {
+    style.fill_open && (style.fill.is_some() || style.hatch.is_some())
 }
 
 fn stroke_half_width(style: &Style) -> f64 {
@@ -2718,6 +2762,9 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             for p in pts {
                 bb.add(*p);
             }
+            if open_fill_is_visible(style) {
+                out.union(&bb);
+            }
             if !style.invis {
                 out.union(&painted_bbox(&bb, stroke_half_width(style)));
             } else if style.invis_bounds {
@@ -2740,6 +2787,9 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             let mut bb = Bbox::new();
             for k in 0..=12 {
                 bb.add(at(*a0 + (*a1 - *a0) * (k as f64 / 12.0)));
+            }
+            if open_fill_is_visible(style) {
+                out.union(&bb);
             }
             if !style.invis {
                 out.union(&painted_bbox(&bb, stroke_half_width(style)));
@@ -3329,6 +3379,9 @@ fn scale_style(style: &mut Style, f: f64) {
     let f = f.abs();
     style.arrow_ht *= f;
     style.arrow_wid *= f;
+    if let Some(hatch) = &mut style.hatch {
+        hatch.sep *= f;
+    }
     match &mut style.dash {
         Dash::Dashed(w) => *w *= f,
         Dash::Dotted(Some(w)) => *w *= f,
@@ -4285,6 +4338,21 @@ mod tests {
             panic!()
         };
         assert_eq!(style.dash, Dash::Dotted(Some(0.05)));
+    }
+
+    #[test]
+    fn hatch_style_records_pattern_attributes() {
+        let d = draw("box crosshatch hatchangle 30 hatchsep .05 hatchwidth 1.5 hatchcolor red");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let hatch = style.hatch.as_ref().expect("expected hatch style");
+        assert!(hatch.cross);
+        assert!((hatch.angle - 30.0).abs() < 1e-9);
+        assert!((hatch.sep - 0.05).abs() < 1e-9);
+        assert!((hatch.width - 1.5).abs() < 1e-9);
+        assert_eq!(hatch.color, "red");
+        assert!(style.fill_open);
     }
 
     #[test]
