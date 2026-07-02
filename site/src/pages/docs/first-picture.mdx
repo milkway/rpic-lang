@@ -3,6 +3,11 @@ layout: ../../layouts/MdxLayout.astro
 title: Your first picture
 description: The pic mental model in five minutes.
 ---
+import PicExample from '../../components/PicExample.astro';
+import chainPic from '../../assets/examples/first-chain.pic?raw';
+import chainSvg from '../../assets/examples/first-chain.svg?raw';
+import anchorsPic from '../../assets/examples/first-anchors.pic?raw';
+import anchorsSvg from '../../assets/examples/first-anchors.svg?raw';
 
 # Your first picture
 
@@ -10,29 +15,14 @@ In pic you *describe* a drawing and the language lays it out: you imagine
 walking across the page dropping primitives, and everything chains from the
 current position and direction.
 
-```rpic
-.PS
-ellipse "document"
-arrow
-box "rpic"
-arrow
-ellipse "SVG"
-.PE
-```
+<PicExample code={chainPic} svg={chainSvg} />
 
 Each object places itself after the previous one; `arrow` moves the current
 point. No coordinates needed — but they exist when you want them.
 
 ## Naming and anchors
 
-```rpic
-.PS
-A: box "parser"
-B: circle "IR" at A.e + (1.2, 0)
-arrow from A.e to B.w
-box "backend" with .w at B.e + (0.4, 0)
-.PE
-```
+<PicExample code={anchorsPic} svg={anchorsSvg} />
 
 Labels (`A:`) name objects; every object exposes compass anchors
 (`.n .ne .e … .c .start .end`) you can position against.

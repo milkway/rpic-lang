@@ -39,6 +39,7 @@ const current = Astro.url.pathname.replace(/\/$/, '');
           rpic
         </a>
         <div class="ml-auto flex items-center gap-4 text-sm">
+          <a href={`${base}/`} class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">Home</a>
           <a href={`${base}/docs/installation`} class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">Docs</a>
           <a href="https://github.com/milkway/rpic-lang" class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">GitHub</a>
           <button id="theme-toggle" aria-label="Toggle dark mode"
