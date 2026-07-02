@@ -1,0 +1,34 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Your first picture
+description: The pic mental model in five minutes.
+---
+import PicExample from '../../components/PicExample.astro';
+import chainPic from '../../assets/examples/first-chain.pic?raw';
+import chainSvg from '../../assets/examples/first-chain.svg?raw';
+import anchorsPic from '../../assets/examples/first-anchors.pic?raw';
+import anchorsSvg from '../../assets/examples/first-anchors.svg?raw';
+
+# Your first picture
+
+In pic you *describe* a drawing and the language lays it out: you imagine
+walking across the page dropping primitives, and everything chains from the
+current position and direction.
+
+<PicExample code={chainPic} svg={chainSvg} />
+
+Each object places itself after the previous one; `arrow` moves the current
+point. No coordinates needed — but they exist when you want them.
+
+## Naming and anchors
+
+<PicExample code={anchorsPic} svg={anchorsSvg} />
+
+Labels (`A:`) name objects; every object exposes compass anchors
+(`.n .ne .e … .c .start .end`) you can position against.
+
+## Where to go next
+
+- The language tour covers primitives, attributes and macros.
+- The extensions chapter documents everything rpic adds beyond classic pic —
+  each one opt-in, from `gradient` fills to `texlabels` TeX math.

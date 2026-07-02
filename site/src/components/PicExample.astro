@@ -1,0 +1,27 @@
+---
+// Code + rendered-result pair: the pic source is the single source of truth
+// (the same .pic file is imported as the code shown and pre-rendered to the
+// SVG displayed). Side by side on wide screens, stacked on narrow ones.
+import { Code } from 'astro:components';
+import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
+import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
+import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
+
+interface Props {
+  /** pic source (import the .pic with ?raw) */
+  code: string;
+  /** rendered SVG markup (import the .svg with ?raw) */
+  svg: string;
+  /** stack the result below the code even on wide screens */
+  stacked?: boolean;
+}
+const { code, svg, stacked = false } = Astro.props;
+---
+
+<div class={`not-prose grid gap-4 mb-6 ${stacked ? '' : 'md:grid-cols-2'} items-stretch`}>
+  <div class="min-w-0 h-full [&_pre]:h-full">
+    <Code code={code.trim()} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
+  </div>
+  <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white grid place-items-center p-5 [&_svg]:max-w-full [&_svg]:h-auto"
+    set:html={svg} />
+</div>

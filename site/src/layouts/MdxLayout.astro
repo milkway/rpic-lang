@@ -1,0 +1,8 @@
+---
+// Adapter: markdown/MDX pages declare `layout:` and get the docs shell.
+import DocsLayout from './DocsLayout.astro';
+const { frontmatter, headings } = Astro.props;
+---
+<DocsLayout title={frontmatter.title} description={frontmatter.description} headings={headings}>
+  <slot />
+</DocsLayout>

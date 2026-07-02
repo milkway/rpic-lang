@@ -1,0 +1,111 @@
+---
+// tailwind-docs-style shell: sticky header, left sidebar, prose column,
+// right on-page TOC, dark mode via `.dark` class persisted in localStorage.
+import '../styles/global.css';
+import { nav } from '../components/nav';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** headings for the right-hand TOC: [{depth, slug, text}] */
+  headings?: { depth: number; slug: string; text: string }[];
+}
+const { title, description = 'rpic — the pic picture-drawing language, reimagined in Rust.', headings = [] } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const current = Astro.url.pathname.replace(/\/$/, '');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — rpic</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+    <script is:inline>
+      // apply saved theme before paint
+      const t = localStorage.getItem('theme');
+      if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+  </head>
+  <body class="bg-white dark:bg-slate-950 antialiased">
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur">
+      <div class="max-w-7xl mx-auto flex items-center gap-4 px-4 sm:px-6 h-14">
+        <a href={`${base}/`} class="flex items-center gap-2 font-extrabold text-slate-900 dark:text-white">
+          <span class="inline-block w-6 h-6 rounded bg-gradient-to-br from-emerald-700 to-teal-700"></span>
+          rpic
+        </a>
+        <div class="ml-auto flex items-center gap-4 text-sm">
+          <a href={`${base}/`} class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">Home</a>
+          <a href={`${base}/docs/installation`} class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">Docs</a>
+          <a href="https://github.com/milkway/rpic-lang" class="text-slate-600 dark:text-slate-300 hover:text-emerald-800 dark:hover:text-emerald-300 font-medium">GitHub</a>
+          <button id="theme-toggle" aria-label="Toggle dark mode"
+            class="w-8 h-8 grid place-items-center rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_180px] gap-10">
+      <aside class="hidden lg:block py-8 border-r border-slate-100 dark:border-slate-800/60 pr-4">
+        <nav class="sticky top-20 space-y-7 text-sm">
+          {nav.filter((s) => s.items.length).map((section) => (
+            <div>
+              <h5 class="font-semibold text-slate-900 dark:text-white mb-2">{section.label}</h5>
+              <ul class="space-y-1 border-l border-slate-100 dark:border-slate-800">
+                {section.items.map((item) => {
+                  const href = `${base}${item.href}`;
+                  const active = current === href;
+                  return (
+                    <li>
+                      <a href={href}
+                        class={`block pl-3 -ml-px border-l ${active
+                          ? 'border-emerald-700 text-emerald-800 dark:text-emerald-300 font-medium'
+                          : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 hover:text-slate-900 dark:hover:text-slate-200'}`}>
+                        {item.title}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      <main class="py-8 docs-prose min-w-0">
+        <slot />
+      </main>
+
+      <aside class="hidden lg:block py-8">
+        {headings.length > 0 && (
+          <nav class="sticky top-20 text-sm">
+            <h5 class="font-semibold text-slate-900 dark:text-white mb-2">On this page</h5>
+            <ul class="space-y-1">
+              {headings.filter((h) => h.depth <= 3).map((h) => (
+                <li>
+                  <a href={`#${h.slug}`}
+                    class={`block text-slate-500 dark:text-slate-400 hover:text-emerald-800 dark:hover:text-emerald-300 ${h.depth === 3 ? 'pl-3' : ''}`}>
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+      </aside>
+    </div>
+
+    <script is:inline>
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const el = document.documentElement;
+        el.classList.toggle('dark');
+        localStorage.setItem('theme', el.classList.contains('dark') ? 'dark' : 'light');
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+.PS
+texlabels = 1; margin = 0.12
+  arrow "$u$" above
+S: circle rad 10/72.27
+  line right 0.35
+G: box "$G(s)$" wid 1 ht 0.55 gradient "honeydew" "white" gradientangle 90
+  arrow "$y$" above
+  line -> down G.ht from last arrow then left last arrow.c.x-S.x then to S.s
+  "$-\;$" below rjust
+.PE
