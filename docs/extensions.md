@@ -49,6 +49,43 @@ This changes only backend drawing order. Labels, anchors, ordinals such as
 continue to follow source/evaluation order. When `behind` is absent, rpic keeps
 the dpic-compatible natural drawing order.
 
+## Closed Line Paths
+
+`close` is an rpic-only attribute for turning a multi-segment `line` into a
+polygon. It is inspired by Pikchr's filled-polygon idiom, but remains outside
+dpic compatibility: dpic 2025.08.01 treats `close` as an unresolved variable.
+
+```pic
+.PS
+line right 1 then up 0.7 close shaded "gold" outlined "black" "triangle"
+.PE
+```
+
+`close` is contextual, so `close = 1` remains an ordinary variable assignment.
+The attribute must appear after at least three vertices have been established,
+and it ends the route: adding `then`, `to`, `by`, directions, or bare distances
+after `close` is an error. This mirrors Pikchr's "polygon is closed" behavior
+and avoids ambiguous current-point semantics.
+
+For a closed line:
+
+- rpic appends the first point to the path when needed and renders SVG with
+  `<polygon>`;
+- the current point and `.end` become the first point, as if the final segment
+  explicitly returned there;
+- `.c` / `.center` and attached labels use the polygon's bounding-box center,
+  not the midpoint between `.start` and `.end`;
+- ordinary line styling still applies, including `shaded`, `outlined`,
+  `colored`, `fill`, `opacity`, `hatch`, `crosshatch`, `dashed`, `dotted`, and
+  `thick`.
+
+When byte-for-byte dpic parity is the goal, close the path in classic pic style
+with an explicit final segment instead:
+
+```pic
+line from A to B then to C then to A shaded "gold"
+```
+
 ## Fitted Text Objects
 
 `fit` is an rpic-only attribute inspired by Pikchr. It sizes a closed object to

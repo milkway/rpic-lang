@@ -1643,7 +1643,7 @@ impl Parser {
         // places a text-only object.
         if self.at_string_start() {
             attrs.push(Attr::Text(self.parse_stringexpr()?));
-            while let Some(a) = self.parse_attr(false, false, false)? {
+            while let Some(a) = self.parse_attr(false, false, false, false)? {
                 attrs.push(a);
             }
             return Ok(Object {
@@ -1705,7 +1705,8 @@ impl Parser {
                     | Prim::Arc
             )
         );
-        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch)? {
+        let allow_close = matches!(kind, ObjectKind::Primitive(Prim::Line));
+        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch, allow_close)? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
@@ -1734,6 +1735,7 @@ impl Parser {
         allow_fit: bool,
         allow_brace: bool,
         allow_hatch: bool,
+        allow_close: bool,
     ) -> PResult<Option<Attr>> {
         // any string expression (literal, sprintf, $arg, concatenation) is text
         if self.at_string_start() {
@@ -1766,23 +1768,32 @@ impl Parser {
             }
             Token::Dir(d) => {
                 self.bump();
-                Attr::Direction(d, self.opt_expr()?)
+                Attr::Direction(
+                    d,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::LineType(lt) => {
                 self.bump();
-                Attr::LineStyle(lt, self.opt_expr()?)
+                Attr::LineStyle(
+                    lt,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::Kw(Kw::Chop) => {
                 self.bump();
-                Attr::Chop(self.opt_expr()?)
+                Attr::Chop(self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?)
             }
             Token::Kw(Kw::Fill) => {
                 self.bump();
-                Attr::Fill(self.opt_expr()?)
+                Attr::Fill(self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?)
             }
             Token::Arrow(a) => {
                 self.bump();
-                Attr::Arrowhead(a, self.opt_expr()?)
+                Attr::Arrowhead(
+                    a,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::Kw(Kw::Then) => {
                 self.bump();
@@ -1899,6 +1910,10 @@ impl Parser {
             Token::Name(n) if n == "opacity" => {
                 self.bump();
                 Attr::Opacity(self.parse_expr()?)
+            }
+            Token::Name(n) if allow_close && n == "close" => {
+                self.bump();
+                Attr::Close
             }
             Token::Name(n) if allow_brace && n == "bracepos" => {
                 self.bump();
@@ -2314,6 +2329,49 @@ impl Parser {
         }
     }
 
+    fn opt_attr_expr(
+        &mut self,
+        allow_fit: bool,
+        allow_brace: bool,
+        allow_hatch: bool,
+        allow_close: bool,
+    ) -> PResult<Option<Expr>> {
+        if self.contextual_attr_ahead(allow_fit, allow_brace, allow_hatch, allow_close) {
+            Ok(None)
+        } else {
+            self.opt_expr()
+        }
+    }
+
+    fn contextual_attr_ahead(
+        &self,
+        allow_fit: bool,
+        allow_brace: bool,
+        allow_hatch: bool,
+        allow_close: bool,
+    ) -> bool {
+        matches!(
+            self.cur(),
+            Token::Name(n)
+                if (allow_fit && n == "fit")
+                    || (allow_hatch
+                        && matches!(
+                            n.as_str(),
+                            "hatch"
+                                | "crosshatch"
+                                | "hatchangle"
+                                | "hatchsep"
+                                | "hatchwid"
+                                | "hatchwidth"
+                                | "hatchcolor"
+                        ))
+                    || n == "opacity"
+                    || (allow_brace && matches!(n.as_str(), "bracepos" | "labeloffset"))
+                    || n == "behind"
+                    || (allow_close && n == "close")
+        )
+    }
+
     fn starts_scalar(&self) -> bool {
         matches!(
             self.cur(),
@@ -2727,6 +2785,23 @@ ellipse "typesetter"
         assert!(object.attrs.iter().any(|a| matches!(a, Attr::Opacity(_))));
 
         let p = pic("opacity = 2\nbox wid opacity");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
+    fn close_parses_as_contextual_line_extension_attribute() {
+        let p = pic("line right then up close");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Close)));
+
+        let p = pic("close = 2\nbox wid close");
         assert_eq!(p.stmts.len(), 2);
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
         let Stmt::Object { object, .. } = &p.stmts[1] else {

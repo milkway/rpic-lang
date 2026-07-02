@@ -108,6 +108,7 @@ Implementation is tracked in
 | Adopt | `margin` and side margin variables | High value, low semantic risk, fixes canvas framing without hidden geometry. Track in #107. |
 | Adopt | `behind <object>` layering | Useful for highlights and backgrounds when implemented as backend paint-order metadata with stable semantic ids. Track in #109. |
 | Adopt | `fit` attribute for text-sized objects | Useful when opt-in and constrained to rpic's own text-bbox estimate. Track in #108. |
+| Adopt | `close` attribute for line polygons | Useful for filled or hatched polygons when contextual and documented as an rpic extension, not dpic parity. |
 | Maybe | Simple aliases such as `invisible`, `previous`, and `first` | Ergonomic and likely low risk, but aliases should be grouped and tested separately from parity work. |
 | Maybe | New object types: `dot`, `diamond`, `oval`, `file`, `cylinder` | `dot` and `diamond` look tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
 | Maybe | Text styling: `bold`, `italic`, `mono`, `big`, `small`, `aligned` | Good SVG-era ergonomics, but requires IR/text model changes and careful fallback behavior. |
