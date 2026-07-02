@@ -259,6 +259,14 @@ Rules:
   back to literal there, with a diagnostic. Browser playgrounds can typeset
   via host-page KaTeX instead (the class-hooks delegation pattern).
 
+For classic sources you do not want to edit (e.g. an existing dpic corpus),
+the activation can also come from the invocation as a convenience
+initializer — `rpic -t`/`--texlabels`, `rpic.render_svg(src, texlabels=True)`
+in Python, `compile(src, { texlabels: true })` in JS — all equivalent to
+prepending `texlabels = 1`. The source stays sovereign: the canonical switch
+is the variable (it affects geometry, so the picture should describe itself),
+and a `texlabels = 0` in the source overrides the flag.
+
 The renderer sits behind a neutral hook in the core
 (`set_math_renderer`), so the backend is replaceable: **Typst + mitex is the
 documented alternative** should RaTeX ever stall — see the candidate matrix
