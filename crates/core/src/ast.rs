@@ -56,6 +56,9 @@ pub enum Stmt {
     Group(Vec<Stmt>),
     /// rpic animation directive (extension; see [`Animate`]).
     Animate(Animate),
+    /// rpic extension: `class <place> "name"` — append a CSS class to an
+    /// already-drawn object's shape group (labels and ordinals both work).
+    Class { target: Place, class: StringExpr },
     /// `if <cond> then { … } [else { … }]`. Bodies are deferred raw tokens.
     If {
         cond: Expr,
@@ -206,6 +209,8 @@ pub enum Attr {
     Color(Color, StringExpr),
     /// rpic extension: draw this object below another already-placed object.
     Behind(Place),
+    /// rpic extension: CSS class hook attached to this object's shape group.
+    Class(StringExpr),
     /// rpic extension: relative cusp position for a `brace` object.
     BracePos(Expr),
     /// rpic extension: extra outward spacing between a `brace` cusp and label.

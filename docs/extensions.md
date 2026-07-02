@@ -70,6 +70,54 @@ This changes only backend drawing order. Labels, anchors, ordinals such as
 continue to follow source/evaluation order. When `behind` is absent, rpic keeps
 the dpic-compatible natural drawing order.
 
+## Class Hooks
+
+`class` is an rpic-only extension that attaches CSS class names to the SVG
+group (`<g id="sN">`) already emitted for each shape. It has two forms that
+write to the same hook:
+
+```pic
+.PS
+box class "critical" "payment"          # inline, at creation
+
+A: circle "cache"
+line right from A.e
+class A "storage"                       # statement: by label
+class last line "dataflow"              # statement: by ordinal
+.PE
+```
+
+The statement form reuses pic's native object references — labels, `last
+line`, `2nd circle`, `25th box` — exactly like `animate` targets, so it also
+reaches shapes drawn inside macros (e.g. circuit-library elements) that inline
+attributes cannot annotate, and lets class lines cluster at the end of a
+picture as a theme block.
+
+Rules:
+
+- **Inert by itself.** A class changes nothing in rpic's own rendering: SVG,
+  PNG, and PDF output are visually identical with or without it. Styling
+  happens only when the *host document* that embeds the SVG provides CSS —
+  the same delegation contract as the `animate`/GSAP layer.
+- **Validated, not raw.** Each whitespace-separated name must match
+  `[A-Za-z_][A-Za-z0-9_-]*`; anything else is an error. There is no
+  attribute-injection surface.
+- Multiple applications append: `box class "a" class "b"` and a later
+  `class last box "c"` yield `class="a b c"`.
+- The internal `s<N>` ids stay untouched and remain the GSAP/animation
+  targets; the class rides alongside on the same group.
+- `class` is contextual: `class = 2` is still an assignment and `box wid
+  class` still reads the variable.
+- Resolution happens at the point of the statement (like `animate`):
+  reassigning a label later does not move the class.
+- Blocks are not supported yet — class the inner objects instead. Attaching
+  a class to a point label is an error (there is no drawn shape).
+
+Note that host-page CSS targets inline-embedded SVG (`<svg>…</svg>` in the
+HTML); an `<img src="…svg">` reference isolates the document and external CSS
+will not apply. Classic pic input remains dpic-compatible when `class` is not
+used — no `class` attribute is emitted at all.
+
 ## Closed Line Paths
 
 `close` is an rpic-only attribute for turning a multi-segment `line` into a

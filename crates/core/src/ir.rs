@@ -11,6 +11,10 @@ pub struct Drawing {
     /// Render layer per shape. Lower layers are emitted first; equal layers keep
     /// source order and shape ids stable.
     pub shape_layers: Vec<i32>,
+    /// rpic extension: CSS class hook per shape, emitted on the shape's
+    /// `<g id="sN">` group. Inert unless the host document styles it; `None`
+    /// keeps the group byte-identical to classic output.
+    pub shape_classes: Vec<Option<String>>,
     pub bbox: Bbox,
     /// Global `linethick` in points after picture-wide sizing, used only for
     /// dpic-style backend prelude padding. Per-shape strokes keep their own

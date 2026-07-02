@@ -67,6 +67,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut d = Drawing {
         shapes: st.shapes,
         shape_layers: st.shape_layers,
+        shape_classes: st.shape_classes,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
@@ -489,6 +490,7 @@ struct State {
     outer_labels: HashMap<String, Placed>,
     shapes: Vec<Shape>,
     shape_layers: Vec<i32>,
+    shape_classes: Vec<Option<String>>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
     /// Visible geometry and text only; this becomes the final drawing/viewBox.
@@ -534,6 +536,7 @@ impl State {
             outer_labels: HashMap::new(),
             shapes: Vec::new(),
             shape_layers: Vec::new(),
+            shape_classes: Vec::new(),
             placed: Vec::new(),
             labels: HashMap::new(),
             bbox: Bbox::new(),
@@ -608,6 +611,11 @@ impl State {
                 }
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
+            Stmt::Class { target, class } => {
+                let idx = self.place_index(target)?;
+                let name = self.eval_stringexpr(class)?;
+                self.append_class_at(idx, &name)?;
+            }
             Stmt::If {
                 cond,
                 then_body,
@@ -738,6 +746,28 @@ impl State {
         Ok(())
     }
 
+    /// Append a validated CSS class to the shape behind `placed_idx` (rpic
+    /// `class` extension). Multiple applications compose: `class="a b"`.
+    fn append_class_at(&mut self, placed_idx: usize, name: &str) -> ER<()> {
+        let name = name.trim();
+        validate_class(name)?;
+        let pl = &self.placed[placed_idx];
+        if matches!(pl.kind, PKind::Block) {
+            return err("`class` on a block is not supported yet; class its inner objects");
+        }
+        let Some(sh) = pl.shape else {
+            return err("cannot attach a class to a point (no drawn shape)");
+        };
+        match &mut self.shape_classes[sh] {
+            Some(existing) => {
+                existing.push(' ');
+                existing.push_str(name);
+            }
+            slot @ None => *slot = Some(name.to_string()),
+        }
+        Ok(())
+    }
+
     fn scale_value(&self) -> ER<f64> {
         let scale = self.env.get(EnvVar::Scale);
         if scale.abs() < 1e-12 {
@@ -835,6 +865,17 @@ impl State {
     // ---- objects -----------------------------------------------------------
 
     fn eval_object(&mut self, obj: &Object) -> ER<usize> {
+        let idx = self.eval_object_inner(obj)?;
+        for a in &obj.attrs {
+            if let Attr::Class(se) = a {
+                let name = self.eval_stringexpr(se)?;
+                self.append_class_at(idx, &name)?;
+            }
+        }
+        Ok(idx)
+    }
+
+    fn eval_object_inner(&mut self, obj: &Object) -> ER<usize> {
         match &obj.kind {
             ObjectKind::Primitive(p) => match p {
                 Prim::Box | Prim::Circle | Prim::Ellipse => self.closed(*p, obj),
@@ -1736,12 +1777,18 @@ impl State {
         }
         let layer_shift =
             self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
-        for (mut sh, layer) in sub.shapes.into_iter().zip(sub.shape_layers) {
+        for ((mut sh, layer), class) in sub
+            .shapes
+            .into_iter()
+            .zip(sub.shape_layers)
+            .zip(sub.shape_classes)
+        {
             translate_shape(&mut sh, shift);
             if let Some(opacity) = block_fill_opacity {
                 multiply_shape_fill_opacity(&mut sh, opacity);
             }
             self.push_shape(sh, layer + layer_shift);
+            *self.shape_classes.last_mut().unwrap() = class;
         }
         let shape = if self.shapes.len() > first_shape {
             Some(first_shape)
@@ -1822,6 +1869,7 @@ impl State {
     fn push_shape(&mut self, shape: Shape, layer: i32) {
         self.shapes.push(shape);
         self.shape_layers.push(layer);
+        self.shape_classes.push(None);
     }
 
     fn layer_of(&mut self, obj: &Object, current: i32) -> ER<i32> {
@@ -2722,6 +2770,27 @@ fn ensure_hatch(style: &mut Style) -> &mut Hatch {
         width: DEFAULT_HATCH_WIDTH,
         color: "black".into(),
     })
+}
+
+/// Validate a `class` extension name list: whitespace-separated tokens, each
+/// matching `[A-Za-z_][A-Za-z0-9_-]*`. Rejecting everything else keeps the
+/// hook free of attribute-injection surface.
+fn validate_class(name: &str) -> ER<()> {
+    if name.is_empty() {
+        return err("class name must not be empty");
+    }
+    for tok in name.split_whitespace() {
+        let mut chars = tok.chars();
+        let first = chars.next().unwrap();
+        if !(first.is_ascii_alphabetic() || first == '_')
+            || !chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return err(format!(
+                "invalid class name `{tok}`: use `[A-Za-z_][A-Za-z0-9_-]*`"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn has_visible_text(lines: &[TextLine]) -> bool {
@@ -5026,6 +5095,64 @@ box wid 0.1 ht 0.1 at B.s"#,
         // box lands exactly where it would without them.
         let plain = draw("box wid 1 ht 1\nbox wid 1 ht 1");
         assert_eq!(d.bbox, plain.bbox);
+    }
+
+    #[test]
+    fn class_attribute_and_statement_set_shape_classes() {
+        // inline attribute, and append composition
+        let d = draw("box class \"critical\" class \"hot\"");
+        assert_eq!(d.shape_classes[0].as_deref(), Some("critical hot"));
+
+        // statement form by label, by ordinal, and reaching macro-drawn shapes
+        let d = draw(
+            "define wire { line right 0.5 }\nA: box\nwire()\nclass A \"node\"\nclass last line \"bus\"",
+        );
+        assert_eq!(d.shape_classes[0].as_deref(), Some("node"));
+        assert_eq!(d.shape_classes[1].as_deref(), Some("bus"));
+
+        // `class` stays usable as a plain variable
+        let d = draw("class = 2\nbox wid class ht 1");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((w - 2.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn class_validates_names_and_targets() {
+        let e = eval(&parse("box class \"a<b\"").unwrap()).unwrap_err();
+        assert!(e.msg.contains("invalid class name"), "{e}");
+
+        let e = eval(&parse("box class \"2fast\"").unwrap()).unwrap_err();
+        assert!(e.msg.contains("invalid class name"), "{e}");
+
+        let e = eval(&parse("A: (0,0)\nclass A \"x\"").unwrap()).unwrap_err();
+        assert!(e.msg.contains("no drawn shape"), "{e}");
+    }
+
+    #[test]
+    fn class_composes_with_animate_on_the_same_shape() {
+        // The class hook and the animation layer share the `s<N>` contract:
+        // both must resolve to the same shape index, and adding a class must
+        // not disturb the animation target.
+        let d = draw(
+            "A: box\ncircle\nanimate A with \"pop\"\nclass A \"critical\"\nanimate last circle with \"fade\"\nclass last circle \"soft\"",
+        );
+        assert_eq!(d.anims.len(), 2);
+        assert_eq!(d.anims[0].shape, 0);
+        assert_eq!(d.anims[1].shape, 1);
+        assert_eq!(d.shape_classes[0].as_deref(), Some("critical"));
+        assert_eq!(d.shape_classes[1].as_deref(), Some("soft"));
+    }
+
+    #[test]
+    fn class_inside_block_survives_flattening() {
+        let d = draw("[ box class \"in\"; circle ]");
+        assert_eq!(d.shape_classes[0].as_deref(), Some("in"));
+        assert_eq!(d.shape_classes[1], None);
+
+        let e = eval(&parse("[ box ] class \"x\"").unwrap()).unwrap_err();
+        assert!(e.msg.contains("block"), "{e}");
     }
 
     #[test]

@@ -1253,6 +1253,19 @@ impl Parser {
             return Ok(Stmt::Animate(self.parse_animate()?));
         }
 
+        // rpic `class <place> "name"` statement (extension). Contextual:
+        // `class = 2` stays an assignment and `class` remains usable as a
+        // variable, mirroring how `animate` targets are referenced.
+        if matches!(self.cur(), Token::Name(n) if n == "class")
+            && !is_assign_op(self.peek(1))
+            && !matches!(self.peek(1), Token::LeftBrack)
+        {
+            self.bump();
+            let target = self.parse_place()?;
+            let class = self.parse_stringexpr()?;
+            return Ok(Stmt::Class { target, class });
+        }
+
         // control constructs
         match self.cur() {
             Token::Kw(Kw::If) => return self.parse_if(),
@@ -1929,6 +1942,10 @@ impl Parser {
                 self.bump();
                 Attr::Behind(self.parse_place()?)
             }
+            Token::Name(n) if n == "class" => {
+                self.bump();
+                Attr::Class(self.parse_stringexpr()?)
+            }
             // a bare expression distance with no direction word, e.g. `move 1`,
             // `move -0.1`, `spline x` (length in the prevailing direction)
             Token::Float(_)
@@ -2370,6 +2387,7 @@ impl Parser {
                     || n == "opacity"
                     || (allow_brace && matches!(n.as_str(), "bracepos" | "labeloffset"))
                     || n == "behind"
+                    || n == "class"
                     || (allow_close && n == "close")
         )
     }
@@ -2805,6 +2823,27 @@ ellipse "typesetter"
 
         let p = pic("close = 2\nbox wid close");
         assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
+    fn class_parses_inline_and_statement_forms() {
+        let p = pic("box class \"critical\"");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Class(_))));
+
+        let p = pic("A: box\nclass A \"hot\"\nclass last box \"cold\"");
+        assert!(matches!(p.stmts[1], Stmt::Class { .. }));
+        assert!(matches!(p.stmts[2], Stmt::Class { .. }));
+
+        // contextual fallbacks: assignment and expression use survive
+        let p = pic("class = 2\nbox wid class");
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
         let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()
