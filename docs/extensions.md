@@ -118,6 +118,14 @@ HTML); an `<img src="…svg">` reference isolates the document and external CSS
 will not apply. Classic pic input remains dpic-compatible when `class` is not
 used — no `class` attribute is emitted at all.
 
+Motion can escape the canvas: the SVG root clips at its viewBox, so a hover
+`scale(…)` or an animation overshoot gets cut at the edge. Pick the remedy by
+who owns the motion — if the **host** animates (CSS hover, a GSAP timeline it
+wrote), the host unclips with `svg { overflow: visible }`; if the **picture**
+declares motion itself (rpic's `animate`), reserve room in the source with the
+[canvas margin extension](#canvas-margins), e.g. `margin = 0.15`. rpic never
+adds space automatically.
+
 ## Closed Line Paths
 
 `close` is an rpic-only attribute for turning a multi-segment `line` into a
