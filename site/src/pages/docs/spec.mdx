@@ -1,175 +1,283 @@
 ---
 layout: ../../layouts/MdxLayout.astro
 title: Language spec
-description: The rpic grammar — statements, objects, attributes, positions and expressions.
+description: The rpic grammar — every rule paired with a concrete example.
 ---
+import PicExample from '../../components/PicExample.astro';
 
 # Language spec
 
-This is the reference grammar for rpic, in the spirit of
+The reference grammar for rpic, in the spirit of
 [Pikchr's grammar page](https://pikchr.org/home/doc/trunk/doc/grammar.md).
-Classic pic constructs follow Kernighan's language and dpic's practical
-behavior; rpic-only extensions are marked **(ext)**. The notation is
-informal EBNF: `?` optional, `*` zero-or-more, `|` alternatives.
+Classic constructs follow Kernighan's pic and dpic's practical behavior;
+rpic-only extensions are marked **(ext)**.
+
+## How to read this page
+
+Rules are written in informal EBNF. Every alternative carries a real
+example after `#` — when in doubt, read the examples, not the symbols.
+
+| Notation | Meaning | Example |
+|---|---|---|
+| `x ::= …` | "an *x* is …" | |
+| `a \| b` | either *a* or *b* | `"up" \| "down"` matches `up` |
+| `x?` | *x* is optional | `".PS" number?` matches `.PS` and `.PS 3` |
+| `x*` | zero or more *x* | attributes repeat: `box wid 1 dashed` |
+| `"word"` | that literal word | |
+
+To ground it, here is a small picture with each line's grammar role:
+
+<PicExample code={`.PS
+boxwid = 0.7            # assignment
+A: box "start"          # label ":" object
+arrow                   # object (no attributes)
+box "end" dashed        # object with attributes
+line -> from A.s down 0.4   # object with path attributes
+.PE`} />
 
 ## Picture
 
 ```text
-picture     ::= ".PS" width? "\n" statement-list ".PE"
-statement-list ::= (statement ("\n" | ";"))*
+picture ::= ".PS" number? EOL
+            statement-list
+            ".PE"
 ```
 
 Everything between `.PS` and `.PE` is the picture. A number after `.PS`
-scales the finished drawing to that width in inches.
+scales the finished drawing to that width in inches — `.PS 3` fits it to
+3 in.
 
 ## Statements
 
-```text
-statement   ::= label ":" statement
-              | object
-              | assignment ("," assignment)*
-              | direction
-              | "{" statement-list "}"
-              | "if" expr "then" "{" statement-list "}"
-                ("else" "{" statement-list "}")?
-              | "for" name "=" expr "to" expr ("by" "*"? expr)? "do"
-                "{" statement-list "}"
-              | "print" print-item
-              | "copy" string
-              | "reset" (name ("," name)*)?
-              | "define" name "{" body "}"
-              | "undef" name
-              | "sh" string                    # tolerated no-op
-              | "command" string               # tolerated no-op
-              | "animate" place "with" string
-                ("for" expr)? (("at" | "after") …)?   (ext)
-              | "class" place string                  (ext)
+Statements are separated by newlines or `;`. There are three big families —
+drawing (objects), naming (labels, assignments) and programming (control
+flow) — plus a few directives.
 
-assignment  ::= name "=" expr
-direction   ::= "up" | "down" | "left" | "right"
-label       ::= /[A-Z][A-Za-z0-9_]*/
+```text
+statement ::=
+    label ":" statement       # A: box "in"
+  | object                    # arrow right 0.5
+  | assignment ("," assignment)*   # scale = 2, boxht = 0.4
+  | direction                 # down
+  | "{" statement-list "}"    # { box; arrow }   (position restored after)
+  | if-statement              # if x > 1 then { box }
+  | for-statement             # for i = 1 to 4 do { circle }
+  | "print" (expr | string)   # print sprintf("x=%g", x)
+  | "copy" string             # copy "lib.pic"
+  | "reset" (name ("," name)*)?    # reset boxwid, boxht
+  | "sh" string               # tolerated, never executed
+  | "command" string          # tolerated, never injected
+  | animate-statement         # animate A with "pop"        (ext)
+  | "class" place string      # class A "critical"          (ext)
+
+label      ::= UPPERCASE-NAME      # A, Sum, Out2
+assignment ::= name "=" expr       # linewid = 0.8
+direction  ::= "up" | "down" | "left" | "right"
 ```
 
-`define` bodies are expanded by the macro preprocessor before parsing;
-arguments are `$1` … `$9`. `sh`/`command` are recognized so dpic sources
-compile, but are never executed and never inject raw output
-(see the [compatibility audit](https://github.com/milkway/rpic-lang/blob/main/docs/dpic-compat-audit.md)).
+- A **label** starts with an uppercase letter and names the statement's
+  object (or a bare position: `P: (1, 0.5)`). See
+  [Labels & ordinals](/docs/labels-and-ordinals).
+- A **`{ … }` group** runs its statements and then restores the current
+  position and direction — unlike a `[ … ]` block, it creates no object.
+- **`sh`/`command`** exist so classic dpic sources compile; rpic never runs
+  a shell and never injects raw output
+  ([policy](https://github.com/milkway/rpic-lang/blob/main/docs/dpic-compat-audit.md)).
+
+### Control flow
+
+```text
+if-statement  ::= "if" expr "then" "{" statement-list "}"
+                  ("else" "{" statement-list "}")?
+                            # if n > 3 then { box } else { circle }
+
+for-statement ::= "for" name "=" expr "to" expr ("by" "*"? expr)? "do"
+                  "{" statement-list "}"
+                            # for i = 1 to 10 by 2 do { move; box }
+```
+
+`by * expr` multiplies the loop variable each step instead of adding.
+
+### Macros
+
+```text
+"define" name "{" anything "}"     # define node { circle rad 0.2 $1 }
+"undef"  name
+```
+
+Macro bodies are expanded *textually* before parsing; `$1` … `$9` are the
+call's arguments: `node("hi")`. See
+[Variables & macros](/docs/variables-and-macros).
+
+### animate (ext)
+
+```text
+animate-statement ::= "animate" place "with" string
+                      ("for" expr)?
+                      ("at" expr | "after" place)?
+        # animate A with "pop" for 0.4
+        # animate 1st arrow with "draw" after A
+```
+
+Declares a GSAP animation on an object for the web player; it changes
+nothing in the static SVG except metadata.
 
 ## Objects
 
-```text
-object      ::= primitive attribute*
-              | string attribute*              # standalone text
-              | "[" statement-list "]" attribute*   # block
+An object is a primitive followed by any number of attributes:
 
-primitive   ::= "box" | "circle" | "ellipse" | "line" | "arrow"
-              | "arc" | "spline" | "move"
-              | "brace"                              (ext)
+```text
+object ::=
+    primitive attribute*        # box "hi" wid 1 dashed
+  | string attribute*           # "loose text" ljust
+  | "[" statement-list "]" attribute*   # [ box; arrow; box ] at P
+
+primitive ::= "box" | "circle" | "ellipse"      # closed
+            | "line" | "arrow" | "arc" | "spline" | "move"   # open
+            | "brace"                                        # (ext)
 ```
 
 ## Attributes
 
+Attributes read left to right; later ones win. They fall into groups:
+
 ```text
-attribute   ::= dimension | path | placement | style | text-attr | ext-attr
+dimension ::=
+    ("wid"|"width") expr        # box wid 1.2
+  | ("ht"|"height") expr        # box ht 0.5
+  | ("rad"|"radius") expr       # circle rad 0.3 · box rad 0.1 (rounded)
+  | ("diam"|"diameter") expr    # circle diam 0.6
+  | "same"                      # box same   (copy previous dimensions)
 
-dimension   ::= ("wid" | "width" | "ht" | "height"
-              | "rad" | "radius" | "diam" | "diameter") expr
-              | "same"
+path ::=
+    direction expr?             # line right 2 · arrow up
+  | "from" position             # from A.s
+  | "to" position               # to B.n
+  | "by" position               # by (0.5, 0.2)   (relative step)
+  | "then"                      # then up 0.5 then right
+  | "close"                     # line right 1 then up 1 close   (ext)
+  | "chop" expr?                # line from A to B chop
+  | "->" | "<-" | "<->"         # arrowheads
+  | "cw" | "ccw"                # arc direction
 
-path        ::= direction expr?
-              | "to" position | "from" position | "by" position
-              | "then" | "close" (ext)
-              | "chop" expr?
-              | ("->" | "<-" | "<->")
-              | "cw" | "ccw"
+placement ::=
+    "at" position               # box at (1, 2)      (centers there)
+  | "with" corner "at" position # box with .sw at A.ne
 
-placement   ::= "at" position
-              | "with" corner "at" position
+style ::=
+    "dashed" expr?              # dashed · dashed 0.05
+  | "dotted" expr?
+  | "invis" | "solid"
+  | "thick" expr                # thick 2.4   (points)
+  | "fill" expr?                # fill 0.9    (0 black … 1 white)
+  | "outlined" color            # outlined "seagreen"   (stroke)
+  | "shaded" color              # shaded "honeydew"     (fill)
+  | ("colored"|"color") color   # both at once
 
-style       ::= "dashed" expr? | "dotted" expr? | "invis" | "solid"
-              | "thick" expr | "fill" expr?
-              | ("outlined" | "shaded" | "colored" | "color") color
-              | ext-style
-
-text-attr   ::= string | "above" | "below" | "ljust" | "rjust"
-
-corner      ::= "." ("n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw"
-              | "c" | "center" | "start" | "end"
-              | "t" | "b" | "l" | "r" | "top" | "bottom" | "left" | "right")
+text-attr ::=
+    string                      # "label"
+  | "above" | "below"           # position relative to the object
+  | "ljust" | "rjust"           # justify at the reference point
 ```
 
 ### rpic extension attributes (ext)
 
-```text
-ext-attr    ::= "fit"
-              | "behind" place
-              | "class" string
-              | "bracepos" expr | "labeloffset" expr   # brace only
+Extension keywords are **contextual**: outside attribute position they are
+plain variable names, so classic sources using e.g. `close = 1` keep their
+meaning.
 
-ext-style   ::= "hatch" | "crosshatch"
-              | "hatchangle" expr | "hatchsep" expr
-              | ("hatchwid" | "hatchwidth") expr | "hatchcolor" color
-              | "gradient" color color | "gradientangle" expr
-              | "opacity" expr
+```text
+ext ::=
+    "fit"                       # box "wide label" fit   (size to text)
+  | "behind" place              # box behind A   (paint order)
+  | "class" string              # box class "hot"   (CSS hook)
+  | "hatch" | "crosshatch"      # box crosshatch
+  | "hatchangle" expr | "hatchsep" expr
+  | ("hatchwid"|"hatchwidth") expr | "hatchcolor" color
+  | "gradient" color color      # box gradient "gold" "white"
+  | "gradientangle" expr        # gradientangle 90   (bottom to top)
+  | "opacity" expr              # opacity 0.5   (fill opacity)
+  | "bracepos" expr | "labeloffset" expr    # brace only
 ```
 
-Extension keywords are **contextual**: outside attribute position they are
-ordinary variable names, so classic sources that use e.g. `close = 1` keep
-their meaning.
+Each has a dedicated page in the extensions chapter.
 
-## Positions
+## Positions and places
+
+A **position** is a point; a **place** is a reference to an object (which
+also works as a point — its center).
 
 ```text
-position    ::= place
-              | "(" expr "," expr ")"
-              | position ("+" | "-") "(" expr "," expr ")"
-              | expr "between" position "and" position
-              | expr "of" "the" "way" "between" position "and" position
-              | "(" position "," position ")"      # x of one, y of other
-              | "Here"
+position ::=
+    place                        # A · last box.ne
+  | "(" expr "," expr ")"        # (1.2, 0.5)
+  | position ("+"|"-") "(" expr "," expr ")"   # A.e + (0.3, 0)
+  | expr "between" position "and" position     # 0.5 between A and B
+  | expr "of" "the" "way" "between" position "and" position
+  | "(" position "," position ")"  # (A.x-part, B.y-part)
+  | "Here"                       # the current position (capital H)
 
-place       ::= label ("." label)* corner?
-              | ordinal object-kind corner?
-              | "last" object-kind? corner?
+place ::=
+    label ("." label)* corner?   # A · Chip.In · A.ne
+  | ordinal object-kind corner?  # 2nd circle.s
+  | "last" object-kind? corner?  # last box.e · last.c
 
-ordinal     ::= /[0-9]+(st|nd|rd|th)/ "last"?
+ordinal     ::= NUMBER("st"|"nd"|"rd"|"th") "last"?   # 3rd · 2nd last
 object-kind ::= primitive | "[]" | "text"
+
+corner ::= "." ("n"|"ne"|"e"|"se"|"s"|"sw"|"w"|"nw"
+         | "c"|"center" | "start"|"end"
+         | "t"|"top" | "b"|"bottom" | "l"|"left" | "r"|"right")
 ```
 
 ## Expressions
 
 ```text
-expr        ::= number | name | place "." ("x" | "y")
-              | expr op expr | "-" expr | "(" expr ")"
-              | func1 "(" expr ")" | func2 "(" expr "," expr ")"
-              | "rand" "(" ")"
+expr ::=
+    NUMBER                       # 0.5 · 2 · 1e-3
+  | name                         # boxwid
+  | place "." ("x"|"y")          # A.x · last circle.y
+  | expr op expr                 # 2 * linewid + 0.1
+  | "-" expr | "(" expr ")"
+  | func1 "(" expr ")"           # sqrt(2) · int(x)
+  | func2 "(" expr "," expr ")"  # atan2(dy, dx) · max(a, b)
+  | "rand" "(" ")"
 
-op          ::= "+" | "-" | "*" | "/" | "%" | "^"
-              | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
-func1       ::= "sin" | "cos" | "log" | "exp" | "sqrt" | "int"
-func2       ::= "atan2" | "max" | "min"
+op    ::= "+" | "-" | "*" | "/" | "%" | "^"
+        | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
+func1 ::= "sin" | "cos" | "log" | "exp" | "sqrt" | "int"
+func2 ::= "atan2" | "max" | "min"
 
-string      ::= '"' char* '"' | "sprintf" "(" string ("," expr)* ")"
-              | string "+" string
+string ::=
+    QUOTED                       # "hello"
+  | "sprintf" "(" QUOTED ("," expr)* ")"   # sprintf("%.2f", x)
+  | string "+" string            # concatenation
+
+color ::= QUOTED | name          # "seagreen" · gold (bare names allowed)
 ```
 
 ## Environment variables
 
-Numeric variables consulted as defaults. Classic set:
-`boxwid boxht boxrad circlerad ellipsewid ellipseht linewid lineht movewid
-moveht arcrad arrowwid arrowht arrowhead dashwid textwid textht textoffset
-fillval linethick maxpswid maxpsht scale`.
-
-rpic extensions **(ext)**: `margin topmargin rightmargin bottommargin
-leftmargin` (canvas framing) and `texlabels` (typeset `$…$` labels as TeX
-math). Variables are global — assignments inside blocks and macros
+Numeric variables consulted as defaults; assign to change everything drawn
+afterwards. Variables are **global** — assignments inside blocks and macros
 propagate out, matching dpic.
+
+| Group | Variables |
+|---|---|
+| Object defaults | `boxwid boxht boxrad circlerad ellipsewid ellipseht linewid lineht movewid moveht arcrad` |
+| Arrows | `arrowwid arrowht arrowhead` |
+| Text | `textwid textht textoffset` |
+| Stroke & fill | `linethick dashwid fillval` |
+| Picture | `scale maxpswid maxpsht` |
+| **(ext)** canvas | `margin topmargin rightmargin bottommargin leftmargin` |
+| **(ext)** math | `texlabels` (typeset `$…$` labels as TeX) |
 
 ## Lexical notes
 
 - Comments run from `#` to end of line.
 - A statement ends at a newline or `;`; a trailing `\` continues the line,
   and a path also continues across a newline adjacent to `then`.
-- Labels start with an uppercase letter; variables with a lowercase letter.
+- Labels start with an uppercase letter; variables with lowercase.
 - Inside macro arguments, a `$` not followed by a digit and a
-  non-continuation `\` are literal text (so LaTeX can be passed unquoted).
+  non-continuation `\` are literal text — so LaTeX like `$\beta$` passes
+  through unquoted.
