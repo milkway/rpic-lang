@@ -81,7 +81,14 @@ impl Svg {
         order.sort_by_key(|&i| (d.shape_layers.get(i).copied().unwrap_or(0), i));
         for i in order {
             let s = &d.shapes[i];
-            self.out.push_str(&format!("<g id=\"s{i}\">\n"));
+            // The stable `s<N>` id is the GSAP/animation target; a `class`
+            // extension hook rides alongside it without changing the id.
+            match d.shape_classes.get(i).and_then(|c| c.as_deref()) {
+                Some(class) => self
+                    .out
+                    .push_str(&format!("<g id=\"s{i}\" class=\"{}\">\n", attr(class))),
+                None => self.out.push_str(&format!("<g id=\"s{i}\">\n")),
+            }
             self.shape(s);
             self.out.push_str("</g>\n");
         }
@@ -1580,6 +1587,27 @@ mod tests {
         let s = svg("circle fill 0");
         assert!(s.contains("<circle"));
         assert!(s.contains("rgb(0,0,0)"));
+    }
+
+    #[test]
+    fn class_hook_lands_on_shape_group_and_keeps_ids() {
+        let s = svg("box class \"critical hot\"\ncircle");
+        assert!(s.contains("<g id=\"s0\" class=\"critical hot\">"), "{s}");
+        assert!(s.contains("<g id=\"s1\">\n<circle"), "{s}");
+
+        // classic output stays byte-identical: no class attribute anywhere
+        let plain = svg("box\ncircle");
+        assert!(!plain.contains("class="), "{plain}");
+    }
+
+    #[test]
+    fn class_follows_its_shape_through_behind_reordering() {
+        // `behind` reorders group emission; the class must stay attached to
+        // its own shape id, which is also the animation target contract.
+        let s = svg("A: box class \"front\"\nbox class \"back\" behind A at A");
+        let back = s.find("<g id=\"s1\" class=\"back\">").unwrap();
+        let front = s.find("<g id=\"s0\" class=\"front\">").unwrap();
+        assert!(back < front, "{s}");
     }
 
     #[test]
