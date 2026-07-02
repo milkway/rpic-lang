@@ -114,6 +114,29 @@ for boxes, circles, ellipses, and filled open paths/splines/arcs. PNG/PDF paths
 that rasterize from SVG inherit the same appearance; future native non-SVG
 backends should either materialize clipped hatch lines or document a fallback.
 
+### Keeping labels legible
+
+A label sits on top of the pattern, so the glyphs are never crossed by hatch
+lines — but the lines still run up to the text. rpic does **not** auto-mask a
+gap around labels: in the spirit of pic, geometry is composed explicitly rather
+than by a hidden render effect. When you want a clear label over a busy pattern,
+place an opaque swatch behind it with the primitives pic already gives you:
+
+```pic
+.PS
+B: box wid 1.7 ht 1 crosshatch hatchsep 0.05
+box fill 1 wid 0.95 ht 0.34 at B.c "crosshatch"   # framed plaque
+
+C: circle diam 1.1 hatch hatchcolor blue at B.e + (1.4,0)
+box fill 1 invis wid 0.5 ht 0.5 at C.c "one" "two" # borderless mask
+.PE
+```
+
+`fill 1` is opaque white (pic's `0 = black … 1 = white` fill); add `invis` to
+drop the border and keep just the masked area. You size and color the swatch,
+so single- or multi-line labels, framed or borderless, are all under your
+control — no white is hardcoded and nothing is masked that you did not ask for.
+
 Classic pic input remains dpic-compatible when these attributes are not used.
 Additional runnable examples are in `examples/hatch.pic`.
 
