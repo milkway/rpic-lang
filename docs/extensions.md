@@ -5,6 +5,27 @@ oracle**. The features in this document are explicit rpic extensions: they are
 available to authors who opt into them, but classic pic input should keep its
 dpic-compatible meaning when the extension is not used.
 
+## Reusable Styles Are Macros (idiom, not an extension)
+
+pic already has named, parameterized, composable styles: `define`. A macro
+body can hold any attribute list, and a call expands inline on the object:
+
+```pic
+.PS
+define warn { outlined "red" dashed thick 1.2 }
+define note { shaded "lightyellow" outlined "gray" }
+box warn() "error"
+box note() "notice"
+circle warn() note() "both compose"
+.PE
+```
+
+This is 100% classic pic — it needs no rpic extension, works with every
+attribute on this page (`hatch`, `opacity`, `behind`, …), and parameterizes
+naturally (`define sev { outlined $1 thick $2 }`). Prefer it over asking for
+a dedicated "style" keyword. The design notes behind this decision live in
+[`docs/svg-styles.md`](svg-styles.md).
+
 ## Canvas Margins
 
 `margin`, `topmargin`, `rightmargin`, `bottommargin`, and `leftmargin` are

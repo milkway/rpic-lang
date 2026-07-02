@@ -41,6 +41,12 @@ classic semantics. Features inspired by Pikchr must be explicit rpic extensions:
 opt-in, documented, credited, and inert for existing dpic-compatible input. The
 current research notes and adoption matrix live in [`docs/pikchr.md`](docs/pikchr.md).
 
+Visual styling beyond pic/dpic attributes (CSS classes, gradients, themes) is
+evaluated in [`docs/svg-styles.md`](docs/svg-styles.md): structured `class`
+hooks and linear gradients are adopted as explicit extensions, named styles are
+the existing `define` macro idiom, and raw CSS from `.pic` sources is rejected
+under the same policy that keeps `command` text out of the output.
+
 ## Goals
 
 1. **Preserve Kernighan's pic paradigm.** The language stays declarative and
