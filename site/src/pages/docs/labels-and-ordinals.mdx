@@ -1,0 +1,73 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Labels & ordinals
+description: Naming objects, and referring to them by position in the drawing.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Labels & ordinals
+
+pic gives you two ways to refer back to something you drew: give it a
+*name*, or point at it by *order*.
+
+## Labels
+
+A capitalized name followed by a colon labels the next object (or a bare
+position). Labels are how larger pictures stay readable.
+
+<PicExample code={`.PS
+In:  circle "in" rad 0.22
+Sum: circle rad 0.1 at In + (0.9, 0)
+Out: box "out" wid 0.6 ht 0.45 at Sum + (1.0, 0)
+arrow from In.e to Sum.w
+arrow from Sum.e to Out.w
+P: (0.9, -0.5)
+arrow from Out.s then down 0.2 then to P then to Sum.s
+.PE`} />
+
+A label can also name a plain point (`P: (0.9, -0.5)`) — handy for wiring.
+
+## Ordinals
+
+`last`, `2nd`, `3rd last` … select objects by their order of appearance,
+optionally filtered by kind:
+
+<PicExample code={`.PS
+box "1"; move; box "2"; move; circle "c" rad 0.3
+arrow from last box.s down 0.3
+arrow from 1st box.s down 0.3
+line dashed from last circle.n up 0.25
+.PE`} />
+
+`last` on its own matches the most recent object of *any* kind; `last box`
+filters by kind. This is exactly dpic's behavior.
+
+## Here
+
+`Here` (capitalized, as in classic pic) is the current position — useful to
+stash a point mid-flow:
+
+<PicExample code={`.PS
+box "a"
+arrow right 0.5
+H: Here
+box "b"
+arrow from H down 0.45 then right 0.4
+box "c" ht 0.4
+.PE`} />
+
+## Anchors on references
+
+Every reference — label or ordinal — exposes the same compass anchors:
+
+<PicExample code={`.PS
+A: box "A"
+box "B" with .w at A.e + (0.5, 0)
+line dotted from A.ne to last box.nw
+line dotted from A.se to last box.sw
+.PE`} />
+
+## Where to go next
+
+- [Variables & macros](/docs/variables-and-macros) — parameterize with
+  `define`, loop with `for`

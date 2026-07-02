@@ -1,0 +1,82 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Primitives
+description: The eight drawing primitives every pic picture is made of.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Primitives
+
+Everything in pic is built from a handful of primitives. Each one draws
+itself at the current position, then moves the current position along the
+current direction — so a plain sequence of primitives already makes a
+diagram.
+
+<PicExample code={`.PS
+box
+circle
+ellipse
+.PE`} />
+
+## Closed objects
+
+`box`, `circle` and `ellipse` are *closed*: they have an interior you can
+fill, and text placed on them is centered by default.
+
+<PicExample code={`.PS
+box "box" wid 0.8 ht 0.55
+move right 0.3
+circle "circle" rad 0.32
+move right 0.3
+ellipse "ellipse" wid 0.9 ht 0.55
+.PE`} />
+
+## Open objects
+
+`line`, `arrow`, `spline` and `arc` are *open*: they are paths. A path can
+have several segments chained with `then`, and arrowheads at either end.
+
+<PicExample code={`.PS
+line right 0.7 then up 0.4 then right 0.7
+arrow right 0.6 "label" above
+move right 0.3
+spline right 0.5 then up 0.4 then right 0.5 then down 0.4 then right 0.5
+.PE`} />
+
+`arc` draws a quarter-circle by default, counter-clockwise; `cw` flips it.
+
+<PicExample code={`.PS
+arc
+move right 0.4
+arc cw
+move right 0.4
+arc -> rad 0.4 cw
+.PE`} />
+
+## move — the invisible primitive
+
+`move` advances the current position without drawing. It participates in
+layout exactly like a line, which makes it the standard spacer.
+
+<PicExample code={`.PS
+box "a"
+move right 0.5
+box "b"
+.PE`} />
+
+## Text is an object too
+
+A quoted string on its own places text; several strings stack as lines.
+
+<PicExample code={`.PS
+"standalone"
+move right 0.9
+"two" "lines"
+move right 0.9
+box "attached" "to a box"
+.PE`} />
+
+## Where to go next
+
+- [Positioning](/docs/positioning) — the current point, `at`/`with`, anchors
+- [Attributes](/docs/attributes) — sizes, dash patterns, colors, arrowheads

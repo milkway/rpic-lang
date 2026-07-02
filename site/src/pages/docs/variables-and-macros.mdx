@@ -1,0 +1,84 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Variables & macros
+description: Environment variables, expressions, define, loops and conditionals.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Variables & macros
+
+pic is a real little language: variables, arithmetic, macros, loops and
+conditionals — all in service of describing pictures.
+
+## Environment variables
+
+Every default is a variable you can set: `boxwid`, `boxht`, `circlerad`,
+`linewid`, `arrowht`, `textht`, `linethick`, `fillval`, `scale` and
+friends. Assignments take effect for everything drawn afterwards.
+
+<PicExample code={`.PS
+boxht = 0.35
+box "default wid"
+move
+boxwid = 0.6; linethick = 1.8
+box "thick 0.6"
+move
+box "same"
+.PE`} />
+
+Variables are **global** — an assignment inside a block or macro propagates
+out, exactly as in dpic.
+
+## Expressions
+
+Full arithmetic with `+ - * / %`, comparisons, and the builtin functions
+`sqrt sin cos atan2 log exp int max min rand`:
+
+<PicExample code={`.PS
+n = 6
+for i = 0 to n-1 do {
+  circle rad 0.09 at (0.55*cos(i*6.2832/n), 0.55*sin(i*6.2832/n))
+}
+.PE`} />
+
+## define
+
+Macros take up to nine arguments (`$1`…`$9`) and expand inline — they are
+the reuse mechanism for geometry *and* for styles:
+
+<PicExample code={`.PS
+define node { circle rad 0.2 $1 shaded "honeydew" outlined "darkgreen" }
+define warn { outlined "firebrick" dashed }
+node("a"); arrow; node("b"); arrow
+box "c" wid 0.45 ht 0.4 warn()
+.PE`} />
+
+## for and if
+
+<PicExample code={`.PS
+for i = 1 to 4 do {
+  box wid 0.4 ht 0.3 sprintf("%g", i)
+  if i < 4 then { arrow right 0.35 }
+}
+.PE`} />
+
+`for … by * step` multiplies instead of adding — handy for log scales.
+
+## sprintf and print
+
+`sprintf` formats numbers into strings for labels; `print` writes to the
+diagnostic stream (stderr in the CLI) — the classic debugging tool.
+
+<PicExample code={`.PS
+x = sqrt(2)
+box sprintf("sqrt(2) = %.4f", x) wid 1.5
+.PE`} />
+
+## copy
+
+`copy "file.pic"` includes another file — how the circuit corpus shares its
+macro shim. Paths resolve relative to the source file.
+
+## Where to go next
+
+- [Blocks](/docs/blocks) — grouping a sub-picture into a single object

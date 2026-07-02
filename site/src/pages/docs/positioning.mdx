@@ -1,0 +1,84 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Positioning
+description: The current point, direction, explicit placement and anchors.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Positioning
+
+pic lays out a picture the way you would describe it aloud: there is a
+*current position* and a *current direction*, every object advances them,
+and you only reach for coordinates when you want them.
+
+## Direction words
+
+`up`, `down`, `left` and `right` set the direction for everything that
+follows — as a statement on their own, or as an attribute of one object.
+
+<PicExample code={`.PS
+box "1" wid 0.45 ht 0.4
+arrow
+box "2" wid 0.45 ht 0.4
+down
+arrow
+box "3" wid 0.45 ht 0.4
+arrow left 0.8
+box "4" wid 0.45 ht 0.4
+.PE`} />
+
+## Compass anchors
+
+Every object exposes compass corners — `.n .ne .e .se .s .sw .w .nw` — plus
+`.c` (center), and `.start`/`.end` on paths. They are positions you can
+draw from, to, or at.
+
+<PicExample code={`.PS
+A: box "A" wid 0.9 ht 0.7
+circle rad 0.05 fill 0 at A.ne
+circle rad 0.05 fill 0 at A.sw
+arrow from A.e right 0.5
+.PE`} />
+
+## at and with
+
+`at` places an object's center on a position. `with` chooses *which* corner
+lands there instead — read it as "with this corner at that point".
+
+<PicExample code={`.PS
+A: box "A" wid 0.8 ht 0.6
+box "at A.ne" ht 0.4 at A.ne
+box "with .sw" ht 0.4 with .sw at A.ne + (0.6, 0)
+.PE`} />
+
+## from / to, and expressions on positions
+
+Open objects take explicit endpoints. Positions compose with vector
+arithmetic — `A.e + (0.2, -0.1)` — and with `between`:
+
+<PicExample code={`.PS
+A: circle "A" rad 0.25
+B: circle "B" rad 0.25 at A + (1.6, 0.7)
+line from A.ne to B.w
+arrow from A.s to 0.5 between A.se and B.sw
+.PE`} />
+
+`0.5 between P and Q` is the midpoint; any fraction works, and
+`fraction of the way between P and Q` reads even closer to English.
+
+## chop
+
+`chop` trims a line back to the boundary of the objects it connects — the
+classic way to join circles without the line poking inside.
+
+<PicExample code={`.PS
+A: circle "A" rad 0.3
+B: circle "B" rad 0.3 at A + (1.5, 0.5)
+line from A to B chop
+.PE`} />
+
+## Where to go next
+
+- [Labels & ordinals](/docs/labels-and-ordinals) — naming objects and
+  referring back to them
+- [Blocks](/docs/blocks) — composing sub-pictures

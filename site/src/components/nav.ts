@@ -19,7 +19,14 @@ export const nav: NavSection[] = [
   },
   {
     label: 'The language',
-    items: [],
+    items: [
+      { title: 'Primitives', href: '/docs/primitives' },
+      { title: 'Positioning', href: '/docs/positioning' },
+      { title: 'Labels & ordinals', href: '/docs/labels-and-ordinals' },
+      { title: 'Attributes', href: '/docs/attributes' },
+      { title: 'Variables & macros', href: '/docs/variables-and-macros' },
+      { title: 'Blocks', href: '/docs/blocks' },
+    ],
   },
   {
     label: 'rpic extensions',
