@@ -43,6 +43,14 @@ pub fn render_math(tex: &str, font_pt: f64) -> Result<MathSpan, String> {
             ..Default::default()
         },
     );
+    // RaTeX stamps the root width/height with a `pt` unit even though the
+    // numbers are already in our px space (font_size user units) — an SVG pt
+    // is 4/3 px, which would render the fragment 33% larger than its
+    // metrics. Strip the unit from the root tag only.
+    let svg = match svg.find('>') {
+        Some(end) => format!("{}{}", svg[..end].replace("pt\"", "\""), &svg[end..]),
+        None => svg,
+    };
     let em_in = font_pt / 72.0;
     Ok(MathSpan {
         svg,

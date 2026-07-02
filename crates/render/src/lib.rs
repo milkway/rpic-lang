@@ -116,6 +116,26 @@ mod tests {
 
     #[cfg(feature = "math")]
     #[test]
+    fn math_fragment_root_is_unitless_px() {
+        // RaTeX emits pt-suffixed root dimensions; the renderer must strip
+        // them so the fragment scales 1:1 with its metrics (1pt = 4/3 px
+        // would render formulas 33% larger than the layout box).
+        let span = math::render_math("x", 11.0).unwrap();
+        let head = &span.svg[..span.svg.find('>').unwrap()];
+        assert!(!head.contains("pt\""), "{head}");
+        // root width in px must match the metric width in inches * 96
+        let w_attr: f64 = head
+            .split("width=\"")
+            .nth(1)
+            .and_then(|t| t.split('\"').next())
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert!((w_attr - span.width * 96.0).abs() < 0.01, "{w_attr} vs {}", span.width * 96.0);
+    }
+
+    #[cfg(feature = "math")]
+    #[test]
     fn texlabels_math_renders_through_png_and_pdf() {
         // Full pipeline: RaTeX-typeset label -> nested SVG fragment ->
         // rasterized by resvg / converted by svg2pdf. Pins that the exact

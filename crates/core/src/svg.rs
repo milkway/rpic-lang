@@ -748,11 +748,20 @@ impl Svg {
                     "end" => p.x - w,
                     _ => p.x - w / 2.0,
                 };
-                // Center the formula's ink box on the point classic text
-                // visually centers on (baseline + xheight/2) — the same
-                // box-centering semantics LaTeX-typeset dpic labels get.
-                let ink_center = p.y - xheight * PPI / 2.0;
-                let y_top = ink_center - (m.height + m.depth) * PPI / 2.0;
+                // Box-centering semantics, like LaTeX-typeset dpic labels:
+                // a centered formula's ink box centers on the point classic
+                // text visually centers on (baseline + xheight/2); an
+                // above/below formula keeps its whole ink box clear of the
+                // reference, its near edge sitting where the classic
+                // justified baseline would be.
+                let half = (m.height + m.depth) * PPI / 2.0;
+                let grid = self.p(Point::new(x, y));
+                let ink_center = match line.valign {
+                    1 => grid.y - (xheight / 2.0 + line.text_offset) * PPI - half,
+                    -1 => grid.y + (xheight / 2.0 + line.text_offset) * PPI + half,
+                    _ => grid.y - xheight * PPI / 2.0,
+                };
+                let y_top = ink_center - half;
                 let frag = m.svg.replacen(
                     "<svg ",
                     &format!("<svg x=\"{}\" y=\"{}\" ", num(x_left), num(y_top)),

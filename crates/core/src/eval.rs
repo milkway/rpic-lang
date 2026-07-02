@@ -3181,20 +3181,25 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
             1 => (x - w, x),
             _ => (x - w / 2.0, x + w / 2.0),
         };
-        let (up, down) = match &line.math {
+        match &line.math {
             Some(m) => {
-                // the ink box is centered on baseline + xheight/2 (see the
-                // SVG backend), so it extends half its size around that point
+                // mirror the SVG backend's box placement: centered formulas
+                // center their ink box on base_y + xheight/2; above/below
+                // formulas keep the whole box clear of the reference
                 let half = (m.height + m.depth) / 2.0;
-                (
-                    (half + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
-                    (half - TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
-                )
+                let center = match line.valign {
+                    1 => base_y + TEXT_XHEIGHT / 2.0 + line.text_offset + half,
+                    -1 => base_y - TEXT_XHEIGHT / 2.0 - line.text_offset - half,
+                    _ => base_y + TEXT_XHEIGHT / 2.0,
+                };
+                bb.add(Point::new(min_x, center - half));
+                bb.add(Point::new(max_x, center + half));
             }
-            None => (TEXT_LINE_H / 2.0, TEXT_LINE_H / 2.0),
-        };
-        bb.add(Point::new(min_x, y - down));
-        bb.add(Point::new(max_x, y + up));
+            None => {
+                bb.add(Point::new(min_x, y - TEXT_LINE_H / 2.0));
+                bb.add(Point::new(max_x, y + TEXT_LINE_H / 2.0));
+            }
+        }
     }
     bb
 }
