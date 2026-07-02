@@ -77,6 +77,37 @@ rendered text bboxes. That keeps the feature practical and backend-stable
 inside rpic, but it also means `fit` is not a dpic oracle feature. Programs that
 do not use `fit` keep their dpic-compatible dimensions and placement.
 
+## Fill Opacity
+
+`opacity <expr>` is an rpic-only attribute for making filled regions partially
+transparent. It maps to SVG `fill-opacity`, so outlines, arrowheads, brace
+strokes, and labels remain crisp while shaded, filled, or hatched areas fade.
+
+```pic
+.PS
+box fill 0.8 opacity 0.45 "fill only"
+circle shaded "gold" opacity 0.35 outlined "black"
+line right then up then left then down crosshatch opacity 0.4 "label stays solid"
+.PE
+```
+
+The value must be between `0` and `1`, where `0` is fully transparent and `1`
+is fully opaque. The default is no explicit opacity, so classic pic input keeps
+its dpic-compatible SVG when the attribute is absent. `opacity` has no visible
+effect on an object that has no `fill`, `shaded`, `hatch`, or `crosshatch`
+region, and standalone text rejects it explicitly.
+
+For `[ ... ]` blocks, opacity multiplies into each contained fill. For example,
+`[ box fill 0.8 opacity 0.5 ] opacity 0.5` renders the inner box fill with
+effective opacity `0.25`, while its outline and labels stay opaque.
+
+This first surface intentionally avoids separate stroke, text, or whole-object
+opacity controls. Those remain possible future style refinements under the
+broader SVG/CSS styling work tracked in #116. PNG and PDF output inherit the
+behavior because those backends are rendered from rpic's SVG.
+
+Additional runnable examples are in `examples/opacity.pic`.
+
 ## Hatch Fills
 
 `hatch` and `crosshatch` are rpic-only fill extensions for closed regions. They

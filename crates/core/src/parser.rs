@@ -1859,6 +1859,10 @@ impl Parser {
                 };
                 Attr::HatchColor(s)
             }
+            Token::Name(n) if n == "opacity" => {
+                self.bump();
+                Attr::Opacity(self.parse_expr()?)
+            }
             Token::Name(n) if allow_brace && n == "bracepos" => {
                 self.bump();
                 Attr::BracePos(self.parse_expr()?)
@@ -2669,6 +2673,23 @@ ellipse "typesetter"
         );
 
         let p = pic("hatch = 2\nbox wid hatch");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
+    fn opacity_parses_as_contextual_extension_attribute() {
+        let p = pic("box opacity 0.5");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Opacity(_))));
+
+        let p = pic("opacity = 2\nbox wid opacity");
         assert_eq!(p.stmts.len(), 2);
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
         let Stmt::Object { object, .. } = &p.stmts[1] else {
