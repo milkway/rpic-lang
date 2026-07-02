@@ -9,6 +9,24 @@ repository.workspace = true
 keywords = ["svg", "png", "pdf", "render", "rasterize"]
 categories = ["graphics", "rendering"]
 
+[features]
+# The `texlabels` math renderer (RaTeX). On by default for CLI/binding
+# builds; leave off where size matters (e.g. wasm, which depends only on
+# rpic-core anyway).
+default = ["math"]
+math = [
+    "dep:rpic-core",
+    "dep:ratex-parser",
+    "dep:ratex-layout",
+    "dep:ratex-svg",
+    "dep:ratex-types",
+]
+
 [dependencies]
 resvg = "0.47.0"
 svg2pdf = "0.13.0"
+rpic-core = { version = "0.3.0", path = "../core", optional = true }
+ratex-parser = { version = "0.1.12", optional = true }
+ratex-layout = { version = "0.1.12", optional = true }
+ratex-svg = { version = "0.1.12", features = ["standalone", "embed-fonts"], optional = true }
+ratex-types = { version = "0.1.12", optional = true }

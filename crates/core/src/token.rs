@@ -285,4 +285,5 @@ pub enum EnvVar {
     Rightmargin,
     Bottommargin,
     Leftmargin,
+    Texlabels,
 }

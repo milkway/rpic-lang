@@ -62,6 +62,7 @@ fn compile_json(src: &str, circuits: bool) -> String {
 
 #[pymodule]
 fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    rpic_core::set_math_renderer(rpic_render::math::render_math);
     m.add_function(wrap_pyfunction!(render_svg, m)?)?;
     m.add_function(wrap_pyfunction!(render_png, m)?)?;
     m.add_function(wrap_pyfunction!(render_pdf, m)?)?;
