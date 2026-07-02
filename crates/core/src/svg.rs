@@ -160,6 +160,7 @@ impl Svg {
             }
             Shape::Path {
                 pts,
+                closed,
                 arrows,
                 style,
                 text,
@@ -189,30 +190,47 @@ impl Svg {
                             .collect();
                         if style.fill_open {
                             let fill = self.fill_attr(style);
-                            self.out.push_str(&format!(
-                                "<polyline points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
-                                pstr.join(" "),
-                                fill,
-                                fill_opacity_attr(style)
-                            ));
+                            if *closed {
+                                self.out.push_str(&format!(
+                                    "<polygon points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                    pstr.join(" "),
+                                    fill,
+                                    fill_opacity_attr(style)
+                                ));
+                            } else {
+                                self.out.push_str(&format!(
+                                    "<polyline points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                    pstr.join(" "),
+                                    fill,
+                                    fill_opacity_attr(style)
+                                ));
+                            }
                         }
                         if !style.invis {
                             let stroke_pstr: Vec<String> = stroke_pts
                                 .iter()
                                 .map(|p| format!("{},{}", num(p.x), num(p.y)))
                                 .collect();
-                            self.out.push_str(&format!(
-                                "<polyline points=\"{}\" fill=\"none\" {}/>\n",
-                                stroke_pstr.join(" "),
-                                self.stroke(style)
-                            ));
+                            if *closed {
+                                self.out.push_str(&format!(
+                                    "<polygon points=\"{}\" fill=\"none\" {}/>\n",
+                                    stroke_pstr.join(" "),
+                                    self.stroke(style)
+                                ));
+                            } else {
+                                self.out.push_str(&format!(
+                                    "<polyline points=\"{}\" fill=\"none\" {}/>\n",
+                                    stroke_pstr.join(" "),
+                                    self.stroke(style)
+                                ));
+                            }
                         }
                     }
                     if !style.invis {
                         self.arrowheads(pts, *arrows, style);
                     }
                 }
-                if let Some(c) = midpoint(pts) {
+                if let Some(c) = path_text_point(pts, *closed) {
                     self.text(c, text);
                 }
             }
@@ -1147,6 +1165,17 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
     }
 }
 
+fn path_text_point(pts: &[Point], closed: bool) -> Option<Point> {
+    if !closed {
+        return midpoint(pts);
+    }
+    let mut bb = Bbox::new();
+    for p in pts {
+        bb.add(*p);
+    }
+    Some((bb.min + bb.max) * 0.5)
+}
+
 fn closed_shape_is_visible(style: &Style) -> bool {
     !style.invis || style.fill.is_some() || style.hatch.is_some()
 }
@@ -1317,6 +1346,18 @@ mod tests {
     fn closed_path_can_be_filled() {
         let s = svg("line fill 0.5 right then up then left then down");
         assert!(s.contains("fill=\"rgb(128,128,128)\" stroke-width=\"0\""));
+    }
+
+    #[test]
+    fn close_line_renders_polygon_and_centers_text_on_bbox() {
+        let s = svg("line right 1 then up 1 close shaded \"yellow\" outlined \"black\" \"closed\"");
+        assert!(s.contains("<polygon"));
+        assert!(s.contains("fill=\"yellow\""));
+
+        let x = text_x(&s, "closed");
+        let y = text_y(&s, "closed");
+        assert!(x > 40.0 && x < 70.0, "x = {x}\n{s}");
+        assert!(y > 40.0 && y < 70.0, "y = {y}\n{s}");
     }
 
     #[test]

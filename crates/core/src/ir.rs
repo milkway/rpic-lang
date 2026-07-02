@@ -192,6 +192,8 @@ pub enum Shape {
     /// Straight polyline (line / arrow / move).
     Path {
         pts: Vec<Point>,
+        /// rpic extension: this path was closed with the `close` attribute.
+        closed: bool,
         arrows: Arrowheads,
         style: Style,
         text: Vec<TextLine>,

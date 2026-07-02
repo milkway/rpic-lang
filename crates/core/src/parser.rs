@@ -1002,15 +1002,26 @@ fn static_truth(toks: &[Spanned]) -> Option<bool> {
                 ..
             },
         ] => Some(*v == 0.0),
-        [a, op, b] => {
-            let lhs = static_string(a)?;
-            let rhs = static_string(b)?;
-            match op.tok {
-                Token::EqEq => Some(lhs == rhs),
-                Token::Neq => Some(lhs != rhs),
-                _ => None,
+        [a, op, b] => match op.tok {
+            Token::EqEq | Token::Neq => {
+                if let (Some(lhs), Some(rhs)) = (static_string(a), static_string(b)) {
+                    return Some(if matches!(op.tok, Token::EqEq) {
+                        lhs == rhs
+                    } else {
+                        lhs != rhs
+                    });
+                }
+                if let (Some(lhs), Some(rhs)) = (static_number(a), static_number(b)) {
+                    return Some(if matches!(op.tok, Token::EqEq) {
+                        (lhs - rhs).abs() < f64::EPSILON
+                    } else {
+                        (lhs - rhs).abs() >= f64::EPSILON
+                    });
+                }
+                None
             }
-        }
+            _ => None,
+        },
         [a, op, b, op2, c] if matches!(op2.tok, Token::Plus) => {
             let lhs = static_string(a)?;
             let mut rhs = static_string(b)?;
@@ -1036,6 +1047,32 @@ fn trim_trailing_eof(toks: &[Spanned]) -> &[Spanned] {
 fn static_string(s: &Spanned) -> Option<String> {
     match &s.tok {
         Token::Str(v) => Some(v.clone()),
+        _ => None,
+    }
+}
+
+fn static_number(s: &Spanned) -> Option<f64> {
+    match &s.tok {
+        Token::Float(v) => Some(*v),
+        Token::Name(n) | Token::Label(n) => dpic_backend_constant(n),
+        _ => None,
+    }
+}
+
+fn dpic_backend_constant(name: &str) -> Option<f64> {
+    match name {
+        "optMFpic" => Some(0.0),
+        "optMpost" => Some(1.0),
+        "optPDF" => Some(2.0),
+        "optPGF" => Some(3.0),
+        "optPict2e" => Some(4.0),
+        "optPS" => Some(5.0),
+        "optPSfrag" => Some(6.0),
+        "optPSTricks" => Some(7.0),
+        "optSVG" | "dpicopt" => Some(8.0),
+        "optTeX" => Some(9.0),
+        "opttTeX" => Some(10.0),
+        "optxfig" => Some(11.0),
         _ => None,
     }
 }
@@ -1606,7 +1643,7 @@ impl Parser {
         // places a text-only object.
         if self.at_string_start() {
             attrs.push(Attr::Text(self.parse_stringexpr()?));
-            while let Some(a) = self.parse_attr(false, false, false)? {
+            while let Some(a) = self.parse_attr(false, false, false, false)? {
                 attrs.push(a);
             }
             return Ok(Object {
@@ -1668,7 +1705,8 @@ impl Parser {
                     | Prim::Arc
             )
         );
-        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch)? {
+        let allow_close = matches!(kind, ObjectKind::Primitive(Prim::Line));
+        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch, allow_close)? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
@@ -1697,6 +1735,7 @@ impl Parser {
         allow_fit: bool,
         allow_brace: bool,
         allow_hatch: bool,
+        allow_close: bool,
     ) -> PResult<Option<Attr>> {
         // any string expression (literal, sprintf, $arg, concatenation) is text
         if self.at_string_start() {
@@ -1729,23 +1768,32 @@ impl Parser {
             }
             Token::Dir(d) => {
                 self.bump();
-                Attr::Direction(d, self.opt_expr()?)
+                Attr::Direction(
+                    d,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::LineType(lt) => {
                 self.bump();
-                Attr::LineStyle(lt, self.opt_expr()?)
+                Attr::LineStyle(
+                    lt,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::Kw(Kw::Chop) => {
                 self.bump();
-                Attr::Chop(self.opt_expr()?)
+                Attr::Chop(self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?)
             }
             Token::Kw(Kw::Fill) => {
                 self.bump();
-                Attr::Fill(self.opt_expr()?)
+                Attr::Fill(self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?)
             }
             Token::Arrow(a) => {
                 self.bump();
-                Attr::Arrowhead(a, self.opt_expr()?)
+                Attr::Arrowhead(
+                    a,
+                    self.opt_attr_expr(allow_fit, allow_brace, allow_hatch, allow_close)?,
+                )
             }
             Token::Kw(Kw::Then) => {
                 self.bump();
@@ -1862,6 +1910,10 @@ impl Parser {
             Token::Name(n) if n == "opacity" => {
                 self.bump();
                 Attr::Opacity(self.parse_expr()?)
+            }
+            Token::Name(n) if allow_close && n == "close" => {
+                self.bump();
+                Attr::Close
             }
             Token::Name(n) if allow_brace && n == "bracepos" => {
                 self.bump();
@@ -2275,6 +2327,49 @@ impl Parser {
         } else {
             Ok(None)
         }
+    }
+
+    fn opt_attr_expr(
+        &mut self,
+        allow_fit: bool,
+        allow_brace: bool,
+        allow_hatch: bool,
+        allow_close: bool,
+    ) -> PResult<Option<Expr>> {
+        if self.contextual_attr_ahead(allow_fit, allow_brace, allow_hatch, allow_close) {
+            Ok(None)
+        } else {
+            self.opt_expr()
+        }
+    }
+
+    fn contextual_attr_ahead(
+        &self,
+        allow_fit: bool,
+        allow_brace: bool,
+        allow_hatch: bool,
+        allow_close: bool,
+    ) -> bool {
+        matches!(
+            self.cur(),
+            Token::Name(n)
+                if (allow_fit && n == "fit")
+                    || (allow_hatch
+                        && matches!(
+                            n.as_str(),
+                            "hatch"
+                                | "crosshatch"
+                                | "hatchangle"
+                                | "hatchsep"
+                                | "hatchwid"
+                                | "hatchwidth"
+                                | "hatchcolor"
+                        ))
+                    || n == "opacity"
+                    || (allow_brace && matches!(n.as_str(), "bracepos" | "labeloffset"))
+                    || n == "behind"
+                    || (allow_close && n == "close")
+        )
     }
 
     fn starts_scalar(&self) -> bool {
@@ -2699,6 +2794,23 @@ ellipse "typesetter"
     }
 
     #[test]
+    fn close_parses_as_contextual_line_extension_attribute() {
+        let p = pic("line right then up close");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Close)));
+
+        let p = pic("close = 2\nbox wid close");
+        assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
     fn brace_parses_as_contextual_extension_object() {
         let p = pic(
             "A: box\nB: box\nbrace from A.e to B.w down \"group\" wid .2 bracepos .4 labeloffset .1",
@@ -2935,7 +3047,10 @@ box
             "sh \"echo -n \\\"print \\\\\"\\\" > x\"\nif dpicopt==optPGF then { command \"cycle; \\\n\\global\\let\\dpicdraw=x\" } else { box }",
         );
         assert_eq!(p.stmts.len(), 2);
-        assert!(matches!(p.stmts[1], Stmt::If { .. }));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
     }
 
     #[test]

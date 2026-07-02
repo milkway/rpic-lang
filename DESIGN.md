@@ -29,7 +29,9 @@ that reads like a drawing being constructed step by step.
 corner case needs executable confirmation, we compare against `dpic -v` and use
 that behavior as the default compatibility target. rpic-specific additions, such
 as animation metadata or native SVG/PNG/PDF output, should stay additive and
-should not change the meaning of classic pic input.
+should not change the meaning of classic pic input. The current command and
+backend-compatibility audit lives in
+[`docs/dpic-compat-audit.md`](docs/dpic-compat-audit.md).
 
 Pikchr is treated as a modern pic-family design reference, not as the oracle for
 classic semantics. Features inspired by Pikchr must be explicit rpic extensions:

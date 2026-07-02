@@ -192,6 +192,8 @@ pub enum Attr {
     HatchColor(StringExpr),
     /// rpic extension: fill opacity, 0 = transparent and 1 = opaque.
     Opacity(Expr),
+    /// rpic extension: close a `line` path into a polygon.
+    Close,
     TextPos(TextPos),
     From(Position),
     To(Position),

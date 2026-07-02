@@ -250,6 +250,7 @@ struct Placed {
     box_rad: f64,
     line_wid: f64,
     line_ht: f64,
+    closed_path: bool,
     layer: i32,
     /// Index of the primary shape in `shapes` (None for point-only labels).
     shape: Option<usize>,
@@ -310,6 +311,13 @@ impl Placed {
     fn linear_corner(&self, c: Corner) -> Point {
         if self.points.is_empty() {
             return self.bbox_corner(c);
+        }
+        if self.closed_path {
+            return match c {
+                Corner::Start => self.points[0],
+                Corner::End => *self.points.last().unwrap(),
+                _ => self.bbox_corner(c),
+            };
         }
         match c {
             Corner::Center => (self.points[0] + *self.points.last().unwrap()) * 0.5,
@@ -579,6 +587,7 @@ impl State {
                     box_rad: 0.0,
                     line_wid: 0.0,
                     line_ht: 0.0,
+                    closed_path: false,
                     layer: 0,
                     shape: None,
                     members: HashMap::new(),
@@ -1266,10 +1275,14 @@ impl State {
         let mut pend = Point::ZERO;
         let mut any = false;
         let mut last_dir = self.dir;
+        let mut closed = false;
 
         for a in &obj.attrs {
             match a {
                 Attr::Direction(d, opt) => {
+                    if closed {
+                        return err("polygon is closed");
+                    }
                     let dist = match opt {
                         Some(e) => self.expr_dim(e)?,
                         None => {
@@ -1285,11 +1298,17 @@ impl State {
                     any = true;
                 }
                 Attr::Then => {
+                    if closed {
+                        return err("polygon is closed");
+                    }
                     let np = *pts.last().unwrap() + pend;
                     pts.push(np);
                     pend = Point::ZERO;
                 }
                 Attr::To(pos) => {
+                    if closed {
+                        return err("polygon is closed");
+                    }
                     if pend != Point::ZERO {
                         let np = *pts.last().unwrap() + pend;
                         pts.push(np);
@@ -1299,13 +1318,41 @@ impl State {
                     any = true;
                 }
                 Attr::By(pos) => {
+                    if closed {
+                        return err("polygon is closed");
+                    }
                     let d = self.eval_pos(pos)?;
                     pend = pend + (d - Point::ZERO);
                     any = true;
                 }
                 Attr::Dist(e) => {
+                    if closed {
+                        return err("polygon is closed");
+                    }
                     let dist = self.expr_dim(e)?;
                     pend = pend + dir_unit(last_dir) * dist;
+                    any = true;
+                }
+                Attr::Close => {
+                    if pend != Point::ZERO {
+                        let np = *pts.last().unwrap() + pend;
+                        pts.push(np);
+                        pend = Point::ZERO;
+                    }
+                    if pts.len() < 3 {
+                        return err("need at least 3 vertices in order to close the polygon");
+                    }
+                    if closed {
+                        return err("polygon already closed");
+                    }
+                    let first = pts[0];
+                    let last = *pts.last().unwrap();
+                    if first.dist(last) > 1e-12 {
+                        let closing = first - last;
+                        pts.push(first);
+                        last_dir = nearest_dir(closing);
+                    }
+                    closed = true;
                     any = true;
                 }
                 _ => {}
@@ -1369,7 +1416,11 @@ impl State {
         }
 
         let end = *pts.last().unwrap();
-        let center = (pts[0] + end) * 0.5;
+        let center = if closed {
+            (bb.min + bb.max) * 0.5
+        } else {
+            (pts[0] + end) * 0.5
+        };
         self.union_text(center, &text);
         let kind = match p {
             Prim::Spline => PKind::Spline,
@@ -1398,6 +1449,7 @@ impl State {
         } else {
             Shape::Path {
                 pts: pts.clone(),
+                closed,
                 arrows,
                 style,
                 text,
@@ -1413,6 +1465,7 @@ impl State {
         self.placed[idx].points = pts;
         self.placed[idx].line_wid = line_wid;
         self.placed[idx].line_ht = line_ht;
+        self.placed[idx].closed_path = closed;
         Ok(idx)
     }
 
@@ -1756,6 +1809,7 @@ impl State {
             box_rad: 0.0,
             line_wid: 0.0,
             line_ht: 0.0,
+            closed_path: false,
             layer: shape
                 .and_then(|s| self.shape_layers.get(s).copied())
                 .unwrap_or(0),
@@ -2767,9 +2821,36 @@ fn shape_painted_bbox(sh: &Shape) -> Bbox {
             out.union(&text_bbox(*c, text));
         }
         Shape::Path {
-            pts, style, text, ..
+            pts,
+            closed,
+            style,
+            text,
+            ..
+        } => {
+            let mut bb = Bbox::new();
+            for p in pts {
+                bb.add(*p);
+            }
+            if open_fill_is_visible(style) {
+                out.union(&bb);
+            }
+            if !style.invis {
+                out.union(&painted_bbox(&bb, stroke_half_width(style)));
+            } else if style.invis_bounds {
+                out.union(&bb);
+            }
+            if !bb.is_empty() {
+                let text_at = if *closed {
+                    (bb.min + bb.max) * 0.5
+                } else if let (Some(first), Some(last)) = (pts.first(), pts.last()) {
+                    (*first + *last) * 0.5
+                } else {
+                    Point::ZERO
+                };
+                out.union(&text_bbox(text_at, text));
+            }
         }
-        | Shape::Spline {
+        Shape::Spline {
             pts, style, text, ..
         } => {
             let mut bb = Bbox::new();
@@ -3546,6 +3627,41 @@ mod tests {
         assert_eq!(pts.len(), 5);
         // returns to start
         assert!(pts[0].dist(*pts.last().unwrap()) < 1e-9);
+    }
+
+    #[test]
+    fn close_line_marks_polygon_and_uses_bbox_center_anchor() {
+        let d = draw(
+            "L: line right 1 then up 1 close\nbox wid .1 ht .1 at L.c\nbox wid .1 ht .1 at L.end",
+        );
+        let Shape::Path { pts, closed, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(*closed);
+        assert_eq!(pts.len(), 4);
+        assert_eq!(pts[0], Point::ZERO);
+        assert_eq!(pts[1], Point::new(1.0, 0.0));
+        assert_eq!(pts[2], Point::new(1.0, 1.0));
+        assert_eq!(pts[3], Point::ZERO);
+
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert_eq!(*c, Point::new(0.5, 0.5));
+
+        let Shape::Box { c, .. } = &d.shapes[2] else {
+            panic!()
+        };
+        assert_eq!(*c, Point::ZERO);
+    }
+
+    #[test]
+    fn close_line_requires_three_vertices_and_ends_path() {
+        let err = eval(&parse("line right close").unwrap()).unwrap_err();
+        assert!(err.msg.contains("need at least 3 vertices"), "{err}");
+
+        let err = eval(&parse("line right then up close then left").unwrap()).unwrap_err();
+        assert!(err.msg.contains("polygon is closed"), "{err}");
     }
 
     #[test]
@@ -4434,6 +4550,21 @@ mod tests {
         };
         assert_eq!(style.stroke.as_deref(), Some("rgb(0,0,153)"));
         assert_eq!(style.fill, Some(Fill::Color("rgb(0,0,153)".into())));
+    }
+
+    #[test]
+    fn color_attribute_accepts_dpictools_rgbstring_macro_call() {
+        let d = draw(
+            "if dpicopt == optSVG then {\n\
+               define rgbstring { sprintf(\"rgb(%g,%g,%g)\", int(($1)*255+0.5), int(($2)*255+0.5), int(($3)*255+0.5)) }\n\
+             }\n\
+             circle shaded rgbstring(1,0.84,0) outlined \"black\"",
+        );
+        let Shape::Circle { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("rgb(255,214,0)".into())));
+        assert_eq!(style.stroke.as_deref(), Some("black"));
     }
 
     #[test]
