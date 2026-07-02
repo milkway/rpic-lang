@@ -1002,15 +1002,26 @@ fn static_truth(toks: &[Spanned]) -> Option<bool> {
                 ..
             },
         ] => Some(*v == 0.0),
-        [a, op, b] => {
-            let lhs = static_string(a)?;
-            let rhs = static_string(b)?;
-            match op.tok {
-                Token::EqEq => Some(lhs == rhs),
-                Token::Neq => Some(lhs != rhs),
-                _ => None,
+        [a, op, b] => match op.tok {
+            Token::EqEq | Token::Neq => {
+                if let (Some(lhs), Some(rhs)) = (static_string(a), static_string(b)) {
+                    return Some(if matches!(op.tok, Token::EqEq) {
+                        lhs == rhs
+                    } else {
+                        lhs != rhs
+                    });
+                }
+                if let (Some(lhs), Some(rhs)) = (static_number(a), static_number(b)) {
+                    return Some(if matches!(op.tok, Token::EqEq) {
+                        (lhs - rhs).abs() < f64::EPSILON
+                    } else {
+                        (lhs - rhs).abs() >= f64::EPSILON
+                    });
+                }
+                None
             }
-        }
+            _ => None,
+        },
         [a, op, b, op2, c] if matches!(op2.tok, Token::Plus) => {
             let lhs = static_string(a)?;
             let mut rhs = static_string(b)?;
@@ -1036,6 +1047,32 @@ fn trim_trailing_eof(toks: &[Spanned]) -> &[Spanned] {
 fn static_string(s: &Spanned) -> Option<String> {
     match &s.tok {
         Token::Str(v) => Some(v.clone()),
+        _ => None,
+    }
+}
+
+fn static_number(s: &Spanned) -> Option<f64> {
+    match &s.tok {
+        Token::Float(v) => Some(*v),
+        Token::Name(n) | Token::Label(n) => dpic_backend_constant(n),
+        _ => None,
+    }
+}
+
+fn dpic_backend_constant(name: &str) -> Option<f64> {
+    match name {
+        "optMFpic" => Some(0.0),
+        "optMpost" => Some(1.0),
+        "optPDF" => Some(2.0),
+        "optPGF" => Some(3.0),
+        "optPict2e" => Some(4.0),
+        "optPS" => Some(5.0),
+        "optPSfrag" => Some(6.0),
+        "optPSTricks" => Some(7.0),
+        "optSVG" | "dpicopt" => Some(8.0),
+        "optTeX" => Some(9.0),
+        "opttTeX" => Some(10.0),
+        "optxfig" => Some(11.0),
         _ => None,
     }
 }
@@ -2935,7 +2972,10 @@ box
             "sh \"echo -n \\\"print \\\\\"\\\" > x\"\nif dpicopt==optPGF then { command \"cycle; \\\n\\global\\let\\dpicdraw=x\" } else { box }",
         );
         assert_eq!(p.stmts.len(), 2);
-        assert!(matches!(p.stmts[1], Stmt::If { .. }));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
     }
 
     #[test]

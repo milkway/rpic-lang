@@ -4437,6 +4437,21 @@ mod tests {
     }
 
     #[test]
+    fn color_attribute_accepts_dpictools_rgbstring_macro_call() {
+        let d = draw(
+            "if dpicopt == optSVG then {\n\
+               define rgbstring { sprintf(\"rgb(%g,%g,%g)\", int(($1)*255+0.5), int(($2)*255+0.5), int(($3)*255+0.5)) }\n\
+             }\n\
+             circle shaded rgbstring(1,0.84,0) outlined \"black\"",
+        );
+        let Shape::Circle { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("rgb(255,214,0)".into())));
+        assert_eq!(style.stroke.as_deref(), Some("black"));
+    }
+
+    #[test]
     fn ps_width_scales_drawing() {
         // issue #4, dpic oracle: `.PS 6` scales the painted picture, so the
         // box geometry is slightly under 6in once default stroke is reserved.
