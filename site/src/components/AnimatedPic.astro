@@ -1,0 +1,103 @@
+---
+// Live-animated example: the pic source beside the SVG, with the animate
+// manifest driving a real GSAP timeline in the page — plus a replay button.
+// Effects mirror the @strategicprojects/rpic web player (fade/pop/draw).
+import { Code } from 'astro:components';
+import { renderPicBundle } from '../lib/rpic';
+import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
+import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
+import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
+
+interface Props {
+  code: string;
+  circuits?: boolean;
+}
+const { code, circuits = false } = Astro.props;
+const { svg, animations } = renderPicBundle(code, { circuits });
+---
+
+<div class="not-prose grid gap-4 mb-6 md:grid-cols-2 items-stretch">
+  <div class="min-w-0 h-full [&_pre]:h-full">
+    <Code code={code.trim()} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
+  </div>
+  <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white relative">
+    <div
+      class="anim-stage grid place-items-center p-5 h-full [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:overflow-visible"
+      data-anims={JSON.stringify(animations)}
+      set:html={svg}
+    />
+    <button
+      class="anim-replay absolute bottom-2 right-2 text-xs font-semibold rounded-md border border-slate-200 bg-white/90 text-slate-600 px-2.5 py-1 hover:text-emerald-800 hover:border-emerald-700"
+      type="button">▶ replay</button>
+  </div>
+</div>
+
+<script>
+  import { gsap } from 'gsap';
+
+  function drawOn(group: Element, a: any, tl: gsap.core.Timeline) {
+    group.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon').forEach((el) => {
+      let len = 0;
+      try {
+        len = (el as SVGGeometryElement).getTotalLength();
+      } catch {
+        len = 0;
+      }
+      if (len > 0) {
+        tl.fromTo(
+          el,
+          { strokeDasharray: len, strokeDashoffset: len },
+          { strokeDashoffset: 0, duration: a.duration, ease: 'none' },
+          a.start
+        );
+      } else {
+        tl.from(el, { opacity: 0, duration: a.duration }, a.start);
+      }
+    });
+    group.querySelectorAll('text').forEach((el) => {
+      tl.from(el, { opacity: 0, duration: 0.15 }, a.start + a.duration * 0.6);
+    });
+  }
+
+  function play(stage: HTMLElement) {
+    const anims = JSON.parse(stage.dataset.anims || '[]');
+    const tl = gsap.timeline();
+    for (const a of anims) {
+      const el = stage.querySelector(`[id="${a.id}"]`);
+      if (!el) continue;
+      switch (a.effect) {
+        case 'fade':
+          tl.from(el, { opacity: 0, duration: a.duration, ease: 'power1.out' }, a.start);
+          break;
+        case 'pop':
+          tl.from(
+            el,
+            { scale: 0, transformOrigin: '50% 50%', duration: a.duration, ease: 'back.out(1.7)' },
+            a.start
+          );
+          break;
+        case 'draw':
+          drawOn(el, a, tl);
+          break;
+      }
+    }
+    return tl;
+  }
+
+  document.querySelectorAll<HTMLElement>('.anim-stage').forEach((stage) => {
+    const replay = stage.parentElement?.querySelector('.anim-replay');
+    replay?.addEventListener('click', () => play(stage));
+    // play when the example scrolls into view
+    new IntersectionObserver(
+      (entries, obs) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            play(stage);
+            obs.disconnect();
+          }
+        }
+      },
+      { threshold: 0.4 }
+    ).observe(stage);
+  });
+</script>

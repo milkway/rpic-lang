@@ -28,6 +28,38 @@ The statement form uses pic's native references — labels and ordinals —
 so it also reaches shapes drawn **inside macros** (circuit elements!), and
 lets class lines cluster at the end of a picture like a theme block.
 
+## Live: this page is the host document
+
+The picture below carries only classes — every color, the hover reaction
+and the **pulse** come from this page's CSS:
+
+<div class="class-demo">
+<PicExample code={`.PS
+box "ok" wid 0.6 ht 0.45 class "node"
+move right 0.35
+box "ok" wid 0.6 ht 0.45 class "node"
+move right 0.35
+box "ALERT" wid 0.7 ht 0.45 class "node pulse"
+arrow from 1st box.e to 2nd box.w class "flow"
+arrow from 2nd box.e to 3rd box.w class "flow"
+.PE`} />
+</div>
+
+<style>{`
+  .class-demo .node rect { fill: #f0fdf4; stroke: #166534; transition: all .15s ease; cursor: pointer; }
+  .class-demo .node:hover rect { fill: #166534; }
+  .class-demo .node:hover text { fill: #f0fdf4; }
+  .class-demo .flow polyline, .class-demo .flow line { stroke: #0f766e; stroke-width: 1.6px; }
+  .class-demo .flow polygon { fill: #0f766e; stroke: #0f766e; }
+  @keyframes rpic-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  .class-demo .pulse rect { fill: #fef2f2; stroke: #b91c1c; animation: rpic-pulse 1.2s infinite; }
+  .class-demo .pulse text { fill: #b91c1c; font-weight: 600; }
+`}</style>
+
+Hover the boxes; the ALERT one pulses via a CSS `@keyframes` targeting
+`.pulse`. In PNG/PDF (or any page without this CSS) the same picture is
+plain black-and-white — the hook is inert.
+
 ## Rules
 
 - **Inert by itself**: without host CSS, SVG/PNG/PDF output is visually

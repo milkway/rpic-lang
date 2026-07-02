@@ -23,18 +23,37 @@ function rpicBin(): string {
 
 const CACHE_DIR = resolve(process.cwd(), 'node_modules/.rpic-cache');
 
+export interface Bundle {
+  svg: string;
+  animations: { id: string; effect: string; start: number; duration: number }[];
+}
+
+/** Render pic source to {svg, animations} via `rpic --json` (cached). */
+export function renderPicBundle(code: string, opts: RenderOptions = {}): Bundle {
+  const raw = run(code, opts, true);
+  const out = JSON.parse(raw);
+  if (out.error) {
+    throw new Error(`rpic failed for a docs example (${out.error}).\n--- source ---\n${code}`);
+  }
+  return { svg: out.svg, animations: out.animations ?? [] };
+}
+
 /** Render pic source to an SVG string (cached by content+options hash). */
 export function renderPic(code: string, opts: RenderOptions = {}): string {
+  return run(code, opts, false);
+}
+
+function run(code: string, opts: RenderOptions, json: boolean): string {
   const key = createHash('sha256')
-    .update(JSON.stringify([code, opts.circuits ?? false]))
+    .update(JSON.stringify([code, opts.circuits ?? false, json]))
     .digest('hex')
     .slice(0, 24);
-  const cached = join(CACHE_DIR, `${key}.svg`);
+  const cached = join(CACHE_DIR, `${key}.${json ? 'json' : 'svg'}`);
   if (existsSync(cached)) return readFileSync(cached, 'utf8');
 
   const src = join(tmpdir(), `rpic-doc-${key}.pic`);
   writeFileSync(src, code.endsWith('\n') ? code : code + '\n');
-  const args = [...(opts.circuits ? ['-c'] : []), '--svg', src];
+  const args = [...(opts.circuits ? ['-c'] : []), json ? '--json' : '--svg', src];
   let svg: string;
   try {
     svg = execFileSync(rpicBin(), args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

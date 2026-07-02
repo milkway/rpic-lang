@@ -12,6 +12,7 @@ enum Mode {
     Pdf,
     Ast,
     Tokens,
+    Json,
 }
 
 fn main() -> ExitCode {
@@ -36,6 +37,7 @@ fn main() -> ExitCode {
             "--pdf" => mode = Mode::Pdf,
             "--ast" => mode = Mode::Ast,
             "--tokens" => mode = Mode::Tokens,
+            "--json" => mode = Mode::Json,
             "-o" | "--output" => {
                 i += 1;
                 match args.get(i) {
@@ -158,6 +160,7 @@ fn run(
             emit_diagnostics(&d);
             Ok(Output::Text(rpic_core::to_svg(&d)))
         }
+        Mode::Json => Ok(Output::Text(rpic_core::compile_json(src))),
         Mode::Png => {
             let d = rpic_core::compile_in_dir(src, base)?;
             emit_diagnostics(&d);
@@ -188,7 +191,8 @@ fn print_help() {
          --png       render to PNG (raster)\n    \
          --pdf       render to PDF\n    \
          --ast       dump the syntax tree\n    \
-         --tokens    dump the token stream\n\n\
+         --tokens    dump the token stream\n    \
+    --json      emit compile JSON (svg, animations, diagnostics)\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
