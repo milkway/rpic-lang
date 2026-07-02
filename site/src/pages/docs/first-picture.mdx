@@ -1,0 +1,44 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Your first picture
+description: The pic mental model in five minutes.
+---
+
+# Your first picture
+
+In pic you *describe* a drawing and the language lays it out: you imagine
+walking across the page dropping primitives, and everything chains from the
+current position and direction.
+
+```rpic
+.PS
+ellipse "document"
+arrow
+box "rpic"
+arrow
+ellipse "SVG"
+.PE
+```
+
+Each object places itself after the previous one; `arrow` moves the current
+point. No coordinates needed — but they exist when you want them.
+
+## Naming and anchors
+
+```rpic
+.PS
+A: box "parser"
+B: circle "IR" at A.e + (1.2, 0)
+arrow from A.e to B.w
+box "backend" with .w at B.e + (0.4, 0)
+.PE
+```
+
+Labels (`A:`) name objects; every object exposes compass anchors
+(`.n .ne .e … .c .start .end`) you can position against.
+
+## Where to go next
+
+- The language tour covers primitives, attributes and macros.
+- The extensions chapter documents everything rpic adds beyond classic pic —
+  each one opt-in, from `gradient` fills to `texlabels` TeX math.

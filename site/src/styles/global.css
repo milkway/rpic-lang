@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --forest: #1b5e20;
+  --forest-soft: #2e7d32;
+  --teal-ext: #00695c;
+}
+
+/* Shiki dual-theme switch (Astro emits both palettes as CSS variables). */
+.dark .astro-code,
+.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+}
+
+.astro-code {
+  @apply rounded-lg p-4 text-[13px] leading-relaxed overflow-x-auto border border-slate-200;
+}
+.dark .astro-code {
+  @apply border-slate-700;
+}
+
+/* prose tweaks for docs body */
+.docs-prose h1 { @apply text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2; }
+.docs-prose h2 { @apply text-xl font-bold text-slate-900 dark:text-white mt-10 mb-3 scroll-mt-24; }
+.docs-prose h3 { @apply text-base font-semibold text-slate-900 dark:text-white mt-8 mb-2 scroll-mt-24; }
+.docs-prose p  { @apply text-[15px] leading-7 text-slate-700 dark:text-slate-300 mb-4; }
+.docs-prose a  { @apply text-emerald-800 dark:text-emerald-300 font-medium underline decoration-emerald-800/30 hover:decoration-emerald-800; }
+.docs-prose ul { @apply list-disc pl-6 mb-4 text-[15px] leading-7 text-slate-700 dark:text-slate-300; }
+.docs-prose li { @apply mb-1; }
+.docs-prose code:not(.astro-code code) { @apply text-[13px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-1.5 py-0.5 rounded; }
+.docs-prose pre { @apply mb-5; }
+.docs-prose table { @apply w-full text-sm mb-5; }
+.docs-prose th { @apply text-left font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2; }
+.docs-prose td { @apply border-b border-slate-100 dark:border-slate-800 py-2 text-slate-700 dark:text-slate-300; }

@@ -1,0 +1,55 @@
+---
+// Landing — tailwind-docs-style hero: headline, install one-liner, and the
+// rpic calling card: pic source next to the SVG rendered by rpic itself.
+import DocsLayout from '../layouts/DocsLayout.astro';
+import heroSvg from '../assets/hero.svg?raw';
+import { Code } from 'astro:components';
+import heroPic from '../assets/hero.pic?raw';
+import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
+import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
+import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
+
+const heroSrc = heroPic.trim();
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<DocsLayout title="rpic — pic pictures, reimagined in Rust">
+  <div class="max-w-3xl">
+    <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-3">v0.4.0 — the styling &amp; typography release</p>
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4">
+      Describe the picture.<br />rpic draws it.
+    </h1>
+    <p class="text-lg text-slate-600 dark:text-slate-300 leading-8 mb-6">
+      rpic is Brian Kernighan's <b>pic</b> picture-drawing language reimplemented in Rust —
+      native SVG/PNG/PDF output, a 79-element circuit library, KaTeX-grade TeX math in labels,
+      gradients, hatch fills, CSS hooks and a declarative animation layer. Classic pic stays
+      classic; every extension is opt-in.
+    </p>
+    <div class="flex flex-wrap items-center gap-3 mb-12">
+      <a href={`${base}/docs/installation`}
+        class="rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-sm px-5 py-2.5 no-underline">Get started</a>
+      <code class="text-[13px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2.5 rounded-lg">cargo install rpic-cli</code>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6 items-stretch mb-16">
+    <div class="min-w-0">
+      <Code code={heroSrc} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
+    </div>
+    <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-100 grid place-items-center p-6"
+      set:html={heroSvg} />
+  </div>
+
+  <div class="grid sm:grid-cols-3 gap-6 max-w-4xl">
+    {[
+      ['Kernighan-first', 'Classic pic semantics with dpic as the practical oracle — 72/72 manual figures at parity.'],
+      ['Batteries included', 'SVG, PNG and PDF from one pure-Rust binary. Python, JS/WASM, R and C bindings.'],
+      ['Honest extensions', 'texlabels, gradients, hatch, class hooks, animate — each opt-in, documented and inert when unused.'],
+    ].map(([t, d]) => (
+      <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+        <h3 class="font-semibold text-slate-900 dark:text-white mb-1 mt-0">{t}</h3>
+        <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0">{d}</p>
+      </div>
+    ))}
+  </div>
+</DocsLayout>

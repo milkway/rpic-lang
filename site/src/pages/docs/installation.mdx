@@ -1,0 +1,43 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Installation
+description: Install the rpic CLI and bindings on any platform.
+---
+
+# Installation
+
+rpic ships as a single static binary plus bindings for Python, JavaScript and R.
+
+## CLI
+
+```sh
+# from crates.io (any platform with Rust)
+cargo install rpic-cli
+
+# macOS / Linux binaries, Windows MSI and .deb packages:
+# https://github.com/milkway/rpic-lang/releases
+```
+
+## Render your first file
+
+```sh
+rpic diagram.pic                     # SVG to stdout
+rpic --png --scale 2 -o out.png diagram.pic
+rpic --pdf -o out.pdf diagram.pic
+rpic -c circuit.pic                  # load the circuit-element library
+rpic -t paper.pic                    # typeset $…$ labels as TeX math
+```
+
+## Bindings
+
+| Language | Package | Install |
+| --- | --- | --- |
+| Python | `rpiclang` (PyPI) | `pip install rpiclang` |
+| JavaScript / WASM | `@strategicprojects/rpic` (npm) | `npm i @strategicprojects/rpic` |
+| R | `rpic` (GitHub) | `remotes::install_github("milkway/rpic-r")` |
+| C | `rpic-capi` (crates.io) | link `librpic` |
+
+```python
+import rpic
+svg = rpic.render_svg('box "hello" fit', texlabels=True)
+```
