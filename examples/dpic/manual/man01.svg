@@ -1,76 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="620.8" height="128" viewBox="0 0 620.8 128" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="608" height="123.2" viewBox="0 0 608 123.2" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<ellipse cx="40" cy="28" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="40" y="28" text-anchor="middle" dominant-baseline="central">document</text>
+<ellipse cx="37.066667" cy="24.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="37.066667" y="29.373333" text-anchor="middle">document</text>
 </g>
 <g id="s1">
-<polyline points="76,28 124,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="124,28 114.4,30.4 114.4,25.6" fill="black"/>
+<line x1="73.066667" y1="24.533333" x2="118.867677" y2="24.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="111.466667,22.133333 121.066667,24.533333 111.466667,26.933333" fill="black"/>
 </g>
 <g id="s2">
-<rect x="124" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="160" y="28" text-anchor="middle" dominant-baseline="central">PIC</text>
+<rect x="121.066667" y="0.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="157.066667" y="29.373333" text-anchor="middle">PIC</text>
 </g>
 <g id="s3">
-<polyline points="196,28 244,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="244,28 234.4,30.4 234.4,25.6" fill="black"/>
+<line x1="193.066667" y1="24.533333" x2="238.867677" y2="24.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="231.466667,22.133333 241.066667,24.533333 231.466667,26.933333" fill="black"/>
 </g>
 <g id="s4">
-<rect x="244" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="280" y="19.2" text-anchor="middle" dominant-baseline="central">TBL/EQN</text>
-<text x="280" y="36.8" text-anchor="middle" dominant-baseline="central">(optional)</text>
+<rect x="241.066667" y="0.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="277.066667" y="22.04" text-anchor="middle">TBL/EQN</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="277.066667" y="36.706667" text-anchor="middle">(optional)</text>
 </g>
 <g id="s5">
-<polyline points="316,28 364,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="364,28 354.4,30.4 354.4,25.6" fill="black"/>
+<line x1="313.066667" y1="24.533333" x2="358.867677" y2="24.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="351.466667,22.133333 361.066667,24.533333 351.466667,26.933333" fill="black"/>
 </g>
 <g id="s6">
-<rect x="364" y="4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="400" y="28" text-anchor="middle" dominant-baseline="central">TROFF</text>
+<rect x="361.066667" y="0.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="397.066667" y="29.373333" text-anchor="middle">TROFF</text>
 </g>
 <g id="s7">
-<polyline points="436,28 484,28" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="484,28 474.4,30.4 474.4,25.6" fill="black"/>
+<line x1="433.066667" y1="24.533333" x2="478.867677" y2="24.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="471.466667,22.133333 481.066667,24.533333 471.466667,26.933333" fill="black"/>
 </g>
 <g id="s8">
-<ellipse cx="520" cy="28" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="520" y="28" text-anchor="middle" dominant-baseline="central">typesetter</text>
+<ellipse cx="517.066667" cy="24.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="517.066667" y="29.373333" text-anchor="middle">typesetter</text>
 </g>
 <g id="s9">
-<ellipse cx="40" cy="100" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="40" y="100" text-anchor="middle" dominant-baseline="central">document</text>
+<ellipse cx="37.066667" cy="96.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="37.066667" y="101.373333" text-anchor="middle">document</text>
 </g>
 <g id="s10">
-<polyline points="76,100 124,100" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="124,100 114.4,102.4 114.4,97.6" fill="black"/>
+<line x1="73.066667" y1="96.533333" x2="118.867677" y2="96.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="111.466667,94.133333 121.066667,96.533333 111.466667,98.933333" fill="black"/>
 </g>
 <g id="s11">
-<rect x="124" y="76" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="160" y="100" text-anchor="middle" dominant-baseline="central">{\em gpic}(1)</text>
+<rect x="121.066667" y="72.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="157.066667" y="101.373333" text-anchor="middle">{\em gpic}(1)</text>
 </g>
 <g id="s12">
-<polyline points="196,100 244,100" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="244,100 234.4,102.4 234.4,97.6" fill="black"/>
+<line x1="193.066667" y1="96.533333" x2="238.867677" y2="96.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="231.466667,94.133333 241.066667,96.533333 231.466667,98.933333" fill="black"/>
 </g>
 <g id="s13">
-<rect x="244" y="76" width="124.8" height="48" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
-<text x="306.4" y="91.2" text-anchor="middle" dominant-baseline="central">{\em gtbl}(1) or {\em geqn}(1)</text>
-<text x="306.4" y="108.8" text-anchor="middle" dominant-baseline="central">(optional)</text>
+<rect x="241.066667" y="72.533333" width="124.8" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="303.466667" y="94.04" text-anchor="middle">{\em gtbl}(1) or {\em geqn}(1)</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="303.466667" y="108.706667" text-anchor="middle">(optional)</text>
 </g>
 <g id="s14">
-<polyline points="368.8,100 416.8,100" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="416.8,100 407.2,102.4 407.2,97.6" fill="black"/>
+<line x1="365.866667" y1="96.533333" x2="411.667677" y2="96.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="404.266667,94.133333 413.866667,96.533333 404.266667,98.933333" fill="black"/>
 </g>
 <g id="s15">
-<rect x="416.8" y="76" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="452.8" y="100" text-anchor="middle" dominant-baseline="central">{\em gtroff}(1)</text>
+<rect x="413.866667" y="72.533333" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="449.866667" y="101.373333" text-anchor="middle">{\em gtroff}(1)</text>
 </g>
 <g id="s16">
-<polyline points="488.8,100 536.8,100" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="536.8,100 527.2,102.4 527.2,97.6" fill="black"/>
+<line x1="485.866667" y1="96.533333" x2="531.667677" y2="96.533333" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="524.266667,94.133333 533.866667,96.533333 524.266667,98.933333" fill="black"/>
 </g>
 <g id="s17">
-<ellipse cx="572.8" cy="100" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="572.8" y="100" text-anchor="middle" dominant-baseline="central">Postscript</text>
+<ellipse cx="569.866667" cy="96.533333" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="569.866667" y="101.373333" text-anchor="middle">Postscript</text>
 </g>
 </svg>

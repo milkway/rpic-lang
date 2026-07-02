@@ -1,60 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="148.16" height="108.8" viewBox="0 0 148.16 108.8" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="143.36" height="104" viewBox="0 0 143.36 104" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="45.28" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="42.346667" y="5.333333" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<rect x="54.88" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="51.946667" y="5.333333" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
-<rect x="64.48" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="61.546667" y="5.333333" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s3">
-<rect x="74.08" y="8.8" width="19.2" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="83.68" y="32.8" text-anchor="middle" dominant-baseline="central">...</text>
+<rect x="71.146667" y="5.333333" width="19.2" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="80.746667" y="34.173333" text-anchor="middle">...</text>
 </g>
 <g id="s4">
-<rect x="93.28" y="8.8" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="90.346667" y="5.333333" width="9.6" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<rect x="8.8" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="5.866667" y="77.333333" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s6">
 </g>
 <g id="s7">
-<rect x="31.84" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="28.906667" y="77.333333" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s8">
 </g>
 <g id="s9">
-<rect x="54.88" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="51.946667" y="77.333333" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s10">
 </g>
 <g id="s11">
-<text x="97.12" y="90.4" text-anchor="middle" dominant-baseline="central">...</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="94.186667" y="91.773333" text-anchor="middle">...</text>
 </g>
 <g id="s12">
 </g>
 <g id="s13">
-<rect x="120.16" y="80.8" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="117.226667" y="77.333333" width="19.2" height="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s14">
-<polyline points="50.08,32.8 8.8,80.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="8.8,80.8 13.24,71.957 16.879,75.086" fill="black"/>
+<line x1="47.146667" y1="29.333333" x2="7.300494" y2="75.666092" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="13.945888,71.61965 5.866667,77.333333 10.306599,68.489861" fill="black"/>
 </g>
 <g id="s15">
-<polyline points="59.68,32.8 31.84,80.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="31.84,80.8 34.58,71.292 38.733,73.7" fill="black"/>
+<line x1="56.746667" y1="29.333333" x2="30.00994" y2="75.431139" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="35.799235,70.233157 28.906667,77.333333 31.647085,67.824911" fill="black"/>
 </g>
 <g id="s16">
-<polyline points="69.28,32.8 54.88,80.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="54.88,80.8 55.34,70.915 59.937,72.295" fill="black"/>
+<line x1="66.346667" y1="29.333333" x2="52.578542" y2="75.227083" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="57.003989,68.827836 51.946667,77.333333 52.406423,67.448566" fill="black"/>
 </g>
 <g id="s17">
-<polyline points="98.08,32.8 120.16,80.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="120.16,80.8 113.968,73.081 118.328,71.076" fill="black"/>
+<line x1="95.146667" y1="29.333333" x2="116.307697" y2="75.335572" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="115.39515,67.608852 117.226667,77.333333 111.034396,69.614798" fill="black"/>
 </g>
 <g id="s18">
-<rect x="4" y="4" width="140.16" height="100.8" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="4,3"/>
+<rect x="1.066667" y="0.533333" width="140.16" height="100.8" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
 </g>
 </svg>

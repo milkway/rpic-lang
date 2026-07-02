@@ -1,85 +1,101 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="231.867" height="164.8" viewBox="0 0 231.867 164.8" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="207.866667" height="159.986667" viewBox="0 0 207.866667 159.986667" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="17.2,12.8 74.8,12.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="74.8,12.8 65.2,15.2 65.2,10.4" fill="black"/>
+<line x1="3.866667" y1="12.946667" x2="58.168182" y2="12.946667" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="51.866667,10.546667 61.466667,12.946667 51.866667,15.346667" fill="black"/>
 </g>
 <g id="s1">
-<text x="74.8" y="12.8" text-anchor="middle" dominant-baseline="central">$h$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="61.466667" y="10.28" text-anchor="middle">$h$</text>
 </g>
 <g id="s2">
-<polyline points="17.2,12.8 17.2,70.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="17.2,70.4 14.8,60.8 19.6,60.8" fill="black"/>
+<line x1="3.866667" y1="12.946667" x2="3.866667" y2="67.248182" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="6.266667,60.946667 3.866667,70.546667 1.466667,60.946667" fill="black"/>
 </g>
 <g id="s3">
-<text x="17.2" y="70.4" text-anchor="middle" dominant-baseline="central">$v$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.2" y="80.226667" text-anchor="end">$v$</text>
 </g>
 <g id="s4">
-<text x="17.2" y="12.8" text-anchor="middle" dominant-baseline="central">$0$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.2" y="10.28" text-anchor="end">$0$</text>
 </g>
 <g id="s5">
-<rect x="31.6" y="27.2" width="129.6" height="86.4" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="18.266667" y="27.346667" width="129.6" height="86.4" fill="none" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s6">
-<rect x="74.8" y="56" width="43.2" height="28.8" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="61.466667" y="56.146667" width="43.2" height="28.8" fill="none" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s7">
 </g>
 <g id="s8">
-<polyline points="161.2,27.2 227.867,27.2" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="147.866667" y1="27.346667" x2="205.466667" y2="27.346667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s9">
-<polyline points="161.2,113.6 227.867,113.6" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="147.866667" y1="113.746667" x2="205.466667" y2="113.746667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s10">
-<polyline points="209.2,27.2 209.2,113.6" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="209.2,113.6 206.8,104 211.6,104" fill="black"/>
+<line x1="195.866667" y1="29.82053" x2="195.866667" y2="61.213333" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="193.466667,36.946667 195.866667,27.346667 198.266667,36.946667" fill="black"/>
 </g>
 <g id="s11">
-<text x="209.2" y="70.4" text-anchor="middle" dominant-baseline="central">$V$</text>
+<line x1="195.866667" y1="79.88" x2="195.866667" y2="111.272803" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="198.266667,104.146667 195.866667,113.746667 193.466667,104.146667" fill="black"/>
 </g>
 <g id="s12">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="195.866667" y="75.386667" text-anchor="middle">$V$</text>
 </g>
 <g id="s13">
-<polyline points="161.2,56 199.067,56" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s14">
-<polyline points="161.2,84.8 199.067,84.8" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="147.866667" y1="56.146667" x2="176.666667" y2="56.146667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s15">
-<polyline points="180.4,56 180.4,84.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="180.4,84.8 178,75.2 182.8,75.2" fill="black"/>
+<line x1="147.866667" y1="84.946667" x2="176.666667" y2="84.946667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s16">
-<text x="180.4" y="70.4" text-anchor="middle" dominant-baseline="central">$\betaV$</text>
+<line x1="167.066667" y1="58.62053" x2="167.066667" y2="61.213333" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="164.666667,65.746667 167.066667,56.146667 169.466667,65.746667" fill="black"/>
 </g>
 <g id="s17">
+<line x1="167.066667" y1="79.88" x2="167.066667" y2="82.472803" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="169.466667,75.346667 167.066667,84.946667 164.666667,75.346667" fill="black"/>
 </g>
 <g id="s18">
-<polyline points="31.6,113.6 31.6,125.333" fill="none" stroke="black" stroke-width="1.067"/>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="167.066667" y="75.386667" text-anchor="middle">$\betaV$</text>
 </g>
 <g id="s19">
-<polyline points="161.2,113.6 161.2,125.333" fill="none" stroke="black" stroke-width="1.067"/>
 </g>
 <g id="s20">
-<polyline points="31.6,152 161.2,152" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="161.2,152 151.6,154.4 151.6,149.6" fill="black"/>
+<line x1="18.266667" y1="113.746667" x2="18.266667" y2="142.546667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s21">
-<text x="96.4" y="152" text-anchor="middle" dominant-baseline="central">$H$</text>
+<line x1="147.866667" y1="113.746667" x2="147.866667" y2="142.546667" stroke="black" stroke-width="1.2"/>
 </g>
 <g id="s22">
+<line x1="20.74053" y1="152.146667" x2="69.733333" y2="152.146667" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="27.866667,154.546667 18.266667,152.146667 27.866667,149.746667" fill="black"/>
 </g>
 <g id="s23">
-<polyline points="74.8,113.6 74.8,101.333" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="96.4" y1="152.146667" x2="145.392803" y2="152.146667" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="138.266667,149.746667 147.866667,152.146667 138.266667,154.546667" fill="black"/>
 </g>
 <g id="s24">
-<polyline points="118,113.6 118,101.333" fill="none" stroke="black" stroke-width="1.067"/>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="83.066667" y="156.986667" text-anchor="middle">$H$</text>
 </g>
 <g id="s25">
-<polyline points="74.8,128 118,128" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="118,128 108.4,130.4 108.4,125.6" fill="black"/>
 </g>
 <g id="s26">
-<text x="96.4" y="128" text-anchor="middle" dominant-baseline="central">$\alphaH$</text>
+<line x1="61.466667" y1="113.746667" x2="61.466667" y2="118.546667" stroke="black" stroke-width="1.2"/>
+</g>
+<g id="s27">
+<line x1="104.666667" y1="113.746667" x2="104.666667" y2="118.546667" stroke="black" stroke-width="1.2"/>
+</g>
+<g id="s28">
+<line x1="63.94053" y1="128.146667" x2="69.733333" y2="128.146667" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="71.066667,130.546667 61.466667,128.146667 71.066667,125.746667" fill="black"/>
+</g>
+<g id="s29">
+<line x1="96.4" y1="128.146667" x2="102.192803" y2="128.146667" stroke="black" stroke-width="1.2"/>
+<polygon stroke-width="0" points="95.066667,125.746667 104.666667,128.146667 95.066667,130.546667" fill="black"/>
+</g>
+<g id="s30">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="83.066667" y="132.986667" text-anchor="middle">$\alphaH$</text>
 </g>
 </svg>

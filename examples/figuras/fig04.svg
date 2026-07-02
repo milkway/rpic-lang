@@ -1,59 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="194.8" height="70.4" viewBox="0 0 194.8 70.4" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="153.866667" height="69.6" viewBox="0 0 153.866667 69.6" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<polyline points="37.6,42.4 42.4,42.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="42.4,42.4 32.8,44.8 32.8,40" fill="black"/>
+<line x1="36" y1="39.6" x2="35.852273" y2="39.6" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="31.2,37.2 40.8,39.6 31.2,42" fill="black"/>
 </g>
 <g id="s1">
-<text x="37.6" y="42.4" text-anchor="middle" dominant-baseline="central">RF</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="33.333333" y="44.44" text-anchor="end">RF</text>
 </g>
 <g id="s2">
-<circle cx="44.8" cy="42.4" r="2.4" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="43.2" cy="39.6" r="2.4" fill="none" stroke="black" stroke-width="2.4"/>
 </g>
 <g id="s3">
-<polyline points="47.2,42.4 52,42.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="52,42.4 42.4,44.8 42.4,40" fill="black"/>
+<line x1="45.6" y1="39.6" x2="45.452273" y2="39.6" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="40.8,37.2 50.4,39.6 40.8,42" fill="black"/>
 </g>
 <g id="s4">
-<rect x="52" y="38.8" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="56.8" y="42.4" text-anchor="middle" dominant-baseline="central"> $A$ </text>
+<rect x="50.4" y="36" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="2.4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="55.2" y="44.44" text-anchor="middle"> $A$ </text>
 </g>
 <g id="s5">
-<polyline points="61.6,42.4 71.2,42.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="71.2,42.4 61.6,44.8 61.6,40" fill="black"/>
+<line x1="60" y1="39.6" x2="64.652273" y2="39.6" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="60,37.2 69.6,39.6 60,42" fill="black"/>
 </g>
 <g id="s6">
-<polyline points="66.4,42.4 66.4,52 61.6,52" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="61.6,52 71.2,49.6 71.2,54.4" fill="black"/>
+<polyline points="64.8,39.6 64.8,49.2 64.947727,49.2" fill="none" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="69.6,51.6 60,49.2 69.6,46.8" fill="black"/>
 </g>
 <g id="s7">
-<rect x="52" y="48.4" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="56.8" y="52" text-anchor="middle" dominant-baseline="central">$\beta$</text>
+<rect x="50.4" y="45.6" width="9.6" height="7.2" fill="none" stroke="black" stroke-width="2.4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="55.2" y="54.04" text-anchor="middle">$\beta$</text>
 </g>
 <g id="s8">
-<polyline points="52,52 4,52 4,4 44.8,44.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="44.8,44.8 36.315,39.709 39.709,36.315" fill="black"/>
+<polyline points="50.4,49.2 2.4,49.2 2.4,1.2 39.701429,38.501429" fill="none" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="38.108831,33.514719 43.2,42 34.714719,36.908831" fill="black"/>
 </g>
 <g id="s9">
-<text x="44.8" y="42.4" text-anchor="middle" dominant-baseline="central">$+$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="43.2" y="44.44" text-anchor="middle">$+$</text>
 </g>
 <g id="s10">
-<rect x="71.2" y="18.4" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="107.2" y="33.6" text-anchor="middle" dominant-baseline="central">{\small Detetor de}</text>
-<text x="107.2" y="51.2" text-anchor="middle" dominant-baseline="central">{\small envelope}</text>
+<rect x="69.6" y="15.6" width="72" height="48" fill="none" stroke="black" stroke-width="2.4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="105.6" y="37.106667" text-anchor="middle">{\small Detetor de}</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="105.6" y="51.773333" text-anchor="middle">{\small envelope}</text>
 </g>
 <g id="s11">
-<polyline points="143.2,42.4 148,42.4" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="148,42.4 138.4,44.8 138.4,40" fill="black"/>
+<line x1="141.6" y1="39.6" x2="141.452273" y2="39.6" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="136.8,37.2 146.4,39.6 136.8,42" fill="black"/>
 </g>
 <g id="s12">
-<text x="148" y="42.4" text-anchor="middle" dominant-baseline="central">BF</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="149.066667" y="44.44" text-anchor="start">BF</text>
 </g>
 <g id="s13">
-<polyline points="56.8,38.8 56.8,34" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="56.8,38.8 54.4,29.2 59.2,29.2" fill="black"/>
+<line x1="55.2" y1="31.052273" x2="55.2" y2="31.2" stroke="black" stroke-width="2.4"/>
+<polygon stroke-width="0" points="57.6,26.4 55.2,36 52.8,26.4" fill="black"/>
 </g>
 <g id="s14">
-<rect x="53.2" y="29.2" width="7.2" height="4.8" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="56.8" y="31.6" text-anchor="middle" dominant-baseline="central">oct</text>
+<rect x="51.6" y="26.4" width="7.2" height="4.8" fill="none" stroke="black" stroke-width="2.4"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="55.2" y="33.64" text-anchor="middle">oct</text>
 </g>
 </svg>

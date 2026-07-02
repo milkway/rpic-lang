@@ -1,29 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="84.8" height="98.24" viewBox="0 0 84.8 98.24" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="81.6" height="95.04" viewBox="0 0 81.6 95.04" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="28" cy="50.08" r="24" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="25.6" cy="46.88" r="24" fill="none" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s1">
-<polyline points="52,50.08 61.6,50.08" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="49.6" y1="46.88" x2="59.2" y2="46.88" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s2">
-<polyline points="61.6,50.08 71.2,50.08" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="59.2" y1="46.88" x2="68.8" y2="46.88" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s3">
-<polyline points="71.2,50.08 80.8,50.08" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="68.8" y1="46.88" x2="78.4" y2="46.88" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s4">
-<polyline points="66.4,57.76 76,57.76" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="64" y1="54.56" x2="73.6" y2="54.56" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s5">
-<polyline points="66.4,42.4 76,42.4" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="64" y1="39.2" x2="73.6" y2="39.2" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s6">
-<polyline points="71.2,42.4 71.2,4" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="68.8" y1="39.2" x2="68.8" y2="0.8" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s7">
-<polyline points="68.32,55.84 68.32,94.24" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="65.92" y1="52.64" x2="65.92" y2="91.04" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s8">
-<polyline points="74.08,55.84 74.08,62.24" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="71.68" y1="52.64" x2="71.68" y2="59.04" stroke="black" stroke-width="19.2"/>
 </g>
 </svg>

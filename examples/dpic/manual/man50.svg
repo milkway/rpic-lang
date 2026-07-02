@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="344" height="344" viewBox="0 0 344 344" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="375.529412" height="375.529412" viewBox="0 0 375.529412 375.529412" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="46" y="179" width="196" height="28" fill="none" stroke="black" stroke-width="2.4"/>
+<rect x="59.294118" y="174.588235" width="184.470588" height="26.352941" fill="none" stroke="black" stroke-width="2.4"/>
 </g>
 <g id="s1">
+<rect x="243.764706" y="174.588235" width="13.176471" height="26.352941" fill="rgb(128,128,128)" stroke="none"/>
 </g>
 <g id="s2">
-<path d="M 256 193 C 258.333 193 267.667 197.667 270 193 C 272.333 188.333 265.333 169.667 270 165 C 274.667 160.333 293.333 169.667 298 165 C 302.667 160.333 298 141.667 298 137" fill="none" stroke="black" stroke-width="19.2"/>
+<path d="M 256.941176 187.764706 C 259.137255 187.764706 261.333333 187.764706 263.529412 187.764706 267.921569 187.764706 270.117647 183.372549 270.117647 174.588235 270.117647 165.803922 274.509804 161.411765 283.294118 161.411765 292.078431 161.411765 296.470588 157.019608 296.470588 148.235294 296.470588 143.843137 296.470588 139.45098 296.470588 135.058824" fill="none" stroke="black" stroke-width="19.2"/>
 </g>
 <g id="s3">
-<circle cx="172" cy="172" r="168" fill="none" stroke="red" stroke-width="1.067"/>
+<circle cx="177.882353" cy="168" r="158.117647" fill="none" stroke="red" stroke-width="36"/>
 </g>
 <g id="s4">
-<polyline points="4,340 340,4" fill="none" stroke="red" stroke-width="1.067"/>
+<line x1="66.076292" y1="279.80606" x2="289.688413" y2="56.19394" stroke="red" stroke-width="36"/>
 </g>
 </svg>

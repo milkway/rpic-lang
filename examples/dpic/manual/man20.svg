@@ -1,33 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300.8" height="75.2" viewBox="0 0 300.8 75.2" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="281.238182" height="60.558788" viewBox="0 0 281.238182 60.558788" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="4" y="23.2" width="72" height="48" fill="none" stroke="black" stroke-width="1.067"/>
+<rect x="1.066667" y="9.892121" width="72" height="48" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s1">
-<polyline points="76,39.2 124,39.2" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="124,39.2 114.4,41.6 114.4,36.8" fill="black"/>
+<line x1="73.066667" y1="25.892121" x2="118.867677" y2="25.892121" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="111.466667,23.492121 121.066667,25.892121 111.466667,28.292121" fill="black"/>
 </g>
 <g id="s2">
-<polyline points="76,55.2 124,55.2" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="124,55.2 114.4,57.6 114.4,52.8" fill="black"/>
+<line x1="73.066667" y1="41.892121" x2="118.867677" y2="41.892121" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="111.466667,39.492121 121.066667,41.892121 111.466667,44.292121" fill="black"/>
 </g>
 <g id="s3">
 </g>
 <g id="s4">
-<ellipse cx="232" cy="47.2" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="229.066667" cy="33.892121" rx="36" ry="24" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<ellipse cx="181.6" cy="13.6" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="193.428485" cy="10.133333" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s6">
-<ellipse cx="282.4" cy="13.6" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.067"/>
+<ellipse cx="264.704848" cy="10.133333" rx="14.4" ry="9.6" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s7">
-<circle cx="214" cy="35.2" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="216.338745" cy="25.40684" r="4.8" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s8">
-<circle cx="250" cy="35.2" r="4.8" fill="none" stroke="black" stroke-width="1.067"/>
+<circle cx="241.794589" cy="25.40684" r="4.8" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s9">
-<path d="M 214 47.2 A 28.8 28.8 0 0 1 250 47.2" fill="none" stroke="black" stroke-width="1.067"/>
+<path d="M 211.066667 33.892121 A 28.8 28.8 0 0 0 247.066667 33.892121" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

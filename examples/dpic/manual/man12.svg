@@ -1,18 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="32" viewBox="0 0 200 32" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="194.648276" height="27.806897" viewBox="0 0 194.648276 27.806897" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<rect x="4" y="4" width="24" height="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="16" y="16" text-anchor="middle" dominant-baseline="central">1</text>
+<rect x="1.324138" y="0.662069" width="23.834483" height="23.834483" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="13.241379" y="17.41931" text-anchor="middle">1</text>
 </g>
 <g id="s1">
 </g>
 <g id="s2">
-<rect x="88" y="4" width="24" height="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="100" y="16" text-anchor="middle" dominant-baseline="central">2</text>
+<rect x="84.744828" y="0.662069" width="23.834483" height="23.834483" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="96.662069" y="17.41931" text-anchor="middle">2</text>
 </g>
 <g id="s3">
 </g>
 <g id="s4">
-<rect x="172" y="4" width="24" height="24" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="184" y="16" text-anchor="middle" dominant-baseline="central">3</text>
+<rect x="168.165517" y="0.662069" width="23.834483" height="23.834483" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="180.082759" y="17.41931" text-anchor="middle">3</text>
 </g>
 </svg>

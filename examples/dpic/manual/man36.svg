@@ -1,104 +1,104 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="382.4" height="190.4" viewBox="0 0 382.4 190.4" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="377.6" height="185.6" viewBox="0 0 377.6 185.6" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="23.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="23.2" y="167.2" text-anchor="middle" dominant-baseline="central">1</text>
+<circle cx="20.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="20.266667" y="168.573333" text-anchor="middle">1</text>
 </g>
 <g id="s1">
-<circle cx="71.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="71.2" y="167.2" text-anchor="middle" dominant-baseline="central">-1</text>
+<circle cx="68.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="68.266667" y="168.573333" text-anchor="middle">-1</text>
 </g>
 <g id="s2">
-<circle cx="47.2" cy="119.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="47.2" y="119.2" text-anchor="middle" dominant-baseline="central">10</text>
+<circle cx="44.266667" cy="115.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="44.266667" y="120.573333" text-anchor="middle">10</text>
 </g>
 <g id="s3">
-<polyline points="38.613,136.373 31.787,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="35.680166" y1="132.906335" x2="28.853168" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s4">
-<polyline points="55.787,136.373 62.613,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="52.853168" y1="132.906335" x2="59.680166" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s5">
-<circle cx="119.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="119.2" y="167.2" text-anchor="middle" dominant-baseline="central">8</text>
+<circle cx="116.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="116.266667" y="168.573333" text-anchor="middle">8</text>
 </g>
 <g id="s6">
-<circle cx="167.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="167.2" y="167.2" text-anchor="middle" dominant-baseline="central">78</text>
+<circle cx="164.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="164.266667" y="168.573333" text-anchor="middle">78</text>
 </g>
 <g id="s7">
-<circle cx="143.2" cy="119.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="143.2" y="119.2" text-anchor="middle" dominant-baseline="central">89</text>
+<circle cx="140.266667" cy="115.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="140.266667" y="120.573333" text-anchor="middle">89</text>
 </g>
 <g id="s8">
-<polyline points="134.613,136.373 127.787,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="131.680166" y1="132.906335" x2="124.853168" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s9">
-<polyline points="151.787,136.373 158.613,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="148.853168" y1="132.906335" x2="155.680166" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s10">
-<circle cx="95.2" cy="71.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="95.2" y="71.2" text-anchor="middle" dominant-baseline="central">100</text>
+<circle cx="92.266667" cy="67.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="92.266667" y="72.573333" text-anchor="middle">100</text>
 </g>
 <g id="s11">
-<polyline points="81.624,84.776 60.776,105.624" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="78.690216" y1="81.309784" x2="57.843117" y2="102.156883" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s12">
-<polyline points="108.776,84.776 129.624,105.624" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="105.843117" y1="81.309784" x2="126.690216" y2="102.156883" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s13">
-<circle cx="215.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="215.2" y="167.2" text-anchor="middle" dominant-baseline="central">9</text>
+<circle cx="212.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="212.266667" y="168.573333" text-anchor="middle">9</text>
 </g>
 <g id="s14">
-<circle cx="263.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="263.2" y="167.2" text-anchor="middle" dominant-baseline="central">87</text>
+<circle cx="260.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="260.266667" y="168.573333" text-anchor="middle">87</text>
 </g>
 <g id="s15">
-<circle cx="239.2" cy="119.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="239.2" y="119.2" text-anchor="middle" dominant-baseline="central">98</text>
+<circle cx="236.266667" cy="115.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="236.266667" y="120.573333" text-anchor="middle">98</text>
 </g>
 <g id="s16">
-<polyline points="230.613,136.373 223.787,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="227.680166" y1="132.906335" x2="220.853168" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s17">
-<polyline points="247.787,136.373 254.613,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="244.853168" y1="132.906335" x2="251.680166" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s18">
-<circle cx="311.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="311.2" y="167.2" text-anchor="middle" dominant-baseline="central">97</text>
+<circle cx="308.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="308.266667" y="168.573333" text-anchor="middle">97</text>
 </g>
 <g id="s19">
-<circle cx="359.2" cy="167.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="359.2" y="167.2" text-anchor="middle" dominant-baseline="central">967</text>
+<circle cx="356.266667" cy="163.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="356.266667" y="168.573333" text-anchor="middle">967</text>
 </g>
 <g id="s20">
-<circle cx="335.2" cy="119.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="335.2" y="119.2" text-anchor="middle" dominant-baseline="central">978</text>
+<circle cx="332.266667" cy="115.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="332.266667" y="120.573333" text-anchor="middle">978</text>
 </g>
 <g id="s21">
-<polyline points="326.613,136.373 319.787,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="323.680166" y1="132.906335" x2="316.853168" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s22">
-<polyline points="343.787,136.373 350.613,150.027" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="340.853168" y1="132.906335" x2="347.680166" y2="146.560331" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s23">
-<circle cx="287.2" cy="71.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="287.2" y="71.2" text-anchor="middle" dominant-baseline="central">989</text>
+<circle cx="284.266667" cy="67.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="284.266667" y="72.573333" text-anchor="middle">989</text>
 </g>
 <g id="s24">
-<polyline points="273.624,84.776 252.776,105.624" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="270.690216" y1="81.309784" x2="249.843117" y2="102.156883" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s25">
-<polyline points="300.776,84.776 321.624,105.624" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="297.843117" y1="81.309784" x2="318.690216" y2="102.156883" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s26">
-<circle cx="191.2" cy="23.2" r="19.2" fill="none" stroke="black" stroke-width="1.067"/>
-<text x="191.2" y="23.2" text-anchor="middle" dominant-baseline="central">1000</text>
+<circle cx="188.266667" cy="19.733333" r="19.2" fill="none" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="188.266667" y="24.573333" text-anchor="middle">1000</text>
 </g>
 <g id="s27">
-<polyline points="174.027,31.787 112.373,62.613" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="171.093665" y1="28.319834" x2="109.439669" y2="59.146832" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s28">
-<polyline points="208.373,31.787 270.027,62.613" fill="none" stroke="black" stroke-width="1.067"/>
+<line x1="205.439669" y1="28.319834" x2="267.093665" y2="59.146832" stroke="black" stroke-width="1.066667"/>
 </g>
 </svg>

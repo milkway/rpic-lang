@@ -1,43 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="206" height="52" viewBox="0 0 206 52" font-family="sans-serif" font-size="14.667">
+<svg xmlns="http://www.w3.org/2000/svg" width="100.8" height="53.226667" viewBox="0 0 100.8 53.226667" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<text x="78.8" y="39.2" text-anchor="middle" dominant-baseline="central">${\scriptsize 0}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="46.933333" y="49.226667" text-anchor="end">${\scriptsize 0}$</text>
 </g>
 <g id="s1">
-<polyline points="30.8,39.2 126.8,39.2" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="126.8,39.2 117.2,41.6 117.2,36.8" fill="black"/>
+<line x1="1.6" y1="36.88" x2="94.301515" y2="36.88" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="88,34.48 97.6,36.88 88,39.28" fill="black"/>
 </g>
 <g id="s2">
-<text x="126.8" y="39.2" text-anchor="middle" dominant-baseline="central">$t$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="97.6" y="49.226667" text-anchor="middle">$t$</text>
 </g>
 <g id="s3">
-<polyline points="78.8,41.6 78.8,12.8" fill="none" stroke="black" stroke-width="1.067"/>
-<polygon points="78.8,12.8 81.2,22.4 76.4,22.4" fill="black"/>
+<line x1="49.6" y1="39.28" x2="49.6" y2="13.778485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="47.2,20.08 49.6,10.48 52,20.08" fill="black"/>
 </g>
 <g id="s4">
-<text x="78.8" y="12.8" text-anchor="middle" dominant-baseline="central">$\Lambda(t)$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="46.933333" y="10.48" text-anchor="end">$\Lambda(t)$</text>
 </g>
 <g id="s5">
-<polyline points="83.6,20 78.8,20" fill="none" stroke="black" stroke-width="1.067" stroke-dasharray="1,3" stroke-linecap="round"/>
+<line x1="54.4" y1="17.68" x2="49.6" y2="17.68" stroke="black" stroke-width="1.6" stroke-dasharray="0.5,8" stroke-linecap="round"/>
 </g>
 <g id="s6">
-<text x="78.8" y="20" text-anchor="middle" dominant-baseline="central">${\scriptsize 1}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="46.933333" y="22.52" text-anchor="end">${\scriptsize 1}$</text>
 </g>
 <g id="s7">
-<polyline points="74,39.2 83.6,20 83.6,20 93.2,39.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="44.8,36.88 54.4,17.68 54.4,17.68 64,36.88" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s8">
-<text x="93.2" y="39.2" text-anchor="middle" dominant-baseline="central">${\scriptsize n=1}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="64" y="49.226667" text-anchor="middle">${\scriptsize n=1}$</text>
 </g>
 <g id="s9">
-<polyline points="64.4,39.2 81.2,20 81.2,20 100.4,39.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="35.2,36.88 52,17.68 52,17.68 71.2,36.88" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<text x="100.4" y="39.2" text-anchor="middle" dominant-baseline="central">${\scriptsize n=2}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="71.2" y="49.226667" text-anchor="middle">${\scriptsize n=2}$</text>
 </g>
 <g id="s11">
-<polyline points="41.6,39.2 80,20 80,20 118.4,39.2" fill="none" stroke="black" stroke-width="1.067"/>
+<polyline points="12.4,36.88 50.8,17.68 50.8,17.68 89.2,36.88" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<text x="118.4" y="39.2" text-anchor="middle" dominant-baseline="central">${\scriptsize n=3}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="89.2" y="49.226667" text-anchor="middle">${\scriptsize n=3}$</text>
 </g>
 </svg>
