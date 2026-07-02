@@ -12,12 +12,23 @@ back a VS Code extension and GitHub Linguist registration.
 import { createHighlighter } from 'shiki';
 import grammar from './rpic.tmLanguage.json' with { type: 'json' };
 
+import forestLight from './themes/rpic-forest-light.json' with { type: 'json' };
+import forestDark from './themes/rpic-forest-dark.json' with { type: 'json' };
+
 const hl = await createHighlighter({
-  themes: ['github-light', 'github-dark'],
+  themes: [forestLight, forestDark],
   langs: [grammar],
 });
-const html = hl.codeToHtml(src, { lang: 'rpic', theme: 'github-light' });
+const html = hl.codeToHtml(src, { lang: 'rpic', theme: 'rpic-forest-light' });
 ```
+
+## Theme
+
+**rpic-forest** (`themes/rpic-forest-{light,dark}.json`) is the project
+theme: dark greens take the roles red/blue play in stock themes, rpic
+extensions render in dark teal (bold italic), and `$…$` math in earth tones.
+Any VS Code/TextMate theme also works — compare candidates with
+`node themes-demo.mjs`.
 
 Shiki emits inline styles, so the blocks drop into a TailwindCSS page with
 zero style conflicts and native dual-theme support.

@@ -9,8 +9,11 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const grammar = JSON.parse(readFileSync(join(here, 'rpic.tmLanguage.json'), 'utf8'));
 
+const forestLight = JSON.parse(readFileSync(join(here, 'themes/rpic-forest-light.json'), 'utf8'));
+const forestDark = JSON.parse(readFileSync(join(here, 'themes/rpic-forest-dark.json'), 'utf8'));
+
 const hl = await createHighlighter({
-  themes: ['github-light', 'github-dark'],
+  themes: [forestLight, forestDark],
   langs: [grammar],
 });
 
@@ -49,8 +52,8 @@ const sections = samples
 <section>
   <h2>${title}</h2>
   <div class="grid">
-    <div class="card">${block(code, 'github-light')}</div>
-    <div class="card dark">${block(code, 'github-dark')}</div>
+    <div class="card">${block(code, 'rpic-forest-light')}</div>
+    <div class="card dark">${block(code, 'rpic-forest-dark')}</div>
   </div>
 </section>`
   )
@@ -85,7 +88,7 @@ footer{font-size:.75rem;color:#94a3b8;margin-top:3rem}
   <h1>rpic — syntax highlighting</h1>
   <p>Gramática TextMate (<code class="chip">rpic.tmLanguage.json</code>)
   renderizada pelo <b>Shiki</b> (engine do VS Code) com CSS utilitário (o site de docs usará TailwindCSS compilado) — o setup da futura documentação.
-  Temas github-light × github-dark lado a lado; estilos inline, zero conflito com Tailwind.
+  Tema <b>rpic-forest</b> (claro × escuro) — verde escuro nos papéis clássicos, extensões rpic em teal; estilos inline, zero conflito com Tailwind.
   Extensões rpic (<code class="chip">fit</code>, <code class="chip">gradient</code>,
   <code class="chip">texlabels</code>…) têm escopo próprio.</p>
   ${sections}
