@@ -25,10 +25,11 @@ dot(NW); dot(NE); dot(SE); dot(SW)
 `switch`, sources, meters… — each draws between two named points, wiring
 included:
 
-<PicExample circuits code={`.PS
+<PicExample circuits code={String.raw`.PS
+texlabels = 1; margin = 0.08
 A:(0,0); B:(1.3,0); C:(2.6,0)
-resistor(A,B); "R" at 0.5 between A and B + (0, 0.28)
-diode(B,C);   "D" at 0.5 between B and C + (0, 0.28)
+resistor(A,B); "$R$" at 0.5 between A and B + (0, 0.4)
+diode(B,C);   "$D$" at 0.5 between B and C + (0, 0.4)
 .PE`} />
 
 ## Logic gates
