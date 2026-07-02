@@ -98,6 +98,16 @@ pub struct Hatch {
     pub color: String,
 }
 
+/// Two-stop linear gradient fill (rpic extension, PSTricks-inspired).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Gradient {
+    pub from: String,
+    pub to: String,
+    /// Angle in degrees, measured in pic coordinates: 0 = left to right,
+    /// 90 = bottom to top (matching how `hatchangle` measures).
+    pub angle: f64,
+}
+
 /// Visual style shared by all shapes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Style {
@@ -105,6 +115,7 @@ pub struct Style {
     pub stroke: Option<String>,
     pub fill: Option<Fill>,
     pub hatch: Option<Hatch>,
+    pub gradient: Option<Gradient>,
     /// Fill opacity, applied only to filled or hatched regions.
     pub fill_opacity: Option<f64>,
     /// Whether open paths/splines/arcs should emit a filled area. `color` on an
@@ -134,6 +145,7 @@ impl Default for Style {
             stroke: None,
             fill: None,
             hatch: None,
+            gradient: None,
             fill_opacity: None,
             fill_open: false,
             dash: Dash::Solid,

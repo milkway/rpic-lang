@@ -96,6 +96,22 @@ mod tests {
     }
 
     #[test]
+    fn gradient_fill_rasterizes_offline() {
+        // The exact defs markup the rpic SVG backend emits for the `gradient`
+        // extension must rasterize in resvg and convert in svg2pdf, so PNG and
+        // PDF stay backend-stable with the SVG.
+        const GRAD: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\" viewBox=\"0 0 40 20\"><defs><linearGradient id=\"grad0\" gradientUnits=\"objectBoundingBox\" x1=\"0\" y1=\"0.5\" x2=\"1\" y2=\"0.5\"><stop offset=\"0\" stop-color=\"black\"/><stop offset=\"1\" stop-color=\"white\"/></linearGradient></defs><rect x=\"2\" y=\"2\" width=\"36\" height=\"16\" fill=\"url(#grad0)\"/></svg>";
+        const FLAT: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\" viewBox=\"0 0 40 20\"><rect x=\"2\" y=\"2\" width=\"36\" height=\"16\" fill=\"gray\"/></svg>";
+        let grad = to_png(GRAD, 1.0).unwrap();
+        assert_eq!(&grad[..4], &[0x89, 0x50, 0x4E, 0x47]);
+        // a real gradient compresses differently from a flat fill — if resvg
+        // ignored the paint server, both rects would rasterize identically
+        let flat = to_png(FLAT, 1.0).unwrap();
+        assert_ne!(grad, flat);
+        assert_eq!(&to_pdf(GRAD).unwrap()[..4], b"%PDF");
+    }
+
+    #[test]
     fn pdf_has_magic() {
         let pdf = to_pdf(SVG).unwrap();
         assert_eq!(&pdf[..4], b"%PDF");

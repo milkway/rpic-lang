@@ -72,6 +72,15 @@ the important hatch controls:
 - `hatchangle` controls the line angle in degrees, defaulting to `45`;
 - starred fill styles combine a hatch pattern with a `fillcolor` background.
 
+## PSTricks Gradient Model
+
+The `pst-grad` package extends `fillstyle` with `gradient`, controlled by
+`gradbegin` and `gradend` colors, `gradangle`, and `gradmidpoint`. rpic adopts
+the two-color + angle core as the explicit `gradient`/`gradientangle`
+extension (see `docs/extensions.md`), emitting native SVG `<linearGradient>`
+instead of PostScript shading. `gradmidpoint` and multi-stop control are
+deferred until a concrete need appears.
+
 ## rpic Hatch Decision
 
 For rpic, the first hatch surface keeps the extension explicit and pic-like:

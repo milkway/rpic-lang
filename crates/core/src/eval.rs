@@ -2185,6 +2185,18 @@ impl State {
                     ensure_hatch(&mut s).color = name;
                     s.fill_open = true;
                 }
+                Attr::Gradient(a, b) => {
+                    let from = self.eval_color_expr(a)?;
+                    let to = self.eval_color_expr(b)?;
+                    let g = ensure_gradient(&mut s);
+                    g.from = from;
+                    g.to = to;
+                    s.fill_open = true;
+                }
+                Attr::GradientAngle(e) => {
+                    ensure_gradient(&mut s).angle = self.eval_expr(e)?;
+                    s.fill_open = true;
+                }
                 Attr::Opacity(e) => {
                     let opacity = self.eval_expr(e)?;
                     if !(0.0..=1.0).contains(&opacity) {
@@ -2793,16 +2805,24 @@ fn validate_class(name: &str) -> ER<()> {
     Ok(())
 }
 
+fn ensure_gradient(style: &mut Style) -> &mut Gradient {
+    style.gradient.get_or_insert_with(|| Gradient {
+        from: "black".into(),
+        to: "white".into(),
+        angle: 0.0,
+    })
+}
+
 fn has_visible_text(lines: &[TextLine]) -> bool {
     lines.iter().any(|line| !line.s.is_empty())
 }
 
 fn closed_shape_is_visible(style: &Style) -> bool {
-    !style.invis || style.fill.is_some() || style.hatch.is_some()
+    !style.invis || style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some()
 }
 
 fn open_fill_is_visible(style: &Style) -> bool {
-    style.fill_open && (style.fill.is_some() || style.hatch.is_some())
+    style.fill_open && (style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some())
 }
 
 fn stroke_half_width(style: &Style) -> f64 {
@@ -5095,6 +5115,28 @@ box wid 0.1 ht 0.1 at B.s"#,
         // box lands exactly where it would without them.
         let plain = draw("box wid 1 ht 1\nbox wid 1 ht 1");
         assert_eq!(d.bbox, plain.bbox);
+    }
+
+    #[test]
+    fn gradient_style_records_stops_and_angle() {
+        let d = draw("box gradient \"steelblue\" \"white\" gradientangle 45");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let g = style.gradient.as_ref().expect("expected gradient");
+        assert_eq!(g.from, "steelblue");
+        assert_eq!(g.to, "white");
+        assert!((g.angle - 45.0).abs() < 1e-9);
+        assert!(style.fill_open);
+
+        // gradientangle alone creates the default black-to-white gradient,
+        // mirroring how `hatchangle` alone creates a default hatch
+        let d = draw("box gradientangle 90");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        let g = style.gradient.as_ref().unwrap();
+        assert_eq!((g.from.as_str(), g.to.as_str()), ("black", "white"));
     }
 
     #[test]

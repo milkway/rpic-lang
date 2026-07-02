@@ -195,6 +195,10 @@ pub enum Attr {
     HatchColor(StringExpr),
     /// rpic extension: fill opacity, 0 = transparent and 1 = opaque.
     Opacity(Expr),
+    /// rpic extension: two-stop linear gradient fill (`from`, `to` colors).
+    Gradient(StringExpr, StringExpr),
+    /// rpic extension: gradient angle in degrees, pic coordinates.
+    GradientAngle(Expr),
     /// rpic extension: close a `line` path into a polygon.
     Close,
     TextPos(TextPos),
