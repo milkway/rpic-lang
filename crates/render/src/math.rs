@@ -16,7 +16,15 @@ use rpic_core::MathSpan;
 /// self-contained SVG fragment (KaTeX fonts embedded as glyph paths) plus
 /// exact metrics in inches.
 pub fn render_math(tex: &str, font_pt: f64) -> Result<MathSpan, String> {
-    let nodes = parse(tex).map_err(|e| format!("{e}"))?;
+    let nodes = parse(tex).map_err(|e| {
+        // strip RaTeX's "ParseError at position N:" prefix — the diagnostic
+        // already names the offending label
+        let msg = format!("{e}");
+        match msg.split_once(": ") {
+            Some((head, tail)) if head.starts_with("ParseError") => tail.to_string(),
+            _ => msg,
+        }
+    })?;
     // `$…$` is inline math: use TeX text style, like LaTeX would.
     let opts = LayoutOptions {
         style: MathStyle::Text,

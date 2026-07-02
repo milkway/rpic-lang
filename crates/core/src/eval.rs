@@ -794,8 +794,9 @@ impl State {
         match render(inner, FONT_PT_MATH) {
             Ok(span) => Some(span),
             Err(e) => {
-                self.diagnostics
-                    .push(format!("texlabels: `{t}`: {e}; kept literal"));
+                self.diagnostics.push(format!(
+                    "texlabels: `{t}` is not valid TeX math ({e}); label kept literal"
+                ));
                 None
             }
         }
@@ -3181,10 +3182,15 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
             _ => (x - w / 2.0, x + w / 2.0),
         };
         let (up, down) = match &line.math {
-            Some(m) => (
-                (m.height + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
-                (m.depth + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
-            ),
+            Some(m) => {
+                // the ink box is centered on baseline + xheight/2 (see the
+                // SVG backend), so it extends half its size around that point
+                let half = (m.height + m.depth) / 2.0;
+                (
+                    (half + TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
+                    (half - TEXT_XHEIGHT / 2.0).max(TEXT_LINE_H / 2.0),
+                )
+            }
             None => (TEXT_LINE_H / 2.0, TEXT_LINE_H / 2.0),
         };
         bb.add(Point::new(min_x, y - down));

@@ -748,7 +748,11 @@ impl Svg {
                     "end" => p.x - w,
                     _ => p.x - w / 2.0,
                 };
-                let y_top = p.y - m.height * PPI;
+                // Center the formula's ink box on the point classic text
+                // visually centers on (baseline + xheight/2) — the same
+                // box-centering semantics LaTeX-typeset dpic labels get.
+                let ink_center = p.y - xheight * PPI / 2.0;
+                let y_top = ink_center - (m.height + m.depth) * PPI / 2.0;
                 let frag = m.svg.replacen(
                     "<svg ",
                     &format!("<svg x=\"{}\" y=\"{}\" ", num(x_left), num(y_top)),
