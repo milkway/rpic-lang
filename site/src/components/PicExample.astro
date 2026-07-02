@@ -1,21 +1,24 @@
 ---
-// Code + rendered-result pair: the pic source is the single source of truth
-// (the same .pic file is imported as the code shown and pre-rendered to the
-// SVG displayed). Side by side on wide screens, stacked on narrow ones.
+// Code + live-rendered result: the pic source is the single source of truth —
+// the SVG beside the code is produced by the rpic binary at build time
+// (site/src/lib/rpic.ts), so examples can never drift from the engine.
+// Side by side on wide screens, stacked on narrow ones.
 import { Code } from 'astro:components';
+import { renderPic } from '../lib/rpic';
 import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
 import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
 import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
 
 interface Props {
-  /** pic source (import the .pic with ?raw) */
+  /** pic source (inline string or a .pic file imported with ?raw) */
   code: string;
-  /** rendered SVG markup (import the .svg with ?raw) */
-  svg: string;
+  /** load the circuit-element library (rpic -c) */
+  circuits?: boolean;
   /** stack the result below the code even on wide screens */
   stacked?: boolean;
 }
-const { code, svg, stacked = false } = Astro.props;
+const { code, circuits = false, stacked = false } = Astro.props;
+const svg = renderPic(code, { circuits });
 ---
 
 <div class={`not-prose grid gap-4 mb-6 ${stacked ? '' : 'md:grid-cols-2'} items-stretch`}>

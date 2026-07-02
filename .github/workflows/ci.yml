@@ -9,6 +9,26 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  site:
+    name: docs site (live examples)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build rpic
+        run: cargo build --release -p rpic-cli
+      - name: Build site (renders every example with the branch engine)
+        working-directory: site
+        env:
+          RPIC_BIN: ${{ github.workspace }}/target/release/rpic
+        run: |
+          npm ci
+          npm run build
+
   highlight-grammar:
     name: highlight grammar
     runs-on: ubuntu-latest

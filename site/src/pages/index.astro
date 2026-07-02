@@ -2,14 +2,15 @@
 // Landing — tailwind-docs-style hero: headline, install one-liner, and the
 // rpic calling card: pic source next to the SVG rendered by rpic itself.
 import DocsLayout from '../layouts/DocsLayout.astro';
-import heroSvg from '../assets/hero.svg?raw';
 import { Code } from 'astro:components';
 import heroPic from '../assets/hero.pic?raw';
+import { renderPic } from '../lib/rpic';
 import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
 import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
 import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
 
 const heroSrc = heroPic.trim();
+const heroSvg = renderPic(heroPic);
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 

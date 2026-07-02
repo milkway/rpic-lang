@@ -3,7 +3,12 @@ name: Docs
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'tools/highlight/**', '.github/workflows/docs.yml']
+    paths:
+      - 'site/**'
+      - 'tools/highlight/**'
+      - 'crates/**'
+      - 'assets/logo.pic'
+      - '.github/workflows/docs.yml'
   workflow_dispatch:
 
 permissions:
@@ -23,8 +28,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build rpic (renders the live examples)
+        run: cargo build --release -p rpic-cli
       - name: Build site
         working-directory: site
+        env:
+          RPIC_BIN: ${{ github.workspace }}/target/release/rpic
         run: |
           npm ci
           npm run build
