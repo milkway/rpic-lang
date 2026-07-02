@@ -447,8 +447,34 @@ impl Svg {
     fn fill_attr(&mut self, style: &Style) -> String {
         match &style.hatch {
             Some(hatch) => format!("url(#{})", self.define_hatch_pattern(style, hatch)),
-            None => self.fill_value(style),
+            None => match &style.gradient {
+                Some(g) => format!("url(#{})", self.define_linear_gradient(g)),
+                None => self.fill_value(style),
+            },
         }
+    }
+
+    fn define_linear_gradient(&mut self, g: &Gradient) -> String {
+        let id = format!("grad{}", self.next_pattern);
+        self.next_pattern += 1;
+        // The angle is measured in pic coordinates (y-up): 0 = left to right,
+        // 90 = bottom to top. SVG bounding-box coordinates are y-down, so the
+        // direction vector flips its y component; center it in the unit box.
+        let a = g.angle.to_radians();
+        let (dx, dy) = (a.cos(), -a.sin());
+        let (x1, y1) = (0.5 - dx / 2.0, 0.5 - dy / 2.0);
+        let (x2, y2) = (0.5 + dx / 2.0, 0.5 + dy / 2.0);
+        self.out.push_str(&format!(
+            "<defs><linearGradient id=\"{}\" gradientUnits=\"objectBoundingBox\" x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\">\n<stop offset=\"0\" stop-color=\"{}\"/>\n<stop offset=\"1\" stop-color=\"{}\"/>\n</linearGradient></defs>\n",
+            id,
+            num(x1),
+            num(y1),
+            num(x2),
+            num(y2),
+            attr(&g.from),
+            attr(&g.to)
+        ));
+        id
     }
 
     fn fill_value(&self, style: &Style) -> String {
@@ -468,7 +494,10 @@ impl Svg {
         let sep = positive_extent(hatch.sep * PPI).max(1.0);
         let width = (hatch.width.max(0.0) * PPI / 72.0).max(0.0);
         let color = attr(&hatch.color);
-        let bg = self.fill_value(style);
+        let bg = match &style.gradient {
+            Some(g) => format!("url(#{})", self.define_linear_gradient(g)),
+            None => self.fill_value(style),
+        };
         self.out.push_str(&format!(
             "<defs><pattern id=\"{}\" patternUnits=\"userSpaceOnUse\" width=\"{}\" height=\"{}\" patternTransform=\"rotate({})\">\n",
             id,
@@ -1184,7 +1213,7 @@ fn path_text_point(pts: &[Point], closed: bool) -> Option<Point> {
 }
 
 fn closed_shape_is_visible(style: &Style) -> bool {
-    !style.invis || style.fill.is_some() || style.hatch.is_some()
+    !style.invis || style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some()
 }
 
 fn fill_opacity_attr(style: &Style) -> String {
@@ -1198,7 +1227,7 @@ fn fill_opacity_attr(style: &Style) -> String {
 }
 
 fn open_fill_is_visible(style: &Style) -> bool {
-    style.fill_open && (style.fill.is_some() || style.hatch.is_some())
+    style.fill_open && (style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some())
 }
 
 /// Classic pic spline (no tension), matching dpic's `svgsplinesegment`.
@@ -1587,6 +1616,43 @@ mod tests {
         let s = svg("circle fill 0");
         assert!(s.contains("<circle"));
         assert!(s.contains("rgb(0,0,0)"));
+    }
+
+    #[test]
+    fn gradient_fill_emits_linear_gradient_defs() {
+        // angle 0: left to right in bounding-box coordinates
+        let s = svg("box gradient \"steelblue\" \"white\"");
+        assert!(s.contains("<defs><linearGradient id=\"grad0\""), "{s}");
+        assert!(s.contains("x1=\"0\" y1=\"0.5\" x2=\"1\" y2=\"0.5\""), "{s}");
+        assert!(
+            s.contains("<stop offset=\"0\" stop-color=\"steelblue\"/>"),
+            "{s}"
+        );
+        assert!(
+            s.contains("<stop offset=\"1\" stop-color=\"white\"/>"),
+            "{s}"
+        );
+        assert!(s.contains("fill=\"url(#grad0)\""), "{s}");
+
+        // angle 90 in pic coordinates = bottom to top = SVG y from 1 to 0
+        let s = svg("box gradient \"gold\" \"red\" gradientangle 90");
+        assert!(s.contains("x1=\"0.5\" y1=\"1\" x2=\"0.5\" y2=\"0\""), "{s}");
+
+        // classic output carries no gradient defs
+        let plain = svg("box\ncircle fill 0.5");
+        assert!(!plain.contains("linearGradient"), "{plain}");
+    }
+
+    #[test]
+    fn gradient_composes_with_hatch_and_opacity() {
+        // gradient becomes the hatch pattern background, and fill-opacity
+        // still applies to the composed fill
+        let s = svg("box gradient \"gold\" \"white\" hatch opacity 0.5");
+        assert!(s.contains("<linearGradient id=\"grad1\""), "{s}");
+        assert!(s.contains("<pattern id=\"hatch0\""), "{s}");
+        assert!(s.contains("fill=\"url(#grad1)\"/>"), "{s}"); // pattern bg rect
+        assert!(s.contains("fill=\"url(#hatch0)\""), "{s}"); // shape fill
+        assert!(s.contains("fill-opacity=\"0.5\""), "{s}");
     }
 
     #[test]

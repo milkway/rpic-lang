@@ -1922,6 +1922,16 @@ impl Parser {
                 };
                 Attr::HatchColor(s)
             }
+            Token::Name(n) if allow_hatch && n == "gradient" => {
+                self.bump();
+                let from = self.parse_color_like()?;
+                let to = self.parse_color_like()?;
+                Attr::Gradient(from, to)
+            }
+            Token::Name(n) if allow_hatch && n == "gradientangle" => {
+                self.bump();
+                Attr::GradientAngle(self.parse_expr()?)
+            }
             Token::Name(n) if n == "opacity" => {
                 self.bump();
                 Attr::Opacity(self.parse_expr()?)
@@ -2348,6 +2358,18 @@ impl Parser {
         }
     }
 
+    /// A color argument: a bare name (`red`), a label-cased name, or any
+    /// string expression — the same grammar `hatchcolor` accepts.
+    fn parse_color_like(&mut self) -> PResult<StringExpr> {
+        match self.cur().clone() {
+            Token::Name(n) | Token::Label(n) => {
+                self.bump();
+                Ok(StringExpr::Lit(n))
+            }
+            _ => self.parse_stringexpr(),
+        }
+    }
+
     fn opt_attr_expr(
         &mut self,
         allow_fit: bool,
@@ -2383,6 +2405,8 @@ impl Parser {
                                 | "hatchwid"
                                 | "hatchwidth"
                                 | "hatchcolor"
+                                | "gradient"
+                                | "gradientangle"
                         ))
                     || n == "opacity"
                     || (allow_brace && matches!(n.as_str(), "bracepos" | "labeloffset"))
@@ -2823,6 +2847,29 @@ ellipse "typesetter"
 
         let p = pic("close = 2\nbox wid close");
         assert_eq!(p.stmts.len(), 2);
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
+    fn gradient_parses_as_contextual_extension_attribute() {
+        let p = pic("box gradient \"steelblue\" white gradientangle 45");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Gradient(..))));
+        assert!(
+            object
+                .attrs
+                .iter()
+                .any(|a| matches!(a, Attr::GradientAngle(_)))
+        );
+
+        // contextual fallback: `gradient` stays usable as a variable
+        let p = pic("gradient = 2\nbox wid gradient");
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
         let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()

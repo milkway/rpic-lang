@@ -222,6 +222,40 @@ behavior because those backends are rendered from rpic's SVG.
 
 Additional runnable examples are in `examples/opacity.pic`.
 
+## Linear Gradients
+
+`gradient` is an rpic-only fill extension, inspired by PSTricks'
+`fillstyle=gradient` (`gradbegin`/`gradend`/`gradangle`), with pic-style
+attributes instead of TeX option lists:
+
+```pic
+.PS
+box gradient "steelblue" "white"
+circle gradient "gold" "orangered" gradientangle 45
+.PE
+```
+
+- `gradient "<from>" "<to>"` — two color stops, accepting the same quoted or
+  bare color names as `outlined`/`shaded`/`hatchcolor`;
+- `gradientangle <expr>` — degrees in pic coordinates, defaulting to `0`
+  (left to right); `90` runs bottom to top, matching how `hatchangle`
+  measures. `gradientangle` alone creates a default black-to-white gradient.
+
+The SVG backend emits a native `<linearGradient>` in `<defs>` with
+`objectBoundingBox` units, so the gradient follows each shape's own bounds
+and rasterizes identically in PNG/PDF (resvg/svg2pdf support it natively).
+
+Composition follows the fill slot:
+
+- `gradient` takes precedence over `fill`/`shaded` on the same object;
+- combined with `hatch`/`crosshatch`, the gradient becomes the pattern
+  background behind the hatch lines;
+- `opacity` applies to the composed fill as usual.
+
+Deferred extensions (each additive later): multi-stop lists,
+`radialgradient`, per-stop opacity, and user-space coordinates. Classic pic
+input remains dpic-compatible when these attributes are not used.
+
 ## Hatch Fills
 
 `hatch` and `crosshatch` are rpic-only fill extensions for closed regions. They
