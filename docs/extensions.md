@@ -114,6 +114,11 @@ for boxes, circles, ellipses, and filled open paths/splines/arcs. PNG/PDF paths
 that rasterize from SVG inherit the same appearance; future native non-SVG
 backends should either materialize clipped hatch lines or document a fallback.
 
+A label placed on a hatched shape is drawn with a white halo behind the glyphs
+(SVG `paint-order="stroke"`), so the pattern lines stay clear of the text. The
+halo is scoped to labels of hatched shapes; classic labels and separately placed
+text are unaffected.
+
 Classic pic input remains dpic-compatible when these attributes are not used.
 Additional runnable examples are in `examples/hatch.pic`.
 

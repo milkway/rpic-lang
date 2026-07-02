@@ -11,6 +11,9 @@ use crate::ir::*;
 const PPI: f64 = 96.0;
 const FONT_PT: f64 = 11.0;
 const DP_TEXT_RATIO: f64 = 0.66;
+/// Width, in points, of the white halo drawn behind labels on hatched shapes so
+/// the pattern lines do not run through the text.
+const TEXT_HALO_PT: f64 = 2.5;
 
 /// Render a drawing to an SVG document string.
 pub fn to_svg(d: &Drawing) -> String {
@@ -119,7 +122,7 @@ impl Svg {
                     let paint = self.paint(style);
                     self.out.push_str(&format!("<rect {} {}/>\n", attrs, paint));
                 }
-                self.text(*c, text);
+                self.text(*c, text, style.hatch.is_some());
             }
             Shape::Circle {
                 c, r, style, text, ..
@@ -135,7 +138,7 @@ impl Svg {
                         paint
                     ));
                 }
-                self.text(*c, text);
+                self.text(*c, text, style.hatch.is_some());
             }
             Shape::Ellipse {
                 c,
@@ -156,7 +159,7 @@ impl Svg {
                         paint
                     ));
                 }
-                self.text(*c, text);
+                self.text(*c, text, style.hatch.is_some());
             }
             Shape::Path {
                 pts,
@@ -212,7 +215,7 @@ impl Svg {
                     }
                 }
                 if let Some(c) = midpoint(pts) {
-                    self.text(c, text);
+                    self.text(c, text, style.hatch.is_some());
                 }
             }
             Shape::Spline {
@@ -243,7 +246,7 @@ impl Svg {
                     }
                 }
                 if let Some(c) = midpoint(pts) {
-                    self.text(c, text);
+                    self.text(c, text, style.hatch.is_some());
                 }
             }
             Shape::Arc {
@@ -292,7 +295,7 @@ impl Svg {
                         self.stroke(style)
                     ));
                 }
-                self.text(*c, text);
+                self.text(*c, text, style.hatch.is_some());
             }
             Shape::Brace {
                 cubics,
@@ -325,7 +328,7 @@ impl Svg {
                         self.stroke(style)
                     ));
                 }
-                self.text(*label_at, text);
+                self.text(*label_at, text, false);
             }
             Shape::Text {
                 at,
@@ -338,7 +341,7 @@ impl Svg {
                 if *standalone {
                     self.standalone_text(*at, text, *w, *h);
                 } else {
-                    self.text(*at, text);
+                    self.text(*at, text, false);
                 }
             }
         }
@@ -624,12 +627,12 @@ impl Svg {
         spline_path_points(&q, tension)
     }
 
-    fn text(&mut self, center: Point, lines: &[TextLine]) {
-        self.write_text(center, lines, None);
+    fn text(&mut self, center: Point, lines: &[TextLine], halo: bool) {
+        self.write_text(center, lines, None, halo);
     }
 
     fn standalone_text(&mut self, center: Point, lines: &[TextLine], w: f64, h: f64) {
-        self.write_text(center, lines, Some((w, h)));
+        self.write_text(center, lines, Some((w, h)), false);
     }
 
     fn write_text(
@@ -637,6 +640,7 @@ impl Svg {
         center: Point,
         lines: &[TextLine],
         standalone_dims: Option<(f64, f64)>,
+        halo: bool,
     ) {
         if lines.is_empty() {
             return;
@@ -678,7 +682,15 @@ impl Svg {
                 };
             let baseline_y = y + (line.valign as f64) * just_offset;
             let p = self.p(Point::new(x, baseline_y));
-            let text_stroke = if standalone {
+            // A white halo painted behind the glyphs keeps hatch lines from
+            // running through labels on hatched shapes. `paint-order="stroke"`
+            // draws the stroke first, so the black fill stays crisp on top.
+            let text_stroke = if halo {
+                format!(
+                    "stroke=\"white\" stroke-width=\"{}\" paint-order=\"stroke\"",
+                    num(TEXT_HALO_PT * PPI / 72.0)
+                )
+            } else if standalone {
                 format!("stroke-width=\"{}\"", num(0.2 * PPI / 72.0))
             } else {
                 "stroke-width=\"0.2pt\"".to_string()
@@ -1534,6 +1546,28 @@ mod tests {
         assert!(s.contains("fill=\"rgb(230,230,230)\""), "{s}");
         assert!(s.contains("stroke=\"red\""), "{s}");
         assert!(s.contains("fill=\"url(#hatch0)\""), "{s}");
+    }
+
+    #[test]
+    fn hatched_shape_label_gets_white_halo() {
+        // A label on a hatched shape gets a white halo painted behind the
+        // glyphs so the pattern lines do not run through the text.
+        let s = svg("box \"lbl\" hatch");
+        assert!(
+            s.contains(
+                "stroke=\"white\" stroke-width=\"3.333333\" paint-order=\"stroke\" fill=\"black\""
+            ),
+            "{s}"
+        );
+
+        // Classic labels stay untouched: no halo, no white stroke.
+        let plain = svg("box \"lbl\"");
+        assert!(!plain.contains("paint-order"), "{plain}");
+        assert!(!plain.contains("stroke=\"white\""), "{plain}");
+        assert!(
+            plain.contains("stroke-width=\"0.2pt\" fill=\"black\""),
+            "{plain}"
+        );
     }
 
     #[test]
