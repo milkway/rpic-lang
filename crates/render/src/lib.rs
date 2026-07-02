@@ -131,7 +131,11 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap();
-        assert!((w_attr - span.width * 96.0).abs() < 0.01, "{w_attr} vs {}", span.width * 96.0);
+        assert!(
+            (w_attr - span.width * 96.0).abs() < 0.01,
+            "{w_attr} vs {}",
+            span.width * 96.0
+        );
     }
 
     #[cfg(feature = "math")]
