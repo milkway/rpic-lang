@@ -76,3 +76,47 @@ The text metrics are the same approximate metrics rpic already uses for
 rendered text bboxes. That keeps the feature practical and backend-stable
 inside rpic, but it also means `fit` is not a dpic oracle feature. Programs that
 do not use `fit` keep their dpic-compatible dimensions and placement.
+
+## Curly Brace Annotations
+
+`brace` is an rpic-only object for grouping or annotating a span between two
+points. It is inspired by PSTricks' `\psbrace`, but uses pic-style object syntax
+instead of TeX option lists.
+
+```pic
+.PS
+A: box "parse"
+move right 1.2
+B: box "render"
+brace from A.nw to B.ne up "pipeline" wid 0.18
+.PE
+```
+
+The first implementation keeps the surface small:
+
+- `brace` is contextual, so `brace = 1` remains an ordinary variable
+  assignment;
+- `from`/`to` set the brace endpoints, and `last brace.start` /
+  `last brace.end` are available like other open-object anchors;
+- `up`, `down`, `left`, and `right` choose the absolute side where the brace
+  opens when explicit endpoints are present;
+- `wid` controls brace depth, defaulting to `0.18`;
+- `bracepos <expr>` moves the cusp along the segment and must be between 0 and
+  1, defaulting to `0.5`;
+- ordinary line styling applies, including `thick`, `dashed`, `dotted`,
+  `outlined`, `colored`, `invis`, and the global `linethick`;
+- attached text is placed outside the brace on the chosen side.
+
+To leave whitespace between a brace and the annotated objects, shift the
+endpoints with ordinary pic coordinate arithmetic:
+
+```pic
+gap = 0.16
+brace from A.nw + (0,gap) to B.ne + (0,gap) up "pipeline"
+```
+
+This is a native object rather than a macro because the renderer must know its
+bbox, anchors, label position, and SVG cubic path. Classic pic input remains
+dpic-compatible when `brace` is not used. Additional runnable examples are in
+`examples/brace_pos.pic`, `examples/brace_sides.pic`,
+`examples/brace_style.pic`, and `examples/brace_width.pic`.
