@@ -1,0 +1,175 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Language spec
+description: The rpic grammar — statements, objects, attributes, positions and expressions.
+---
+
+# Language spec
+
+This is the reference grammar for rpic, in the spirit of
+[Pikchr's grammar page](https://pikchr.org/home/doc/trunk/doc/grammar.md).
+Classic pic constructs follow Kernighan's language and dpic's practical
+behavior; rpic-only extensions are marked **(ext)**. The notation is
+informal EBNF: `?` optional, `*` zero-or-more, `|` alternatives.
+
+## Picture
+
+```text
+picture     ::= ".PS" width? "\n" statement-list ".PE"
+statement-list ::= (statement ("\n" | ";"))*
+```
+
+Everything between `.PS` and `.PE` is the picture. A number after `.PS`
+scales the finished drawing to that width in inches.
+
+## Statements
+
+```text
+statement   ::= label ":" statement
+              | object
+              | assignment ("," assignment)*
+              | direction
+              | "{" statement-list "}"
+              | "if" expr "then" "{" statement-list "}"
+                ("else" "{" statement-list "}")?
+              | "for" name "=" expr "to" expr ("by" "*"? expr)? "do"
+                "{" statement-list "}"
+              | "print" print-item
+              | "copy" string
+              | "reset" (name ("," name)*)?
+              | "define" name "{" body "}"
+              | "undef" name
+              | "sh" string                    # tolerated no-op
+              | "command" string               # tolerated no-op
+              | "animate" place "with" string
+                ("for" expr)? (("at" | "after") …)?   (ext)
+              | "class" place string                  (ext)
+
+assignment  ::= name "=" expr
+direction   ::= "up" | "down" | "left" | "right"
+label       ::= /[A-Z][A-Za-z0-9_]*/
+```
+
+`define` bodies are expanded by the macro preprocessor before parsing;
+arguments are `$1` … `$9`. `sh`/`command` are recognized so dpic sources
+compile, but are never executed and never inject raw output
+(see the [compatibility audit](https://github.com/milkway/rpic-lang/blob/main/docs/dpic-compat-audit.md)).
+
+## Objects
+
+```text
+object      ::= primitive attribute*
+              | string attribute*              # standalone text
+              | "[" statement-list "]" attribute*   # block
+
+primitive   ::= "box" | "circle" | "ellipse" | "line" | "arrow"
+              | "arc" | "spline" | "move"
+              | "brace"                              (ext)
+```
+
+## Attributes
+
+```text
+attribute   ::= dimension | path | placement | style | text-attr | ext-attr
+
+dimension   ::= ("wid" | "width" | "ht" | "height"
+              | "rad" | "radius" | "diam" | "diameter") expr
+              | "same"
+
+path        ::= direction expr?
+              | "to" position | "from" position | "by" position
+              | "then" | "close" (ext)
+              | "chop" expr?
+              | ("->" | "<-" | "<->")
+              | "cw" | "ccw"
+
+placement   ::= "at" position
+              | "with" corner "at" position
+
+style       ::= "dashed" expr? | "dotted" expr? | "invis" | "solid"
+              | "thick" expr | "fill" expr?
+              | ("outlined" | "shaded" | "colored" | "color") color
+              | ext-style
+
+text-attr   ::= string | "above" | "below" | "ljust" | "rjust"
+
+corner      ::= "." ("n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw"
+              | "c" | "center" | "start" | "end"
+              | "t" | "b" | "l" | "r" | "top" | "bottom" | "left" | "right")
+```
+
+### rpic extension attributes (ext)
+
+```text
+ext-attr    ::= "fit"
+              | "behind" place
+              | "class" string
+              | "bracepos" expr | "labeloffset" expr   # brace only
+
+ext-style   ::= "hatch" | "crosshatch"
+              | "hatchangle" expr | "hatchsep" expr
+              | ("hatchwid" | "hatchwidth") expr | "hatchcolor" color
+              | "gradient" color color | "gradientangle" expr
+              | "opacity" expr
+```
+
+Extension keywords are **contextual**: outside attribute position they are
+ordinary variable names, so classic sources that use e.g. `close = 1` keep
+their meaning.
+
+## Positions
+
+```text
+position    ::= place
+              | "(" expr "," expr ")"
+              | position ("+" | "-") "(" expr "," expr ")"
+              | expr "between" position "and" position
+              | expr "of" "the" "way" "between" position "and" position
+              | "(" position "," position ")"      # x of one, y of other
+              | "Here"
+
+place       ::= label ("." label)* corner?
+              | ordinal object-kind corner?
+              | "last" object-kind? corner?
+
+ordinal     ::= /[0-9]+(st|nd|rd|th)/ "last"?
+object-kind ::= primitive | "[]" | "text"
+```
+
+## Expressions
+
+```text
+expr        ::= number | name | place "." ("x" | "y")
+              | expr op expr | "-" expr | "(" expr ")"
+              | func1 "(" expr ")" | func2 "(" expr "," expr ")"
+              | "rand" "(" ")"
+
+op          ::= "+" | "-" | "*" | "/" | "%" | "^"
+              | "==" | "!=" | "<" | "<=" | ">" | ">=" | "&&" | "||"
+func1       ::= "sin" | "cos" | "log" | "exp" | "sqrt" | "int"
+func2       ::= "atan2" | "max" | "min"
+
+string      ::= '"' char* '"' | "sprintf" "(" string ("," expr)* ")"
+              | string "+" string
+```
+
+## Environment variables
+
+Numeric variables consulted as defaults. Classic set:
+`boxwid boxht boxrad circlerad ellipsewid ellipseht linewid lineht movewid
+moveht arcrad arrowwid arrowht arrowhead dashwid textwid textht textoffset
+fillval linethick maxpswid maxpsht scale`.
+
+rpic extensions **(ext)**: `margin topmargin rightmargin bottommargin
+leftmargin` (canvas framing) and `texlabels` (typeset `$…$` labels as TeX
+math). Variables are global — assignments inside blocks and macros
+propagate out, matching dpic.
+
+## Lexical notes
+
+- Comments run from `#` to end of line.
+- A statement ends at a newline or `;`; a trailing `\` continues the line,
+  and a path also continues across a newline adjacent to `then`.
+- Labels start with an uppercase letter; variables with a lowercase letter.
+- Inside macro arguments, a `$` not followed by a digit and a
+  non-continuation `\` are literal text (so LaTeX can be passed unquoted).

@@ -40,4 +40,11 @@ export const nav: NavSection[] = [
     label: 'Bindings',
     items: [],
   },
+  {
+    label: 'Reference',
+    items: [
+      { title: 'Language spec', href: '/docs/spec' },
+      { title: 'The pic family', href: '/docs/pic-family' },
+    ],
+  },
 ];

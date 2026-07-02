@@ -28,10 +28,11 @@ and they stack along the current direction like everything else:
 
 <PicExample code={`.PS
 define unit {
-  [ box wid 0.5 ht 0.4 $1
-    line from last box.nw + (0.06,0) down 0.4 ]
+  [ B: box wid 0.5 ht 0.4 $1
+    line down 0.18 from B.s
+    circle rad 0.045 fill 0 at last line.end ]
 }
-unit("a"); move right 0.25; unit("b"); move right 0.25; unit("c")
+unit("a"); move right 0.3; unit("b"); move right 0.3; unit("c")
 .PE`} />
 
 ## Labels inside blocks

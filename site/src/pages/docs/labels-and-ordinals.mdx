@@ -21,8 +21,7 @@ Sum: circle rad 0.1 at In + (0.9, 0)
 Out: box "out" wid 0.6 ht 0.45 at Sum + (1.0, 0)
 arrow from In.e to Sum.w
 arrow from Sum.e to Out.w
-P: (0.9, -0.5)
-arrow from Out.s then down 0.2 then to P then to Sum.s
+line -> from Out.s down 0.35 then left Out.x - Sum.x then to Sum.s
 .PE`} />
 
 A label can also name a plain point (`P: (0.9, -0.5)`) — handy for wiring.
@@ -48,12 +47,12 @@ filters by kind. This is exactly dpic's behavior.
 stash a point mid-flow:
 
 <PicExample code={`.PS
-box "a"
+box "a" wid 0.6
 arrow right 0.5
 H: Here
-box "b"
-arrow from H down 0.45 then right 0.4
-box "c" ht 0.4
+box "b" wid 0.6
+line -> from H down 0.7 then right 0.35
+box "c" wid 0.6 ht 0.4
 .PE`} />
 
 ## Anchors on references

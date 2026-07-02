@@ -1,0 +1,85 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: The pic family
+description: How PIC, gpic, dpic, Pikchr and rpic relate — and where they differ.
+---
+
+# The pic family
+
+pic has been reimplemented several times over four decades. rpic sits
+consciously inside that lineage: **Kernighan's language is the paradigm,
+dpic is the practical oracle**, and Pikchr is a design reference for
+modern, opt-in extensions.
+
+## The implementations
+
+| | PIC | gpic | dpic | Pikchr | rpic |
+|---|---|---|---|---|---|
+| Author | Brian W. Kernighan | GNU / James Clark | J. D. Aplevich | D. Richard Hipp | milkway |
+| First release | 1981 | 1990s | 1990s– | 2020 | 2025 |
+| Implementation | C (troff preprocessor) | C++ (groff preprocessor) | C, standalone | C, library/CLI | Rust, library/CLI/WASM |
+| Primary output | troff | groff, TeX (`-t`) | TikZ/PGF, PSTricks, SVG, PDF, xfig, mfpic, … | SVG only | SVG, PNG, PDF natively |
+| Text/math in labels | typeset by troff/eqn | typeset by groff/TeX | passed through to LaTeX (SVG mode prints `$…$` literally) | plain SVG text | SVG text; `texlabels` (ext) typesets `$…$` natively, KaTeX-grade |
+| Macros & includes | `define`, `copy`, `sh` | same | same (`command` for raw backend text) | **removed** (security) | `define`/`copy` native; `sh`/`command` tolerated, never executed |
+| Control flow | `for`, `if` | `for`, `if` | `for`, `if` | **removed** | `for`, `if` |
+| Variable scoping | global | global | global | block-scoped for new-style vars | global (dpic semantics) |
+| Notable additions | — | small groff-isms | backend constants (`dpicopt`), string ops; powers circuit_macros | `fit`, `behind`, `chop` rework, margins, new object types, C-style comments | opt-in extensions: `margin`, `fit`, `behind`, `close`, `brace`, `hatch`, `gradient`, `opacity`, `class`, `texlabels`, `animate` |
+| Formal grammar doc | CSTR #116 | groff manual | dpic manual | [grammar.md](https://pikchr.org/home/doc/trunk/doc/grammar.md) | [Language spec](/docs/spec) |
+
+## How rpic relates to each
+
+**PIC (Kernighan).** The language itself — the declarative "walk the plane
+dropping primitives" paradigm, relative placement, compass corners,
+ordinals, blocks, macros. rpic treats the original papers as the semantic
+north star and changes nothing about classic meaning.
+
+**gpic (groff).** The most widespread pic today, and how most people first
+meet the language. rpic sources that stay classic run under gpic and vice
+versa, minus each side's extensions.
+
+**dpic (Aplevich).** The modern reference implementation with the richest
+backend set, and the engine behind circuit_macros. When documents are terse,
+rpic's behavior is decided by comparing against `dpic -v` output — the
+corpus of 72 manual figures renders at parity, and the
+[compatibility audit](https://github.com/milkway/rpic-lang/blob/main/docs/dpic-compat-audit.md)
+tracks every boundary (e.g. `command`/`sh` are tolerated but never executed).
+
+**Pikchr (Hipp).** The web-era reimagining: SVG-only, embeddable, with a
+documented grammar and pragmatic new features — but it deliberately drops
+classic constructs (`copy`, `sh`, `for`, `if`) and changes variable scoping,
+so it is not a drop-in pic. rpic adopts Pikchr's best ideas as **explicit,
+opt-in extensions** (`fit`, `behind`, margins, `close`) while keeping the
+classic language intact — the
+[adoption matrix](https://github.com/milkway/rpic-lang/blob/main/docs/pikchr.md)
+records each decision.
+
+## References
+
+**Original papers (Brian W. Kernighan)**
+
+- *PIC — A Language for Typesetting Graphics.* Software—Practice &
+  Experience, vol. 12, no. 1, pp. 1–21, 1982.
+  [doi:10.1002/spe.4380120102](https://doi.org/10.1002/spe.4380120102)
+- *PIC — A Graphics Language for Typesetting, Revised User Manual.*
+  Bell Labs Computing Science Technical Report #116, 1984 (rev. 1991).
+  [troff.org archive](https://troff.org/prog.html)
+
+**dpic and circuit_macros (J. D. Aplevich)**
+
+- dpic home & manual: [ece.uwaterloo.ca/~aplevich/dpic](https://ece.uwaterloo.ca/~aplevich/dpic/)
+- Source: [gitlab.com/aplevich/dpic](https://gitlab.com/aplevich/dpic)
+- circuit_macros: [gitlab.com/aplevich/circuit_macros](https://gitlab.com/aplevich/circuit_macros)
+
+**Pikchr (D. Richard Hipp)**
+
+- Home: [pikchr.org](https://pikchr.org)
+- Grammar: [pikchr.org/…/grammar.md](https://pikchr.org/home/doc/trunk/doc/grammar.md)
+- Differences from legacy pic: [pikchr.org/…/differences.md](https://pikchr.org/home/doc/trunk/doc/differences.md)
+
+**gpic / groff**
+
+- *Making Pictures with GNU pic* (Eric S. Raymond), shipped with groff:
+  [gnu.org/software/groff](https://www.gnu.org/software/groff/)
+
+rpic's full credits live in
+[ACKNOWLEDGMENTS.md](https://github.com/milkway/rpic-lang/blob/main/ACKNOWLEDGMENTS.md).

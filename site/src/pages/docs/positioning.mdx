@@ -20,10 +20,9 @@ follows — as a statement on their own, or as an attribute of one object.
 box "1" wid 0.45 ht 0.4
 arrow
 box "2" wid 0.45 ht 0.4
-down
-arrow
+arrow down 0.4 from last box.s
 box "3" wid 0.45 ht 0.4
-arrow left 0.8
+arrow left 0.8 from last box.w
 box "4" wid 0.45 ht 0.4
 .PE`} />
 
@@ -47,8 +46,9 @@ lands there instead — read it as "with this corner at that point".
 
 <PicExample code={`.PS
 A: box "A" wid 0.8 ht 0.6
-box "at A.ne" ht 0.4 at A.ne
-box "with .sw" ht 0.4 with .sw at A.ne + (0.6, 0)
+box "at A.ne" ht 0.4 fill 1 at A.ne
+box "with .sw" ht 0.4 with .sw at A.ne + (0.9, 0)
+circle rad 0.035 fill 0 at A.ne + (0.9, 0)
 .PE`} />
 
 ## from / to, and expressions on positions
@@ -58,9 +58,11 @@ arithmetic — `A.e + (0.2, -0.1)` — and with `between`:
 
 <PicExample code={`.PS
 A: circle "A" rad 0.25
-B: circle "B" rad 0.25 at A + (1.6, 0.7)
-line from A.ne to B.w
-arrow from A.s to 0.5 between A.se and B.sw
+B: circle "B" rad 0.25 at A + (1.8, 0)
+line from A.e to B.w
+M: 0.5 between A.e and B.w
+circle rad 0.04 fill 0 at M
+arrow from M + (0, -0.45) to M "midpoint" ljust
 .PE`} />
 
 `0.5 between P and Q` is the midpoint; any fraction works, and

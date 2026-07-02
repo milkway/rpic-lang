@@ -14,7 +14,9 @@ diagram.
 
 <PicExample code={`.PS
 box
+arrow
 circle
+arrow
 ellipse
 .PE`} />
 
@@ -46,11 +48,14 @@ spline right 0.5 then up 0.4 then right 0.5 then down 0.4 then right 0.5
 `arc` draws a quarter-circle by default, counter-clockwise; `cw` flips it.
 
 <PicExample code={`.PS
-arc
-move right 0.4
-arc cw
-move right 0.4
-arc -> rad 0.4 cw
+circle rad 0.035 fill 0
+arc rad 0.35 from Here
+move right 0.55
+circle rad 0.035 fill 0
+arc cw rad 0.35 from Here
+move right 0.55
+circle rad 0.035 fill 0
+arc -> cw rad 0.35 from Here
 .PE`} />
 
 ## move — the invisible primitive
@@ -69,11 +74,11 @@ box "b"
 A quoted string on its own places text; several strings stack as lines.
 
 <PicExample code={`.PS
-"standalone"
-move right 0.9
-"two" "lines"
-move right 0.9
 box "attached" "to a box"
+move right 0.55
+"loose text"
+move right 0.55
+box "another"
 .PE`} />
 
 ## Where to go next

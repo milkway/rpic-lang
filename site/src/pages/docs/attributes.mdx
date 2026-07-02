@@ -26,16 +26,12 @@ circle diam 0.45 "diam"
 ## Stroke styles
 
 <PicExample code={`.PS
-line right 1
-move right 0.3
-line right 1 dashed
-move right 0.3
-line right 1 dotted
-down
-move down 0.25 from 1st line.w
-line right 1 thick 2.4
-move right 0.3 from last line.e
-line right 1 dashed 0.02
+margin = 0.15   # rpic extension: headroom for the labels
+line right 1.1 "solid" above
+line right 1.1 dashed "dashed" above from last line.start - (0, 0.42)
+line right 1.1 dotted "dotted" above from last line.start - (0, 0.42)
+line right 1.1 thick 2.4 "thick 2.4" above from last line.start - (0, 0.42)
+line right 1.1 dashed 0.04 "dashed 0.04" above from last line.start - (0, 0.42)
 .PE`} />
 
 `dashed` and `dotted` accept an optional pitch; `thick` sets the stroke
@@ -63,9 +59,11 @@ Strings attached to an object accept placement modifiers: `above`, `below`,
 `ljust`, `rjust` — alone or combined.
 
 <PicExample code={`.PS
+margin = 0.05
 line right 1.6 "above" above "below" below
-move right 0.4
-box wid 1 ht 0.55 "ljust" ljust "rjust" rjust
+B: box wid 2 ht 0.55 at last line.e + (1.4, 0)
+"ljust" ljust at B.w + (0.06, 0)
+"rjust" rjust at B.e - (0.06, 0)
 .PE`} />
 
 ## Arrowheads
@@ -74,14 +72,15 @@ box wid 1 ht 0.55 "ljust" ljust "rjust" rjust
 `arrowht`/`arrowwid` size them, and `arrowhead` picks filled vs open.
 
 <PicExample code={`.PS
-line -> right 1
-move right 0.35
-line <- right 1
-move right 0.35
-line <-> right 1
-down
-arrowht = 0.14; arrowwid = 0.1
-arrow down 0.5 from 2nd last line.s + (0, -0.15)
+margin = 0.15
+line -> right 0.9 "->" above
+move right 0.3
+line <- right 0.9 "<-" above
+move right 0.3
+line <-> right 0.9 "<->" above
+move right 0.3
+arrowht = 0.16; arrowwid = 0.12
+line -> right 0.9 "big head" above
 .PE`} />
 
 ## Where to go next
