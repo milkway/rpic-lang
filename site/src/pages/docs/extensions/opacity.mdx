@@ -1,0 +1,32 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: opacity
+description: Fill opacity for overlapping shapes — rpic extension.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# opacity
+
+**rpic extension.** `opacity` sets the fill opacity of an object — 0 is
+transparent, 1 opaque. The classic use: overlapping regions that should
+both stay readable.
+
+<PicExample code={`.PS
+circle rad 0.42 shaded "gold" opacity 0.55
+circle rad 0.42 shaded "steelblue" opacity 0.55 at last circle + (0.45, 0)
+"A" at 1st circle - (0.14, 0); "B" at last circle + (0.14, 0)
+.PE`} />
+
+## Rules
+
+- Applies to the **fill only** (SVG `fill-opacity`); the stroke stays
+  crisp. Whole-object and stroke opacity are possible future increments.
+- Composes with every fill: `fill`, `shaded`,
+  [`gradient`](/docs/extensions/gradient),
+  [`hatch`](/docs/extensions/hatch) backgrounds.
+- A block's `opacity` multiplies into its members' fills.
+- Default is fully opaque — untouched input renders byte-for-byte classic.
+
+<PicExample code={`.PS
+box wid 1.1 ht 0.6 gradient "crimson" "navy" opacity 0.4 "readable"
+.PE`} />

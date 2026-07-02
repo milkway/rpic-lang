@@ -1,0 +1,34 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: behind
+description: Paint one object under another — rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# behind
+
+**rpic extension, inspired by Pikchr.** `behind` paints the current object
+*under* an already-drawn one — highlights, backgrounds, halos — without
+reordering anything semantically.
+
+<PicExample code={`.PS
+A: box "content" fit
+box wid A.wid + 0.2 ht A.ht + 0.2 at A shaded "honeydew" outlined "darkgreen" behind A
+.PE`} />
+
+## Rules
+
+- Only **backend paint order** changes. Evaluation order, labels, anchors,
+  ordinals (`last box`, `2nd box`), SVG ids (`s0`, `s1`) and animation
+  targets all keep source order.
+- Layers cascade: an object drawn `behind` something that is itself
+  `behind` another lands below both.
+- Without `behind`, rpic keeps the classic natural order — later objects
+  paint over earlier ones:
+
+<PicExample code={`.PS
+box "under" fit shaded "mistyrose"
+box "over" fit shaded "honeydew" at last box + (0.35, -0.15)
+.PE`} />
+
+Design notes: [docs/pikchr.md](https://github.com/milkway/rpic-lang/blob/main/docs/pikchr.md).

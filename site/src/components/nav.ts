@@ -19,18 +19,44 @@ export const nav: NavSection[] = [
   },
   {
     label: 'The language',
-    items: [],
+    items: [
+      { title: 'Primitives', href: '/docs/primitives' },
+      { title: 'Positioning', href: '/docs/positioning' },
+      { title: 'Labels & ordinals', href: '/docs/labels-and-ordinals' },
+      { title: 'Attributes', href: '/docs/attributes' },
+      { title: 'Variables & macros', href: '/docs/variables-and-macros' },
+      { title: 'Blocks', href: '/docs/blocks' },
+    ],
   },
   {
     label: 'rpic extensions',
-    items: [],
+    items: [
+      { title: 'margin', href: '/docs/extensions/margin' },
+      { title: 'fit', href: '/docs/extensions/fit' },
+      { title: 'behind', href: '/docs/extensions/behind' },
+      { title: 'close', href: '/docs/extensions/close' },
+      { title: 'brace', href: '/docs/extensions/brace' },
+      { title: 'hatch', href: '/docs/extensions/hatch' },
+      { title: 'opacity', href: '/docs/extensions/opacity' },
+      { title: 'gradient', href: '/docs/extensions/gradient' },
+      { title: 'class', href: '/docs/extensions/class' },
+      { title: 'texlabels', href: '/docs/extensions/texlabels' },
+      { title: 'animate', href: '/docs/extensions/animate' },
+    ],
   },
   {
     label: 'Circuit library',
-    items: [],
+    items: [{ title: 'Overview', href: '/docs/circuits' }],
   },
   {
     label: 'Bindings',
     items: [],
+  },
+  {
+    label: 'Reference',
+    items: [
+      { title: 'Language spec', href: '/docs/spec' },
+      { title: 'The pic family', href: '/docs/pic-family' },
+    ],
   },
 ];

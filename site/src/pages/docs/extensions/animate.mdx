@@ -1,0 +1,83 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: animate
+description: Declarative GSAP animations on drawing objects — rpic extension.
+---
+import PicExample from '../../../components/PicExample.astro';
+import AnimatedPic from '../../../components/AnimatedPic.astro';
+
+# animate
+
+**rpic extension.** `animate` declares how objects enter the drawing —
+as metadata. The static SVG is untouched except for its stable per-shape
+ids (`s0`, `s1`, …); a thin web player drives a GSAP timeline against
+those ids.
+
+<AnimatedPic code={`.PS
+margin = 0.12
+B1: box "load" fit
+arrow
+B2: box "run" fit
+arrow
+C: circle "done" rad 0.3
+animate B1 with "pop" for 0.4
+animate 1st arrow with "draw"
+animate B2 with "pop" after 1st arrow
+animate 2nd arrow with "draw"
+animate C with "fade" for 0.8
+.PE`} />
+
+**This page is the host document** — the timeline above is playing live
+(hit ▶ replay). The `draw` effect traces paths; `pop` overshoots, which is
+why the source reserves headroom with `margin`.
+
+## Syntax
+
+| Syntax | Example | Meaning |
+|---|---|---|
+| `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object |
+| `for` *expr* | `for 0.4` | duration in seconds |
+| `after` *place* | `after 1st arrow` | start when that object's animation ends |
+| `at` *expr* | `at 1.5` | start at an absolute time |
+
+Effects: `fade`, `pop`, `draw` (paths draw themselves). Without a timing
+clause, animations run in declaration order.
+
+A control loop drawing itself, wires first:
+
+<AnimatedPic code={String.raw`.PS
+texlabels = 1; margin = 0.12
+  arrow "$u$" above
+S: circle rad 10/72.27
+  line right 0.35
+G: box "$G(s)$" wid 1 ht 0.55
+  arrow "$y$" above
+  line -> down G.ht from last arrow then left last arrow.c.x - S.x then to S.s
+animate 1st arrow with "draw" for 0.4
+animate S with "pop"
+animate 2nd last line with "draw" for 0.3
+animate G with "pop" for 0.5
+animate 2nd arrow with "draw" for 0.4
+animate last line with "draw" for 0.9
+.PE`} />
+
+## Consuming the manifest
+
+`rpic_core::compile_json` (and the JS/Python bindings) return
+`{ svg, animations, diagnostics }`; the JS package ships the player:
+
+```js
+import { ready, compile, animate } from '@strategicprojects/rpic';
+await ready();
+const { svg, animations } = compile(src);
+stage.innerHTML = svg;
+animate(stage, animations, gsap);
+```
+
+## Rules
+
+- Metadata only — PNG/PDF and plain SVG consumers are unaffected.
+- Targets use pic's native references (labels, ordinals), like
+  [`class`](/docs/extensions/class); both ride the same stable `s<N>` ids.
+- Pop/draw overshoot can escape the canvas — reserve room with
+  [`margin`](/docs/extensions/margin).

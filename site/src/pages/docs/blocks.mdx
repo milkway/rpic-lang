@@ -1,0 +1,67 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Blocks
+description: Composing sub-pictures into single objects with [ ].
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Blocks
+
+Square brackets group a sub-picture into one composite object: it has its
+own current position inside, and from the outside it behaves like a single
+box — with dimensions, compass anchors, and a center.
+
+<PicExample code={`.PS
+A: [
+  circle rad 0.18 "cpu"
+  arrow right 0.4
+  box wid 0.5 ht 0.36 "ram"
+]
+box "one object" wid 1.1 ht 0.4 with .n at A.s + (0, -0.3)
+arrow from A.s to last box.n
+.PE`} />
+
+## Placing blocks
+
+Blocks accept the same placement attributes as any object — `at`, `with`,
+and they stack along the current direction like everything else:
+
+<PicExample code={`.PS
+define unit {
+  [ B: box wid 0.5 ht 0.4 $1
+    line down 0.18 from B.s
+    circle rad 0.045 fill 0 at last line.end ]
+}
+unit("a"); move right 0.3; unit("b"); move right 0.3; unit("c")
+.PE`} />
+
+## Labels inside blocks
+
+Objects labeled inside a block are reachable with dotted paths from
+outside — `A.Inner` — so blocks can expose terminals:
+
+<PicExample code={`.PS
+Chip: [
+  B: box wid 0.9 ht 0.6 "chip"
+  In:  B.w
+  Out: B.e
+]
+arrow to Chip.In from Chip.In - (0.5, 0)
+arrow from Chip.Out right 0.5
+.PE`} />
+
+This is how the circuit library models multi-terminal devices: `bi_tr` and
+`opamp` are blocks exposing their pins as labels.
+
+## Variables stay global
+
+Unlike labels, plain variables are **not** scoped by blocks — an assignment
+inside propagates out (dpic semantics). Treat blocks as geometric grouping,
+not lexical scope.
+
+## Where to go next
+
+- [rpic extensions](/docs/extensions/margin) — everything rpic adds beyond
+  classic pic, one page per extension
+- The [circuit library](/docs/circuits) builds whole devices out of
+  blocks — worth reading its source as a masterclass in block composition

@@ -1,0 +1,89 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Attributes
+description: Sizes, stroke styles, colors, fills, text placement and arrowheads.
+---
+import PicExample from '../../components/PicExample.astro';
+
+# Attributes
+
+Attributes follow an object and modify it — dimensions, stroke style,
+colors, text placement. They read left to right, and later attributes win.
+
+## Dimensions
+
+`wid`/`ht` size boxes and ellipses; `rad`/`diam` size circles and round
+box corners; on paths, a direction word takes an optional distance.
+
+<PicExample code={`.PS
+box wid 1.1 ht 0.4 rad 0.12 "rounded"
+move right 0.3
+circle rad 0.3 "rad"
+move right 0.3
+circle diam 0.45 "diam"
+.PE`} />
+
+## Stroke styles
+
+<PicExample code={`.PS
+margin = 0.15   # rpic extension: headroom for the labels
+line right 1.1 "solid" above
+line right 1.1 dashed "dashed" above from last line.start - (0, 0.42)
+line right 1.1 dotted "dotted" above from last line.start - (0, 0.42)
+line right 1.1 thick 2.4 "thick 2.4" above from last line.start - (0, 0.42)
+line right 1.1 dashed 0.04 "dashed 0.04" above from last line.start - (0, 0.42)
+.PE`} />
+
+`dashed` and `dotted` accept an optional pitch; `thick` sets the stroke
+width in points. `invis` draws nothing but keeps the geometry — the object
+still occupies space and exposes anchors.
+
+## Colors and fills
+
+`outlined` colors the stroke, `shaded` fills with a color, `fill` takes the
+classic gray scale (`0` = black … `1` = white). Color names are CSS.
+
+<PicExample code={`.PS
+box "outlined" outlined "seagreen"
+move right 0.3
+box "shaded" shaded "honeydew" outlined "darkgreen"
+move right 0.3
+box "fill .85" fill 0.85
+move right 0.3
+circle rad 0.3 colored "teal"
+.PE`} />
+
+## Text placement
+
+Strings attached to an object accept placement modifiers: `above`, `below`,
+`ljust`, `rjust` — alone or combined.
+
+<PicExample code={`.PS
+margin = 0.05
+line right 1.6 "above" above "below" below
+B: box wid 2 ht 0.55 at last line.e + (1.4, 0)
+"ljust" ljust at B.w + (0.06, 0)
+"rjust" rjust at B.e - (0.06, 0)
+.PE`} />
+
+## Arrowheads
+
+`->`, `<-` and `<->` put heads on either end of any path;
+`arrowht`/`arrowwid` size them, and `arrowhead` picks filled vs open.
+
+<PicExample code={`.PS
+margin = 0.15
+line -> right 0.9 "->" above
+move right 0.3
+line <- right 0.9 "<-" above
+move right 0.3
+line <-> right 0.9 "<->" above
+move right 0.3
+arrowht = 0.16; arrowwid = 0.12
+line -> right 0.9 "big head" above
+.PE`} />
+
+## Where to go next
+
+- [Variables & macros](/docs/variables-and-macros) — the environment
+  variables behind every default used here

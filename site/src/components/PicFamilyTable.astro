@@ -1,0 +1,141 @@
+---
+// The pic-family comparison, hand-laid-out: implementations as column
+// cards (author + year), the rpic column highlighted, colored ✓/✗ glyphs
+// and output badges. Scrolls horizontally on narrow screens.
+const impls = [
+  { name: 'PIC', by: 'Brian W. Kernighan', year: '1981' },
+  { name: 'dpic', by: 'J. D. Aplevich', year: '1990s–' },
+  { name: 'Pikchr', by: 'D. Richard Hipp', year: '2020' },
+  { name: 'rpic', by: 'milkway', year: '2025', self: true },
+];
+
+const YES = { t: '✓', c: 'text-emerald-600 dark:text-emerald-400' };
+const NO = { t: '✗', c: 'text-rose-400' };
+const PART = { t: '◐', c: 'text-amber-500' };
+
+type Cell = string | { t: string; c: string } | { badges: string[] } | { g: { t: string; c: string }; note: string };
+
+const rows: { label: string; cells: Cell[] }[] = [
+  {
+    label: 'Implementation',
+    cells: ['C · troff preprocessor', 'C · standalone', 'C · library / CLI', 'Rust · library / CLI / WASM'],
+  },
+  {
+    label: 'Output',
+    cells: [
+      { badges: ['troff'] },
+      { badges: ['TikZ', 'PSTricks', 'SVG', 'PDF', '+6'] },
+      { badges: ['SVG'] },
+      { badges: ['SVG', 'PNG', 'PDF'] },
+    ],
+  },
+  {
+    label: 'Math in labels',
+    cells: [
+      { g: YES, note: 'via troff/eqn' },
+      { g: PART, note: 'via LaTeX backends; SVG mode prints $…$ literally' },
+      { g: NO, note: 'plain SVG text' },
+      { g: YES, note: 'native texlabels — KaTeX-grade, no TeX install' },
+    ],
+  },
+  {
+    label: 'define · copy · sh',
+    cells: [
+      { g: YES, note: '' },
+      { g: YES, note: '+ command (raw backend text)' },
+      { g: NO, note: 'removed for security' },
+      { g: YES, note: 'sh/command tolerated, never executed' },
+    ],
+  },
+  {
+    label: 'for · if',
+    cells: [{ g: YES, note: '' }, { g: YES, note: '' }, { g: NO, note: 'removed' }, { g: YES, note: '' }],
+  },
+  {
+    label: 'Variable scoping',
+    cells: ['global', 'global', 'block-scoped (new-style)', 'global — dpic semantics'],
+  },
+  {
+    label: 'Signature additions',
+    cells: [
+      '—',
+      'backend constants; powers circuit_macros',
+      'fit, behind, margins, new object types',
+      'opt-in: margin · fit · behind · close · brace · hatch · gradient · opacity · class · texlabels · animate',
+    ],
+  },
+];
+
+const links = [
+  { label: 'CSTR #116', href: 'https://troff.org/prog.html' },
+  { label: 'dpic manual', href: 'https://ece.uwaterloo.ca/~aplevich/dpic/' },
+  { label: 'grammar.md', href: 'https://pikchr.org/home/doc/trunk/doc/grammar.md' },
+  { label: 'Language spec', href: '/docs/spec', internal: true },
+];
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<div class="not-prose my-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+  <table class="w-full min-w-[700px] text-[13px] leading-5 border-collapse">
+    <thead>
+      <tr>
+        <th class="sticky left-0 bg-white dark:bg-slate-950 w-36"></th>
+        {impls.map((i) => (
+          <th
+            class={`px-3 py-3 text-left align-bottom border-b-2 ${
+              i.self
+                ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-600'
+                : 'border-slate-200 dark:border-slate-700'
+            }`}
+          >
+            <div class={`text-base font-extrabold ${i.self ? 'text-emerald-800 dark:text-emerald-300' : 'text-slate-900 dark:text-white'}`}>
+              {i.name}
+              {i.self && (
+                <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wide bg-emerald-700 text-white rounded px-1.5 py-0.5">this project</span>
+              )}
+            </div>
+            <div class="text-[11px] font-normal text-slate-500 dark:text-slate-400">{i.by} · {i.year}</div>
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row, ri) => (
+        <tr class={ri % 2 ? 'bg-slate-50/70 dark:bg-slate-900/40' : ''}>
+          <th class="sticky left-0 bg-inherit px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap align-top backdrop-blur">
+            {row.label}
+          </th>
+          {row.cells.map((cell, ci) => (
+            <td class={`px-3 py-2.5 align-top text-slate-600 dark:text-slate-400 ${ci === 3 ? 'bg-emerald-50/50 dark:bg-emerald-950/25 text-slate-800 dark:text-slate-200' : ''}`}>
+              {typeof cell === 'string' ? (
+                cell
+              ) : 'badges' in cell ? (
+                <span class="flex flex-wrap gap-1">
+                  {cell.badges.map((b) => (
+                    <span class="rounded bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-1.5 py-0.5 text-[11px] font-medium">{b}</span>
+                  ))}
+                </span>
+              ) : 'g' in cell ? (
+                <span>
+                  <span class={`font-bold ${cell.g.c}`}>{cell.g.t}</span>
+                  {cell.note && <span class="ml-1.5">{cell.note}</span>}
+                </span>
+              ) : null}
+            </td>
+          ))}
+        </tr>
+      ))}
+      <tr>
+        <th class="sticky left-0 bg-white dark:bg-slate-950 px-3 py-2.5 text-left font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Grammar doc</th>
+        {links.map((l, ci) => (
+          <td class={`px-3 py-2.5 align-top ${ci === 3 ? 'bg-emerald-50/50 dark:bg-emerald-950/25' : ''}`}>
+            <a
+              href={l.internal ? `${base}${l.href}` : l.href}
+              class="text-emerald-800 dark:text-emerald-300 font-medium underline decoration-emerald-800/30 hover:decoration-emerald-800"
+            >{l.label}</a>
+          </td>
+        ))}
+      </tr>
+    </tbody>
+  </table>
+</div>

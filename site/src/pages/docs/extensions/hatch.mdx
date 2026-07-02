@@ -1,0 +1,55 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: hatch
+description: Hatch and crosshatch pattern fills — rpic extension inspired by PSTricks.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# hatch
+
+**rpic extension, inspired by PSTricks' fill styles.** `hatch` fills a
+closed region with parallel lines; `crosshatch` adds the perpendicular
+family.
+
+<PicExample code={`.PS
+box "hatch" wid 0.9 ht 0.6 hatch
+move right 0.3
+box "crosshatch" wid 0.9 ht 0.6 crosshatch hatchsep 0.05
+move right 0.3
+circle "30°" rad 0.32 hatch hatchangle 30 hatchcolor "steelblue"
+.PE`} />
+
+## Controls
+
+| Syntax | Default | Meaning |
+|---|---|---|
+| `hatchangle` *expr* | 45 | line angle, degrees in pic coordinates |
+| `hatchsep` *expr* | 0.08 | spacing between lines, pic units |
+| `hatchwid` *expr* | 0.8 | line width in points (PSTricks' default) |
+| `hatchcolor` *color* | black | line color, quoted or bare |
+
+## Composing
+
+A `fill` or `shaded` on the same object becomes the pattern background;
+[`gradient`](/docs/extensions/gradient) can play that role too, and
+[`opacity`](/docs/extensions/opacity) applies to the composed fill:
+
+<PicExample code={`.PS
+ellipse "fill + hatch" wid 1.4 ht 0.7 fill 0.93 hatch hatchangle -35 hatchsep 0.05
+move right 0.35
+box "gradient + crosshatch" wid 1.7 ht 0.7 gradient "lightskyblue" "white" gradientangle 90 crosshatch hatchsep 0.09 hatchcolor "steelblue"
+.PE`} />
+
+## Keeping labels legible
+
+A label sits *on top* of the pattern, but the lines run right up to the
+glyphs. rpic deliberately does **not** auto-mask a gap (occlusion is
+composed explicitly, the pic way) — place an opaque swatch behind the
+label when you want one:
+
+<PicExample code={`.PS
+B: box wid 1.5 ht 0.9 crosshatch hatchsep 0.055
+box fill 1 wid 0.85 ht 0.32 at B.c "crosshatch"
+.PE`} />
+
+Design notes: [docs/pstricks.md](https://github.com/milkway/rpic-lang/blob/main/docs/pstricks.md).
