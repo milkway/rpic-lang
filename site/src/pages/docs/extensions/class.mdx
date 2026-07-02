@@ -13,8 +13,11 @@ nothing in rpic's own rendering — styling happens in the **host document**
 that embeds the SVG, the same delegation contract as
 [`animate`](/docs/extensions/animate).
 
-Two forms write to the same hook:
+Two forms write to the same hook — and since **this page is a host
+document**, its CSS is already styling them: `payment` is `critical` (red),
+the `cache` circle is `storage` (hover it!), the wire is dashed `dataflow`:
 
+<div class="class-demo">
 <PicExample code={`.PS
 box "payment" fit class "critical"     # inline, at creation
 
@@ -23,18 +26,15 @@ line right 0.6 from A.e
 class A "storage"                      # statement: by label
 class last line "dataflow"             # statement: by ordinal
 .PE`} />
+</div>
 
 The statement form uses pic's native references — labels and ordinals —
 so it also reaches shapes drawn **inside macros** (circuit elements!), and
 lets class lines cluster at the end of a picture like a theme block.
 
-## Live: this page is the host document
+## Composing classes
 
-The picture below carries only classes — every color, the hover reaction
-and the **pulse** come from this page's CSS:
-
-The same vocabulary as above — `storage`, `dataflow`, `critical` — plus
-`pulse`, now with this page's CSS actually loaded:
+The same vocabulary plus `pulse` — classes compose like anywhere in CSS:
 
 <div class="class-demo">
 <PicExample code={`.PS
@@ -71,9 +71,10 @@ the hook is inert.
 - **Inert by itself**: without host CSS, SVG/PNG/PDF output is visually
   identical. In the embedding page:
   ```css
-  .critical rect { stroke: #b91c1c; stroke-width: 2px; }
-  .storage rect  { fill: #f0fdf4; }
-  .dataflow      { stroke-dasharray: 6 3; }
+  .critical rect      { stroke: #b91c1c; stroke-width: 2px; }
+  .storage rect       { fill: #f0fdf4; }
+  .storage:hover rect { fill: #166534; }   /* interactivity for free */
+  .dataflow           { stroke-dasharray: 6 3; }
   ```
 - Names are validated (`[A-Za-z_][A-Za-z0-9_-]*`, space-separated) — no
   injection surface. Multiple applications append: `class="a b"`.
