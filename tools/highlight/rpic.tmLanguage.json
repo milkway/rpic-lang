@@ -1,0 +1,151 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "rpic",
+  "scopeName": "source.rpic",
+  "fileTypes": [
+    "pic"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#string"
+    },
+    {
+      "include": "#directive"
+    },
+    {
+      "include": "#label"
+    },
+    {
+      "include": "#ordinal"
+    },
+    {
+      "include": "#control"
+    },
+    {
+      "include": "#extension"
+    },
+    {
+      "include": "#primitive"
+    },
+    {
+      "include": "#attribute"
+    },
+    {
+      "include": "#envvar"
+    },
+    {
+      "include": "#builtin"
+    },
+    {
+      "include": "#macrocall"
+    },
+    {
+      "include": "#corner"
+    },
+    {
+      "include": "#number"
+    },
+    {
+      "include": "#arrowop"
+    },
+    {
+      "include": "#operator"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#.*$",
+      "name": "comment.line.number-sign.rpic"
+    },
+    "string": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.rpic",
+      "patterns": [
+        {
+          "match": "\\\\\"",
+          "name": "constant.character.escape.rpic"
+        },
+        {
+          "begin": "\\$",
+          "end": "\\$",
+          "name": "markup.italic.math.rpic",
+          "patterns": [
+            {
+              "match": "\\\\[A-Za-z]+",
+              "name": "support.function.tex.rpic"
+            }
+          ]
+        }
+      ]
+    },
+    "directive": {
+      "match": "^\\s*\\.(PS|PE|PF)\\b",
+      "name": "keyword.control.directive.rpic"
+    },
+    "label": {
+      "match": "\\b([A-Z][A-Za-z0-9_]*)(?=\\s*:(?!=))",
+      "captures": {
+        "1": {
+          "name": "entity.name.section.label.rpic"
+        }
+      }
+    },
+    "ordinal": {
+      "match": "\\b(\\d+(?:st|nd|rd|th)(?:\\s+last)?|last|here)\\b",
+      "name": "constant.language.ordinal.rpic"
+    },
+    "control": {
+      "match": "\\b(define|undef|if|then|else|for|do|copy|print|reset|exec|sh|command|animate)\\b",
+      "name": "keyword.control.rpic"
+    },
+    "extension": {
+      "comment": "rpic-only extensions get their own scope so documentation can visually distinguish them from classic pic/dpic",
+      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin)\\b",
+      "name": "keyword.other.extension.rpic"
+    },
+    "primitive": {
+      "match": "\\b(box|circle|ellipse|line|arrow|arc|spline|move|brace)\\b",
+      "name": "storage.type.primitive.rpic"
+    },
+    "attribute": {
+      "match": "\\b(at|with|after|from|to|by|chop|fill|same|invis|invisible|solid|dashed|dotted|thick|up|down|left|right|ljust|rjust|above|below|between|of|the|way|heading|wid|width|ht|height|rad|radius|diam|diameter|shaded|outlined|colored|coloured|color|colour|cw|ccw|dotstart|dotend)\\b",
+      "name": "keyword.other.attribute.rpic"
+    },
+    "envvar": {
+      "match": "\\b(scale|boxwid|boxht|boxrad|circlerad|linewid|lineht|movewid|moveht|arcrad|ellipsewid|ellipseht|textwid|textht|textoffset|arrowwid|arrowht|arrowhead|dashwid|fillval|maxpswid|maxpsht|linethick)\\b",
+      "name": "support.constant.environment.rpic"
+    },
+    "builtin": {
+      "match": "\\b(sqrt|sin|cos|atan2|log|exp|int|max|min|rand|srand|sprintf)\\b",
+      "name": "support.function.builtin.rpic"
+    },
+    "macrocall": {
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\()",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.macro.rpic"
+        }
+      }
+    },
+    "corner": {
+      "match": "\\.(nw|ne|sw|se|n|e|s|w|c|t|b|l|r|center|start|end|top|bottom|left|right)\\b",
+      "name": "variable.language.corner.rpic"
+    },
+    "number": {
+      "match": "\\b\\d+(\\.\\d+)?([eE][-+]?\\d+)?\\b|(?<![\\w.])\\.\\d+\\b",
+      "name": "constant.numeric.rpic"
+    },
+    "arrowop": {
+      "match": "<->|<-|->",
+      "name": "keyword.operator.arrowhead.rpic"
+    },
+    "operator": {
+      "match": "==|!=|<=|>=|&&|\\|\\||[-+*/%^=<>!]",
+      "name": "keyword.operator.rpic"
+    }
+  }
+}

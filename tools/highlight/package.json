@@ -1,0 +1,14 @@
+{
+  "name": "rpic-highlight",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TextMate grammar for the rpic language + Shiki test/demo harness",
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs",
+    "demo": "node demo.mjs"
+  },
+  "devDependencies": {
+    "shiki": "^3.0.0"
+  }
+}
