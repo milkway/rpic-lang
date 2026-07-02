@@ -66,12 +66,15 @@ define dlabel { "$2" at last.c below }
 # at the midpoint. `tick` sizes the small gap past the dimension line.
 define __dimension {
   dmsx=$1.x; dmsy=$1.y; dmex=$2.x; dmey=$2.y; dmoff=$3
-  dmtl = 0.1; if "$4" != "" then { dmtl = $4 }
+  dmtl = 0.1
   dmdx=dmex-dmsx; dmdy=dmey-dmsy; dmL=sqrt(dmdx*dmdx+dmdy*dmdy)
   dmpx=0-dmdy/dmL; dmpy=dmdx/dmL
   line from (dmsx,dmsy) to (dmsx+dmpx*(dmoff+dmtl),dmsy+dmpy*(dmoff+dmtl))
   line from (dmex,dmey) to (dmex+dmpx*(dmoff+dmtl),dmey+dmpy*(dmoff+dmtl))
-  line <- -> from (dmsx+dmpx*dmoff,dmsy+dmpy*dmoff) to (dmex+dmpx*dmoff,dmey+dmpy*dmoff)
+  dmax=dmsx+dmpx*dmoff; dmay=dmsy+dmpy*dmoff; dmbx=dmex+dmpx*dmoff; dmby=dmey+dmpy*dmoff
+  # circuit_macros semantics: a non-empty 4th arg is the label width — the
+  # dimension line breaks around a central gap and the label sits inside it.
+  if "$4" == "" then { line <- -> from (dmax,dmay) to (dmbx,dmby) } else { dmgap=$4; dmux=dmdx/dmL; dmuy=dmdy/dmL; dmcx=(dmax+dmbx)/2; dmcy=(dmay+dmby)/2; line <- from (dmax,dmay) to (dmcx-dmux*dmgap/2,dmcy-dmuy*dmgap/2); line -> from (dmcx+dmux*dmgap/2,dmcy+dmuy*dmgap/2) to (dmbx,dmby) }
   gDim_x=(dmsx+dmex)/2+dmpx*dmoff; gDim_y=(dmsy+dmey)/2+dmpy*dmoff
 }
 define dimension_ {
