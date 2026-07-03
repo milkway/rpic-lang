@@ -50,6 +50,14 @@ fn err<T>(msg: impl Into<String>) -> ER<T> {
     Err(EvalError { msg: msg.into() })
 }
 
+fn finite(v: f64, context: &str) -> ER<f64> {
+    if v.is_finite() {
+        Ok(v)
+    } else {
+        err(format!("{context} produced non-finite numeric value"))
+    }
+}
+
 /// Evaluate a parsed picture into a [`Drawing`].
 pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut st = State::new();
@@ -2552,7 +2560,7 @@ impl State {
     }
 
     fn eval_expr(&mut self, e: &Expr) -> ER<f64> {
-        Ok(match e {
+        let value = match e {
             Expr::Num(v) => *v,
             Expr::Str(_) => return err("a string is only valid as an `==`/`!=` operand"),
             Expr::Index(_) => return err("a comma subscript is only valid inside `name[...]`"),
@@ -2675,7 +2683,8 @@ impl State {
                     token::Param::Thickness => pl.thick,
                 }
             }
-        })
+        };
+        finite(value, "numeric expression")
     }
 
     fn rand(&mut self, seed: Option<f64>) -> f64 {
@@ -2689,7 +2698,7 @@ impl State {
 // ---- free helpers ----------------------------------------------------------
 
 fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
-    Ok(match op {
+    let value = match op {
         AssignOp::Set | AssignOp::ColonSet => rhs,
         AssignOp::Add => cur + rhs,
         AssignOp::Sub => cur - rhs,
@@ -2701,7 +2710,8 @@ fn apply_op(op: AssignOp, cur: f64, rhs: f64) -> ER<f64> {
             cur / rhs
         }
         AssignOp::Rem => dpic_mod(cur, rhs, "modulo by zero in assignment")?,
-    })
+    };
+    finite(value, "assignment")
 }
 
 #[derive(Clone)]
@@ -4856,6 +4866,22 @@ mod tests {
         // a zero divisor must error rather than silently produce NaN coordinates
         assert!(eval(&parse("box wid 1/0").unwrap()).is_err());
         assert!(eval(&parse("A:(0,0)\nB:(0,0)\nx = (B.x-A.x)/(B.y-A.y)").unwrap()).is_err());
+    }
+
+    #[test]
+    fn non_finite_numeric_values_error() {
+        let literal = parse("box wid 1e999 ht 1").unwrap_err();
+        assert!(literal.msg.contains("not finite"), "{literal}");
+
+        for src in [
+            "box wid exp(1000) ht 1",
+            "box wid sqrt(-1) ht 1",
+            "scale = exp(1000)\nbox",
+            "x = 1e308\nx *= 1e308\nbox wid x",
+        ] {
+            let err = eval(&parse(src).unwrap()).unwrap_err();
+            assert!(err.msg.contains("non-finite"), "{src}: {err}");
+        }
     }
 
     #[test]
