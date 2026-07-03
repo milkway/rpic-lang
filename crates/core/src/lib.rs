@@ -90,14 +90,27 @@ pub fn diagnostics_json(d: &Drawing) -> String {
 /// entry point the WASM wrapper and browser playground consume.
 pub fn compile_json(src: &str) -> String {
     match compile(src) {
-        Ok(d) => format!(
-            "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{}}}",
-            json_str(&to_svg(&d)),
-            animations_json(&d),
-            diagnostics_json(&d)
-        ),
+        Ok(d) => drawing_json(&d),
         Err(e) => format!("{{\"error\":\"{}\"}}", json_str(&e)),
     }
+}
+
+/// Compile to a JSON bundle, resolving `copy "file"` includes relative to
+/// `base`.
+pub fn compile_json_in_dir(src: &str, base: Option<&std::path::Path>) -> String {
+    match compile_in_dir(src, base) {
+        Ok(d) => drawing_json(&d),
+        Err(e) => format!("{{\"error\":\"{}\"}}", json_str(&e)),
+    }
+}
+
+fn drawing_json(d: &Drawing) -> String {
+    format!(
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{}}}",
+        json_str(&to_svg(d)),
+        animations_json(d),
+        diagnostics_json(d)
+    )
 }
 
 /// Escape a string for embedding inside a JSON string literal.
@@ -140,6 +153,22 @@ mod tests {
     fn json_reports_print_diagnostics() {
         let j = compile_json("print \"hi\"\nprint 2+3");
         assert!(j.contains("\"diagnostics\":[\"hi\",\"5\"]"));
+    }
+
+    #[test]
+    fn json_in_dir_resolves_copy_includes() {
+        let dir = std::env::temp_dir().join(format!("rpic_json_copy_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("inc.pic"), "box wid 0.5 ht 0.5\n").unwrap();
+
+        let j = compile_json_in_dir("copy \"inc.pic\"\ncircle", Some(dir.as_path()));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        assert!(j.starts_with("{\"svg\":\"<svg"), "{j}");
+        assert!(j.contains("<rect"), "{j}");
+        assert!(j.contains("<circle"), "{j}");
+        assert!(j.contains("\"diagnostics\":[]"), "{j}");
+        assert!(!j.contains("\"error\""), "{j}");
     }
 
     #[test]
