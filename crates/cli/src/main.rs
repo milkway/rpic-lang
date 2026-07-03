@@ -160,7 +160,7 @@ fn run(
             emit_diagnostics(&d);
             Ok(Output::Text(rpic_core::to_svg(&d)))
         }
-        Mode::Json => Ok(Output::Text(rpic_core::compile_json(src))),
+        Mode::Json => Ok(Output::Text(rpic_core::compile_json_in_dir(src, base))),
         Mode::Png => {
             let d = rpic_core::compile_in_dir(src, base)?;
             emit_diagnostics(&d);
