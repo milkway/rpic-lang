@@ -110,7 +110,8 @@ Implementation is tracked in
 | Adopt | `fit` attribute for text-sized objects | Useful when opt-in and constrained to rpic's own text-bbox estimate. Track in #108. |
 | Adopt | `close` attribute for line polygons | Useful for filled or hatched polygons when contextual and documented as an rpic extension, not dpic parity. |
 | Maybe | Simple aliases such as `invisible`, `previous`, and `first` | Ergonomic and likely low risk, but aliases should be grouped and tested separately from parity work. |
-| Maybe | New object types: `dot`, `diamond`, `oval`, `file`, `cylinder` | `dot` and `diamond` look tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
+| Adopt | `dot` object | Implemented as a contextual primitive with `dotrad` (#153): the native form of the circuit-macros junction idiom. |
+| Maybe | New object types: `diamond`, `oval`, `file`, `cylinder` | `diamond` looks tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
 | Maybe | Text styling: `bold`, `italic`, `mono`, `big`, `small`, `aligned` | Good SVG-era ergonomics, but requires IR/text model changes and careful fallback behavior. |
 | Maybe | Path conveniences: `go ... heading`, `until even with`, `same as <object>` | Nice authoring improvements, but parser/evaluator surface is larger. Should wait until parity regressions are quiet. |
 | Do not adopt | Pikchr omissions of classic pic features (`copy`, `for`, `if`, `sprintf`, `sh`, block scoping changes) | rpic's compatibility target is classic pic/dpic. Security or simplicity choices in Pikchr must not remove supported pic semantics. |

@@ -35,6 +35,7 @@ export const nav: NavSection[] = [
       { title: 'fit', href: '/docs/extensions/fit' },
       { title: 'behind', href: '/docs/extensions/behind' },
       { title: 'close', href: '/docs/extensions/close' },
+      { title: 'dot', href: '/docs/extensions/dot' },
       { title: 'brace', href: '/docs/extensions/brace' },
       { title: 'hatch', href: '/docs/extensions/hatch' },
       { title: 'opacity', href: '/docs/extensions/opacity' },

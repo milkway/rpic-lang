@@ -1,0 +1,50 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: dot
+description: Junction dots — a tiny solid circle primitive, rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# dot
+
+**rpic extension, inspired by Pikchr.** `dot` places a tiny solid circle —
+the junction marker every wiring diagram needs, native instead of the
+classic circuit-macros `dot(P)` macro idiom.
+
+<PicExample code={`.PS
+box "in" wid 0.55 ht 0.4
+line right 0.4
+H: Here
+arrow right 0.4
+box "out" wid 0.55 ht 0.4
+dot at H
+line -> from H down 0.5 then right 0.4
+box "log" wid 0.55 ht 0.4
+.PE`} />
+
+## Rules
+
+- Radius defaults to the **`dotrad`** variable (0.035 in, tracks `scale`);
+  `rad`/`diam` override per dot.
+- Solid by default (gray-0 fill); `colored`, `shaded` or `fill` restyle it:
+
+<PicExample code={`.PS
+dot at (0, 0)
+dot at (0.4, 0) rad 0.06
+dot at (0.8, 0) colored "firebrick"
+dotrad = 0.02
+dot at (1.2, 0)
+"default · rad 0.06 · colored · dotrad 0.02" at (0.6, -0.3)
+.PE`} />
+
+- A dot is a normal (tiny) closed object: compass anchors, `at`/`with`,
+  [`class`](/docs/extensions/class) hooks — and it counts as a **circle**
+  for ordinals (`last circle`).
+- Contextual: `dot = 2` stays an ordinary assignment.
+- Neither classic pic nor dpic has `dot` (dpic reads it as a variable) —
+  in classic sources, keep the macro idiom
+  (`define dot { circle rad 0.035 fill 0 at $1 }`), which renders
+  byte-identically.
+
+The circuit library's old `dot(P)` macro was retired in favor of the
+primitive; corpus figures render byte-for-byte the same.

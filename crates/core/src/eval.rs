@@ -141,7 +141,7 @@ fn canvas_height(d: &Drawing) -> f64 {
 }
 
 /// The dimension variables that track `scale`.
-const SCALED_VARS: [EnvVar; 22] = [
+const SCALED_VARS: [EnvVar; 23] = [
     EnvVar::Arcrad,
     EnvVar::Arrowht,
     EnvVar::Arrowwid,
@@ -164,6 +164,7 @@ const SCALED_VARS: [EnvVar; 22] = [
     EnvVar::Rightmargin,
     EnvVar::Bottommargin,
     EnvVar::Leftmargin,
+    EnvVar::Dotrad,
 ];
 
 // ---- environment variables -------------------------------------------------
@@ -210,6 +211,7 @@ impl EnvVars {
             (Bottommargin, 0.0),
             (Leftmargin, 0.0),
             (Texlabels, 0.0),
+            (Dotrad, 0.035),
         ];
         let mut v = HashMap::new();
         for (e, d) in defaults {
@@ -918,6 +920,7 @@ impl State {
             },
             ObjectKind::Text => self.text_obj(obj),
             ObjectKind::Brace => self.brace(obj),
+            ObjectKind::Dot => self.closed_dot(obj),
             ObjectKind::Block(stmts) => self.block(stmts, obj),
             ObjectKind::Empty => self.block(&[], obj),
             ObjectKind::Continue => self.continue_obj(obj),
@@ -1033,8 +1036,22 @@ impl State {
         Ok(pidx.unwrap_or(idx))
     }
 
+    /// rpic extension: a junction dot — circle machinery with `dotrad` as
+    /// the default radius and a solid (gray-0) fill unless overridden, the
+    /// exact geometry the classic `dot(P)` circuit macro produced.
+    fn closed_dot(&mut self, obj: &Object) -> ER<usize> {
+        self.closed_impl(Prim::Circle, obj, true)
+    }
+
     fn closed(&mut self, p: Prim, obj: &Object) -> ER<usize> {
-        let style = self.style_of(obj)?;
+        self.closed_impl(p, obj, false)
+    }
+
+    fn closed_impl(&mut self, p: Prim, obj: &Object, dot: bool) -> ER<usize> {
+        let mut style = self.style_of(obj)?;
+        if dot && style.fill.is_none() {
+            style.fill = Some(Fill::Gray(0.0));
+        }
         let (text, fit_text) = self.text_and_fit_text_of(obj)?;
         let dir = self.dir_of(obj);
         let scale = self.scale_of(obj)?;
@@ -1049,9 +1066,11 @@ impl State {
         let (mut w, mut h, mut rad);
         match p {
             Prim::Circle => {
-                let def_r = prev
-                    .map(|(pw, _)| pw / 2.0)
-                    .unwrap_or(self.env_dim(EnvVar::Circlerad)?);
+                let def_r = prev.map(|(pw, _)| pw / 2.0).unwrap_or(self.env_dim(if dot {
+                    EnvVar::Dotrad
+                } else {
+                    EnvVar::Circlerad
+                })?);
                 let r = self.dim(obj, DimKind::Rad)?.unwrap_or(def_r);
                 let r = self.dim(obj, DimKind::Diam)?.map(|d| d / 2.0).unwrap_or(r);
                 w = 2.0 * r;
@@ -5255,6 +5274,39 @@ box wid 0.1 ht 0.1 at B.s"#,
             "{:?}",
             d.diagnostics
         );
+    }
+
+    #[test]
+    fn dot_is_a_solid_circle_with_dotrad_default() {
+        let d = draw("dot at (0.5, 0.5)");
+        let Shape::Circle { r, style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((r - 0.035).abs() < 1e-9);
+        assert_eq!(style.fill, Some(Fill::Gray(0.0)));
+
+        // dotrad env var + attribute overrides
+        let d = draw("dotrad = 0.06\ndot\ndot rad 0.1 shaded \"red\"");
+        let Shape::Circle { r, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((r - 0.06).abs() < 1e-9);
+        let Shape::Circle { r, style, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((r - 0.1).abs() < 1e-9);
+        assert_eq!(style.fill, Some(Fill::Color("red".into())));
+
+        // contextual: dot stays usable as a variable
+        let d = draw("dot = 2\nbox wid dot ht 0.3");
+        let Shape::Box { w, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((w - 2.0).abs() < 1e-9);
+
+        // dots are circles for ordinals
+        let d = draw("dot at (0,0)\nbox at last circle + (0.5, 0)");
+        assert_eq!(d.shapes.len(), 2);
     }
 
     #[test]
