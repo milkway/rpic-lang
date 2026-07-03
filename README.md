@@ -133,8 +133,9 @@ GSAP timeline. Try it in the **playground**:
 
 ## Circuit library
 
-Enable with `-c`. Two-terminal elements take two named points; centered devices
-take one and expose their terminals as variables.
+Enable with `-c`, or in-source with `copy "circuits"` (the analog of
+`texlabels = 1` for `-t`). Two-terminal elements take two named points;
+centered devices take one and expose their terminals as variables.
 
 ```pic
 .PS

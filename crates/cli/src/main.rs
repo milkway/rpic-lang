@@ -209,7 +209,7 @@ fn print_help() {
          --tokens    dump the token stream\n    \
     --json      emit compile JSON (svg, animations, diagnostics, warnings)\n\n\
          OPTIONS:\n    \
-         -c, --circuits      load the native circuit-element library\n    \
+         -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
          -o, --output FILE   write to FILE (default: stdout)\n    \
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \

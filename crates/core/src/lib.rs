@@ -278,6 +278,27 @@ mod tests {
     }
 
     #[test]
+    fn copy_circuits_loads_the_embedded_library() {
+        // `copy "circuits"` is the in-source spelling of `-c`: byte-identical
+        // output, and it works with no base dir (the wasm/compile_json case,
+        // where file includes are unavailable).
+        let body = "A:(0,0); B:(2,0)\nresistor(A,B)";
+        let via_copy = compile(&format!("copy \"circuits\"\n{body}")).unwrap();
+        let via_flag = compile(&format!("{CIRCUITS}\n{body}")).unwrap();
+        assert_eq!(to_svg(&via_copy), to_svg(&via_flag));
+    }
+
+    #[test]
+    fn copy_circuits_is_idempotent_with_the_flag() {
+        // `-c` plus an explicit `copy "circuits"` must not double-load (the
+        // second load is skipped) — same bytes as the flag alone.
+        let body = "A:(0,0); B:(2,0)\nresistor(A,B)";
+        let both = compile(&format!("{CIRCUITS}\ncopy \"circuits\"\n{body}")).unwrap();
+        let flag = compile(&format!("{CIRCUITS}\n{body}")).unwrap();
+        assert_eq!(to_svg(&both), to_svg(&flag));
+    }
+
+    #[test]
     fn json_in_dir_resolves_copy_includes() {
         let dir = std::env::temp_dir().join(format!("rpic_json_copy_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
