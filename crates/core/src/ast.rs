@@ -5,6 +5,7 @@
 //! blocks, assignments) plus the control constructs (`if`/`for`/`define`/
 //! `print`/`exec`) used by the evaluator and macro preprocessor.
 
+use crate::diagnostic::Span;
 use crate::lexer::Spanned;
 use crate::token::{
     Arrow, Color, Corner, Dir, EnvVar, Func1, Func2, LineType, Param, Prim, TextPos,
@@ -98,6 +99,7 @@ pub enum PrintItem {
 pub struct Animate {
     pub target: Place,
     pub effect: StringExpr,
+    pub effect_span: Option<Span>,
     pub duration: Option<Expr>,
     pub timing: Timing,
     pub delay: Option<Expr>,
@@ -169,7 +171,7 @@ pub enum Attr {
     Direction(Dir, Option<Expr>),
     /// A bare distance with no direction word (e.g. `move 1`): advance by this
     /// much along the prevailing direction.
-    Dist(Expr),
+    Dist(Expr, Option<Span>),
     /// `spline <expr> …`: the expression right after `spline` is a spline
     /// tension parameter (dpic semantics), NOT a distance.
     SplineTension(Expr),

@@ -64,7 +64,7 @@ animate last line with "draw" for 0.9
 ## Consuming the manifest
 
 `rpic_core::compile_json` (and the JS/Python bindings) return
-`{ svg, animations, diagnostics }`; the JS package ships the player:
+`{ svg, animations, diagnostics, warnings }`; the JS package ships the player:
 
 ```js
 import { ready, compile, animate } from '@strategicprojects/rpic';

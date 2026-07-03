@@ -38,7 +38,7 @@ function ensure() {
 }
 
 /**
- * Compile pic source into `{ svg, animations, diagnostics }` (throws on a pic error).
+ * Compile pic source into `{ svg, animations, diagnostics, warnings }` (throws on a pic error).
  * @param {string} src
  * @param {{circuits?: boolean, texlabels?: boolean}} [opts]
  */
@@ -50,7 +50,12 @@ export function compile(src, opts = {}) {
       ? wasm.compile_circuits(src)
       : wasm.compile(src);
   const out = JSON.parse(json);
-  if (out.error) throw new Error(out.error);
+  if (out.error) {
+    const err = new Error(out.error);
+    err.errorInfo = out.error_info;
+    err.warnings = out.warnings ?? [];
+    throw err;
+  }
   return out;
 }
 
