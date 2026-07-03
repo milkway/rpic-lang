@@ -443,7 +443,8 @@ impl Lexer {
             self.bump();
         }
         match s.parse::<f64>() {
-            Ok(v) => Ok(Token::Float(v)),
+            Ok(v) if v.is_finite() => Ok(Token::Float(v)),
+            Ok(_) => self.err(format!("number `{s}` is not finite")),
             Err(_) => self.err(format!("invalid number `{s}`")),
         }
     }
@@ -791,6 +792,12 @@ mod tests {
         assert_eq!(toks(".25"), vec![Token::Float(0.25), Token::Eof]);
         assert_eq!(toks("1e3"), vec![Token::Float(1000.0), Token::Eof]);
         assert_eq!(toks("2.5e-1"), vec![Token::Float(0.25), Token::Eof]);
+    }
+
+    #[test]
+    fn rejects_non_finite_numbers() {
+        let err = lex("box wid 1e999").unwrap_err();
+        assert!(err.msg.contains("not finite"), "{err}");
     }
 
     #[test]
