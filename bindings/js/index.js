@@ -2,33 +2,37 @@
 //
 // Browser:  await ready();                         // wasm fetched automatically
 // Node:     await ready(fs.readFileSync(url));      // pass the .wasm bytes/URL
-import initWasm, {
-  compile as wasmCompile,
-  compile_circuits as wasmCompileCircuits,
-  compile_with as wasmCompileWith,
-} from './pkg/rpic_wasm.js';
+// Math:     await ready(undefined, { math: true }); // texlabels typeset in-browser
+import * as leanModule from './pkg/rpic_wasm.js';
 
 let initPromise = null;
-let initialized = false;
+let wasm = null; // the initialized glue module (lean or math)
 
 /**
  * Initialize the WebAssembly module (idempotent; concurrent calls share one
  * init). In the browser, call with no argument (the .wasm is fetched relative
  * to the module). In Node, pass the wasm bytes or a file URL.
+ *
+ * Pass `{ math: true }` to load the math-enabled build instead: it bundles
+ * the RaTeX renderer so `texlabels` sources typeset `$…$` labels exactly like
+ * the native CLI. The math glue + wasm are only fetched when requested, so
+ * the lean fast path stays untouched. The choice is fixed by the first call;
+ * in Node, pass the bytes of `pkg/rpic_wasm_math_bg.wasm` along with it.
  */
-export function ready(wasmInput) {
+export function ready(wasmInput, opts = {}) {
   if (!initPromise) {
-    initPromise = initWasm(
-      wasmInput === undefined ? undefined : { module_or_path: wasmInput }
-    ).then(() => {
-      initialized = true;
+    initPromise = (
+      opts.math ? import('./pkg/rpic_wasm_math.js') : Promise.resolve(leanModule)
+    ).then(async (mod) => {
+      await mod.default(wasmInput === undefined ? undefined : { module_or_path: wasmInput });
+      wasm = mod;
     });
   }
   return initPromise;
 }
 
 function ensure() {
-  if (!initialized) {
+  if (!wasm) {
     throw new Error('rpic: call `await ready()` before compiling');
   }
 }
@@ -41,10 +45,10 @@ function ensure() {
 export function compile(src, opts = {}) {
   ensure();
   const json = opts.texlabels
-    ? wasmCompileWith(src, !!opts.circuits, true)
+    ? wasm.compile_with(src, !!opts.circuits, true)
     : opts.circuits
-      ? wasmCompileCircuits(src)
-      : wasmCompile(src);
+      ? wasm.compile_circuits(src)
+      : wasm.compile(src);
   const out = JSON.parse(json);
   if (out.error) throw new Error(out.error);
   return out;

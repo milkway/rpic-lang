@@ -13,8 +13,10 @@
 //! `fonts/LICENSE`.
 
 /// Bundled font used for all text (the SVG backend emits `font-family="sans-serif"`).
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT: &[u8] = include_bytes!("../fonts/Go-Regular.ttf");
 /// The bundled font's internal family name.
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_FAMILY: &str = "Go";
 
 #[cfg(feature = "math")]
@@ -22,6 +24,7 @@ pub mod math;
 
 /// Rasterize an SVG string to PNG bytes at the given scale (1.0 = 96 dpi, the
 /// SVG's native resolution).
+#[cfg(feature = "raster")]
 pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     use resvg::{tiny_skia, usvg};
 
@@ -54,6 +57,7 @@ pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
 }
 
 /// Convert an SVG string to PDF bytes.
+#[cfg(feature = "raster")]
 pub fn to_pdf(svg: &str) -> Result<Vec<u8>, String> {
     use svg2pdf::usvg;
 
@@ -81,9 +85,12 @@ pub fn to_pdf(svg: &str) -> Result<Vec<u8>, String> {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "raster")]
     const SVG: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\" viewBox=\"0 0 40 20\"><rect x=\"2\" y=\"2\" width=\"36\" height=\"16\" fill=\"none\" stroke=\"black\"/></svg>";
+    #[cfg(feature = "raster")]
     const SVG_TEXT: &str = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"40\" viewBox=\"0 0 120 40\" font-family=\"sans-serif\" font-size=\"16\"><text x=\"4\" y=\"24\">Hello world</text></svg>";
 
+    #[cfg(feature = "raster")]
     #[test]
     fn png_has_magic_and_scales() {
         let one = to_png(SVG, 1.0).unwrap();
@@ -92,12 +99,14 @@ mod tests {
         assert!(two.len() > one.len()); // larger raster at 2x
     }
 
+    #[cfg(feature = "raster")]
     #[test]
     fn png_rejects_invalid_scale() {
         assert!(to_png(SVG, 0.0).is_err());
         assert!(to_png(SVG, f32::NAN).is_err());
     }
 
+    #[cfg(feature = "raster")]
     #[test]
     fn gradient_fill_rasterizes_offline() {
         // The exact defs markup the rpic SVG backend emits for the `gradient`
@@ -138,7 +147,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "math")]
+    #[cfg(all(feature = "math", feature = "raster"))]
     #[test]
     fn texlabels_math_renders_through_png_and_pdf() {
         // Full pipeline: RaTeX-typeset label -> nested SVG fragment ->
@@ -167,12 +176,14 @@ mod tests {
         assert_eq!(&to_pdf(&svg).unwrap()[..4], b"%PDF");
     }
 
+    #[cfg(feature = "raster")]
     #[test]
     fn pdf_has_magic() {
         let pdf = to_pdf(SVG).unwrap();
         assert_eq!(&pdf[..4], b"%PDF");
     }
 
+    #[cfg(feature = "raster")]
     #[test]
     fn bundled_font_rasterizes_text() {
         // text must produce non-blank pixels using only the embedded font (no

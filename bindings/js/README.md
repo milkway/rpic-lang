@@ -29,11 +29,28 @@ await rpic.ready(readFileSync(new URL('./node_modules/rpic/pkg/rpic_wasm_bg.wasm
 console.log(rpic.renderSvg('box "hi"'));
 ```
 
+### TeX math labels (`texlabels`)
+
+The default wasm build is lean and renders `$…$` labels as literal text (plus
+a diagnostic). To typeset them exactly like the native CLI, opt into the
+math-enabled build — a second, heavier `.wasm` (RaTeX + embedded KaTeX glyph
+data) that is only fetched when you ask for it:
+
+```js
+await rpic.ready(undefined, { math: true }); // browser: fetches pkg/rpic_wasm_math_bg.wasm
+rpic.renderSvg('box "$-\\\\frac{T}{2}$" fit', { texlabels: true });
+```
+
+Apps can keep the fast path untouched and lazy-load math only when the source
+contains `$…$`. The build choice is fixed by the first `ready()` call. In
+Node, pass the math artifact's bytes:
+`ready(readFileSync(new URL('…/pkg/rpic_wasm_math_bg.wasm', import.meta.url)), { math: true })`.
+
 ## API
 
 | Function | Description |
 |----------|-------------|
-| `ready(wasmInput?)` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. |
+| `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build. |
 | `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics }` (throws on a pic error). |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
