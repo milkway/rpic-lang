@@ -34,8 +34,8 @@ console.log(rpic.renderSvg('box "hi"'));
 | Function | Description |
 |----------|-------------|
 | `ready(wasmInput?)` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. |
-| `compile(src, {circuits?})` | → `{ svg, animations, diagnostics }` (throws on a pic error). |
-| `renderSvg(src, {circuits?})` | → SVG string. |
+| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics }` (throws on a pic error). |
+| `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 
 PNG/PDF are available via the CLI, the Python package, or the R package (the
@@ -44,5 +44,6 @@ WASM core renders SVG; rasterization isn't bundled here).
 ## Rebuild
 
 ```sh
-wasm-pack build crates/wasm --target web --out-dir bindings/js/pkg
+npm run build:wasm
+npm test
 ```

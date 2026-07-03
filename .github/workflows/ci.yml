@@ -79,11 +79,18 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
-      - name: Build WASM package
-        run: wasm-pack build crates/wasm --target web --out-dir pkg
+      - name: Build JS WASM package
+        working-directory: bindings/js
+        run: npm run build:wasm
+      - name: Test JS wrapper
+        working-directory: bindings/js
+        run: npm test
       - name: Build Python wheel
         uses: PyO3/maturin-action@v1
         with:
