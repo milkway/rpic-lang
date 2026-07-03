@@ -66,7 +66,12 @@ fn main() -> ExitCode {
                 eprintln!("rpic: unknown option `{s}`");
                 return ExitCode::FAILURE;
             }
-            s => path = Some(s.to_string()),
+            s => {
+                if let Err(e) = set_input_path(&mut path, s) {
+                    eprintln!("rpic: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
         }
         i += 1;
     }
@@ -129,6 +134,16 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn set_input_path(path: &mut Option<String>, value: &str) -> Result<(), String> {
+    if let Some(prev) = path.as_deref() {
+        return Err(format!(
+            "multiple input files are not supported (`{prev}` and `{value}`)"
+        ));
+    }
+    *path = Some(value.to_string());
+    Ok(())
 }
 
 enum Output {
@@ -200,4 +215,30 @@ fn print_help() {
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
          -h, --help          show this help\n"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_input_path_accepts_first_input() {
+        let mut path = None;
+
+        set_input_path(&mut path, "a.pic").unwrap();
+
+        assert_eq!(path.as_deref(), Some("a.pic"));
+    }
+
+    #[test]
+    fn set_input_path_rejects_second_input() {
+        let mut path = Some("a.pic".to_string());
+
+        let err = set_input_path(&mut path, "b.pic").unwrap_err();
+
+        assert!(err.contains("multiple input files are not supported"));
+        assert!(err.contains("a.pic"));
+        assert!(err.contains("b.pic"));
+        assert_eq!(path.as_deref(), Some("a.pic"));
+    }
 }
