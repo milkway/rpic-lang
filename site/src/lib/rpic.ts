@@ -10,6 +10,8 @@ import { join, resolve } from 'node:path';
 export interface RenderOptions {
   /** load the native circuit-element library (`rpic -c`) */
   circuits?: boolean;
+  /** typeset $…$ labels as TeX math (`rpic -t`) */
+  texlabels?: boolean;
 }
 
 /** Resolve the rpic binary: $RPIC_BIN, the workspace release build, or PATH. */
@@ -43,9 +45,32 @@ export function renderPic(code: string, opts: RenderOptions = {}): string {
   return run(code, opts, false);
 }
 
+/** Render a corpus .pic file (path relative to the repo root) — `copy`
+ *  resolves next to the file. Cached by file content + options. */
+export function renderPicFile(relPath: string, opts: RenderOptions = {}): string {
+  const abs = resolve(process.cwd(), '..', relPath);
+  const code = readFileSync(abs, 'utf8');
+  const key = createHash('sha256')
+    .update(JSON.stringify([code, relPath, opts.circuits ?? false, opts.texlabels ?? false]))
+    .digest('hex')
+    .slice(0, 24);
+  const cached = join(CACHE_DIR, `${key}.svg`);
+  if (existsSync(cached)) return readFileSync(cached, 'utf8');
+  const args = [
+    ...(opts.circuits ? ['-c'] : []),
+    ...(opts.texlabels ? ['-t'] : []),
+    '--svg',
+    abs,
+  ];
+  const svg = execFileSync(rpicBin(), args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  mkdirSync(CACHE_DIR, { recursive: true });
+  writeFileSync(cached, svg);
+  return svg;
+}
+
 function run(code: string, opts: RenderOptions, json: boolean): string {
   const key = createHash('sha256')
-    .update(JSON.stringify([code, opts.circuits ?? false, json]))
+    .update(JSON.stringify([code, opts.circuits ?? false, opts.texlabels ?? false, json]))
     .digest('hex')
     .slice(0, 24);
   const cached = join(CACHE_DIR, `${key}.${json ? 'json' : 'svg'}`);
@@ -53,7 +78,12 @@ function run(code: string, opts: RenderOptions, json: boolean): string {
 
   const src = join(tmpdir(), `rpic-doc-${key}.pic`);
   writeFileSync(src, code.endsWith('\n') ? code : code + '\n');
-  const args = [...(opts.circuits ? ['-c'] : []), json ? '--json' : '--svg', src];
+  const args = [
+    ...(opts.circuits ? ['-c'] : []),
+    ...(opts.texlabels ? ['-t'] : []),
+    json ? '--json' : '--svg',
+    src,
+  ];
   let svg: string;
   try {
     svg = execFileSync(rpicBin(), args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

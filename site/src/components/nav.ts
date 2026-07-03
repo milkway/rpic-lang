@@ -50,7 +50,11 @@ export const nav: NavSection[] = [
   },
   {
     label: 'Bindings',
-    items: [],
+    items: [{ title: 'Python · JS · R · C', href: '/docs/bindings' }],
+  },
+  {
+    label: 'Gallery',
+    items: [{ title: 'Corpus figures', href: '/docs/gallery' }],
   },
   {
     label: 'Reference',

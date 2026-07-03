@@ -1,0 +1,89 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Bindings
+description: Use rpic from Python, JavaScript/WASM, R and C.
+---
+
+# Bindings
+
+The same engine everywhere: the Rust core compiles to native libraries and
+WASM, so every binding produces identical output.
+
+| Language | Package | Install |
+|---|---|---|
+| Python | [`rpiclang`](https://pypi.org/project/rpiclang/) | `pip install rpiclang` |
+| JavaScript / WASM | [`@strategicprojects/rpic`](https://www.npmjs.com/package/@strategicprojects/rpic) | `npm i @strategicprojects/rpic` |
+| R | [`rpic`](https://github.com/milkway/rpic-r) | `remotes::install_github("milkway/rpic-r")` |
+| C | [`rpic-capi`](https://crates.io/crates/rpic-capi) | link `librpic` |
+
+## Python
+
+`rpiclang` ships prebuilt wheels (macOS arm64, Linux, Windows) with the
+full engine — SVG, PNG, PDF and the math renderer included:
+
+```python
+import rpic
+
+svg = rpic.render_svg('box "hello" fit')
+png = rpic.render_png('circle "grid" hatch', scale=2)          # bytes
+pdf = rpic.render_pdf('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
+
+# TeX math labels, exactly like `rpic -t`
+svg = rpic.render_svg('box "$e^{j\\\\pi}+1=0$" fit', texlabels=True)
+
+# the full bundle: svg + animation manifest + diagnostics
+import json
+bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
+```
+
+## JavaScript / WASM
+
+The npm package runs the engine as WebAssembly — browser or Node — and
+ships the GSAP animation player used by the
+[`animate`](/docs/extensions/animate) extension:
+
+```js
+import { ready, compile, renderSvg, animate } from '@strategicprojects/rpic';
+
+await ready();                          // fetch + init the .wasm once
+const { svg, animations } = compile(src, { circuits: true, texlabels: true });
+stage.innerHTML = svg;
+animate(stage, animations, gsap);       // GSAP timeline on the stable s<N> ids
+```
+
+Note: the default WASM build ships without the math renderer (size
+budget) — with `texlabels`, `$…$` labels fall back to literal text plus a
+diagnostic. Render server-side (CLI/Python) when math matters.
+
+## R
+
+The [`rpic` R package](https://github.com/milkway/rpic-r) wraps the same
+core via extendr:
+
+```r
+library(rpic)
+svg <- rpic_svg('box "hello" fit')
+rpic_png('circle rad 0.4 gradient "gold" "white"', "out.png", scale = 2)
+rpic_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits = TRUE)
+```
+
+It lives in its own repository and follows rpic releases with a small lag.
+
+## C
+
+`rpic-capi` exposes a minimal ABI (`rpic_render_svg`, `rpic_free`) for
+embedding anywhere C reaches:
+
+```c
+#include "rpic.h"
+
+char *svg = rpic_render_svg(".PS\nbox \"embedded\"\n.PE");
+/* … use it … */
+rpic_free(svg);
+```
+
+## CLI as an FFI of last resort
+
+Everything the bindings do is also one process away:
+`rpic --json file.pic` emits `{svg, animations, diagnostics}` — this
+documentation site drives its live examples exactly that way.

@@ -1,0 +1,49 @@
+---
+// Curated corpus gallery: each figure is the real repository file rendered
+// by the rpic binary at build time (renderPicFile resolves `copy` next to
+// the source). Cards link to the .pic on GitHub.
+import { renderPicFile } from '../lib/rpic';
+
+const GH = 'https://github.com/milkway/rpic-lang/blob/main/';
+
+const entries: { path: string; caption: string; credit: string; circuits?: boolean; texlabels?: boolean }[] = [
+  { path: 'examples/dpic/sources/diag1.pic', caption: 'Feedback control loop', credit: 'dpic examples — rendered with -t', texlabels: true },
+  { path: 'examples/dpic/manual/man35.pic', caption: 'Sorting network', credit: "Kernighan's pic manual" },
+  { path: 'examples/pipeline.pic', caption: 'The troff pipeline', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man16.pic', caption: 'Compass anchors reference', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man30.pic', caption: 'Minicomputer system', credit: "Kernighan's pic manual" },
+  { path: 'examples/flashlight.pic', caption: 'Flashlight circuit', credit: 'rpic circuit library', circuits: true },
+  { path: 'examples/rlc.pic', caption: 'RLC loop', credit: 'rpic circuit library', circuits: true },
+  { path: 'examples/figuras/fig14.pic', caption: 'Pulse train with dimensions', credit: 'circuit_macros figures — with -t', circuits: true, texlabels: true },
+  { path: 'examples/figuras/fig09.pic', caption: 'Transform pair', credit: 'circuit_macros figures — with -t', circuits: true, texlabels: true },
+  { path: 'examples/lib3d/frame.pic', caption: 'Axonometric frame', credit: 'lib3D projection library', circuits: true },
+];
+
+// Display every figure at the same zoom (0.78x natural) so type sizes look
+// consistent across cards; wide figures still shrink to the card width.
+function atZoom(svg: string, k = 0.78): string {
+  const m = svg.match(/<svg[^>]*\swidth="([\d.]+)"/);
+  if (!m) return svg;
+  const w = Math.round(parseFloat(m[1]) * k);
+  return svg.replace('<svg ', `<svg style="width:${w}px" `);
+}
+
+const cards = entries.map((e) => ({
+  ...e,
+  svg: atZoom(renderPicFile(e.path, { circuits: e.circuits, texlabels: e.texlabels })),
+}));
+---
+
+<div class="not-prose grid gap-5 sm:grid-cols-2 my-6">
+  {cards.map((c) => (
+    <figure class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden m-0">
+      <div class="bg-white grid place-items-center p-5 min-h-44 [&_svg]:max-w-full [&_svg]:h-auto" set:html={c.svg} />
+      <figcaption class="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5 flex items-baseline justify-between gap-3">
+        <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">{c.caption}</span>
+        <a href={`${GH}${c.path}`} class="text-[11px] text-slate-400 hover:text-emerald-700 whitespace-nowrap">
+          {c.credit} ↗
+        </a>
+      </figcaption>
+    </figure>
+  ))}
+</div>
