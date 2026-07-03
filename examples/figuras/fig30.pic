@@ -2,6 +2,7 @@ copy "circuit_macros.pic"
 .PS
 include(libcct.m4)
 cct_init
+margin = 0.25   # justified edge labels ($V_{ea}$ top, $V_{sa}$ right) overhang the bbox
 linethick=linethick*(1.5)
 dimen_=dimen_
 Q1:bi_tr(up_ dimen_,R)
