@@ -17,6 +17,8 @@ define right_ {right}
 define left_ {left}
 define up_ {up}
 define down_ {down}
+define ljust_ {ljust}          # label justification (issue #180)
+define rjust_ {rjust}
 
 # linear elements: invisible spine + reuse of the native two-point geometry
 define resistor  { line invis $1; __resistor(last line.start, last line.end) }
