@@ -28,11 +28,13 @@ I/O and a tiny surface (`compile`, `render_svg`, `compile_json`, `CIRCUITS`), an
 ## Proposed approaches (to evaluate)
 
 1. **Stable C ABI (`rpic-capi`, cdylib).** Export:
-   - `rpic_render_svg(src) -> char*`
-   - `rpic_render_png(src, scale, out_len*) -> uint8*`
-   - `rpic_render_pdf(src, out_len*) -> uint8*`
-   - `rpic_compile_json(src) -> char*` (svg + manifest)
-   - `rpic_free(ptr)`; a `with_circuits` flag/variant.
+   - `rpic_render_svg(src, circuits) -> char*`
+   - `rpic_compile_json(src, circuits) -> char*` (svg + manifest)
+   - `rpic_render_png(src, scale, circuits, out_len*) -> unsigned char*`
+   - `rpic_render_pdf(src, circuits, out_len*) -> unsigned char*`
+   - `rpic_free_string(ptr)` for string results
+   - `rpic_free_bytes(ptr, len)` for PNG/PDF buffers
+   - `circuits` is the `0`/`1` flag that prepends the native circuit library.
    This single ABI backs every other binding and keeps the contract small.
 
 2. **Python: `rpic-py` via [PyO3] + [maturin].** Idiomatic API:
