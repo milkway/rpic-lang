@@ -71,15 +71,33 @@ It lives in its own repository and follows rpic releases with a small lag.
 
 ## C
 
-`rpic-capi` exposes a minimal ABI (`rpic_render_svg`, `rpic_free`) for
-embedding anywhere C reaches:
+`rpic-capi` exposes a minimal ABI for embedding anywhere C reaches. String
+results from `rpic_render_svg` and `rpic_compile_json` are released with
+`rpic_free_string`; byte buffers from `rpic_render_png` and `rpic_render_pdf`
+are released with `rpic_free_bytes`. Pass `circuits` as `0` or `1`:
 
 ```c
+#include <stdio.h>
 #include "rpic.h"
 
-char *svg = rpic_render_svg(".PS\nbox \"embedded\"\n.PE");
-/* … use it … */
-rpic_free(svg);
+int main(void) {
+    char *svg = rpic_render_svg(".PS\nbox \"embedded\"\n.PE", 0);
+    if (svg == NULL) {
+        return 1;
+    }
+
+    puts(svg);
+    rpic_free_string(svg);
+
+    size_t png_len = 0;
+    unsigned char *png = rpic_render_png("circle \"bytes\"", 2.0, 0, &png_len);
+    if (png != NULL) {
+        printf("png bytes: %zu\n", png_len);
+        rpic_free_bytes(png, png_len);
+    }
+
+    return 0;
+}
 ```
 
 ## CLI as an FFI of last resort
