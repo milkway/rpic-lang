@@ -1,0 +1,24 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Gallery
+description: Corpus figures — Kernighan's manual, dpic examples, circuit_macros and lib3D — rendered by rpic at build time.
+---
+import Gallery from '../../components/Gallery.astro';
+
+# Gallery
+
+Figures from the compatibility corpus, **rendered by rpic when this page
+was built**. The classics come from Brian Kernighan's pic manual and the
+dpic distribution (J. D. Aplevich); the circuit figures reproduce
+circuit_macros drawings through rpic's native library. Each card links to
+its source.
+
+<Gallery />
+
+The full corpus — 72 manual/dpic figures and 48 circuit_macros figures,
+with the parity matrix — lives in
+[`examples/dpic`](https://github.com/milkway/rpic-lang/tree/main/examples/dpic)
+and
+[`examples/figuras`](https://github.com/milkway/rpic-lang/tree/main/examples/figuras);
+full credits in
+[ACKNOWLEDGMENTS.md](https://github.com/milkway/rpic-lang/blob/main/ACKNOWLEDGMENTS.md).
