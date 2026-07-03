@@ -11,8 +11,15 @@ authors = ["André Leite <leite@de.ufpe.br>"]
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+# Opt-in `texlabels` math renderer (RaTeX via rpic-render, rasterizer left
+# out). Off by default: the math build ships as a second, lazily fetched npm
+# artifact so nobody pays its size unless they use `$…$` labels.
+math = ["dep:rpic-render"]
+
 [dependencies]
 rpic-core = { path = "../core" }
+rpic-render = { path = "../render", default-features = false, features = ["math"], optional = true }
 wasm-bindgen = "0.2"
 
 [profile.release]

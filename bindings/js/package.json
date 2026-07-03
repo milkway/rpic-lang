@@ -11,7 +11,8 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
-    "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm"
+    "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm",
+    "./pkg/rpic_wasm_math_bg.wasm": "./pkg/rpic_wasm_math_bg.wasm"
   },
   "files": [
     "index.js",
@@ -20,12 +21,18 @@
     "pkg/rpic_wasm.d.ts",
     "pkg/rpic_wasm_bg.wasm",
     "pkg/rpic_wasm_bg.wasm.d.ts",
+    "pkg/rpic_wasm_math.js",
+    "pkg/rpic_wasm_math.d.ts",
+    "pkg/rpic_wasm_math_bg.wasm",
+    "pkg/rpic_wasm_math_bg.wasm.d.ts",
     "README.md"
   ],
   "scripts": {
-    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg",
+    "build:wasm:lean": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg",
+    "build:wasm:math": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg --out-name rpic_wasm_math -- --features math",
+    "build:wasm": "npm run build:wasm:lean && npm run build:wasm:math",
     "prepack": "npm run build:wasm",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs && node test/smoke-math.mjs"
   },
   "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits"],
   "author": "André Leite <leite@de.ufpe.br>",

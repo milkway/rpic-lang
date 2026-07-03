@@ -97,10 +97,17 @@ rasterized by resvg **with no font database**:
   hook (measure + render) in core; the RaTeX implementation lives in
   `rpic-render` (or a new `rpic-math` crate) behind a cargo feature, on by
   default in CLI/binding builds.
-- **WASM strategy**: feature stays **off** in `rpic-wasm` initially (the
-  316 KB budget); the playground can delegate to KaTeX in the host page
-  (the class-hooks delegation pattern), or a fatter "math" wasm build can be
-  offered later if wanted.
+- **WASM strategy**: feature stays **off** in the default `rpic-wasm` build
+  (the ~400 KB budget). Since [#174] the npm package additionally ships a
+  math-enabled artifact (`pkg/rpic_wasm_math_bg.wasm`, ~3 MB — RaTeX + the
+  KaTeX glyph data): `rpic-wasm --features math` pulls `rpic-render` with
+  `default-features = false, features = ["math"]` (no rasterizer) and
+  registers the renderer at module init. Apps opt in lazily with
+  `ready(wasmInput, { math: true })`, so the lean fast path is untouched.
+  Post-hoc KaTeX in the host page is *not* equivalent — layout (`fit`,
+  `textwid`, box sizing) needs the formula metrics before placement.
+
+[#174]: https://github.com/milkway/rpic-lang/issues/174
 - **Fallback**: if RaTeX fails to parse a `$…$` string, render it literally
   (today's behavior) and emit a `print`-style diagnostic — never fail the
   picture.
@@ -122,4 +129,5 @@ rasterized by resvg **with no font database**:
   [#138](https://github.com/milkway/rpic-lang/issues/138) (`texlabels` +
   RaTeX behind a feature, metrics-driven bbox, fallback, corpus demo).
 - Deferred, each behind its own future decision: `--latex`/dvisvgm CLI
-  escape hatch; Typst backend; math in the wasm playground.
+  escape hatch; Typst backend. Math under wasm shipped via the opt-in
+  `rpic_wasm_math` artifact ([#174]).

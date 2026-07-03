@@ -10,10 +10,13 @@ keywords = ["svg", "png", "pdf", "render", "rasterize"]
 categories = ["graphics", "rendering"]
 
 [features]
-# The `texlabels` math renderer (RaTeX). On by default for CLI/binding
-# builds; leave off where size matters (e.g. wasm, which depends only on
-# rpic-core anyway).
-default = ["math"]
+# Both on by default for CLI/binding builds. The wasm math build depends on
+# this crate with `default-features = false, features = ["math"]` to get the
+# RaTeX renderer without the rasterizer weight.
+default = ["raster", "math"]
+# PNG/PDF backends (resvg/tiny-skia, svg2pdf).
+raster = ["dep:resvg", "dep:svg2pdf"]
+# The `texlabels` math renderer (RaTeX).
 math = [
     "dep:rpic-core",
     "dep:ratex-parser",
@@ -23,8 +26,8 @@ math = [
 ]
 
 [dependencies]
-resvg = "0.47.0"
-svg2pdf = "0.13.0"
+resvg = { version = "0.47.0", optional = true }
+svg2pdf = { version = "0.13.0", optional = true }
 rpic-core = { version = "0.5.0", path = "../core", optional = true }
 ratex-parser = { version = "0.1.12", optional = true }
 ratex-layout = { version = "0.1.12", optional = true }
