@@ -19,6 +19,12 @@ After a release, regenerate the SHAs and refresh the manifests:
 ./packaging/update-hashes.sh 0.0.2     # fills packaging/dist/ from the release assets
 ```
 
+To test the manifest rewrite without downloading release assets:
+
+```sh
+DIST_DIR=/tmp/rpic-packaging ./packaging/update-hashes.sh --dry-run 9.9.9
+```
+
 ### Channels (status)
 
 | Target | Install | Status |
