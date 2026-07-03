@@ -70,6 +70,31 @@ This changes only backend drawing order. Labels, anchors, ordinals such as
 continue to follow source/evaluation order. When `behind` is absent, rpic keeps
 the dpic-compatible natural drawing order.
 
+## Junction Dots
+
+`dot` is an rpic-only object, inspired by Pikchr: a tiny solid circle for
+marking junctions and points — the native form of the classic
+circuit-macros `dot(P)` idiom.
+
+```pic
+.PS
+line right 1
+dot at Here
+line -> down 0.5 then right 0.5
+dot at (0.35, 0) colored "red" rad 0.05
+.PE
+```
+
+- Radius defaults to the new `dotrad` variable (0.035, tracking `scale`);
+  `rad`/`diam` override per dot.
+- Filled solid (gray 0) unless `shaded`/`fill`/`colored` says otherwise —
+  byte-identical to the old `-c` macro's `circle rad 0.035 fill 0`.
+- Behaves as a normal (tiny) closed object: anchors, `at`/`with`, `class`,
+  fills; dots count as **circles** for ordinals (`last circle`).
+- Contextual: `dot = 2` stays an ordinary assignment. The circuit library's
+  `dot(P)` macro was retired in favor of the primitive; the figuras
+  compatibility shim keeps its own local macro.
+
 ## Class Hooks
 
 `class` is an rpic-only extension that attaches CSS class names to the SVG

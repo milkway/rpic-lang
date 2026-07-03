@@ -104,11 +104,11 @@
     },
     "extension": {
       "comment": "rpic-only extensions get their own scope so documentation can visually distinguish them from classic pic/dpic",
-      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin)\\b",
+      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin|dotrad)\\b",
       "name": "keyword.other.extension.rpic"
     },
     "primitive": {
-      "match": "\\b(box|circle|ellipse|line|arrow|arc|spline|move|brace)\\b",
+      "match": "\\b(box|circle|ellipse|line|arrow|arc|spline|move|brace|dot)\\b",
       "name": "storage.type.primitive.rpic"
     },
     "attribute": {

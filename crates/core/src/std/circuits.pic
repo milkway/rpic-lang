@@ -8,8 +8,7 @@
 # It draws the leads + body from $1 to $2. Globals prefixed per element are
 # scratch and overwritten on each call.
 
-# --- junction dot ---------------------------------------------------------
-define dot { circle rad 0.035 fill 0 at $1 }
+# (junction dots are the native `dot` primitive: `dot at P`)
 
 # --- plain wire -----------------------------------------------------------
 define wire { line from $1 to $2 }
@@ -144,7 +143,7 @@ define ground { __ground($1) }
 # Batch 2: logic gates (ANSI/MIL distinctive shapes). Each is centered at a
 # named point $1, faces right, and sets terminal globals:
 #   gA_x,gA_y  top input      gB_x,gB_y  bottom input      gY_x,gY_y  output
-# (single-input gates set only gA_* and gY_*). Connect with wire(...)/dot(...).
+# (single-input gates set only gA_* and gY_*). Connect with wire(...) and `dot at P`.
 
 # --- buffer (triangle) ----------------------------------------------------
 define buffer {

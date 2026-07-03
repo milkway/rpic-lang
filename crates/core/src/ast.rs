@@ -156,6 +156,8 @@ pub enum ObjectKind {
     Text,
     /// rpic extension: a curly brace annotation between two points.
     Brace,
+    /// rpic extension: a junction dot — a tiny solid circle (`dotrad`).
+    Dot,
     /// `continue` — extend the previous line with another segment.
     Continue,
 }

@@ -91,7 +91,7 @@ The primitives, by family:
 |---|---|
 | Closed (have an interior) | `box` · `circle` · `ellipse` |
 | Open (are paths) | `line` · `arrow` · `arc` · `spline` · `move` |
-| Annotation **(ext)** | `brace` |
+| Annotation **(ext)** | `brace` · `dot` (junction marker, radius `dotrad`) |
 
 ## Attributes
 
@@ -214,6 +214,7 @@ propagate out, matching dpic.
 | Picture | `scale maxpswid maxpsht` |
 | **(ext)** canvas | `margin topmargin rightmargin bottommargin leftmargin` |
 | **(ext)** math | `texlabels` — typeset `$…$` labels as TeX |
+| **(ext)** dots | `dotrad` — default `dot` radius (0.035) |
 
 ## Lexical notes
 
@@ -255,7 +256,7 @@ statement   ::= label ":" statement | object
 object      ::= primitive attribute* | string attribute*
               | "[" statement-list "]" attribute*
 primitive   ::= "box" | "circle" | "ellipse" | "line" | "arrow"
-              | "arc" | "spline" | "move" | "brace"
+              | "arc" | "spline" | "move" | "brace" | "dot"
 
 attribute   ::= ("wid"|"width"|"ht"|"height"|"rad"|"radius"
                 |"diam"|"diameter") expr | "same"

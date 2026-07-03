@@ -286,4 +286,5 @@ pub enum EnvVar {
     Bottommargin,
     Leftmargin,
     Texlabels,
+    Dotrad,
 }

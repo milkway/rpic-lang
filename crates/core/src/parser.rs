@@ -1544,7 +1544,7 @@ impl Parser {
                 | Token::Str(_)
                 | Token::Arg(_)
                 | Token::Kw(Kw::Sprintf)
-        ) || matches!(self.cur(), Token::Name(n) if n == "brace")
+        ) || matches!(self.cur(), Token::Name(n) if n == "brace" || n == "dot")
     }
 
     fn at_assignment_start(&self) -> bool {
@@ -1679,6 +1679,10 @@ impl Parser {
                 self.bump();
                 ObjectKind::Brace
             }
+            Token::Name(n) if n == "dot" => {
+                self.bump();
+                ObjectKind::Dot
+            }
             Token::LeftBrack => {
                 self.bump();
                 let stmts = self.parse_elementlist(&[Token::RightBrack])?;
@@ -1708,6 +1712,7 @@ impl Parser {
             ObjectKind::Primitive(Prim::Box | Prim::Circle | Prim::Ellipse)
         );
         let allow_brace = matches!(kind, ObjectKind::Brace);
+        let allow_dot_fill = matches!(kind, ObjectKind::Dot);
         let allow_hatch = matches!(
             kind,
             ObjectKind::Primitive(
@@ -1721,7 +1726,12 @@ impl Parser {
             )
         );
         let allow_close = matches!(kind, ObjectKind::Primitive(Prim::Line));
-        while let Some(a) = self.parse_attr(allow_fit, allow_brace, allow_hatch, allow_close)? {
+        while let Some(a) = self.parse_attr(
+            allow_fit,
+            allow_brace,
+            allow_hatch || allow_dot_fill,
+            allow_close,
+        )? {
             attrs.push(a);
         }
         Ok(Object { kind, attrs })
