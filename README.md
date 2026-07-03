@@ -11,6 +11,10 @@
 </p>
 
 <p align="center">
+  <strong>📖 Documentation: <a href="https://rpic.dev">rpic.dev</a></strong> — language tour, every extension with live examples, spec and the pic-family history.
+</p>
+
+<p align="center">
   <a href="https://github.com/milkway/rpic-lang/actions/workflows/ci.yml"><img src="https://github.com/milkway/rpic-lang/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/milkway/rpic-lang/releases"><img src="https://img.shields.io/github/v/release/milkway/rpic-lang?sort=semver&display_name=tag" alt="Release"></a>
   <a href="https://crates.io/crates/rpic-cli"><img src="https://img.shields.io/crates/v/rpic-cli?label=crates.io&color=informational" alt="crates.io"></a>
@@ -74,9 +78,12 @@ named labels, compass corners (`.n .ne .center …`), ordinals (`last`,
 Programmability: `define` macros with `$1…$9`, `for`, `if`, `sprintf`,
 environment variables.
 
-Explicit rpic extensions, including canvas margin variables inspired by Pikchr,
-are documented in [`docs/extensions.md`](docs/extensions.md). They are opt-in
-and should not change classic pic/dpic-compatible input when unused.
+Explicit rpic extensions — `margin`, `fit`, `behind`, `close`, `brace`,
+`hatch`, `gradient`, `opacity`, `class` hooks, **`texlabels`** (KaTeX-grade
+TeX math in labels, rendered natively) and the `animate` layer — are opt-in
+and inert for classic pic/dpic-compatible input. Each has a page with live
+examples at [rpic.dev](https://rpic.dev/docs/extensions/margin); the design
+notes live in [`docs/extensions.md`](docs/extensions.md).
 
 ## Outputs
 
@@ -84,6 +91,9 @@ and should not change classic pic/dpic-compatible input when unused.
 rpic diagram.pic                       # SVG to stdout
 rpic --png --scale 2 -o out.png diagram.pic
 rpic --pdf -o out.pdf diagram.pic
+rpic -c circuit.pic                    # load the circuit-element library
+rpic -t paper.pic                      # typeset $…$ labels as TeX math
+rpic --json diagram.pic                # {svg, animations, diagnostics}
 ```
 
 ## Examples
