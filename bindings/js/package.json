@@ -23,7 +23,9 @@
     "README.md"
   ],
   "scripts": {
-    "prepack": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg"
+    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg",
+    "prepack": "npm run build:wasm",
+    "test": "node test/smoke.mjs"
   },
   "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits"],
   "author": "André Leite <leite@de.ufpe.br>",
