@@ -8,11 +8,31 @@ export interface Anim {
   duration: number;
 }
 
+export interface Diagnostic {
+  message: string;
+  line: number | null;
+  col: number | null;
+  end_col: number | null;
+  kind: string;
+  found: string | null;
+  expected: string | null;
+  hint: string | null;
+}
+
 export interface Bundle {
   svg: string;
   animations: Anim[];
   /** lines emitted by pic `print` statements */
   diagnostics: string[];
+  /** non-fatal compiler warnings for accepted but suspicious input */
+  warnings: Diagnostic[];
+}
+
+export interface CompileError extends Error {
+  /** structured compiler error, when available */
+  errorInfo?: Diagnostic;
+  /** warnings emitted before the fatal error, currently usually empty */
+  warnings?: Diagnostic[];
 }
 
 export interface CompileOptions {
@@ -47,7 +67,7 @@ export function ready(
   opts?: ReadyOptions
 ): Promise<void>;
 
-/** Compile pic source into `{ svg, animations, diagnostics }`. Throws on a pic error. */
+/** Compile pic source into `{ svg, animations, diagnostics, warnings }`. Throws on a pic error. */
 export function compile(src: string, opts?: CompileOptions): Bundle;
 
 /** Compile and return only the SVG string. */

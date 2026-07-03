@@ -15,6 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use crate::ast::*;
+use crate::diagnostic::Diagnostic;
 use crate::geom::{Bbox, Point};
 use crate::ir::*;
 use crate::token::{self, Corner, Dir, EnvVar, Func1, Func2, LineType, Prim};
@@ -83,6 +84,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         canvas_margin,
         anims: st.anims,
         diagnostics: st.diagnostics,
+        warnings: st.warnings,
     };
     apply_ps_size(&mut d, want_w, want_h);
     clamp_to_maxps(&mut d, maxw, maxh);
@@ -514,6 +516,7 @@ struct State {
     // animation state
     anims: Vec<Anim>,
     diagnostics: Vec<String>,
+    warnings: Vec<Diagnostic>,
     anim_cursor: f64,
     anim_end: HashMap<usize, f64>,
     rng: GlibcRand,
@@ -556,6 +559,7 @@ impl State {
             layout_bbox: Bbox::new(),
             anims: Vec::new(),
             diagnostics: Vec::new(),
+            warnings: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
             rng: GlibcRand::new(1),
@@ -750,9 +754,24 @@ impl State {
         let end = start + dur;
         self.anim_cursor = end;
         self.anim_end.insert(shape, end);
+        let effect = stringexpr_lit(&a.effect);
+        if !matches!(effect.as_str(), "draw" | "fade" | "pop") {
+            let mut warning = Diagnostic::new(
+                "unknown_animation_effect",
+                format!(
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, and `pop`"
+                ),
+            )
+            .found(effect.clone())
+            .expected("draw, fade, or pop");
+            if let Some(span) = a.effect_span {
+                warning = warning.at(span);
+            }
+            self.warnings.push(warning);
+        }
         self.anims.push(Anim {
             shape,
-            effect: stringexpr_lit(&a.effect),
+            effect,
             start,
             duration: dur,
         });
@@ -909,6 +928,9 @@ impl State {
     // ---- objects -----------------------------------------------------------
 
     fn eval_object(&mut self, obj: &Object) -> ER<usize> {
+        if !object_uses_bare_distance(&obj.kind) {
+            self.warn_ignored_dist_attrs(obj);
+        }
         let idx = self.eval_object_inner(obj)?;
         for a in &obj.attrs {
             if let Attr::Class(se) = a {
@@ -917,6 +939,28 @@ impl State {
             }
         }
         Ok(idx)
+    }
+
+    fn warn_ignored_dist_attrs(&mut self, obj: &Object) {
+        for attr in &obj.attrs {
+            let Attr::Dist(expr, span) = attr else {
+                continue;
+            };
+            let found = expr_bare_name(expr).unwrap_or("bare distance");
+            let mut warning = Diagnostic::new(
+                "ignored_attribute",
+                format!("ignored `{found}` because this object does not accept a bare distance"),
+            )
+            .found(found)
+            .expected("an attribute");
+            if let Some(hint) = suggest_attribute(found) {
+                warning = warning.hint(format!("did you mean `{hint}`?"));
+            }
+            if let Some(span) = span {
+                warning = warning.at(*span);
+            }
+            self.warnings.push(warning);
+        }
     }
 
     fn eval_object_inner(&mut self, obj: &Object) -> ER<usize> {
@@ -992,7 +1036,7 @@ impl State {
                     pend = pend + (dp - Point::ZERO);
                     any = true;
                 }
-                Attr::Dist(e) => {
+                Attr::Dist(e, _) => {
                     let dist = self.expr_dim(e)?;
                     pend = pend + dir_unit(last_dir) * dist;
                     any = true;
@@ -1291,7 +1335,7 @@ impl State {
                     pend = pend + self.eval_pos(pos)?;
                     any = true;
                 }
-                Attr::Dist(e) => {
+                Attr::Dist(e, _) => {
                     let dist = self.expr_dim(e)?;
                     pend = pend + dir_unit(last_dir) * dist;
                     any = true;
@@ -1427,7 +1471,7 @@ impl State {
                     pend = pend + (d - Point::ZERO);
                     any = true;
                 }
-                Attr::Dist(e) => {
+                Attr::Dist(e, _) => {
                     if closed {
                         return err("polygon is closed");
                     }
@@ -1802,6 +1846,7 @@ impl State {
         // local to the block. Random draws still consume the shared sequence.
         self.rng = sub.rng.clone();
         self.diagnostics.append(&mut sub.diagnostics);
+        self.warnings.append(&mut sub.warnings);
         for key in &sub.export_vars {
             if let Some(val) = sub.vars.get(key).copied() {
                 self.vars.insert(key.clone(), val);
@@ -2506,12 +2551,18 @@ impl State {
                 let k = (n - 1) as usize;
                 if *from_last {
                     if k >= matches.len() {
-                        return err("ordinal out of range");
+                        return err(format!(
+                            "ordinal {n} out of range (available {})",
+                            matches.len()
+                        ));
                     }
                     matches[matches.len() - 1 - k]
                 } else {
                     if k >= matches.len() {
-                        return err("ordinal out of range");
+                        return err(format!(
+                            "ordinal {n} out of range (available {})",
+                            matches.len()
+                        ));
                     }
                     matches[k]
                 }
@@ -3743,6 +3794,69 @@ fn scale_shape(sh: &mut Shape, f: f64) {
             *h *= f;
         }
     }
+}
+
+fn object_uses_bare_distance(kind: &ObjectKind) -> bool {
+    matches!(
+        kind,
+        ObjectKind::Primitive(Prim::Line | Prim::Arrow | Prim::Move | Prim::Spline)
+            | ObjectKind::Brace
+            | ObjectKind::Continue
+    )
+}
+
+fn expr_bare_name(expr: &Expr) -> Option<&str> {
+    match expr {
+        Expr::Var(name, None) => Some(name.as_str()),
+        _ => None,
+    }
+}
+
+fn suggest_attribute(word: &str) -> Option<&'static str> {
+    const WORDS: &[&str] = &[
+        "above",
+        "at",
+        "below",
+        "bracepos",
+        "by",
+        "ccw",
+        "center",
+        "chop",
+        "class",
+        "close",
+        "color",
+        "colored",
+        "cw",
+        "dashed",
+        "diam",
+        "dotrad",
+        "dotted",
+        "down",
+        "fill",
+        "fit",
+        "from",
+        "gradient",
+        "hatch",
+        "ht",
+        "invis",
+        "labeloffset",
+        "left",
+        "ljust",
+        "opacity",
+        "outlined",
+        "rad",
+        "right",
+        "rjust",
+        "same",
+        "scaled",
+        "shaded",
+        "thick",
+        "to",
+        "up",
+        "wid",
+        "with",
+    ];
+    crate::diagnostic::closest(word, WORDS)
 }
 
 #[cfg(test)]

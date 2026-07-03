@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::diagnostic::Span;
 use crate::token::*;
 
 /// A token together with its source position (1-based line/column).
@@ -15,6 +16,7 @@ pub struct Spanned {
     pub tok: Token,
     pub line: u32,
     pub col: u32,
+    pub end_col: u32,
     /// Macro arguments that were in scope when this token was produced by
     /// macro substitution. Used by eval-time `exec` expansion.
     pub arg_frame: Option<Vec<Vec<Spanned>>>,
@@ -29,9 +31,19 @@ impl Spanned {
             tok,
             line,
             col,
+            end_col: col.saturating_add(1),
             arg_frame: None,
             macro_frame: None,
         }
+    }
+
+    pub fn with_end(mut self, end_col: u32) -> Self {
+        self.end_col = end_col;
+        self
+    }
+
+    pub fn span(&self) -> Span {
+        Span::new(self.line, self.col, self.end_col)
     }
 
     pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
@@ -51,6 +63,7 @@ impl std::fmt::Debug for Spanned {
             .field("tok", &self.tok)
             .field("line", &self.line)
             .field("col", &self.col)
+            .field("end_col", &self.end_col)
             .field("arg_frame", &self.arg_frame)
             .finish_non_exhaustive()
     }
@@ -61,6 +74,7 @@ impl PartialEq for Spanned {
         self.tok == other.tok
             && self.line == other.line
             && self.col == other.col
+            && self.end_col == other.end_col
             && self.arg_frame == other.arg_frame
     }
 }
@@ -71,6 +85,8 @@ pub struct LexError {
     pub msg: String,
     pub line: u32,
     pub col: u32,
+    pub end_col: u32,
+    pub kind: String,
 }
 
 impl std::fmt::Display for LexError {
@@ -124,10 +140,23 @@ impl Lexer {
     }
 
     fn err<T>(&self, msg: impl Into<String>) -> Result<T, LexError> {
+        self.err_at(self.line, self.col, self.col.saturating_add(1), "lex", msg)
+    }
+
+    fn err_at<T>(
+        &self,
+        line: u32,
+        col: u32,
+        end_col: u32,
+        kind: impl Into<String>,
+        msg: impl Into<String>,
+    ) -> Result<T, LexError> {
         Err(LexError {
             msg: msg.into(),
-            line: self.line,
-            col: self.col,
+            line,
+            col,
+            end_col,
+            kind: kind.into(),
         })
     }
 
@@ -173,7 +202,7 @@ impl Lexer {
             let (line, col) = (self.line, self.col);
             let c = match self.peek() {
                 None => {
-                    self.push(Token::Eof, line, col);
+                    self.push(Token::Eof, line, col, col);
                     return Ok(self.out);
                 }
                 Some(c) => c,
@@ -204,11 +233,16 @@ impl Lexer {
                     None => continue, // (should not happen)
                 }
             };
-            self.push(tok, line, col);
+            let end_col = if self.line == line {
+                self.col
+            } else {
+                col.saturating_add(1)
+            };
+            self.push(tok, line, col, end_col);
         }
     }
 
-    fn push(&mut self, tok: Token, line: u32, col: u32) {
+    fn push(&mut self, tok: Token, line: u32, col: u32, end_col: u32) {
         // A newline adjacent to `then` is a line/spline-path continuation, not a
         // statement terminator: circuit_macros figures wrap long paths across
         // lines without a trailing `\`, breaking either after `then`
@@ -225,15 +259,25 @@ impl Lexer {
         {
             self.out.pop();
         }
-        self.out.push(Spanned::new(tok, line, col));
+        self.out
+            .push(Spanned::new(tok, line, col).with_end(end_col));
     }
 
     fn lex_string(&mut self) -> Result<Token, LexError> {
+        let (start_line, start_col) = (self.line, self.col);
         self.bump(); // opening quote
         let mut s = String::new();
         loop {
             match self.bump() {
-                None => return self.err("unterminated string literal"),
+                None => {
+                    return self.err_at(
+                        start_line,
+                        start_col,
+                        start_col.saturating_add(1),
+                        "unterminated_string",
+                        "unterminated string literal",
+                    );
+                }
                 Some('"') => break,
                 Some('\\') => {
                     // Preserve escape sequences (e.g. troff escapes) verbatim;
@@ -241,7 +285,15 @@ impl Lexer {
                     s.push('\\');
                     match self.bump() {
                         Some(c) => s.push(c),
-                        None => return self.err("unterminated string literal"),
+                        None => {
+                            return self.err_at(
+                                start_line,
+                                start_col,
+                                start_col.saturating_add(1),
+                                "unterminated_string",
+                                "unterminated string literal",
+                            );
+                        }
                     }
                 }
                 Some(c) => s.push(c),

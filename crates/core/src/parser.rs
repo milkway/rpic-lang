@@ -7,6 +7,7 @@
 //! `print` and `exec`.
 
 use crate::ast::*;
+use crate::diagnostic::{Diagnostic, Span};
 use crate::lexer::{LexError, Spanned, lex};
 use crate::token::*;
 
@@ -16,11 +17,73 @@ pub struct ParseError {
     pub msg: String,
     pub line: u32,
     pub col: u32,
+    pub end_col: u32,
+    detail: Box<ParseErrorDetail>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct ParseErrorDetail {
+    kind: String,
+    found: Option<String>,
+    expected: Option<String>,
+    hint: Option<String>,
 }
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}: {}", self.line, self.col, self.msg)
+    }
+}
+
+impl ParseError {
+    fn new(msg: impl Into<String>, line: u32, col: u32, end_col: u32) -> Self {
+        Self {
+            msg: msg.into(),
+            line,
+            col,
+            end_col,
+            detail: Box::new(ParseErrorDetail {
+                kind: "parse".into(),
+                found: None,
+                expected: None,
+                hint: None,
+            }),
+        }
+    }
+
+    fn expected(
+        expected: impl Into<String>,
+        found: impl Into<String>,
+        line: u32,
+        col: u32,
+        end_col: u32,
+    ) -> Self {
+        let expected = expected.into();
+        let found = found.into();
+        Self {
+            msg: format!("expected {expected}, found {found}"),
+            line,
+            col,
+            end_col,
+            detail: Box::new(ParseErrorDetail {
+                kind: "expected_token".into(),
+                found: Some(found),
+                expected: Some(expected),
+                hint: None,
+            }),
+        }
+    }
+
+    pub fn diagnostic(&self) -> Diagnostic {
+        let mut d = Diagnostic::new(self.detail.kind.clone(), self.msg.clone()).at(Span::new(
+            self.line,
+            self.col,
+            self.end_col,
+        ));
+        d.found = self.detail.found.clone();
+        d.expected = self.detail.expected.clone();
+        d.hint = self.detail.hint.clone();
+        d
     }
 }
 
@@ -30,6 +93,13 @@ impl From<LexError> for ParseError {
             msg: e.msg,
             line: e.line,
             col: e.col,
+            end_col: e.end_col,
+            detail: Box::new(ParseErrorDetail {
+                kind: e.kind,
+                found: None,
+                expected: None,
+                hint: None,
+            }),
         }
     }
 }
@@ -248,8 +318,10 @@ fn builtin_unit_macros() -> Macros {
     m
 }
 
-fn loc(toks: &[Spanned], i: usize) -> (u32, u32) {
-    toks.get(i).map(|s| (s.line, s.col)).unwrap_or((0, 0))
+fn loc(toks: &[Spanned], i: usize) -> Span {
+    toks.get(i)
+        .map(|s| s.span())
+        .unwrap_or_else(|| Span::new(0, 0, 0))
 }
 
 fn expand(
@@ -259,27 +331,29 @@ fn expand(
     base: Option<&Path>,
 ) -> Result<Vec<Spanned>, ParseError> {
     if depth > 64 {
-        return Err(ParseError {
-            msg: "macro expansion too deep (recursive define?)".into(),
-            line: 0,
-            col: 0,
-        });
+        return Err(ParseError::new(
+            "macro expansion too deep (recursive define?)",
+            0,
+            0,
+            0,
+        ));
     }
     let mut out = Vec::new();
     let mut i = 0;
     while i < toks.len() {
         match &toks[i].tok {
             Token::Kw(Kw::Define) => {
-                let (l, c) = loc(toks, i);
+                let span = loc(toks, i);
                 i += 1;
                 let name = match toks.get(i).map(|s| &s.tok) {
                     Some(Token::Name(n)) | Some(Token::Label(n)) => n.clone(),
                     _ => {
-                        return Err(ParseError {
-                            msg: "define: expected a macro name".into(),
-                            line: l,
-                            col: c,
-                        });
+                        return Err(ParseError::new(
+                            "define: expected a macro name",
+                            span.line,
+                            span.col,
+                            span.end_col,
+                        ));
                     }
                 };
                 i += 1;
@@ -288,11 +362,12 @@ fn expand(
                     i += 1;
                 }
                 let Some(delim) = toks.get(i).map(|s| s.tok.clone()) else {
-                    return Err(ParseError {
-                        msg: "define: expected a body delimiter".into(),
-                        line: l,
-                        col: c,
-                    });
+                    return Err(ParseError::new(
+                        "define: expected a body delimiter",
+                        span.line,
+                        span.col,
+                        span.end_col,
+                    ));
                 };
                 let body = if delim == Token::LeftBrace {
                     i += 1; // past `{`
@@ -312,23 +387,25 @@ fn expand(
                         i += 1;
                     }
                     if bd != 0 {
-                        return Err(ParseError {
-                            msg: "define: unterminated `{` body".into(),
-                            line: l,
-                            col: c,
-                        });
+                        return Err(ParseError::new(
+                            "define: unterminated `{` body",
+                            span.line,
+                            span.col,
+                            span.end_col,
+                        ));
                     }
                     let body = trim_edge_newlines(&toks[start..i]);
                     i += 1; // past `}`
                     body
                 } else {
                     if matches!(delim, Token::Eof | Token::Newline) {
-                        let (l, c) = loc(toks, i);
-                        return Err(ParseError {
-                            msg: "define: expected a body delimiter".into(),
-                            line: l,
-                            col: c,
-                        });
+                        let span = loc(toks, i);
+                        return Err(ParseError::new(
+                            "define: expected a body delimiter",
+                            span.line,
+                            span.col,
+                            span.end_col,
+                        ));
                     }
                     i += 1; // past delimiter
                     let start = i;
@@ -336,11 +413,12 @@ fn expand(
                         i += 1;
                     }
                     if i >= toks.len() {
-                        return Err(ParseError {
-                            msg: "define: unterminated delimited body".into(),
-                            line: l,
-                            col: c,
-                        });
+                        return Err(ParseError::new(
+                            "define: unterminated delimited body",
+                            span.line,
+                            span.col,
+                            span.end_col,
+                        ));
                     }
                     let body = trim_edge_newlines(&toks[start..i]);
                     i += 1; // past closing delimiter
@@ -437,20 +515,19 @@ fn expand(
             }
             // `copy "file"` splices another pic file's (expanded) tokens inline.
             Token::Kw(Kw::Copy) => {
-                let (l, c) = loc(toks, i);
+                let span = loc(toks, i);
                 i += 1;
                 let Some(Token::Str(fname)) = toks.get(i).map(|s| &s.tok) else {
-                    return Err(ParseError {
-                        msg:
-                            "copy: expected a quoted file name (only `copy \"file\"` is supported)"
-                                .into(),
-                        line: l,
-                        col: c,
-                    });
+                    return Err(ParseError::new(
+                        "copy: expected a quoted file name (only `copy \"file\"` is supported)",
+                        span.line,
+                        span.col,
+                        span.end_col,
+                    ));
                 };
                 let fname = fname.clone();
                 i += 1;
-                let inc = include_file(base, &fname, macros, depth, l, c)?;
+                let inc = include_file(base, &fname, macros, depth, span)?;
                 out.extend(inc);
             }
             _ => {
@@ -470,11 +547,7 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
     let mut depth = 0i32;
     loop {
         let Some(s) = toks.get(i) else {
-            return Err(ParseError {
-                msg: "unterminated macro arguments".into(),
-                line: 0,
-                col: 0,
-            });
+            return Err(ParseError::new("unterminated macro arguments", 0, 0, 0));
         };
         match &s.tok {
             Token::Lparen | Token::LeftBrack | Token::LeftBrace => {
@@ -845,6 +918,134 @@ fn color_text(c: Color) -> &'static str {
     }
 }
 
+fn kw_text(k: Kw) -> &'static str {
+    match k {
+        Kw::Ht => "ht",
+        Kw::Wid => "wid",
+        Kw::Rad => "rad",
+        Kw::Diam => "diam",
+        Kw::Thick => "thick",
+        Kw::Scaled => "scaled",
+        Kw::From => "from",
+        Kw::To => "to",
+        Kw::At => "at",
+        Kw::With => "with",
+        Kw::By => "by",
+        Kw::Then => "then",
+        Kw::Continue => "continue",
+        Kw::Chop => "chop",
+        Kw::Same => "same",
+        Kw::Cw => "cw",
+        Kw::Ccw => "ccw",
+        Kw::Of => "of",
+        Kw::The => "the",
+        Kw::Way => "way",
+        Kw::Between => "between",
+        Kw::And => "and",
+        Kw::Here => "Here",
+        Kw::Last => "last",
+        Kw::Fill => "fill",
+        Kw::Nth => "ordinal suffix",
+        Kw::Print => "print",
+        Kw::Copy => "copy",
+        Kw::Reset => "reset",
+        Kw::Exec => "exec",
+        Kw::Sh => "sh",
+        Kw::Command => "command",
+        Kw::Define => "define",
+        Kw::Undef => "undef",
+        Kw::Rand => "rand",
+        Kw::If => "if",
+        Kw::Else => "else",
+        Kw::For => "for",
+        Kw::Do => "do",
+        Kw::Sprintf => "sprintf",
+        Kw::Animate => "animate",
+        Kw::After => "after",
+        Kw::Delay => "delay",
+    }
+}
+
+fn token_text(t: &Token) -> String {
+    match t {
+        Token::Float(v) => fmt_float(*v),
+        Token::Str(s) => format!("\"{s}\""),
+        Token::Name(s) | Token::Label(s) => format!("`{s}`"),
+        Token::Arg(n) => format!("${n}"),
+        Token::ArgCount => "$+".into(),
+        Token::Dollar => "$".into(),
+        Token::Backslash => "\\".into(),
+        Token::Newline => "end of line".into(),
+        Token::DotPS => ".PS".into(),
+        Token::DotPE => ".PE".into(),
+        Token::Eof => "end of input".into(),
+        Token::Lt => "<".into(),
+        Token::Lparen => "(".into(),
+        Token::Rparen => ")".into(),
+        Token::Mult => "*".into(),
+        Token::Plus => "+".into(),
+        Token::Minus => "-".into(),
+        Token::Div => "/".into(),
+        Token::Percent => "%".into(),
+        Token::Caret => "^".into(),
+        Token::Not => "!".into(),
+        Token::AndAnd => "&&".into(),
+        Token::OrOr => "||".into(),
+        Token::Ampersand => "&".into(),
+        Token::Comma => ",".into(),
+        Token::Colon => ":".into(),
+        Token::LeftBrack => "[".into(),
+        Token::RightBrack => "]".into(),
+        Token::LeftBrace => "{".into(),
+        Token::RightBrace => "}".into(),
+        Token::Dot => ".".into(),
+        Token::Block => "[]".into(),
+        Token::LeftQuote => "`".into(),
+        Token::RightQuote => "'".into(),
+        Token::Eq => "=".into(),
+        Token::ColonEq => ":=".into(),
+        Token::PlusEq => "+=".into(),
+        Token::MinusEq => "-=".into(),
+        Token::MultEq => "*=".into(),
+        Token::DivEq => "/=".into(),
+        Token::RemEq => "%=".into(),
+        Token::EqEq => "==".into(),
+        Token::Neq => "!=".into(),
+        Token::Ge => ">=".into(),
+        Token::Le => "<=".into(),
+        Token::Gt => ">".into(),
+        Token::DotX => ".x".into(),
+        Token::DotY => ".y".into(),
+        Token::Kw(k) => kw_text(*k).into(),
+        Token::Corner(c) => corner_text(*c).into(),
+        Token::Param(p) => format!(".{}", param_text(*p)),
+        Token::Func1(f) => format!("{f:?}").to_ascii_lowercase(),
+        Token::Func2(f) => format!("{f:?}").to_ascii_lowercase(),
+        Token::LineType(l) => line_type_text(*l).into(),
+        Token::TextPos(p) => text_pos_text(*p).into(),
+        Token::Arrow(a) => arrow_text(*a).into(),
+        Token::Dir(d) => dir_text(*d).into(),
+        Token::Prim(p) => prim_text(*p).into(),
+        Token::Color(c) => color_text(*c).into(),
+        Token::EnvVar(e) => format!("{e:?}").to_ascii_lowercase(),
+    }
+}
+
+fn fmt_float(v: f64) -> String {
+    let mut s = v.to_string();
+    if s.ends_with(".0") {
+        s.truncate(s.len() - 2);
+    }
+    s
+}
+
+fn suggest_object(word: &str) -> Option<&'static str> {
+    const WORDS: &[&str] = &[
+        "arc", "arrow", "box", "brace", "circle", "dot", "ellipse", "line", "move", "spline",
+    ];
+    crate::diagnostic::closest(word, WORDS)
+}
+
 /// Read and tokenize a `copy "file"` include, returning its expanded tokens
 /// (with the trailing `Eof` removed so it splices cleanly mid-stream). The
 /// included file resolves nested `copy`s relative to its own directory.
@@ -853,14 +1054,9 @@ fn include_file(
     fname: &str,
     macros: &mut HashMap<String, Vec<Spanned>>,
     depth: usize,
-    l: u32,
-    c: u32,
+    span: Span,
 ) -> Result<Vec<Spanned>, ParseError> {
-    let mkerr = |msg: String| ParseError {
-        msg,
-        line: l,
-        col: c,
-    };
+    let mkerr = |msg: String| ParseError::new(msg, span.line, span.col, span.end_col);
     let p = Path::new(fname);
     let path = if p.is_absolute() {
         p.to_path_buf()
@@ -944,11 +1140,7 @@ fn copy_braced(
         out.push(s);
         i += 1;
     }
-    Err(ParseError {
-        msg: "unterminated `{` body".into(),
-        line: 0,
-        col: 0,
-    })
+    Err(ParseError::new("unterminated `{` body", 0, 0, 0))
 }
 
 fn read_braced_body(
@@ -977,11 +1169,7 @@ fn read_braced_body(
         }
         i += 1;
     }
-    Err(ParseError {
-        msg: "unterminated `{` body".into(),
-        line: 0,
-        col: 0,
-    })
+    Err(ParseError::new("unterminated `{` body", 0, 0, 0))
 }
 
 fn static_truth(toks: &[Spanned]) -> Option<bool> {
@@ -1107,6 +1295,9 @@ impl Parser {
     fn cur(&self) -> &Token {
         &self.toks[self.idx].tok
     }
+    fn cur_span(&self) -> Span {
+        self.toks[self.idx].span()
+    }
     fn peek(&self, n: usize) -> &Token {
         self.toks
             .get(self.idx + n)
@@ -1135,16 +1326,32 @@ impl Parser {
         if self.eat(t) {
             Ok(())
         } else {
-            self.err(format!("expected {t:?}, found {:?}", self.cur()))
+            self.expected_here(token_text(t))
         }
     }
     fn err<T>(&self, msg: impl Into<String>) -> PResult<T> {
         let s = &self.toks[self.idx];
-        Err(ParseError {
-            msg: msg.into(),
-            line: s.line,
-            col: s.col,
-        })
+        Err(ParseError::new(msg, s.line, s.col, s.end_col))
+    }
+    fn expected_here<T>(&self, expected: impl Into<String>) -> PResult<T> {
+        let s = &self.toks[self.idx];
+        Err(ParseError::expected(
+            expected,
+            token_text(&s.tok),
+            s.line,
+            s.col,
+            s.end_col,
+        ))
+    }
+    fn expected_object<T>(&self) -> PResult<T> {
+        let s = &self.toks[self.idx];
+        let mut e = ParseError::expected("an object", token_text(&s.tok), s.line, s.col, s.end_col);
+        if let Token::Name(name) | Token::Label(name) = &s.tok
+            && let Some(hint) = suggest_object(name)
+        {
+            e.detail.hint = Some(format!("did you mean `{hint}`?"));
+        }
+        Err(e)
     }
     fn at_kw(&self, k: Kw) -> bool {
         matches!(self.cur(), Token::Kw(x) if *x == k)
@@ -1478,6 +1685,7 @@ impl Parser {
         self.expect_kw(Kw::Animate)?;
         let target = self.parse_place()?;
         self.expect_kw(Kw::With)?;
+        let effect_span = Some(self.cur_span());
         let effect = self.parse_stringexpr()?;
         let mut duration = None;
         let mut timing = Timing::Sequential;
@@ -1498,6 +1706,7 @@ impl Parser {
         Ok(Animate {
             target,
             effect,
+            effect_span,
             duration,
             timing,
             delay,
@@ -1698,7 +1907,8 @@ impl Parser {
                 self.bump();
                 ObjectKind::Continue
             }
-            other => return self.err(format!("expected an object, found {other:?}")),
+            Token::Name(_) | Token::Label(_) => return self.expected_object(),
+            _ => return self.expected_here("an object"),
         };
         // `spline <expr> <linespec>`: dpic's documented exception to the bare
         // distance rule — the expression right after `spline` is a tension
@@ -1976,8 +2186,14 @@ impl Parser {
             | Token::Name(_)
             | Token::Minus
             | Token::Plus
-            | Token::Kw(Kw::Rand) => Attr::Dist(self.parse_expr()?),
-            _ if self.place_is_scalar_ahead() => Attr::Dist(self.parse_expr()?),
+            | Token::Kw(Kw::Rand) => {
+                let span = self.cur_span();
+                Attr::Dist(self.parse_expr()?, Some(span))
+            }
+            _ if self.place_is_scalar_ahead() => {
+                let span = self.cur_span();
+                Attr::Dist(self.parse_expr()?, Some(span))
+            }
             _ => return Ok(None),
         };
         Ok(Some(attr))
@@ -1987,7 +2203,7 @@ impl Parser {
         if self.eat_kw(k) {
             Ok(())
         } else {
-            self.err(format!("expected `{k:?}`, found {:?}", self.cur()))
+            self.expected_here(kw_text(k))
         }
     }
 
@@ -2786,7 +3002,7 @@ ellipse "typesetter"
         let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()
         };
-        assert!(matches!(object.attrs[0], Attr::Dist(_)));
+        assert!(matches!(object.attrs[0], Attr::Dist(_, _)));
     }
 
     #[test]

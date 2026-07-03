@@ -2,6 +2,7 @@
 //! evaluator and consumed by the render backends. All coordinates are absolute,
 //! in pic units (inches), y pointing up.
 
+use crate::diagnostic::Diagnostic;
 use crate::geom::{Bbox, Point};
 
 /// A fully evaluated drawing.
@@ -26,6 +27,8 @@ pub struct Drawing {
     pub anims: Vec<Anim>,
     /// Lines emitted by pic `print` statements, without trailing newlines.
     pub diagnostics: Vec<String>,
+    /// Non-fatal compiler warnings for accepted but likely unintended input.
+    pub warnings: Vec<Diagnostic>,
 }
 
 /// Extra whitespace around the rendered canvas, in internal inches.

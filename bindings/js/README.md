@@ -9,7 +9,7 @@ import * as rpic from '@strategicprojects/rpic';
 
 await rpic.ready();                       // browser: wasm fetched automatically
 
-const { svg, animations, diagnostics } = rpic.compile('box "A"; arrow; box "B"');
+const { svg, animations, diagnostics, warnings } = rpic.compile('box "A"; arrow; box "B"');
 document.querySelector('#stage').innerHTML = svg;
 
 // animate with GSAP:
@@ -51,9 +51,19 @@ Node, pass the math artifact's bytes:
 | Function | Description |
 |----------|-------------|
 | `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build. |
-| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics }` (throws on a pic error). |
+| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics, warnings }` (throws on a pic error with `errorInfo`). |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
+
+Compile errors keep a readable `message` and expose structured data for editors:
+
+```js
+try {
+  rpic.compile('bxo');
+} catch (err) {
+  console.log(err.errorInfo); // { message, line, col, end_col, kind, found, expected, hint }
+}
+```
 
 PNG/PDF are available via the CLI, the Python package, or the R package (the
 WASM core renders SVG; rasterization isn't bundled here).
