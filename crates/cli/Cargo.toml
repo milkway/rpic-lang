@@ -14,8 +14,8 @@ name = "rpic"
 path = "src/main.rs"
 
 [dependencies]
-rpic-core = { version = "0.4.1", path = "../core" }
-rpic-render = { version = "0.4.1", path = "../render" }
+rpic-core = { version = "0.5.0", path = "../core" }
+rpic-render = { version = "0.5.0", path = "../render" }
 
 # Debian packaging (cargo-deb): `cargo deb -p rpic-cli`
 [package.metadata.deb]
