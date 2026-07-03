@@ -19,6 +19,17 @@ battery(SW,NW); resistor(NW,NE); capacitor(NE,SE); inductor(SE,SW)
 dot at NW; dot at NE; dot at SE; dot at SW
 .PE`} />
 
+A figure can also declare the dependency itself with the reserved include
+`copy "circuits"` — the in-source spelling of `-c`, just as `texlabels = 1`
+is the in-source spelling of `-t`. No flag needed, in any binding, wasm
+included (this example is compiled without `-c`):
+
+<PicExample code={`.PS
+copy "circuits"
+A:(0,0); B:(1.6,0)
+led(A,B)
+.PE`} />
+
 ## Two-terminal elements
 
 `resistor`, `capacitor`, `inductor`, `battery`, `diode`, `led`, `fuse`,

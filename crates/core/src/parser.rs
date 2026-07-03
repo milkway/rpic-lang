@@ -1057,6 +1057,23 @@ fn include_file(
     span: Span,
 ) -> Result<Vec<Spanned>, ParseError> {
     let mkerr = |msg: String| ParseError::new(msg, span.line, span.col, span.end_col);
+    // `copy "circuits"` is a reserved target: it loads the embedded native
+    // circuit-element library — the in-source spelling of `-c`, usable even
+    // where file includes are not (wasm, compile_json with no base dir). It
+    // shadows any real file literally named `circuits`. Skipped when the
+    // library is already loaded (`-c` plus an explicit copy): `__resistor`
+    // is one of its own defines.
+    if fname == "circuits" {
+        if macros.contains_key("__resistor") {
+            return Ok(Vec::new());
+        }
+        let toks = lex(crate::CIRCUITS)?;
+        let mut expanded = expand(&toks, macros, depth + 1, None)?;
+        if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
+            expanded.pop();
+        }
+        return Ok(expanded);
+    }
     let p = Path::new(fname);
     let path = if p.is_absolute() {
         p.to_path_buf()

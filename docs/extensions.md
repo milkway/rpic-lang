@@ -446,3 +446,32 @@ dpic-compatible when `brace` is not used. Additional runnable examples are in
 `examples/brace_labeloffset.pic`, `examples/brace_pos.pic`,
 `examples/brace_sides.pic`, `examples/brace_style.pic`, and
 `examples/brace_width.pic`.
+
+## In-Source Circuit Library Loading
+
+`copy "circuits"` is a reserved include target that loads the embedded native
+circuit-element library — the in-source spelling of the `-c` flag, mirroring
+how `texlabels = 1` is the in-source spelling of `-t`. A figure can declare
+its own dependency instead of relying on every consumer to pass the flag:
+
+```pic
+.PS
+copy "circuits"
+A:(0,0); B:(2,0)
+resistor(A,B)
+.PE
+```
+
+Rules:
+
+- The name resolves **before** any filesystem lookup, so it works even where
+  file includes are unavailable (the wasm build, `compile_json` with no base
+  directory). A real file literally named `circuits` (no extension) is
+  shadowed; rename it or add an extension.
+- Loading is idempotent: with `-c` (or `circuits: true` in the bindings) plus
+  an explicit `copy "circuits"`, the second load is skipped — output is
+  byte-identical to the flag alone.
+- Like any `copy`, it splices macro definitions where it appears: put it
+  before the first use of a library element.
+- Classic input is untouched — the target only triggers on the exact string
+  `"circuits"`, which previously always failed (no such file).

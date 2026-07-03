@@ -12,6 +12,11 @@ assert.match(svg, /hi/);
 const circuits = compile('A:(0,0); B:(2,0)\nresistor(A,B)', { circuits: true });
 assert.match(circuits.svg, /<svg\b/);
 
+// `copy "circuits"` loads the embedded library with no option — even under
+// wasm, where file includes are unavailable
+const inSource = compile('copy "circuits"\nA:(0,0); B:(2,0)\nresistor(A,B)');
+assert.equal(inSource.svg, circuits.svg);
+
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');
 assert.equal(warning.warnings[0].found, 'dashd');
