@@ -11,6 +11,15 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_double, c_int};
 use std::ptr;
+use std::sync::Once;
+
+static MATH_RENDERER: Once = Once::new();
+
+fn ensure_math_renderer() {
+    MATH_RENDERER.call_once(|| {
+        rpic_core::set_math_renderer(rpic_render::math::render_math);
+    });
+}
 
 /// Borrow a C string as `&str`, or `None` if null / not UTF-8.
 ///
@@ -58,6 +67,7 @@ pub unsafe extern "C" fn rpic_render_svg(src: *const c_char, circuits: c_int) ->
     let Some(s) = (unsafe { as_str(src) }) else {
         return ptr::null_mut();
     };
+    ensure_math_renderer();
     match rpic_core::render_svg(&with_circuits(s, circuits)) {
         Ok(svg) => to_c_string(svg),
         Err(_) => ptr::null_mut(),
@@ -74,6 +84,7 @@ pub unsafe extern "C" fn rpic_compile_json(src: *const c_char, circuits: c_int) 
     let Some(s) = (unsafe { as_str(src) }) else {
         return ptr::null_mut();
     };
+    ensure_math_renderer();
     to_c_string(rpic_core::compile_json(&with_circuits(s, circuits)))
 }
 
@@ -91,6 +102,7 @@ pub unsafe extern "C" fn rpic_render_png(
     let Some(s) = (unsafe { as_str(src) }) else {
         return ptr::null_mut();
     };
+    ensure_math_renderer();
     let svg = match rpic_core::render_svg(&with_circuits(s, circuits)) {
         Ok(v) => v,
         Err(_) => return ptr::null_mut(),
@@ -114,6 +126,7 @@ pub unsafe extern "C" fn rpic_render_pdf(
     let Some(s) = (unsafe { as_str(src) }) else {
         return ptr::null_mut();
     };
+    ensure_math_renderer();
     let svg = match rpic_core::render_svg(&with_circuits(s, circuits)) {
         Ok(v) => v,
         Err(_) => return ptr::null_mut(),
@@ -143,5 +156,38 @@ pub unsafe extern "C" fn rpic_free_string(p: *mut c_char) {
 pub unsafe extern "C" fn rpic_free_bytes(p: *mut u8, len: usize) {
     if !p.is_null() {
         drop(unsafe { Box::from_raw(std::ptr::slice_from_raw_parts_mut(p, len)) });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn string_from_owned_ptr(p: *mut c_char) -> String {
+        assert!(!p.is_null());
+        let s = unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned();
+        unsafe { rpic_free_string(p) };
+        s
+    }
+
+    #[test]
+    fn c_api_render_svg_registers_texlabels_renderer() {
+        let src = CString::new("texlabels = 1\nbox \"$-\\frac{T}{2}$\" wid 1 ht 0.7").unwrap();
+
+        let svg = string_from_owned_ptr(unsafe { rpic_render_svg(src.as_ptr(), 0) });
+
+        assert!(svg.contains("<svg x=\""), "{svg}");
+        assert!(!svg.contains("frac"), "{svg}");
+    }
+
+    #[test]
+    fn c_api_compile_json_registers_texlabels_renderer() {
+        let src = CString::new("texlabels = 1\nbox \"$-\\frac{T}{2}$\" wid 1 ht 0.7").unwrap();
+
+        let json = string_from_owned_ptr(unsafe { rpic_compile_json(src.as_ptr(), 0) });
+
+        assert!(json.contains("<svg x=\\\""), "{json}");
+        assert!(!json.contains("no math renderer"), "{json}");
+        assert!(!json.contains("frac"), "{json}");
     }
 }
