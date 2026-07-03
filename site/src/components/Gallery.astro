@@ -19,9 +19,18 @@ const entries: { path: string; caption: string; credit: string; circuits?: boole
   { path: 'examples/lib3d/frame.pic', caption: 'Axonometric frame', credit: 'lib3D projection library', circuits: true },
 ];
 
+// Display every figure at the same zoom (0.78x natural) so type sizes look
+// consistent across cards; wide figures still shrink to the card width.
+function atZoom(svg: string, k = 0.78): string {
+  const m = svg.match(/<svg[^>]*\swidth="([\d.]+)"/);
+  if (!m) return svg;
+  const w = Math.round(parseFloat(m[1]) * k);
+  return svg.replace('<svg ', `<svg style="width:${w}px" `);
+}
+
 const cards = entries.map((e) => ({
   ...e,
-  svg: renderPicFile(e.path, { circuits: e.circuits, texlabels: e.texlabels }),
+  svg: atZoom(renderPicFile(e.path, { circuits: e.circuits, texlabels: e.texlabels })),
 }));
 ---
 
