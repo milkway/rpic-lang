@@ -70,8 +70,16 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     });
   }
 
+  // One live timeline per stage: a replay mid-animation must kill the
+  // previous timeline and reset the SVG to its pristine state, otherwise two
+  // timelines tween the same elements (`.from()` would capture half-animated
+  // values as the "end" state and shapes jump or stick).
+  const timelines = new WeakMap<HTMLElement, gsap.core.Timeline>();
+
   function play(stage: HTMLElement) {
     const anims = JSON.parse(stage.dataset.anims || '[]');
+    timelines.get(stage)?.kill();
+    gsap.set(stage.querySelectorAll('svg, svg *'), { clearProps: 'all' });
     const tl = gsap.timeline();
     for (const a of anims) {
       const el = stage.querySelector(`[id="${a.id}"]`);
@@ -92,6 +100,7 @@ const { svg, animations } = renderPicBundle(code, { circuits });
           break;
       }
     }
+    timelines.set(stage, tl);
     return tl;
   }
 

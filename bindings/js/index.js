@@ -17,8 +17,10 @@ let initMath = null;
  * Pass `{ math: true }` to load the math-enabled build instead: it bundles
  * the RaTeX renderer so `texlabels` sources typeset `$…$` labels exactly like
  * the native CLI. The math glue + wasm are only fetched when requested, so
- * the lean fast path stays untouched. The choice is fixed by the first call;
- * later calls asking for the other build reject. In Node, pass the bytes of
+ * the lean fast path stays untouched. The choice is fixed by the first
+ * successful (or in-flight) call; later calls asking for the other build
+ * reject. A *failed* init (bad bytes, fetch error) clears the slot so
+ * `ready()` can be retried. In Node, pass the bytes of
  * `pkg/rpic_wasm_math_bg.wasm` along with it.
  */
 export function ready(wasmInput, opts = {}) {
@@ -33,15 +35,24 @@ export function ready(wasmInput, opts = {}) {
     }
     return initPromise;
   }
-  if (!initPromise) {
-    initMath = wantsMath;
-    initPromise = (
-      wantsMath ? import('./pkg/rpic_wasm_math.js') : Promise.resolve(leanModule)
-    ).then(async (mod) => {
+  initMath = wantsMath;
+  const attempt = (
+    wantsMath ? import('./pkg/rpic_wasm_math.js') : Promise.resolve(leanModule)
+  )
+    .then(async (mod) => {
       await mod.default(wasmInput === undefined ? undefined : { module_or_path: wasmInput });
       wasm = mod;
+    })
+    .catch((e) => {
+      // a settled rejection must not poison future calls — clear the slot
+      // (only if it is still ours) so the next ready() starts fresh
+      if (initPromise === attempt) {
+        initPromise = null;
+        initMath = null;
+      }
+      throw e;
     });
-  }
+  initPromise = attempt;
   return initPromise;
 }
 
