@@ -848,17 +848,25 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
         }
         Shape::Path {
             pts,
+            arrows,
             style,
             text: _,
             ..
         }
         | Shape::Spline {
             pts,
+            arrows,
             style,
             text: _,
             ..
         } => {
-            if !style.invis || style.invis_bounds || open_fill_is_visible(style) {
+            if !style.invis {
+                for p in path_stroke_points_model(pts, *arrows, style) {
+                    out.add(p);
+                }
+                out.union(&arrowheads_bounds_model(pts, *arrows, style));
+            }
+            if style.invis_bounds || open_fill_is_visible(style) {
                 for p in pts {
                     out.add(*p);
                 }
@@ -869,6 +877,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             r,
             a0,
             a1,
+            arrows,
             style,
             text: _,
             ..
@@ -878,6 +887,11 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
                     let t = *a0 + (*a1 - *a0) * (k as f64 / 12.0);
                     out.add(*c + Point::new(t.cos(), t.sin()) * *r);
                 }
+            }
+            if !style.invis {
+                out.union(&arc_arrowheads_bounds_model(
+                    *c, *r, *a0, *a1, *arrows, style,
+                ));
             }
         }
         Shape::Brace {
@@ -943,6 +957,34 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
             continue;
         }
         let just_offset = xheight / 2.0 + line.text_offset;
+        let standalone_half_width = if w.abs() > 1e-12 {
+            w / 2.0
+        } else {
+            line.text_offset
+        };
+        let x = at.x
+            + match line.halign {
+                -1 => standalone_half_width,
+                1 => -standalone_half_width,
+                _ => 0.0,
+            };
+        if let Some(m) = &line.math {
+            let (min_x, max_x) = match line.halign {
+                -1 => (x, x + m.width),
+                1 => (x - m.width, x),
+                _ => (x - m.width / 2.0, x + m.width / 2.0),
+            };
+            let half = (m.height + m.depth) / 2.0;
+            let ink_center = match line.valign {
+                1 => baseline_y + just_offset + half,
+                -1 => baseline_y - just_offset - half,
+                _ => baseline_y + xheight / 2.0,
+            };
+            bb.add(Point::new(min_x, ink_center - half));
+            bb.add(Point::new(max_x, ink_center + half));
+            baseline_y -= lineskip;
+            continue;
+        }
         let y = baseline_y + (line.valign as f64) * just_offset;
         bb.add(Point::new(at.x - half_w, y));
         bb.add(Point::new(at.x + half_w, y + xheight));
@@ -961,6 +1003,7 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
     let line_h = 1.2 * em;
     let xheight = DP_TEXT_RATIO * em;
     let n = text.len() as f64;
+    let v = n - 1.0 + DP_TEXT_RATIO;
     for (i, line) in text.iter().enumerate() {
         if line.s.is_empty() {
             continue;
@@ -974,6 +1017,24 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
                 1 => -line.text_offset,
                 _ => 0.0,
             };
+        if let Some(m) = &line.math {
+            let (min_x, max_x) = match line.halign {
+                -1 => (x, x + m.width),
+                1 => (x - m.width, x),
+                _ => (x - m.width / 2.0, x + m.width / 2.0),
+            };
+            let half = (m.height + m.depth) / 2.0;
+            let baseline_y = center.y + (v * em / 2.0) - xheight - (i as f64 * em);
+            let just_offset = xheight / 2.0 + line.text_offset;
+            let ink_center = match line.valign {
+                1 => baseline_y + just_offset + half,
+                -1 => baseline_y - just_offset - half,
+                _ => baseline_y + xheight / 2.0,
+            };
+            bb.add(Point::new(min_x, ink_center - half));
+            bb.add(Point::new(max_x, ink_center + half));
+            continue;
+        }
         let (min_x, max_x) = match line.halign {
             -1 => (x, x + w),
             1 => (x - w, x),
@@ -1005,6 +1066,130 @@ fn thick_px(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
     let pt = style.thick.filter(|t| *t > 0.0).unwrap_or(0.8);
     pt * PPI / 72.0
+}
+
+fn thick_in(style: &Style) -> f64 {
+    // style.thick is in points; default ~0.8pt.
+    style.thick.filter(|t| *t > 0.0).unwrap_or(0.8) / 72.0
+}
+
+fn path_stroke_points_model(pts: &[Point], arrows: Arrowheads, style: &Style) -> Vec<Point> {
+    let mut out = pts.to_vec();
+    if out.len() < 2 {
+        return out;
+    }
+    let n = out.len();
+    if style.arrow_filled {
+        if matches!(arrows, Arrowheads::End | Arrowheads::Both)
+            && let Some((_, _, _, p)) = filled_arrowhead_points_model(out[n - 1], out[n - 2], style)
+        {
+            out[n - 1] = p;
+        }
+        if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
+            && let Some((_, _, _, p)) = filled_arrowhead_points_model(out[0], out[1], style)
+        {
+            out[0] = p;
+        }
+    } else {
+        if matches!(arrows, Arrowheads::End | Arrowheads::Both)
+            && let Some((_, p, _)) = open_arrowhead_points_model(out[n - 1], out[n - 2], style)
+        {
+            out[n - 1] = p;
+        }
+        if matches!(arrows, Arrowheads::Start | Arrowheads::Both)
+            && let Some((_, p, _)) = open_arrowhead_points_model(out[0], out[1], style)
+        {
+            out[0] = p;
+        }
+    }
+    out
+}
+
+fn arrowheads_bounds_model(pts: &[Point], arrows: Arrowheads, style: &Style) -> Bbox {
+    let mut bb = Bbox::new();
+    if pts.len() < 2 {
+        return bb;
+    }
+    if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
+        add_arrowhead_bounds_model(&mut bb, pts[pts.len() - 1], pts[pts.len() - 2], style);
+    }
+    if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
+        add_arrowhead_bounds_model(&mut bb, pts[0], pts[1], style);
+    }
+    bb
+}
+
+fn add_arrowhead_bounds_model(bb: &mut Bbox, tip: Point, shaft: Point, style: &Style) {
+    if style.arrow_filled {
+        if let Some((left, point, right, stroke_end)) =
+            filled_arrowhead_points_model(tip, shaft, style)
+        {
+            bb.add(left);
+            bb.add(point);
+            bb.add(right);
+            bb.add(stroke_end);
+        }
+    } else if let Some((left, point, right)) = open_arrowhead_points_model(tip, shaft, style) {
+        bb.add(left);
+        bb.add(point);
+        bb.add(right);
+    }
+}
+
+fn arc_arrowheads_bounds_model(
+    c: Point,
+    r: f64,
+    a0: f64,
+    a1: f64,
+    arrows: Arrowheads,
+    style: &Style,
+) -> Bbox {
+    let mut bb = Bbox::new();
+    if r.abs() <= 1e-9 {
+        return bb;
+    }
+    let start = c + Point::new(a0.cos(), a0.sin()) * r;
+    let end = c + Point::new(a1.cos(), a1.sin()) * r;
+    let angle = a1 - a0;
+    if matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
+        add_arc_arrowhead_bounds_model(&mut bb, c, start, r, angle, style);
+    }
+    if matches!(arrows, Arrowheads::End | Arrowheads::Both) {
+        add_arc_arrowhead_bounds_model(&mut bb, c, end, -r, angle, style);
+    }
+    bb
+}
+
+fn add_arc_arrowhead_bounds_model(
+    bb: &mut Bbox,
+    c: Point,
+    point: Point,
+    signed_r: f64,
+    angle: f64,
+    style: &Style,
+) {
+    let geom = arc_head_geometry(
+        c,
+        point,
+        if style.arrow_filled { 2 } else { 0 },
+        style.arrow_ht,
+        style.arrow_wid,
+        style.thick.filter(|t| *t > 0.0).unwrap_or(0.8),
+        signed_r,
+        angle,
+    );
+    let r = signed_r.abs();
+    bb.add(point);
+    bb.add(geom.point);
+    bb.add(geom.ao);
+    bb.add(geom.ai);
+    bb.add(geom.px);
+    if !style.arrow_filled && geom.lwi < ((geom.wid - geom.lwi) / 2.0) {
+        bb.add(prop(geom.ai, geom.ci, r + geom.lwi, -geom.lwi, r));
+        bb.add(prop(geom.ao, geom.co, r - geom.lwi, geom.lwi, r));
+    } else {
+        bb.add((geom.ao + geom.ai) * 0.5);
+    }
 }
 
 struct ArcHead {
@@ -1148,6 +1333,30 @@ fn arc_angle_between(c: Point, start: Point, end: Point, old_angle: f64) -> f64 
 }
 
 fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Point, Point, Point)> {
+    open_arrowhead_points_scaled(
+        tip,
+        shaft,
+        style.arrow_ht * PPI,
+        style.arrow_wid * PPI,
+        thick_px(style),
+    )
+}
+
+fn open_arrowhead_points_model(
+    tip: Point,
+    shaft: Point,
+    style: &Style,
+) -> Option<(Point, Point, Point)> {
+    open_arrowhead_points_scaled(tip, shaft, style.arrow_ht, style.arrow_wid, thick_in(style))
+}
+
+fn open_arrowhead_points_scaled(
+    tip: Point,
+    shaft: Point,
+    ht: f64,
+    wid: f64,
+    ltu: f64,
+) -> Option<(Point, Point, Point)> {
     let mut u = tip - shaft;
     let len = u.len();
     if len < 1e-9 {
@@ -1155,9 +1364,6 @@ fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Poi
     }
     u = u / len;
     let perp = Point::new(-u.y, u.x);
-    let ht = style.arrow_ht * PPI;
-    let wid = style.arrow_wid * PPI;
-    let ltu = thick_px(style);
     let po = if wid.abs() < 1e-12 {
         0.0
     } else {
@@ -1190,6 +1396,30 @@ fn filled_arrowhead_points(
     shaft: Point,
     style: &Style,
 ) -> Option<(Point, Point, Point, Point)> {
+    filled_arrowhead_points_scaled(
+        tip,
+        shaft,
+        style.arrow_ht * PPI,
+        style.arrow_wid * PPI,
+        thick_px(style),
+    )
+}
+
+fn filled_arrowhead_points_model(
+    tip: Point,
+    shaft: Point,
+    style: &Style,
+) -> Option<(Point, Point, Point, Point)> {
+    filled_arrowhead_points_scaled(tip, shaft, style.arrow_ht, style.arrow_wid, thick_in(style))
+}
+
+fn filled_arrowhead_points_scaled(
+    tip: Point,
+    shaft: Point,
+    ht: f64,
+    wid: f64,
+    ltu: f64,
+) -> Option<(Point, Point, Point, Point)> {
     let mut u = tip - shaft;
     let len = u.len();
     if len < 1e-9 {
@@ -1197,9 +1427,6 @@ fn filled_arrowhead_points(
     }
     u = u / len;
     let perp = Point::new(-u.y, u.x);
-    let ht = style.arrow_ht * PPI;
-    let wid = style.arrow_wid * PPI;
-    let ltu = thick_px(style);
     let po = if wid.abs() < 1e-12 {
         0.0
     } else {
@@ -1385,6 +1612,38 @@ mod tests {
         x.split('"').next().unwrap().parse().unwrap()
     }
 
+    fn attr_value<'a>(line: &'a str, name: &str) -> &'a str {
+        let needle = format!("{name}=\"");
+        line.split(&needle)
+            .nth(1)
+            .unwrap_or_else(|| panic!("missing attribute {name:?} in {line}"))
+            .split('"')
+            .next()
+            .unwrap()
+    }
+
+    fn attr_num(line: &str, name: &str) -> f64 {
+        attr_value(line, name).parse().unwrap()
+    }
+
+    fn root_viewbox_size(svg: &str) -> (f64, f64) {
+        let root = svg.lines().next().unwrap();
+        let nums: Vec<f64> = attr_value(root, "viewBox")
+            .split_whitespace()
+            .map(|n| n.parse().unwrap())
+            .collect();
+        assert_eq!(nums.len(), 4, "{root}");
+        assert_eq!(nums[0], 0.0, "{root}");
+        assert_eq!(nums[1], 0.0, "{root}");
+        (nums[2], nums[3])
+    }
+
+    fn assert_in_viewbox(x: f64, y: f64, w: f64, h: f64, svg: &str) {
+        let eps = 1e-9;
+        assert!(x >= -eps && x <= w + eps, "x={x} outside 0..{w}\n{svg}");
+        assert!(y >= -eps && y <= h + eps, "y={y} outside 0..{h}\n{svg}");
+    }
+
     #[test]
     fn pipeline_svg_has_elements() {
         let s = svg(".PS\nellipse \"document\"\narrow\nbox \"PIC\"\n.PE");
@@ -1505,6 +1764,41 @@ mod tests {
             "{s}"
         );
         assert!(s.contains("stroke-width=\"0.533333\""), "{s}");
+    }
+
+    #[test]
+    fn short_arrowhead_geometry_expands_svg_bounds() {
+        let s = svg("arrow right .01");
+        let (w, h) = root_viewbox_size(&s);
+
+        let mut saw_head = false;
+        for line in s
+            .lines()
+            .filter(|line| line.contains("<polygon") && line.contains("points=\""))
+        {
+            saw_head = true;
+            for pair in attr_value(line, "points").split_whitespace() {
+                let (x, y) = pair.split_once(',').unwrap();
+                assert_in_viewbox(x.parse().unwrap(), y.parse().unwrap(), w, h, &s);
+            }
+        }
+        assert!(saw_head, "{s}");
+
+        let line = s.lines().find(|line| line.contains("<line ")).unwrap();
+        for name in ["x1", "x2"] {
+            let x = attr_num(line, name);
+            assert!(
+                x >= -1e-9 && x <= w + 1e-9,
+                "{name}={x} outside 0..{w}\n{s}"
+            );
+        }
+        for name in ["y1", "y2"] {
+            let y = attr_num(line, name);
+            assert!(
+                y >= -1e-9 && y <= h + 1e-9,
+                "{name}={y} outside 0..{h}\n{s}"
+            );
+        }
     }
 
     #[test]
@@ -1692,6 +1986,55 @@ mod tests {
         let plain = svg("box \"$x$\" wid 1 ht 1");
         assert!(!plain.contains("<svg x=\""), "{plain}");
         assert!(plain.contains(">$x$<"), "{plain}");
+    }
+
+    #[test]
+    fn standalone_math_fragment_expands_svg_bounds() {
+        let text = vec![TextLine {
+            s: "$standalone$".into(),
+            math: Some(crate::math::MathSpan {
+                svg: "<svg width=\"24\" height=\"28.8\"><!--standalone-math--></svg>".into(),
+                width: 0.25,
+                height: 0.2,
+                depth: 0.1,
+            }),
+            halign: 0,
+            valign: 0,
+            text_offset: 0.0,
+        }];
+        let d = Drawing {
+            shapes: vec![Shape::Text {
+                at: Point::ZERO,
+                text,
+                bbox: Bbox::new(),
+                w: 0.0,
+                h: 0.0,
+                standalone: true,
+            }],
+            shape_layers: vec![0],
+            shape_classes: vec![None],
+            bbox: Bbox::new(),
+            prelude_thick: 0.8,
+            canvas_margin: CanvasMargin::default(),
+            anims: Vec::new(),
+            diagnostics: Vec::new(),
+            warnings: Vec::new(),
+        };
+        let s = to_svg(&d);
+        let (root_w, root_h) = root_viewbox_size(&s);
+        let frag = s
+            .lines()
+            .find(|line| line.contains("standalone-math"))
+            .unwrap();
+        let x = attr_num(frag, "x");
+        let y = attr_num(frag, "y");
+        let w = attr_num(frag, "width");
+        let h = attr_num(frag, "height");
+
+        assert!(x >= -1e-9, "x={x}\n{s}");
+        assert!(y >= -1e-9, "y={y}\n{s}");
+        assert!(x + w <= root_w + 1e-9, "x+w={} root={root_w}\n{s}", x + w);
+        assert!(y + h <= root_h + 1e-9, "y+h={} root={root_h}\n{s}", y + h);
     }
 
     #[test]
