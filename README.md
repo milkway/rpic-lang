@@ -49,6 +49,10 @@ to the modern web era:
   browser with [GSAP](https://gsap.com/).
 - A native **circuit-element library** (79 elements) — a from-scratch
   re-imagining of `circuit_macros`.
+- **Editor-grade diagnostics**: structured errors with exact spans,
+  did-you-mean hints, and a warnings channel for accepted-but-ignored input —
+  positions always relative to your own source, even across includes and
+  loaded libraries.
 - One core, **many targets**: a native CLI, WebAssembly, and bindings for
   **Python**, **R**, and **JavaScript/TypeScript**.
 
@@ -79,9 +83,9 @@ Programmability: `define` macros with `$1…$9`, `for`, `if`, `sprintf`,
 environment variables.
 
 Explicit rpic extensions — `margin`, `fit`, `behind`, `close`, `brace`,
-`hatch`, `gradient`, `opacity`, `class` hooks, **`texlabels`** (KaTeX-grade
-TeX math in labels, rendered natively) and the `animate` layer — are opt-in
-and inert for classic pic/dpic-compatible input. Each has a page with live
+`hatch`, `gradient`, `opacity`, `class` hooks, `dot`, **`texlabels`**
+(KaTeX-grade TeX math in labels, rendered natively) and the `animate` layer —
+are opt-in and inert for classic pic/dpic-compatible input. Each has a page with live
 examples at [rpic.dev](https://rpic.dev/docs/extensions/margin); the design
 notes live in [`docs/extensions.md`](docs/extensions.md).
 
@@ -186,7 +190,8 @@ import rpic, json
 svg = rpic.render_svg('box "hi"; arrow; circle "x"')
 open("out.png", "wb").write(rpic.render_png('box "hi"', scale=2.0))
 bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
-# bundle["diagnostics"] contains lines emitted by pic `print`
+# bundle["diagnostics"] = pic `print` output; bundle["warnings"] = structured
+# compiler warnings; on error: {"error": …, "error_info": {line, col, …}}
 ```
 
 ### R — [milkway/rpic-r](https://github.com/milkway/rpic-r) (separate repo)
@@ -201,10 +206,15 @@ rpic::rpic_register_knitr()        # ```{rpic} chunks in R Markdown / Quarto
 
 ```js
 import * as rpic from '@strategicprojects/rpic';
-await rpic.ready();
+await rpic.ready();                      // or ready(undefined, { math: true })
 const { svg, animations, diagnostics, warnings } = rpic.compile('box "A"; arrow; box "B"');
 rpic.animate(stage, animations, gsap);   // GSAP timeline
 ```
+
+The default wasm is lean; `ready(undefined, { math: true })` lazy-loads a
+math-enabled build so `texlabels` typeset `$…$` labels in the browser.
+Compile errors throw with structured `err.errorInfo` (span, kind,
+did-you-mean hint) for editor integrations.
 
 ## Build from source
 

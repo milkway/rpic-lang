@@ -51,9 +51,34 @@ stage.innerHTML = svg;
 animate(stage, animations, gsap);       // GSAP timeline on the stable s<N> ids
 ```
 
-Note: the default WASM build ships without the math renderer (size
-budget) — with `texlabels`, `$…$` labels fall back to literal text plus a
-diagnostic. Render server-side (CLI/Python) when math matters.
+The default WASM build ships without the math renderer (size budget) — with
+`texlabels`, `$…$` labels fall back to literal text plus a diagnostic. Since
+v0.6.0 the package also ships a **math-enabled build** as a second, lazily
+fetched artifact; opt in at init and math typesets exactly like the CLI:
+
+```js
+await ready(undefined, { math: true });  // fetches pkg/rpic_wasm_math_bg.wasm
+renderSvg('box "$-\\\\frac{T}{2}$" fit', { texlabels: true });
+```
+
+### Errors and warnings for editors
+
+Compile errors throw with a readable message plus structured fields, and the
+bundle carries non-fatal warnings (unknown attribute words, unknown `animate`
+effects) — positions are always relative to **your** source, even with
+`circuits: true`; `file` names a `copy` include when the problem is inside
+one (`null` = your own input):
+
+```js
+try {
+  compile('bxo', { circuits: true });
+} catch (err) {
+  err.errorInfo; // { message, line: 1, col: 1, end_col: 4, file: null,
+                 //   kind: "expected_token", found: "`bxo`",
+                 //   expected: "an object", hint: "did you mean `box`?" }
+}
+compile('box "a" dashd').warnings; // [{ kind: "ignored_attribute", hint: "did you mean `dashed`?", … }]
+```
 
 ## R
 
