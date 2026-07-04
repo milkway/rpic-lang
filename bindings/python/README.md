@@ -18,7 +18,7 @@ open("out.pdf", "wb").write(rpic.render_pdf("box \"hi\""))
 svg = rpic.render_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
 
 # TeX math labels, exactly like `rpic -t`:
-svg = rpic.render_svg('box "$-\\\\frac{T}{2}$" fit', texlabels=True)
+svg = rpic.render_svg('box "$-\\frac{T}{2}$" fit', texlabels=True)
 
 # the parsed bundle: svg + animation manifest + diagnostics + warnings
 bundle = rpic.compile('box\nanimate last box with "pop"')

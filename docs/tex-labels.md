@@ -111,6 +111,12 @@ rasterized by resvg **with no font database**:
 - **Fallback**: if RaTeX fails to parse a `$…$` string, render it literally
   (today's behavior) and emit a `print`-style diagnostic — never fail the
   picture.
+- **Escaping**: TeX commands take a **single** backslash in the pic source
+  (`$\frac{T}{2}$`) — the lexer passes string backslashes through verbatim.
+  `\\` in the pic source is therefore a TeX *line break*; binding examples
+  must write `"$\\frac{…}$"` in host-language string literals, not
+  `"$\\\\frac{…}$"` (which typesets a broken multi-line label — caught by
+  visual QA of the R vignettes).
 
 ### Risks
 
