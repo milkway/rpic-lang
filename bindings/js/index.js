@@ -7,6 +7,7 @@ import * as leanModule from './pkg/rpic_wasm.js';
 
 let initPromise = null;
 let wasm = null; // the initialized glue module (lean or math)
+let initMath = null;
 
 /**
  * Initialize the WebAssembly module (idempotent; concurrent calls share one
@@ -17,12 +18,25 @@ let wasm = null; // the initialized glue module (lean or math)
  * the RaTeX renderer so `texlabels` sources typeset `$…$` labels exactly like
  * the native CLI. The math glue + wasm are only fetched when requested, so
  * the lean fast path stays untouched. The choice is fixed by the first call;
- * in Node, pass the bytes of `pkg/rpic_wasm_math_bg.wasm` along with it.
+ * later calls asking for the other build reject. In Node, pass the bytes of
+ * `pkg/rpic_wasm_math_bg.wasm` along with it.
  */
 export function ready(wasmInput, opts = {}) {
+  const wantsMath = !!opts.math;
+  if (initPromise) {
+    if (initMath !== wantsMath) {
+      const current = initMath ? 'math-enabled' : 'lean';
+      const requested = wantsMath ? 'math-enabled' : 'lean';
+      return Promise.reject(
+        new Error(`rpic: ready() already initialized the ${current} build; cannot switch to ${requested}`)
+      );
+    }
+    return initPromise;
+  }
   if (!initPromise) {
+    initMath = wantsMath;
     initPromise = (
-      opts.math ? import('./pkg/rpic_wasm_math.js') : Promise.resolve(leanModule)
+      wantsMath ? import('./pkg/rpic_wasm_math.js') : Promise.resolve(leanModule)
     ).then(async (mod) => {
       await mod.default(wasmInput === undefined ? undefined : { module_or_path: wasmInput });
       wasm = mod;
