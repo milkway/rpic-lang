@@ -3,6 +3,9 @@
 # Aplevich).
 [workspace]
 resolver = "2"
+# `crates/wasm` and `bindings/python` are intentionally standalone workspaces:
+# wasm keeps npm-specific release/profile settings, and python keeps PyO3 out of
+# the lean native workspace. Keep CI lint steps explicit for both.
 members = [
     "crates/core",
     "crates/render",

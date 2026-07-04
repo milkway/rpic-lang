@@ -90,9 +90,9 @@ fn render_png<'py>(
     texlabels: bool,
     base: Option<PathBuf>,
 ) -> PyResult<Bound<'py, PyBytes>> {
-    if !(scale > 0.0) {
+    if !scale.is_finite() || scale <= 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
-            "scale must be a positive number",
+            "scale must be a positive finite number",
         ));
     }
     let svg = rpic_core::to_svg(&compile_drawing(py, src, circuits, texlabels, base)?);
