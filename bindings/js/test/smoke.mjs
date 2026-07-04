@@ -4,6 +4,11 @@ import { compile, ready, renderSvg } from '../index.js';
 
 const wasm = readFileSync(new URL('../pkg/rpic_wasm_bg.wasm', import.meta.url));
 await ready(wasm);
+await assert.rejects(
+  () => ready(wasm, { math: true }),
+  /already initialized the lean build/,
+  'ready() must reject attempts to switch builds after initialization'
+);
 
 const svg = renderSvg('box "hi"');
 assert.match(svg, /<svg\b/);

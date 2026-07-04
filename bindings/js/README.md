@@ -25,7 +25,7 @@ rpic.renderSvg('A:(0,0); B:(2,0)\nresistor(A,B)', { circuits: true });
 ```js
 import { readFileSync } from 'node:fs';
 import * as rpic from '@strategicprojects/rpic';
-await rpic.ready(readFileSync(new URL('./node_modules/rpic/pkg/rpic_wasm_bg.wasm', import.meta.url)));
+await rpic.ready(readFileSync(new URL('./node_modules/@strategicprojects/rpic/pkg/rpic_wasm_bg.wasm', import.meta.url)));
 console.log(rpic.renderSvg('box "hi"'));
 ```
 
@@ -42,15 +42,16 @@ rpic.renderSvg('box "$-\\frac{T}{2}$" fit', { texlabels: true });
 ```
 
 Apps can keep the fast path untouched and lazy-load math only when the source
-contains `$…$`. The build choice is fixed by the first `ready()` call. In
-Node, pass the math artifact's bytes:
+contains `$…$`. The build choice is fixed by the first `ready()` call; a later
+call that asks for the other build rejects instead of silently reusing the
+first build. In Node, pass the math artifact's bytes:
 `ready(readFileSync(new URL('…/pkg/rpic_wasm_math_bg.wasm', import.meta.url)), { math: true })`.
 
 ## API
 
 | Function | Description |
 |----------|-------------|
-| `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build. |
+| `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build; conflicting later calls reject. |
 | `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics, warnings }` (throws on a pic error with `errorInfo`). |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |

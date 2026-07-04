@@ -59,8 +59,8 @@ export interface ReadyOptions {
    * Load the math-enabled wasm build (`pkg/rpic_wasm_math_bg.wasm`), which
    * bundles the RaTeX renderer so `texlabels` sources typeset `$…$` labels.
    * The heavier artifact is only fetched when requested; the choice is fixed
-   * by the first `ready()` call. In Node, pass the math wasm bytes as
-   * `wasmInput`.
+   * by the first `ready()` call, and conflicting later calls reject. In Node,
+   * pass the math wasm bytes as `wasmInput`.
    */
   math?: boolean;
 }
