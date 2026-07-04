@@ -84,3 +84,26 @@ def test_diagnostic_inside_include_names_the_file(tmp_path):
 def test_copy_circuits_needs_no_base():
     svg = rpic.render_svg('copy "circuits"\nA:(0,0); B:(2,0)\nresistor(A,B)')
     assert "<svg" in svg
+
+
+def test_include_policy(tmp_path):
+    base = tmp_path / "base"
+    base.mkdir()
+    (tmp_path / "outside.pic").write_text("circle\n")
+    (base / "inc.pic").write_text("box wid 0.5 ht 0.5\n")
+
+    # sandboxed: in-base works, escapes are structured errors
+    svg = rpic.render_svg('copy "inc.pic"\nbox', base=base, include_policy="sandboxed")
+    assert "<svg" in svg
+    with pytest.raises(rpic.CompileError) as excinfo:
+        rpic.render_svg('copy "../outside.pic"\nbox', base=base, include_policy="sandboxed")
+    assert excinfo.value.info["kind"] == "include_denied"
+
+    # deny blocks file includes but the embedded library still loads
+    with pytest.raises(rpic.CompileError):
+        rpic.render_svg('copy "inc.pic"\nbox', base=base, include_policy="deny")
+    assert "<svg" in rpic.render_svg('copy "circuits"\nbox', include_policy="deny")
+
+    # unknown policy string is a plain ValueError
+    with pytest.raises(ValueError, match="include_policy"):
+        rpic.render_svg("box", include_policy="nope")

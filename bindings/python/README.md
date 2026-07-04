@@ -29,6 +29,11 @@ bundle["warnings"]     # structured warnings (ignored attributes, ...)
 
 # `copy "file"` includes resolve relative to `base`:
 svg = rpic.render_svg('copy "shim.pic"\nbox', base="path/to/dir")
+
+# compiling untrusted source? fence or disable filesystem includes
+# ("sandboxed" = only files inside `base`; "deny" = none at all;
+#  the embedded `copy "circuits"` library always works):
+svg = rpic.render_svg(user_source, base="jobs/42", include_policy="sandboxed")
 ```
 
 Compile errors raise `rpic.CompileError` (a `ValueError` subclass, so old

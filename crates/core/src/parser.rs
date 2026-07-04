@@ -76,6 +76,12 @@ impl ParseError {
         }
     }
 
+    /// Override the diagnostic kind (crate-internal builder).
+    pub(crate) fn with_kind(mut self, kind: impl Into<String>) -> Self {
+        self.detail.kind = kind.into();
+        self
+    }
+
     /// The error's source span, including which source it refers to.
     pub fn span(&self) -> Span {
         Span::new(self.line, self.col, self.end_col).in_file(self.file.clone())
@@ -114,9 +120,15 @@ pub fn parse(src: &str) -> Result<Picture, ParseError> {
     parse_in_dir(src, None)
 }
 
-/// Parse pic source, resolving `copy "file"` includes relative to `base`.
+/// Parse pic source, resolving `copy "file"` includes relative to `base`
+/// with the default (unrestricted) include policy.
 pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseError> {
-    parse_with_prelude(src, base, false, false)
+    parse_with_prelude(
+        src,
+        IncludeCtx::unrestricted(base.map(|p| p.to_path_buf())),
+        false,
+        false,
+    )
 }
 
 /// Parse pic source with optional preludes: `circuits` loads the embedded
@@ -127,7 +139,7 @@ pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseErro
 /// own input reports user lines, and library problems name the library.
 pub fn parse_with_prelude(
     src: &str,
-    base: Option<&Path>,
+    includes: IncludeCtx,
     circuits: bool,
     texlabels: bool,
 ) -> Result<Picture, ParseError> {
@@ -141,10 +153,10 @@ pub fn parse_with_prelude(
     }
     let src = strip_backend_preamble(src);
     toks.extend(lex(&src)?);
-    let (toks, macros) = preprocess(toks, base)?;
+    let (toks, macros) = preprocess(toks, &includes)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
-    pic.base_dir = base.map(|p| p.to_path_buf());
+    pic.includes = includes;
     Ok(pic)
 }
 
@@ -172,13 +184,13 @@ fn splice_unit(out: &mut Vec<Spanned>, mut unit: Vec<Spanned>) {
 pub fn parse_body_tokens(
     toks: &[Spanned],
     macros: &mut Macros,
-    base: Option<&Path>,
+    includes: &IncludeCtx,
 ) -> Result<Vec<Stmt>, ParseError> {
     let before = body_macro_frame(toks).unwrap_or_else(|| macros.clone());
     let mut m = before.clone();
     let mut input = toks.to_vec();
     input.push(Spanned::new(Token::Eof, 0, 0));
-    let expanded = expand(&input, &mut m, 0, base)?;
+    let expanded = expand(&input, &mut m, 0, includes)?;
     propagate_macro_changes(macros, &before, &m);
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
@@ -207,7 +219,7 @@ fn propagate_macro_changes(macros: &mut Macros, before: &Macros, after: &Macros)
 pub(crate) fn parse_exec_source(
     src: &str,
     macros: &Macros,
-    base: Option<&Path>,
+    includes: &IncludeCtx,
     arg_frame: Option<&[Vec<Spanned>]>,
 ) -> Result<Vec<Stmt>, ParseError> {
     let mut toks = lex(src)?;
@@ -215,7 +227,7 @@ pub(crate) fn parse_exec_source(
         toks = substitute(&toks, args);
     }
     let mut m = macros.clone();
-    let expanded = expand(&toks, &mut m, 0, base)?;
+    let expanded = expand(&toks, &mut m, 0, includes)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
 }
@@ -223,11 +235,11 @@ pub(crate) fn parse_exec_source(
 pub(crate) fn parse_stringexpr_tokens(
     toks: &[Spanned],
     macros: &mut Macros,
-    base: Option<&Path>,
+    includes: &IncludeCtx,
 ) -> Result<StringExpr, ParseError> {
     let mut input = toks.to_vec();
     input.push(Spanned::new(Token::Eof, 0, 0));
-    let expanded = expand(&input, macros, 0, base)?;
+    let expanded = expand(&input, macros, 0, includes)?;
     let mut p = Parser::new(expanded);
     p.skip_newlines();
     let expr = p.parse_stringexpr()?;
@@ -331,10 +343,10 @@ use std::path::Path;
 
 fn preprocess(
     input: Vec<Spanned>,
-    base: Option<&Path>,
+    includes: &IncludeCtx,
 ) -> Result<(Vec<Spanned>, Macros), ParseError> {
     let mut macros: Macros = builtin_unit_macros();
-    let out = expand(&input, &mut macros, 0, base)?;
+    let out = expand(&input, &mut macros, 0, includes)?;
     Ok((out, macros))
 }
 
@@ -372,7 +384,7 @@ fn expand(
     toks: &[Spanned],
     macros: &mut HashMap<String, Vec<Spanned>>,
     depth: usize,
-    base: Option<&Path>,
+    includes: &IncludeCtx,
 ) -> Result<Vec<Spanned>, ParseError> {
     if depth > 64 {
         return Err(ParseError::new(
@@ -476,7 +488,7 @@ fn expand(
                 let Some(te) = find_kw_depth0(toks, i, Kw::Then) else {
                     continue; // malformed; let the parser report it
                 };
-                let cond = expand(&toks[i..te], macros, depth + 1, base)?;
+                let cond = expand(&toks[i..te], macros, depth + 1, includes)?;
                 if let Some((then_body, after_then)) = read_braced_body(toks, te + 1)? {
                     let mut j = after_then;
                     while matches!(toks.get(j).map(|s| &s.tok), Some(Token::Newline)) {
@@ -495,10 +507,10 @@ fn expand(
                             .unwrap_or(after_then);
                         out.pop(); // discard the speculative `if`
                         if take_then {
-                            out.extend(expand(&then_body, macros, depth + 1, base)?);
+                            out.extend(expand(&then_body, macros, depth + 1, includes)?);
                             i = after_static;
                         } else if let Some((body, after)) = else_body {
-                            out.extend(expand(&body, macros, depth + 1, base)?);
+                            out.extend(expand(&body, macros, depth + 1, includes)?);
                             i = after;
                         } else {
                             i = after_then;
@@ -526,7 +538,7 @@ fn expand(
                 let Some(de) = find_kw_depth0(toks, i, Kw::Do) else {
                     continue;
                 };
-                out.extend(expand(&toks[i..de], macros, depth + 1, base)?);
+                out.extend(expand(&toks[i..de], macros, depth + 1, includes)?);
                 out.push(toks[de].clone()); // `do`
                 i = copy_braced(toks, de + 1, &mut out, macros)?;
             }
@@ -542,7 +554,7 @@ fn expand(
                     Vec::new()
                 };
                 let sub = substitute(&body, &args);
-                let expanded = expand(&sub, macros, depth + 1, base)?;
+                let expanded = expand(&sub, macros, depth + 1, includes)?;
                 out.extend(expanded);
             }
             // `copy "file"` splices another pic file's (expanded) tokens inline.
@@ -557,7 +569,7 @@ fn expand(
                 };
                 let fname = fname.clone();
                 i += 1;
-                let inc = include_file(base, &fname, macros, depth, span)?;
+                let inc = include_file(includes, &fname, macros, depth, span)?;
                 out.extend(inc);
             }
             _ => {
@@ -1083,13 +1095,17 @@ fn suggest_object(word: &str) -> Option<&'static str> {
 /// (with the trailing `Eof` removed so it splices cleanly mid-stream). The
 /// included file resolves nested `copy`s relative to its own directory.
 fn include_file(
-    base: Option<&Path>,
+    includes: &IncludeCtx,
     fname: &str,
     macros: &mut HashMap<String, Vec<Spanned>>,
     depth: usize,
     span: Span,
 ) -> Result<Vec<Spanned>, ParseError> {
     let mkerr = |msg: String| ParseError::new(msg, span.clone());
+    let denied = |why: &str| {
+        ParseError::new(format!("copy \"{fname}\": {why}"), span.clone())
+            .with_kind("include_denied")
+    };
     // `copy "circuits"` is a reserved target: it loads the embedded native
     // circuit-element library — the in-source spelling of `-c`, usable even
     // where file includes are not (wasm, compile_json with no base dir). It
@@ -1101,17 +1117,27 @@ fn include_file(
             return Ok(Vec::new());
         }
         let toks = lex_named(crate::CIRCUITS, "circuits")?;
-        let mut expanded = expand(&toks, macros, depth + 1, None)?;
+        let mut expanded = expand(&toks, macros, depth + 1, includes)?;
         if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
             expanded.pop();
         }
         return Ok(expanded);
     }
+    if includes.policy == IncludePolicy::Deny {
+        return Err(denied(
+            "filesystem includes are disabled by the include policy",
+        ));
+    }
     let p = Path::new(fname);
+    if p.is_absolute() && includes.policy == IncludePolicy::SandboxedToBase {
+        return Err(denied(
+            "absolute paths are not allowed by the include policy",
+        ));
+    }
     let path = if p.is_absolute() {
         p.to_path_buf()
     } else {
-        match base {
+        match includes.dir.as_deref() {
             Some(b) => b.join(p),
             None => {
                 return Err(mkerr(format!(
@@ -1120,11 +1146,25 @@ fn include_file(
             }
         }
     };
+    if includes.policy == IncludePolicy::SandboxedToBase {
+        // Canonicalize (resolving `..` and symlinks) and require the result
+        // to stay inside the fence root. A fence that failed to resolve at
+        // setup fails closed. The error names the path as written, never the
+        // resolved location.
+        let inside = includes
+            .fence
+            .as_deref()
+            .is_some_and(|fence| std::fs::canonicalize(&path).is_ok_and(|c| c.starts_with(fence)));
+        if !inside {
+            return Err(denied("path resolves outside the include base directory"));
+        }
+    }
     let content =
         std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
     let toks = lex_named(&content, fname)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
-    let mut expanded = expand(&toks, macros, depth + 1, inc_base.as_deref())?;
+    let inc_ctx = includes.child(inc_base);
+    let mut expanded = expand(&toks, macros, depth + 1, &inc_ctx)?;
     if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
         expanded.pop();
     }
@@ -1461,7 +1501,7 @@ impl Parser {
             height,
             stmts,
             macros: HashMap::new(),
-            base_dir: None,
+            includes: IncludeCtx::default(),
         })
     }
 

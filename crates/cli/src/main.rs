@@ -97,6 +97,8 @@ fn main() -> ExitCode {
         base: std::path::Path::new(&path)
             .parent()
             .map(|p| p.to_path_buf()),
+        // the CLI keeps full filesystem access for includes
+        includes: rpic_core::IncludePolicy::Unrestricted,
     };
     let result = run(&src, &mode, scale, &opts);
     match result {
@@ -165,7 +167,7 @@ fn run(
         Mode::Ast => {
             let pic = rpic_core::parse_with_prelude(
                 src,
-                opts.base.as_deref(),
+                rpic_core::IncludeCtx::with_policy(opts.base.clone(), opts.includes),
                 opts.circuits,
                 opts.texlabels,
             )

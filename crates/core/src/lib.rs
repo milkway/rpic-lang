@@ -18,6 +18,7 @@ pub mod parser;
 pub mod svg;
 pub mod token;
 
+pub use ast::{IncludeCtx, IncludePolicy};
 pub use diagnostic::{CompileError, Diagnostic, Span};
 pub use eval::{EvalError, eval};
 pub use ir::Drawing;
@@ -101,6 +102,10 @@ pub struct CompileOptions {
     pub texlabels: bool,
     /// Resolve `copy "file"` includes relative to this directory.
     pub base: Option<std::path::PathBuf>,
+    /// Policy for `copy "file"` filesystem includes — leave the default
+    /// (`Unrestricted`, the CLI behavior) for local use; embedders compiling
+    /// untrusted source should pick `SandboxedToBase` or `Deny`.
+    pub includes: IncludePolicy,
 }
 
 /// Compile pic source with [`CompileOptions`] into a [`Drawing`].
@@ -137,7 +142,12 @@ pub fn render_svg_with_options(src: &str, opts: &CompileOptions) -> Result<Strin
 }
 
 fn parse_options(src: &str, opts: &CompileOptions) -> Result<ast::Picture, ParseError> {
-    parser::parse_with_prelude(src, opts.base.as_deref(), opts.circuits, opts.texlabels)
+    parser::parse_with_prelude(
+        src,
+        ast::IncludeCtx::with_policy(opts.base.clone(), opts.includes),
+        opts.circuits,
+        opts.texlabels,
+    )
 }
 
 /// Compile to a single JSON object `{ "svg": "...", "animations": [...],
@@ -353,6 +363,70 @@ mod tests {
         );
         assert!(e.contains("\"file\":\"bad.pic\""), "{e}");
         assert!(e.contains("\"line\":1"), "{e}");
+    }
+
+    #[test]
+    fn include_policy_sandboxes_and_denies() {
+        // layout: root/outside.pic (outside the fence), root/base/inc.pic (in)
+        let root = std::env::temp_dir().join(format!("rpic_inc_policy_{}", std::process::id()));
+        let base = root.join("base");
+        std::fs::create_dir_all(&base).unwrap();
+        std::fs::write(root.join("outside.pic"), "circle\n").unwrap();
+        std::fs::write(base.join("inc.pic"), "box wid 0.5 ht 0.5\n").unwrap();
+
+        let sandboxed = CompileOptions {
+            base: Some(base.clone()),
+            includes: IncludePolicy::SandboxedToBase,
+            ..Default::default()
+        };
+        // in-base include works
+        assert!(compile_with_options("copy \"inc.pic\"\nbox", &sandboxed).is_ok());
+        // `..` escape is denied, with the structured kind and the copy's span
+        let esc = compile_json_with_options("copy \"../outside.pic\"\nbox", &sandboxed);
+        assert!(esc.contains("\"kind\":\"include_denied\""), "{esc}");
+        assert!(esc.contains("outside the include base directory"), "{esc}");
+        assert!(esc.contains("\"line\":1"), "{esc}");
+        // absolute paths are denied outright
+        let abs_src = format!("copy \"{}\"\nbox", root.join("outside.pic").display());
+        let abs = compile_json_with_options(&abs_src, &sandboxed);
+        assert!(abs.contains("\"kind\":\"include_denied\""), "{abs}");
+        assert!(abs.contains("absolute paths are not allowed"), "{abs}");
+        // symlink pointing out of the fence is caught by canonicalization
+        #[cfg(unix)]
+        {
+            let link = base.join("link.pic");
+            let _ = std::fs::remove_file(&link);
+            std::os::unix::fs::symlink(root.join("outside.pic"), &link).unwrap();
+            let sym = compile_json_with_options("copy \"link.pic\"\nbox", &sandboxed);
+            assert!(sym.contains("\"kind\":\"include_denied\""), "{sym}");
+        }
+        // the embedded library is not a filesystem include — always available
+        assert!(
+            compile_with_options(
+                "copy \"circuits\"\nA:(0,0); B:(1,0)\nresistor(A,B)",
+                &sandboxed
+            )
+            .is_ok()
+        );
+
+        let deny = CompileOptions {
+            base: Some(base.clone()),
+            includes: IncludePolicy::Deny,
+            ..Default::default()
+        };
+        let d = compile_json_with_options("copy \"inc.pic\"\nbox", &deny);
+        assert!(d.contains("\"kind\":\"include_denied\""), "{d}");
+        assert!(d.contains("disabled by the include policy"), "{d}");
+        assert!(compile_with_options("copy \"circuits\"\nbox", &deny).is_ok());
+
+        // default stays the CLI behavior: `..` resolution is allowed
+        let open = CompileOptions {
+            base: Some(base.clone()),
+            ..Default::default()
+        };
+        assert!(compile_with_options("copy \"../outside.pic\"\nbox", &open).is_ok());
+
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]
