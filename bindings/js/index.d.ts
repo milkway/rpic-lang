@@ -67,7 +67,8 @@ export interface ReadyOptions {
 
 /**
  * Initialize the WebAssembly module. In the browser call with no argument; in
- * Node pass the `.wasm` bytes or a file URL.
+ * Node pass the `.wasm` bytes or a file URL. Idempotent while pending or
+ * after success; a *failed* init clears the slot so `ready()` can be retried.
  */
 export function ready(
   wasmInput?: BufferSource | URL | string,

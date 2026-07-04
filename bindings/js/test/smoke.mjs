@@ -3,7 +3,16 @@ import { readFileSync } from 'node:fs';
 import { compile, ready, renderSvg } from '../index.js';
 
 const wasm = readFileSync(new URL('../pkg/rpic_wasm_bg.wasm', import.meta.url));
-await ready(wasm);
+
+// #210: a failed init must not be cached — ready() is retryable
+await assert.rejects(() => ready(Buffer.from('not a wasm module')), undefined, 'garbage bytes must reject');
+
+// concurrent callers share one in-flight init; retry after failure succeeds
+const p1 = ready(wasm);
+const p2 = ready(wasm);
+assert.equal(p1, p2, 'concurrent ready() calls must share the same promise');
+await p1;
+
 await assert.rejects(
   () => ready(wasm, { math: true }),
   /already initialized the lean build/,
