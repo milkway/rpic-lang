@@ -1598,14 +1598,14 @@ impl State {
             if start_chop != 0.0 {
                 let d0 = pts[1] - pts[0];
                 let l0 = d0.len();
-                if start_chop < 0.0 || l0 > start_chop {
+                if l0 > f64::EPSILON && (start_chop < 0.0 || l0 > start_chop) {
                     pts[0] = pts[0] + d0 / l0 * start_chop;
                 }
             }
             if end_chop != 0.0 {
                 let d1 = pts[n - 2] - pts[n - 1];
                 let l1 = d1.len();
-                if end_chop < 0.0 || l1 > end_chop {
+                if l1 > f64::EPSILON && (end_chop < 0.0 || l1 > end_chop) {
                     pts[n - 1] = pts[n - 1] + d1 / l1 * end_chop;
                 }
             }
@@ -4578,6 +4578,26 @@ mod tests {
         };
         assert!((pts[0].x + 0.25).abs() < 1e-9, "{pts:?}");
         assert!((pts[1].x - 2.5).abs() < 1e-9, "{pts:?}");
+    }
+
+    #[test]
+    fn chop_on_zero_length_line_is_ignored_like_dpic() {
+        let plain = draw("line from (0,0) to (0,0)");
+        let chopped = draw("line from (0,0) to (0,0) chop -0.1");
+        assert_eq!(crate::to_svg(&chopped), crate::to_svg(&plain));
+
+        let Shape::Path { pts, .. } = &chopped.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(pts, &[Point::ZERO, Point::ZERO]);
+        assert!(pts.iter().all(|p| p.x.is_finite() && p.y.is_finite()));
+
+        let extended = draw("line from (0,0) to (1,0) chop -0.1");
+        let Shape::Path { pts, .. } = &extended.shapes[0] else {
+            panic!()
+        };
+        assert!((pts[0].x + 0.1).abs() < 1e-9, "{pts:?}");
+        assert!((pts[1].x - 1.1).abs() < 1e-9, "{pts:?}");
     }
 
     #[test]
