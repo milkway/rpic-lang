@@ -31,9 +31,24 @@ pdf = rpic.render_pdf('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
 # TeX math labels, exactly like `rpic -t`
 svg = rpic.render_svg('box "$e^{j\\\\pi}+1=0$" fit', texlabels=True)
 
-# the full bundle: svg + animation manifest + diagnostics
-import json
-bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
+# the parsed bundle: svg + animation manifest + diagnostics + warnings
+bundle = rpic.compile('box\nanimate last box with "pop"')
+
+# `copy "file"` includes resolve relative to `base`
+svg = rpic.render_svg('copy "shim.pic"\nbox', base="figs/")
+```
+
+Compile errors raise `rpic.CompileError` (a `ValueError` subclass) carrying
+the same structured diagnostic the JS binding exposes — `exc.info` is a dict
+with `line`/`col`/`end_col`/`file`/`kind`/`found`/`expected`/`hint`, positions
+always relative to your own source:
+
+```python
+try:
+    rpic.render_svg("bxo", circuits=True)
+except rpic.CompileError as exc:
+    exc.info["line"]  # 1 — your line 1, even with the circuit library loaded
+    exc.info["hint"]  # "did you mean `box`?"
 ```
 
 ## JavaScript / WASM

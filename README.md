@@ -186,12 +186,12 @@ pip install rpiclang          # distribution name; the module is `rpic`
 ```
 
 ```python
-import rpic, json
+import rpic
 svg = rpic.render_svg('box "hi"; arrow; circle "x"')
 open("out.png", "wb").write(rpic.render_png('box "hi"', scale=2.0))
-bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
+bundle = rpic.compile('box\nanimate last box with "pop"')
 # bundle["diagnostics"] = pic `print` output; bundle["warnings"] = structured
-# compiler warnings; on error: {"error": …, "error_info": {line, col, …}}
+# warnings; errors raise rpic.CompileError with the diagnostic on `exc.info`
 ```
 
 ### R — [milkway/rpic-r](https://github.com/milkway/rpic-r) (separate repo)

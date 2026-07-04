@@ -87,6 +87,25 @@ impl Diagnostic {
     }
 }
 
+/// A failed compilation: the flat human-readable message (what the `Err(String)`
+/// entry points return) plus the structured [`Diagnostic`] behind it, for
+/// bindings that surface rich errors (editor integrations, exceptions with
+/// attached position data).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompileError {
+    pub message: String,
+    /// Boxed to keep `Result<_, CompileError>` small (clippy result_large_err).
+    pub info: Box<Diagnostic>,
+}
+
+impl std::fmt::Display for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for CompileError {}
+
 /// The candidate closest to `word` within edit distance 2 (ties broken
 /// alphabetically), for "did you mean …?" hints.
 pub(crate) fn closest(word: &str, candidates: &'static [&'static str]) -> Option<&'static str> {
