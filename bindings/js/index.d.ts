@@ -13,6 +13,13 @@ export interface Diagnostic {
   line: number | null;
   col: number | null;
   end_col: number | null;
+  /**
+   * Which source the position refers to: `null` is your own input; a string
+   * names a `copy` include (as written) or a loaded library (`"circuits"`).
+   * Positions are always relative to that source — with `circuits: true` an
+   * error on your line 1 reports line 1.
+   */
+  file: string | null;
   kind: string;
   found: string | null;
   expected: string | null;

@@ -31,6 +31,18 @@ assert.throws(
   }
 );
 
+// #181: the circuits/texlabels preludes must not shift user positions —
+// an error on the user's line 1 reports line 1, not ~line 1093
+assert.throws(
+  () => compile('bxo', { circuits: true, texlabels: true }),
+  (err) => {
+    assert.equal(err.errorInfo.line, 1);
+    assert.equal(err.errorInfo.col, 1);
+    assert.equal(err.errorInfo.file, null);
+    return true;
+  }
+);
+
 // lean build: texlabels falls back to literal text plus a diagnostic
 const texlabels = compile('box "$x$"', { texlabels: true });
 assert.match(texlabels.svg, /<svg\b/);

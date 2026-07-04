@@ -4,17 +4,14 @@
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 
-fn prepare(src: &str, circuits: bool, texlabels: bool) -> String {
-    let src = if circuits {
-        format!("{}\n{}", rpic_core::CIRCUITS, src)
-    } else {
-        src.to_string()
-    };
-    // Initializer only — the source can still override with `texlabels = 0`.
-    if texlabels {
-        format!("texlabels = 1\n{}", src)
-    } else {
-        src
+/// Compile options (not text prepended to the source), so diagnostic
+/// positions stay relative to the caller's own `src`. `texlabels` is an
+/// initializer only — the source can still override with `texlabels = 0`.
+fn opts(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
+    rpic_core::CompileOptions {
+        circuits,
+        texlabels,
+        base: None,
     }
 }
 
@@ -26,7 +23,7 @@ fn err(e: String) -> PyErr {
 #[pyfunction]
 #[pyo3(signature = (src, circuits = false, texlabels = false))]
 fn render_svg(src: &str, circuits: bool, texlabels: bool) -> PyResult<String> {
-    rpic_core::render_svg(&prepare(src, circuits, texlabels)).map_err(err)
+    rpic_core::render_svg_with_options(src, &opts(circuits, texlabels)).map_err(err)
 }
 
 /// Render pic source to PNG bytes (scale 1.0 = 96 dpi).
@@ -44,7 +41,7 @@ fn render_png<'py>(
             "scale must be a positive number",
         ));
     }
-    let svg = rpic_core::render_svg(&prepare(src, circuits, texlabels)).map_err(err)?;
+    let svg = rpic_core::render_svg_with_options(src, &opts(circuits, texlabels)).map_err(err)?;
     let png = rpic_render::to_png(&svg, scale).map_err(err)?;
     Ok(PyBytes::new(py, &png))
 }
@@ -58,7 +55,7 @@ fn render_pdf<'py>(
     circuits: bool,
     texlabels: bool,
 ) -> PyResult<Bound<'py, PyBytes>> {
-    let svg = rpic_core::render_svg(&prepare(src, circuits, texlabels)).map_err(err)?;
+    let svg = rpic_core::render_svg_with_options(src, &opts(circuits, texlabels)).map_err(err)?;
     let pdf = rpic_render::to_pdf(&svg).map_err(err)?;
     Ok(PyBytes::new(py, &pdf))
 }
@@ -69,7 +66,7 @@ fn render_pdf<'py>(
 #[pyfunction]
 #[pyo3(signature = (src, circuits = false, texlabels = false))]
 fn compile_json(src: &str, circuits: bool, texlabels: bool) -> String {
-    rpic_core::compile_json(&prepare(src, circuits, texlabels))
+    rpic_core::compile_json_with_options(src, &opts(circuits, texlabels))
 }
 
 #[pymodule]

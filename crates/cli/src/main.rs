@@ -89,22 +89,16 @@ fn main() -> ExitCode {
         }
     };
 
-    let src = if circuits {
-        format!("{}\n{}", rpic_core::CIRCUITS, src)
-    } else {
-        src
+    // `-c`/`-t` become compile options (not text prepended to the source), so
+    // diagnostic positions stay relative to the user's own file.
+    let opts = rpic_core::CompileOptions {
+        circuits,
+        texlabels,
+        base: std::path::Path::new(&path)
+            .parent()
+            .map(|p| p.to_path_buf()),
     };
-    // Convenience initializer, like `-c`: sets the initial value of the
-    // `texlabels` variable so classic sources render math without edits.
-    // The source stays sovereign — a later `texlabels = 0` wins.
-    let src = if texlabels {
-        format!("texlabels = 1\n{}", src)
-    } else {
-        src
-    };
-
-    let base = std::path::Path::new(&path).parent();
-    let result = run(&src, &mode, scale, base);
+    let result = run(&src, &mode, scale, &opts);
     match result {
         Ok(Output::Text(s)) => {
             if let Some(o) = out {
@@ -155,10 +149,12 @@ fn run(
     src: &str,
     mode: &Mode,
     scale: f32,
-    base: Option<&std::path::Path>,
+    opts: &rpic_core::CompileOptions,
 ) -> Result<Output, String> {
     match mode {
         Mode::Tokens => {
+            // The pre-expansion dump covers the user's source only (no
+            // prelude tokens) — positions match the file being debugged.
             let toks = rpic_core::lex(src).map_err(|e| e.to_string())?;
             let mut s = String::new();
             for t in &toks {
@@ -167,23 +163,31 @@ fn run(
             Ok(Output::Text(s))
         }
         Mode::Ast => {
-            let pic = rpic_core::parse_in_dir(src, base).map_err(|e| e.to_string())?;
+            let pic = rpic_core::parse_with_prelude(
+                src,
+                opts.base.as_deref(),
+                opts.circuits,
+                opts.texlabels,
+            )
+            .map_err(|e| e.to_string())?;
             Ok(Output::Text(format!("{pic:#?}\n")))
         }
         Mode::Svg => {
-            let d = rpic_core::compile_in_dir(src, base)?;
+            let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
             Ok(Output::Text(rpic_core::to_svg(&d)))
         }
-        Mode::Json => Ok(Output::Text(rpic_core::compile_json_in_dir(src, base))),
+        Mode::Json => Ok(Output::Text(rpic_core::compile_json_with_options(
+            src, opts,
+        ))),
         Mode::Png => {
-            let d = rpic_core::compile_in_dir(src, base)?;
+            let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
             let svg = rpic_core::to_svg(&d);
             Ok(Output::Bytes(rpic_render::to_png(&svg, scale)?))
         }
         Mode::Pdf => {
-            let d = rpic_core::compile_in_dir(src, base)?;
+            let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
             let svg = rpic_core::to_svg(&d);
             Ok(Output::Bytes(rpic_render::to_pdf(&svg)?))

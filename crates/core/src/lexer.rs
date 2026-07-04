@@ -17,6 +17,11 @@ pub struct Spanned {
     pub line: u32,
     pub col: u32,
     pub end_col: u32,
+    /// Provenance: `None` = the user's own input, `Some` = the `copy` include
+    /// or library the token was lexed from. Positions are relative to that
+    /// source. Deliberately excluded from `PartialEq` — identical token
+    /// streams compare equal regardless of where they were lexed.
+    pub file: Option<Arc<str>>,
     /// Macro arguments that were in scope when this token was produced by
     /// macro substitution. Used by eval-time `exec` expansion.
     pub arg_frame: Option<Vec<Vec<Spanned>>>,
@@ -32,6 +37,7 @@ impl Spanned {
             line,
             col,
             end_col: col.saturating_add(1),
+            file: None,
             arg_frame: None,
             macro_frame: None,
         }
@@ -42,8 +48,13 @@ impl Spanned {
         self
     }
 
+    pub fn with_file(mut self, file: Option<Arc<str>>) -> Self {
+        self.file = file;
+        self
+    }
+
     pub fn span(&self) -> Span {
-        Span::new(self.line, self.col, self.end_col)
+        Span::new(self.line, self.col, self.end_col).in_file(self.file.clone())
     }
 
     pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
@@ -86,18 +97,31 @@ pub struct LexError {
     pub line: u32,
     pub col: u32,
     pub end_col: u32,
+    /// See [`Spanned::file`]: the include/library the error is in, if any.
+    pub file: Option<Arc<str>>,
     pub kind: String,
 }
 
 impl std::fmt::Display for LexError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}: {}", self.line, self.col, self.msg)
+        match &self.file {
+            Some(file) => write!(f, "{}:{}:{}: {}", file, self.line, self.col, self.msg),
+            None => write!(f, "{}:{}: {}", self.line, self.col, self.msg),
+        }
     }
 }
 
 /// Tokenize `src`. The returned vector always ends with [`Token::Eof`].
 pub fn lex(src: &str) -> Result<Vec<Spanned>, LexError> {
-    Lexer::new(src).run()
+    Lexer::new(src, None).run()
+}
+
+/// Like [`lex`], tagging every token (and any error) with the name of the
+/// source it came from — a `copy` include or a loaded library. Positions in
+/// diagnostics then stay relative to that source instead of pointing into a
+/// concatenated stream.
+pub fn lex_named(src: &str, file: &str) -> Result<Vec<Spanned>, LexError> {
+    Lexer::new(src, Some(Arc::from(file))).run()
 }
 
 struct Lexer {
@@ -105,16 +129,18 @@ struct Lexer {
     pos: usize,
     line: u32,
     col: u32,
+    file: Option<Arc<str>>,
     out: Vec<Spanned>,
 }
 
 impl Lexer {
-    fn new(src: &str) -> Self {
+    fn new(src: &str, file: Option<Arc<str>>) -> Self {
         Lexer {
             chars: src.chars().collect(),
             pos: 0,
             line: 1,
             col: 1,
+            file,
             out: Vec::new(),
         }
     }
@@ -156,6 +182,7 @@ impl Lexer {
             line,
             col,
             end_col,
+            file: self.file.clone(),
             kind: kind.into(),
         })
     }
@@ -259,8 +286,11 @@ impl Lexer {
         {
             self.out.pop();
         }
-        self.out
-            .push(Spanned::new(tok, line, col).with_end(end_col));
+        self.out.push(
+            Spanned::new(tok, line, col)
+                .with_end(end_col)
+                .with_file(self.file.clone()),
+        );
     }
 
     fn lex_string(&mut self) -> Result<Token, LexError> {

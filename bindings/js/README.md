@@ -61,9 +61,13 @@ Compile errors keep a readable `message` and expose structured data for editors:
 try {
   rpic.compile('bxo');
 } catch (err) {
-  console.log(err.errorInfo); // { message, line, col, end_col, kind, found, expected, hint }
+  console.log(err.errorInfo); // { message, line, col, end_col, file, kind, found, expected, hint }
 }
 ```
+
+Positions are always relative to your own source — with `circuits: true` an
+error on your line 1 reports `line: 1`, and a problem inside a `copy` include
+carries the include's name in `file` (`null` means your own input).
 
 PNG/PDF are available via the CLI, the Python package, or the R package (the
 WASM core renders SVG; rasterization isn't bundled here).
