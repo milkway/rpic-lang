@@ -707,12 +707,15 @@ impl State {
                 mult,
                 body,
             } => {
-                let body = self.parse_body(body)?;
                 let from = self.eval_expr(from)?;
                 let to = self.eval_expr(to)?;
                 let by = self.eval_expr(by)?;
                 let mut v = from;
                 let mut iters = 0u64;
+                // Parsed lazily on the first iteration that actually runs, so
+                // a zero-iteration loop never parses (or macro-expands) its
+                // body — same deferred rule as dead `if` branches (#196).
+                let mut parsed: Option<Vec<Stmt>> = None;
                 const EPS: f64 = 1e-9;
                 loop {
                     let cont = if *mult {
@@ -731,7 +734,10 @@ impl State {
                     }
                     let key = self.indexed_name(var, subscript.as_ref())?;
                     self.vars.insert(key, v);
-                    self.eval_stmts(&body)?;
+                    if parsed.is_none() {
+                        parsed = Some(self.parse_body(body)?);
+                    }
+                    self.eval_stmts(parsed.as_deref().unwrap())?;
                     let prev = v;
                     v = if *mult { v * by } else { v + by };
                     if (v - prev).abs() < f64::EPSILON {
@@ -3952,6 +3958,31 @@ mod tests {
     }
 
     const DEFAULT_STROKE_IN: f64 = 0.8 / 72.0;
+
+    #[test]
+    fn zero_iteration_for_body_is_never_parsed() {
+        // #196: a dead loop body must not be parsed or macro-expanded —
+        // the same deferred rule as dead `if` branches (dpic accepts both).
+        let d = draw("for i = 1 to 0 do { bxo }\nbox");
+        assert_eq!(d.shapes.len(), 1);
+
+        // a recursive macro in a dead body must not hit the expansion guard
+        let d = draw("define f { f() }\nfor i = 1 to 0 do { f() }\nbox");
+        assert_eq!(d.shapes.len(), 1);
+
+        // a backwards `by` range that yields no iterations counts too
+        let d = draw("for i = 5 to 1 do { bxo }\nbox");
+        assert_eq!(d.shapes.len(), 1);
+    }
+
+    #[test]
+    fn executed_for_body_still_reports_errors_with_structure() {
+        let e = eval(&parse("for i = 1 to 2 do { bxo }").unwrap()).unwrap_err();
+        assert!(e.msg.contains("expected an object"), "{e}");
+        let info = e.info.expect("structured info");
+        assert_eq!(info.kind, "expected_token");
+        assert_eq!(info.hint.as_deref(), Some("did you mean `box`?"));
+    }
 
     #[test]
     fn pipeline_chains_left_to_right() {
