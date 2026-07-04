@@ -50,7 +50,10 @@ box "$\displaystyle\sum_{n=1}^{\infty}\frac{1}{n^2}=\frac{\pi^2}{6}$" fit
   `rpic -t`, Python `render_svg(src, texlabels=True)`,
   JS `compile(src, { texlabels: true })`.
 - The default WASM build ships without the math engine (size budget) —
-  labels fall back to literal there.
+  labels fall back to literal there. The npm package additionally ships a
+  math-enabled build: `ready(undefined, { math: true })` lazy-loads it and
+  `$…$` labels typeset in the browser too (see
+  [Bindings](/docs/bindings#javascript--wasm)).
 
 The dpic ecosystem typesets labels through LaTeX in its TeX backends;
 `texlabels` brings that quality to rpic's native SVG/PNG/PDF. Design and
