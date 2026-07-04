@@ -19,12 +19,32 @@ create_exception!(
 /// Compile options (not text prepended to the source), so diagnostic
 /// positions stay relative to the caller's own `src`. `texlabels` is an
 /// initializer only — the source can still override with `texlabels = 0`.
-fn opts(circuits: bool, texlabels: bool, base: Option<PathBuf>) -> rpic_core::CompileOptions {
-    rpic_core::CompileOptions {
+/// `include_policy` governs `copy "file"` filesystem includes:
+/// "unrestricted" (default, the CLI behavior), "sandboxed" (only files
+/// inside `base`; absolute paths and `..`/symlink escapes are errors) or
+/// "deny" (no filesystem includes). `copy "circuits"` always works.
+fn opts(
+    circuits: bool,
+    texlabels: bool,
+    base: Option<PathBuf>,
+    include_policy: Option<&str>,
+) -> PyResult<rpic_core::CompileOptions> {
+    let includes = match include_policy.unwrap_or("unrestricted") {
+        "unrestricted" => rpic_core::IncludePolicy::Unrestricted,
+        "sandboxed" => rpic_core::IncludePolicy::SandboxedToBase,
+        "deny" => rpic_core::IncludePolicy::Deny,
+        other => {
+            return Err(pyo3::exceptions::PyValueError::new_err(format!(
+                "include_policy must be 'unrestricted', 'sandboxed' or 'deny' (got '{other}')"
+            )));
+        }
+    };
+    Ok(rpic_core::CompileOptions {
         circuits,
         texlabels,
         base,
-    }
+        includes,
+    })
 }
 
 fn diagnostic_dict<'py>(
@@ -59,29 +79,36 @@ fn compile_drawing(
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
+    include_policy: Option<&str>,
 ) -> PyResult<rpic_core::Drawing> {
-    rpic_core::compile_with_diagnostics(src, &opts(circuits, texlabels, base))
-        .map_err(|e| err(py, e))
+    let opts = opts(circuits, texlabels, base, include_policy)?;
+    rpic_core::compile_with_diagnostics(src, &opts).map_err(|e| err(py, e))
 }
 
 /// Render pic source to an SVG string.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
 fn render_svg(
     py: Python<'_>,
     src: &str,
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
+    include_policy: Option<&str>,
 ) -> PyResult<String> {
     Ok(rpic_core::to_svg(&compile_drawing(
-        py, src, circuits, texlabels, base,
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
     )?))
 }
 
 /// Render pic source to PNG bytes (scale 1.0 = 96 dpi).
 #[pyfunction]
-#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None))]
+#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None, include_policy = None))]
 fn render_png<'py>(
     py: Python<'py>,
     src: &str,
@@ -89,28 +116,44 @@ fn render_png<'py>(
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
+    include_policy: Option<&str>,
 ) -> PyResult<Bound<'py, PyBytes>> {
     if !scale.is_finite() || scale <= 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "scale must be a positive finite number",
         ));
     }
-    let svg = rpic_core::to_svg(&compile_drawing(py, src, circuits, texlabels, base)?);
+    let svg = rpic_core::to_svg(&compile_drawing(
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+    )?);
     let png = rpic_render::to_png(&svg, scale).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &png))
 }
 
 /// Render pic source to PDF bytes.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
 fn render_pdf<'py>(
     py: Python<'py>,
     src: &str,
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
+    include_policy: Option<&str>,
 ) -> PyResult<Bound<'py, PyBytes>> {
-    let svg = rpic_core::to_svg(&compile_drawing(py, src, circuits, texlabels, base)?);
+    let svg = rpic_core::to_svg(&compile_drawing(
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+    )?);
     let pdf = rpic_render::to_pdf(&svg).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &pdf))
 }
@@ -119,15 +162,16 @@ fn render_pdf<'py>(
 /// "diagnostics": [str], "warnings": [dict]}`. Raises `CompileError` (with
 /// the structured diagnostic on `exc.info`) on a pic error.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
 fn compile<'py>(
     py: Python<'py>,
     src: &str,
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
+    include_policy: Option<&str>,
 ) -> PyResult<Bound<'py, PyDict>> {
-    let d = compile_drawing(py, src, circuits, texlabels, base)?;
+    let d = compile_drawing(py, src, circuits, texlabels, base, include_policy)?;
     let out = PyDict::new(py);
     out.set_item("svg", rpic_core::to_svg(&d))?;
     let anims = PyList::empty(py);
@@ -154,9 +198,16 @@ fn compile<'py>(
 /// (or `{ "error": ..., "error_info": {...} }`). Parse with `json.loads`;
 /// prefer `compile` for an already-parsed dict.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None))]
-fn compile_json(src: &str, circuits: bool, texlabels: bool, base: Option<PathBuf>) -> String {
-    rpic_core::compile_json_with_options(src, &opts(circuits, texlabels, base))
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
+fn compile_json(
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    base: Option<PathBuf>,
+    include_policy: Option<&str>,
+) -> PyResult<String> {
+    let opts = opts(circuits, texlabels, base, include_policy)?;
+    Ok(rpic_core::compile_json_with_options(src, &opts))
 }
 
 #[pymodule]

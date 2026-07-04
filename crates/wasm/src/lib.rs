@@ -44,6 +44,9 @@ pub fn compile_with(src: &str, circuits: bool, texlabels: bool) -> String {
         circuits,
         texlabels,
         base: None,
+        // wasm has no filesystem; make `copy "file"` fail with the policy
+        // error instead of an opaque io error (`copy "circuits"` still works)
+        includes: rpic_core::IncludePolicy::Deny,
     };
     rpic_core::compile_json_with_options(src, &opts)
 }

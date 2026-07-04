@@ -36,7 +36,16 @@ bundle = rpic.compile('box\nanimate last box with "pop"')
 
 # `copy "file"` includes resolve relative to `base`
 svg = rpic.render_svg('copy "shim.pic"\nbox', base="figs/")
+
+# compiling untrusted source? fence or disable filesystem includes
+svg = rpic.render_svg(src, base="jobs/42", include_policy="sandboxed")  # or "deny"
 ```
+
+With `include_policy="sandboxed"`, only files inside `base` resolve —
+absolute paths and `..`/symlink escapes are structured errors
+(`kind: "include_denied"`); `"deny"` turns off filesystem includes
+entirely. The embedded `copy "circuits"` library always works. The default
+(`"unrestricted"`) is the CLI behavior, right for local trusted use.
 
 Compile errors raise `rpic.CompileError` (a `ValueError` subclass) carrying
 the same structured diagnostic the JS binding exposes — `exc.info` is a dict

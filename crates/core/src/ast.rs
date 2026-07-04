@@ -27,9 +27,74 @@ pub struct Picture {
     pub height: Option<Expr>,
     pub stmts: Vec<Stmt>,
     pub macros: Macros,
-    /// Directory used to resolve `copy "file"` includes (set by `parse_in_dir`);
-    /// `None` when parsing has no filesystem context (WASM/bindings).
-    pub base_dir: Option<std::path::PathBuf>,
+    /// Filesystem context for `copy "file"` includes (directory + policy);
+    /// carried so eval-time deferred parsing resolves includes the same way.
+    pub includes: IncludeCtx,
+}
+
+/// Policy for `copy "file"` filesystem includes. The default matches the CLI:
+/// full access, absolute paths allowed. Embedders compiling untrusted source
+/// should pick a restrictive policy. The embedded `copy "circuits"` library
+/// is always available — it never touches the filesystem.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum IncludePolicy {
+    /// Resolve like the CLI: absolute paths allowed, no fence. (Default.)
+    #[default]
+    Unrestricted,
+    /// Only files inside the base directory (canonicalized prefix check, so
+    /// `..` and symlink escapes are rejected); absolute paths are errors.
+    SandboxedToBase,
+    /// No filesystem includes at all (the wasm behavior everywhere).
+    Deny,
+}
+
+/// Where and how `copy "file"` includes resolve: the current directory (the
+/// including file's own dir, which varies as includes nest) plus the fixed
+/// [`IncludePolicy`] and its canonicalized fence root.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct IncludeCtx {
+    /// Directory relative includes resolve against; `None` when parsing has
+    /// no filesystem context (WASM/bindings without `base`).
+    pub dir: Option<std::path::PathBuf>,
+    /// Policy applied to every filesystem include in this compilation.
+    pub policy: IncludePolicy,
+    /// Canonicalized sandbox root. Set when the policy is `SandboxedToBase`
+    /// and the base directory canonicalizes; `None` under that policy means
+    /// every filesystem include is denied (a fence that failed to resolve
+    /// must fail closed).
+    pub(crate) fence: Option<std::path::PathBuf>,
+}
+
+impl IncludeCtx {
+    /// The CLI behavior: resolve against `dir`, no restrictions.
+    pub fn unrestricted(dir: Option<std::path::PathBuf>) -> Self {
+        Self {
+            dir,
+            policy: IncludePolicy::Unrestricted,
+            fence: None,
+        }
+    }
+
+    /// Build a context for `dir` under `policy`, canonicalizing the fence
+    /// root for `SandboxedToBase` (fails closed if it cannot resolve).
+    pub fn with_policy(dir: Option<std::path::PathBuf>, policy: IncludePolicy) -> Self {
+        let fence = match policy {
+            IncludePolicy::SandboxedToBase => {
+                dir.as_deref().and_then(|d| std::fs::canonicalize(d).ok())
+            }
+            _ => None,
+        };
+        Self { dir, policy, fence }
+    }
+
+    /// A nested include's context: its own directory, same policy and fence.
+    pub(crate) fn child(&self, dir: Option<std::path::PathBuf>) -> Self {
+        Self {
+            dir,
+            policy: self.policy,
+            fence: self.fence.clone(),
+        }
+    }
 }
 
 /// A label with an optional `[subscript]` suffix.

@@ -113,7 +113,7 @@ fn finite(v: f64, context: &str) -> ER<f64> {
 pub fn eval(pic: &Picture) -> ER<Drawing> {
     let mut st = State::new();
     st.macros = pic.macros.clone();
-    st.base_dir = pic.base_dir.clone();
+    st.includes = pic.includes.clone();
     st.eval_stmts(&pic.stmts)?;
     let want_w = match &pic.width {
         Some(e) => Some(st.eval_expr(e)?),
@@ -548,7 +548,7 @@ struct State {
     export_vars: HashSet<String>,
     env: EnvVars,
     macros: Macros,
-    base_dir: Option<std::path::PathBuf>,
+    includes: IncludeCtx,
     /// Labels visible from an enclosing scope (read-only, in absolute parent
     /// coordinates). A block may reference outer labels but must not let them
     /// affect its own `last`/nth/bbox, so they live here, not in `placed`.
@@ -598,7 +598,7 @@ impl State {
             export_vars: HashSet::new(),
             env: EnvVars::new(),
             macros: HashMap::new(),
-            base_dir: None,
+            includes: IncludeCtx::default(),
             outer_labels: HashMap::new(),
             shapes: Vec::new(),
             shape_layers: Vec::new(),
@@ -625,7 +625,7 @@ impl State {
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
     fn parse_body(&mut self, body: &Body) -> ER<Vec<Stmt>> {
-        crate::parser::parse_body_tokens(body, &mut self.macros, self.base_dir.as_deref())
+        crate::parser::parse_body_tokens(body, &mut self.macros, &self.includes)
             .map_err(parse_eval_error)
     }
 
@@ -764,7 +764,7 @@ impl State {
                 let stmts = crate::parser::parse_exec_source(
                     &src,
                     &self.macros,
-                    self.base_dir.as_deref(),
+                    &self.includes,
                     arg_frame.as_deref(),
                 )
                 .map_err(parse_eval_error)?;
@@ -1898,7 +1898,7 @@ impl State {
         sub.inherited_vars = self.vars.keys().cloned().collect();
         sub.export_vars.clear();
         sub.macros = self.macros.clone();
-        sub.base_dir = self.base_dir.clone();
+        sub.includes = self.includes.clone();
         sub.rng = self.rng.clone();
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
@@ -2392,12 +2392,9 @@ impl State {
             if let Some(lit) = single_token_macro_string(&body) {
                 return Ok(lit);
             }
-            let parsed = crate::parser::parse_stringexpr_tokens(
-                &body,
-                &mut self.macros,
-                self.base_dir.as_deref(),
-            )
-            .map_err(parse_eval_error)?;
+            let parsed =
+                crate::parser::parse_stringexpr_tokens(&body, &mut self.macros, &self.includes)
+                    .map_err(parse_eval_error)?;
             return self.eval_stringexpr(&parsed);
         }
         self.eval_stringexpr(se)
