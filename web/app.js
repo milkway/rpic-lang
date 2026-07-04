@@ -99,6 +99,26 @@ function play(anims) {
 function drawOn(group, a, tl) {
   const strokables = group.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
   strokables.forEach((el) => {
+    // Filled, unstroked elements (arrowheads) can't be dash-traced. Pop them
+    // in as the shaft reaches the tip instead, matching the package player.
+    const fill = el.getAttribute('fill');
+    if (
+      el.getAttribute('stroke-width') === '0' ||
+      (fill && fill !== 'none' && !el.getAttribute('stroke'))
+    ) {
+      tl.from(
+        el,
+        {
+          opacity: 0,
+          scale: 0,
+          transformOrigin: '50% 50%',
+          duration: Math.min(0.2, a.duration * 0.4),
+          ease: 'back.out(1.7)',
+        },
+        a.start + a.duration * 0.8
+      );
+      return;
+    }
     let len;
     try {
       len = el.getTotalLength();
