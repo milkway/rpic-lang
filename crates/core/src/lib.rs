@@ -117,9 +117,17 @@ pub fn compile_with_diagnostics(src: &str, opts: &CompileOptions) -> Result<Draw
         info: Box::new(e.diagnostic()),
     })?;
     eval(&picture).map_err(|e| {
-        let message = e.to_string();
-        let info = Box::new(eval_error_diagnostic(src, &message));
-        CompileError { message, info }
+        // Eval errors carry their own diagnostic when the failure site had
+        // one (deferred-parse errors, unknown labels, ordinals — with spans
+        // straight from the failing reference's tokens, includes included).
+        let info = e
+            .info
+            .clone()
+            .unwrap_or_else(|| Box::new(Diagnostic::new("eval", e.msg.clone())));
+        CompileError {
+            message: e.msg,
+            info,
+        }
     })
 }
 
@@ -217,68 +225,6 @@ fn json_opt_u32(v: Option<u32>) -> String {
 fn json_opt_str(v: Option<&str>) -> String {
     v.map(|s| format!("\"{}\"", json_str(s)))
         .unwrap_or_else(|| "null".into())
-}
-
-fn eval_error_diagnostic(src: &str, msg: &str) -> Diagnostic {
-    if let Some(name) = msg
-        .strip_prefix("unknown label `")
-        .and_then(|rest| rest.strip_suffix('`'))
-    {
-        let mut d = Diagnostic::new("unknown_label", msg.to_string()).found(name);
-        if let Some(span) = find_name_ref(src, name) {
-            d = d.at(span);
-        }
-        return d;
-    }
-    if msg.starts_with("ordinal ") && msg.contains(" out of range") {
-        let mut d = Diagnostic::new("ordinal_out_of_range", msg.to_string());
-        if let Some(found) = msg
-            .strip_prefix("ordinal ")
-            .and_then(|rest| rest.split_once(" out of range"))
-            .map(|(found, _)| found)
-        {
-            d = d.found(found);
-        }
-        if let Some(available) = msg
-            .split_once("(available ")
-            .and_then(|(_, rest)| rest.strip_suffix(')'))
-        {
-            d = d.expected(format!("1..{available}"));
-        }
-        if let Some(span) = find_ordinal_ref(src) {
-            d = d.at(span);
-        }
-        return d;
-    }
-    Diagnostic::new("eval", msg.to_string())
-}
-
-fn find_name_ref(src: &str, name: &str) -> Option<Span> {
-    let toks = lexer::lex(src).ok()?;
-    for (i, s) in toks.iter().enumerate() {
-        let matches_name = match &s.tok {
-            token::Token::Name(n) | token::Token::Label(n) => n == name,
-            _ => false,
-        };
-        if matches_name && !matches!(toks.get(i + 1).map(|n| &n.tok), Some(token::Token::Colon)) {
-            return Some(s.span());
-        }
-    }
-    None
-}
-
-fn find_ordinal_ref(src: &str) -> Option<Span> {
-    let toks = lexer::lex(src).ok()?;
-    for w in toks.windows(2) {
-        if matches!(w[0].tok, token::Token::Float(_))
-            && matches!(w[1].tok, token::Token::Kw(token::Kw::Nth))
-        {
-            return Some(Span::new(w[0].line, w[0].col, w[1].end_col));
-        }
-    }
-    toks.iter()
-        .find(|s| matches!(s.tok, token::Token::Kw(token::Kw::Last)))
-        .map(|s| s.span())
 }
 
 /// Escape a string for embedding inside a JSON string literal.
@@ -468,6 +414,38 @@ mod tests {
         assert!(ordinal.contains("\"col\":8"), "{ordinal}");
         assert!(ordinal.contains("\"found\":\"3\""), "{ordinal}");
         assert!(ordinal.contains("\"expected\":\"1..1\""), "{ordinal}");
+    }
+
+    #[test]
+    fn json_eval_error_inside_include_names_the_file() {
+        // #197: the failing reference's own tokens carry the span (and its
+        // include provenance) — no re-lexing of the user source involved.
+        let dir = std::env::temp_dir().join(format!("rpic_eval_incl_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("inc-eval.pic"), "# comment\nbox at Missing\n").unwrap();
+        let j = compile_json_in_dir("circle\ncopy \"inc-eval.pic\"", Some(dir.as_path()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(j.contains("\"error\":\"unknown label `Missing`\""), "{j}");
+        assert!(j.contains("\"kind\":\"unknown_label\""), "{j}");
+        assert!(j.contains("\"file\":\"inc-eval.pic\""), "{j}");
+        assert!(j.contains("\"line\":2"), "{j}"); // include-relative
+        assert!(j.contains("\"col\":8"), "{j}");
+    }
+
+    #[test]
+    fn json_deferred_parse_errors_keep_their_structure() {
+        // #197: a parse error inside a dynamically-executed body used to be
+        // flattened to kind "eval" with null position/found/hint.
+        let j = compile_json("x = 1\nif x then { bxo }\n");
+        assert!(j.contains("\"kind\":\"expected_token\""), "{j}");
+        assert!(j.contains("\"line\":2"), "{j}");
+        assert!(j.contains("\"col\":13"), "{j}");
+        assert!(j.contains("\"found\":\"`bxo`\""), "{j}");
+        assert!(j.contains("\"hint\":\"did you mean `box`?\""), "{j}");
+
+        let f = compile_json("for i = 1 to 2 do { bxo }\n");
+        assert!(f.contains("\"kind\":\"expected_token\""), "{f}");
+        assert!(f.contains("\"hint\":\"did you mean `box`?\""), "{f}");
     }
 
     #[test]

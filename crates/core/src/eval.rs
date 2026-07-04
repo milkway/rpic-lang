@@ -15,15 +15,19 @@ use std::collections::{HashMap, HashSet};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use crate::ast::*;
-use crate::diagnostic::Diagnostic;
+use crate::diagnostic::{Diagnostic, Span};
 use crate::geom::{Bbox, Point};
 use crate::ir::*;
 use crate::token::{self, Corner, Dir, EnvVar, Func1, Func2, LineType, Prim};
 
-/// An evaluation error.
+/// An evaluation error. `info` carries the structured diagnostic when the
+/// failure site had one at hand (a deferred-parse error's full [`Diagnostic`],
+/// or a place reference's span); bindings surface it without re-deriving
+/// positions from the message.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EvalError {
     pub msg: String,
+    pub info: Option<Box<Diagnostic>>,
 }
 
 impl std::fmt::Display for EvalError {
@@ -48,7 +52,53 @@ const DEFAULT_HATCH_SEP: f64 = 0.08;
 const DEFAULT_HATCH_WIDTH: f64 = 0.8;
 
 fn err<T>(msg: impl Into<String>) -> ER<T> {
-    Err(EvalError { msg: msg.into() })
+    Err(EvalError {
+        msg: msg.into(),
+        info: None,
+    })
+}
+
+/// An error that keeps its structured diagnostic (position, kind, hints).
+fn err_diag<T>(d: Diagnostic) -> ER<T> {
+    Err(diag_error(d))
+}
+
+fn diag_error(d: Diagnostic) -> EvalError {
+    EvalError {
+        msg: d.message.clone(),
+        info: Some(Box::new(d)),
+    }
+}
+
+/// A deferred-parse failure (an `if`/`for` body, `exec`, `sprintf` re-parse)
+/// keeps the original ParseError's full diagnostic instead of flattening it
+/// to a string.
+fn parse_eval_error(e: crate::parser::ParseError) -> EvalError {
+    EvalError {
+        msg: e.to_string(),
+        info: Some(Box::new(e.diagnostic())),
+    }
+}
+
+fn unknown_label_error(name: &str, span: Option<&Span>) -> EvalError {
+    let mut d = Diagnostic::new("unknown_label", format!("unknown label `{name}`")).found(name);
+    if let Some(s) = span {
+        d = d.at(s.clone());
+    }
+    diag_error(d)
+}
+
+fn ordinal_diagnostic(n: i64, available: usize, span: Option<&Span>) -> Diagnostic {
+    let mut d = Diagnostic::new(
+        "ordinal_out_of_range",
+        format!("ordinal {n} out of range (available {available})"),
+    )
+    .found(n.to_string())
+    .expected(format!("1..{available}"));
+    if let Some(s) = span {
+        d = d.at(s.clone());
+    }
+    d
 }
 
 fn finite(v: f64, context: &str) -> ER<f64> {
@@ -576,7 +626,7 @@ impl State {
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
     fn parse_body(&mut self, body: &Body) -> ER<Vec<Stmt>> {
         crate::parser::parse_body_tokens(body, &mut self.macros, self.base_dir.as_deref())
-            .map_err(|e| EvalError { msg: e.to_string() })
+            .map_err(parse_eval_error)
     }
 
     fn eval_stmt(&mut self, s: &Stmt) -> ER<()> {
@@ -711,7 +761,7 @@ impl State {
                     self.base_dir.as_deref(),
                     arg_frame.as_deref(),
                 )
-                .map_err(|e| EvalError { msg: e.to_string() })?;
+                .map_err(parse_eval_error)?;
                 self.eval_stmts(&stmts)?;
             }
             Stmt::Reset(list) => {
@@ -732,6 +782,7 @@ impl State {
         let idx = self.place_index(&a.target)?;
         let shape = self.placed[idx].shape.ok_or_else(|| EvalError {
             msg: "cannot animate a point (no drawn shape)".into(),
+            info: None,
         })?;
         let dur = match &a.duration {
             Some(e) => self.eval_expr(e)?,
@@ -744,6 +795,7 @@ impl State {
                 let i = self.place_index(p)?;
                 let sh = self.placed[i].shape.ok_or_else(|| EvalError {
                     msg: "`after` target has no animation".into(),
+                    info: None,
                 })?;
                 *self.anim_end.get(&sh).unwrap_or(&0.0)
             }
@@ -988,6 +1040,7 @@ impl State {
             .rposition(|s| matches!(s, Shape::Path { .. } | Shape::Spline { .. }))
             .ok_or_else(|| EvalError {
                 msg: "`continue` has no previous line to extend".into(),
+                info: None,
             })?;
         let pidx = self.placed.iter().position(|pl| pl.shape == Some(idx));
         if let Some(pi) = pidx
@@ -1156,6 +1209,7 @@ impl State {
         if let Some(fit_text) = fit_text {
             let (fit_w, fit_h) = fitted_text_size(&fit_text).ok_or_else(|| EvalError {
                 msg: "`fit` requires visible text before the attribute".into(),
+                info: None,
             })?;
             match p {
                 Prim::Circle => {
@@ -2337,7 +2391,7 @@ impl State {
                 &mut self.macros,
                 self.base_dir.as_deref(),
             )
-            .map_err(|e| EvalError { msg: e.to_string() })?;
+            .map_err(parse_eval_error)?;
             return self.eval_stringexpr(&parsed);
         }
         self.eval_stringexpr(se)
@@ -2431,12 +2485,16 @@ impl State {
     fn place_point(&mut self, p: &Place) -> ER<Point> {
         match p {
             Place::Here => Ok(self.pos),
-            Place::Name { name, subscript } => {
+            Place::Name {
+                name,
+                subscript,
+                span,
+            } => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                Ok(self.resolve_label(&key)?.center)
+                Ok(self.resolve_label(&key, span.as_ref())?.center)
             }
-            Place::Nth { count, obj } => {
-                let idx = self.nth_index(count, obj)?;
+            Place::Nth { count, obj, span } => {
+                let idx = self.nth_index(count, obj, span.as_ref())?;
                 Ok(self.placed[idx].center)
             }
             Place::Corner(inner, c) => {
@@ -2455,25 +2513,30 @@ impl State {
     /// block members for `B.A` / `last [].Outer`.
     fn resolve_obj(&mut self, p: &Place) -> ER<Placed> {
         match p {
-            Place::Name { name, subscript } => {
+            Place::Name {
+                name,
+                subscript,
+                span,
+            } => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                self.resolve_label(&key)
+                self.resolve_label(&key, span.as_ref())
             }
-            Place::Nth { count, obj } => {
-                let idx = self.nth_index(count, obj)?;
+            Place::Nth { count, obj, span } => {
+                let idx = self.nth_index(count, obj, span.as_ref())?;
                 Ok(self.placed[idx].clone())
             }
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.resolve_obj(inner),
             Place::Member(base, sub) => {
                 let b = self.resolve_obj(base)?;
                 let key = match sub.as_ref() {
-                    Place::Name { name, subscript } => {
-                        self.indexed_name(name, subscript.as_deref())?
-                    }
+                    Place::Name {
+                        name, subscript, ..
+                    } => self.indexed_name(name, subscript.as_deref())?,
                     _ => return err("a block sub-label must be a name"),
                 };
                 b.members.get(&key).cloned().ok_or_else(|| EvalError {
                     msg: format!("no sub-label `{key}` in that block"),
+                    info: None,
                 })
             }
             Place::Here => err("`Here` is a point, not an object"),
@@ -2482,32 +2545,37 @@ impl State {
 
     fn place_index(&mut self, p: &Place) -> ER<usize> {
         match p {
-            Place::Name { name, subscript } => {
+            Place::Name {
+                name,
+                subscript,
+                span,
+            } => {
                 let key = self.indexed_name(name, subscript.as_deref())?;
-                self.label_index(&key)
+                self.label_index(&key, span.as_ref())
             }
-            Place::Nth { count, obj } => self.nth_index(count, obj),
+            Place::Nth { count, obj, span } => self.nth_index(count, obj, span.as_ref()),
             Place::Corner(inner, _) | Place::CornerOf(_, inner) => self.place_index(inner),
             Place::Here => err("`Here` is a point, not an object"),
             Place::Member(_, _) => err("block sub-labels (B.A) are not supported yet"),
         }
     }
 
-    fn label_index(&self, name: &str) -> ER<usize> {
-        self.labels.get(name).copied().ok_or_else(|| EvalError {
-            msg: format!("unknown label `{name}`"),
-        })
+    fn label_index(&self, name: &str, span: Option<&Span>) -> ER<usize> {
+        self.labels
+            .get(name)
+            .copied()
+            .ok_or_else(|| unknown_label_error(name, span))
     }
 
     /// Resolve a label to its [`Placed`], falling back to enclosing-scope labels
     /// (absolute coordinates) so a block can reference outer labels.
-    fn resolve_label(&self, key: &str) -> ER<Placed> {
+    fn resolve_label(&self, key: &str, span: Option<&Span>) -> ER<Placed> {
         if let Some(&idx) = self.labels.get(key) {
             Ok(self.placed[idx].clone())
         } else if let Some(pl) = self.outer_labels.get(key) {
             Ok(pl.clone())
         } else {
-            err(format!("unknown label `{key}`"))
+            Err(unknown_label_error(key, span))
         }
     }
 
@@ -2529,7 +2597,7 @@ impl State {
         }
     }
 
-    fn nth_index(&mut self, count: &Nth, obj: &PrimObj) -> ER<usize> {
+    fn nth_index(&mut self, count: &Nth, obj: &PrimObj, span: Option<&Span>) -> ER<usize> {
         // Untyped `last` matches the most recent object of any kind; a typed
         // reference (`last box`) filters to that kind.
         let want = primobj_kind(obj);
@@ -2556,18 +2624,12 @@ impl State {
                 let k = (n - 1) as usize;
                 if *from_last {
                     if k >= matches.len() {
-                        return err(format!(
-                            "ordinal {n} out of range (available {})",
-                            matches.len()
-                        ));
+                        return err_diag(ordinal_diagnostic(n, matches.len(), span));
                     }
                     matches[matches.len() - 1 - k]
                 } else {
                     if k >= matches.len() {
-                        return err(format!(
-                            "ordinal {n} out of range (available {})",
-                            matches.len()
-                        ));
+                        return err_diag(ordinal_diagnostic(n, matches.len(), span));
                     }
                     matches[k]
                 }
@@ -2624,6 +2686,7 @@ impl State {
                 let key = self.indexed_name(name, subscript.as_deref())?;
                 self.vars.get(&key).copied().ok_or_else(|| EvalError {
                     msg: format!("variable not found `{key}`"),
+                    info: None,
                 })?
             }
             Expr::Env(v) => self.env.get(*v),

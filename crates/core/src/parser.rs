@@ -2520,6 +2520,7 @@ impl Parser {
                 Ok(Place::Here)
             }
             Token::Label(name) => {
+                let span = Some(self.cur_span());
                 self.bump();
                 let subscript = if self.eat(&Token::LeftBrack) {
                     let e = self.parse_subscript()?;
@@ -2528,9 +2529,14 @@ impl Parser {
                 } else {
                     None
                 };
-                Ok(Place::Name { name, subscript })
+                Ok(Place::Name {
+                    name,
+                    subscript,
+                    span,
+                })
             }
             Token::Kw(Kw::Last) | Token::Float(_) | Token::LeftBrace | Token::LeftQuote => {
+                let span = Some(self.cur_span());
                 let count = self.parse_nth()?;
                 // A type keyword may follow (`last box`); without one, this is an
                 // untyped reference to the most recent object of any kind
@@ -2540,7 +2546,7 @@ impl Parser {
                 } else {
                     PrimObj::Any
                 };
-                Ok(Place::Nth { count, obj })
+                Ok(Place::Nth { count, obj, span })
             }
             other => self.err(format!("expected a place, found {other:?}")),
         }
