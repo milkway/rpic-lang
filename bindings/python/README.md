@@ -8,18 +8,50 @@ pip install rpiclang        # distribution name; you `import rpic`
 ```
 
 ```python
-import rpic, json
+import rpic
 
 svg = rpic.render_svg('box "hi"; arrow; circle "x"')
 open("out.png", "wb").write(rpic.render_png("box \"hi\"", scale=2.0))
 open("out.pdf", "wb").write(rpic.render_pdf("box \"hi\""))
 
-# circuit library:
+# circuit library (or write `copy "circuits"` in the source itself):
 svg = rpic.render_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
 
-# svg + animation/diagnostic/warning manifest:
-bundle = json.loads(rpic.compile_json('box\nanimate last box with "pop"'))
-# bundle["diagnostics"] contains lines emitted by pic `print`
+# TeX math labels, exactly like `rpic -t`:
+svg = rpic.render_svg('box "$-\\\\frac{T}{2}$" fit', texlabels=True)
+
+# the parsed bundle: svg + animation manifest + diagnostics + warnings
+bundle = rpic.compile('box\nanimate last box with "pop"')
+bundle["animations"]   # [{"id": "s0", "effect": "pop", ...}]
+bundle["diagnostics"]  # lines emitted by pic `print`
+bundle["warnings"]     # structured warnings (ignored attributes, ...)
+# (compile_json returns the same as a JSON string)
+
+# `copy "file"` includes resolve relative to `base`:
+svg = rpic.render_svg('copy "shim.pic"\nbox', base="path/to/dir")
+```
+
+Compile errors raise `rpic.CompileError` (a `ValueError` subclass, so old
+`except ValueError` code keeps working). `str(exc)` is the readable message;
+`exc.info` is the structured diagnostic for editors:
+
+```python
+try:
+    rpic.render_svg("bxo", circuits=True)
+except rpic.CompileError as exc:
+    exc.info  # {"message": ..., "line": 1, "col": 1, "end_col": 4,
+              #  "file": None, "kind": "expected_token", "found": "`bxo`",
+              #  "expected": "an object", "hint": "did you mean `box`?"}
+```
+
+Positions are always relative to **your** source — with `circuits=True` an
+error on your line 1 reports line 1, and a problem inside a `copy` include
+names it in `info["file"]` (`None` means your own input).
+
+## Test
+
+```sh
+maturin develop --release && pytest tests -q
 ```
 
 ## Build

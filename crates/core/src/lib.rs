@@ -18,7 +18,7 @@ pub mod parser;
 pub mod svg;
 pub mod token;
 
-pub use diagnostic::{Diagnostic, Span};
+pub use diagnostic::{CompileError, Diagnostic, Span};
 pub use eval::{EvalError, eval};
 pub use ir::Drawing;
 pub use lexer::{LexError, lex};
@@ -105,9 +105,22 @@ pub struct CompileOptions {
 
 /// Compile pic source with [`CompileOptions`] into a [`Drawing`].
 pub fn compile_with_options(src: &str, opts: &CompileOptions) -> Result<Drawing, String> {
-    parse_options(src, opts)
-        .map_err(|e| e.to_string())
-        .and_then(|p| eval(&p).map_err(|e| e.to_string()))
+    compile_with_diagnostics(src, opts).map_err(|e| e.message)
+}
+
+/// Like [`compile_with_options`], but failures return the structured
+/// [`CompileError`] (flat message + [`Diagnostic`]) instead of a bare string —
+/// for bindings that attach position data to exceptions/conditions.
+pub fn compile_with_diagnostics(src: &str, opts: &CompileOptions) -> Result<Drawing, CompileError> {
+    let picture = parse_options(src, opts).map_err(|e| CompileError {
+        message: e.to_string(),
+        info: Box::new(e.diagnostic()),
+    })?;
+    eval(&picture).map_err(|e| {
+        let message = e.to_string();
+        let info = Box::new(eval_error_diagnostic(src, &message));
+        CompileError { message, info }
+    })
 }
 
 /// Render pic source to SVG with [`CompileOptions`].
@@ -143,17 +156,9 @@ pub fn compile_json_in_dir(src: &str, base: Option<&std::path::Path>) -> String 
 /// relative to the user's `src` (or carry a `file` naming the include/library
 /// they are in) — never to a concatenated stream.
 pub fn compile_json_with_options(src: &str, opts: &CompileOptions) -> String {
-    let picture = match parse_options(src, opts) {
-        Ok(p) => p,
-        Err(e) => return error_json(&e.to_string(), &e.diagnostic()),
-    };
-    match eval(&picture) {
+    match compile_with_diagnostics(src, opts) {
         Ok(d) => drawing_json(&d),
-        Err(e) => {
-            let msg = e.to_string();
-            let diagnostic = eval_error_diagnostic(src, &msg);
-            error_json(&msg, &diagnostic)
-        }
+        Err(e) => error_json(&e.message, &e.info),
     }
 }
 

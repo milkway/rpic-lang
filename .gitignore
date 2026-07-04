@@ -26,3 +26,4 @@ packaging/dist/
 CLAUDE.md
 AGENTS.md
 .claude/
+__pycache__/
