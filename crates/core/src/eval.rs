@@ -989,6 +989,12 @@ impl State {
             .ok_or_else(|| EvalError {
                 msg: "`continue` has no previous line to extend".into(),
             })?;
+        let pidx = self.placed.iter().position(|pl| pl.shape == Some(idx));
+        if let Some(pi) = pidx
+            && self.placed[pi].closed_path
+        {
+            return err("polygon is closed");
+        }
         let start = match &self.shapes[idx] {
             Shape::Path { pts, .. } | Shape::Spline { pts, .. } => *pts.last().unwrap(),
             _ => unreachable!(),
@@ -1078,7 +1084,6 @@ impl State {
         self.pos = end;
         self.dir = last_dir;
 
-        let pidx = self.placed.iter().position(|pl| pl.shape == Some(idx));
         if let Some(pi) = pidx {
             self.placed[pi].end = end;
             self.placed[pi].bbox.add(end);
@@ -4223,6 +4228,13 @@ mod tests {
             panic!()
         };
         assert!((pts.last().unwrap().x - 1.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn continue_rejects_closed_path() {
+        let err = eval(&parse("line right then up then left close\ncontinue right").unwrap())
+            .unwrap_err();
+        assert!(err.msg.contains("polygon is closed"), "{err}");
     }
 
     #[test]
