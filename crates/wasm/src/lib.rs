@@ -24,14 +24,15 @@ pub fn compile(src: &str) -> String {
     rpic_core::compile_json(src)
 }
 
-/// Like [`compile`], but with the native circuit-element library prepended
-/// (so `resistor`, `and_gate`, … are available).
+/// Like [`compile`], but with the native circuit-element library loaded
+/// (so `resistor`, `and_gate`, … are available). Loaded as an option, not
+/// prepended text: diagnostic positions stay relative to `src`.
 #[wasm_bindgen]
 pub fn compile_circuits(src: &str) -> String {
-    rpic_core::compile_json(&format!("{}\n{}", rpic_core::CIRCUITS, src))
+    compile_with(src, true, false)
 }
 
-/// Like [`compile`], with options: `circuits` prepends the circuit-element
+/// Like [`compile`], with options: `circuits` loads the circuit-element
 /// library; `texlabels` sets `texlabels = 1` so `$…$` labels are typeset as
 /// TeX math. Note: the default wasm build ships without the math renderer
 /// (size budget), so with `texlabels` the labels fall back to literal text
@@ -39,15 +40,10 @@ pub fn compile_circuits(src: &str) -> String {
 /// `rpic_wasm_math` npm artifact) to typeset them.
 #[wasm_bindgen]
 pub fn compile_with(src: &str, circuits: bool, texlabels: bool) -> String {
-    let src = if circuits {
-        format!("{}\n{}", rpic_core::CIRCUITS, src)
-    } else {
-        src.to_string()
+    let opts = rpic_core::CompileOptions {
+        circuits,
+        texlabels,
+        base: None,
     };
-    let src = if texlabels {
-        format!("texlabels = 1\n{}", src)
-    } else {
-        src
-    };
-    rpic_core::compile_json(&src)
+    rpic_core::compile_json_with_options(src, &opts)
 }

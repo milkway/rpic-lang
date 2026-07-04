@@ -23,7 +23,7 @@ pub use eval::{EvalError, eval};
 pub use ir::Drawing;
 pub use lexer::{LexError, lex};
 pub use math::{MathSpan, set_math_renderer};
-pub use parser::{ParseError, parse, parse_in_dir};
+pub use parser::{ParseError, parse, parse_in_dir, parse_with_prelude};
 pub use svg::to_svg;
 pub use token::Token;
 
@@ -87,22 +87,63 @@ pub fn diagnostics_json(d: &Drawing) -> String {
     s
 }
 
+/// Compile options for the `*_with_options` entry points — the library
+/// equivalents of the CLI flags. Preludes (`circuits`, `texlabels`) are lexed
+/// as their own named source units, NOT glued in front of the user's source,
+/// so diagnostic positions always stay relative to the source they belong to
+/// (`Diagnostic::file` names an include/library; `None` is the user's input).
+#[derive(Debug, Clone, Default)]
+pub struct CompileOptions {
+    /// Load the embedded circuit-element library (the `-c` flag).
+    pub circuits: bool,
+    /// Inject `texlabels = 1` as an initializer (the `-t` flag); the source
+    /// can still override it.
+    pub texlabels: bool,
+    /// Resolve `copy "file"` includes relative to this directory.
+    pub base: Option<std::path::PathBuf>,
+}
+
+/// Compile pic source with [`CompileOptions`] into a [`Drawing`].
+pub fn compile_with_options(src: &str, opts: &CompileOptions) -> Result<Drawing, String> {
+    parse_options(src, opts)
+        .map_err(|e| e.to_string())
+        .and_then(|p| eval(&p).map_err(|e| e.to_string()))
+}
+
+/// Render pic source to SVG with [`CompileOptions`].
+pub fn render_svg_with_options(src: &str, opts: &CompileOptions) -> Result<String, String> {
+    Ok(to_svg(&compile_with_options(src, opts)?))
+}
+
+fn parse_options(src: &str, opts: &CompileOptions) -> Result<ast::Picture, ParseError> {
+    parser::parse_with_prelude(src, opts.base.as_deref(), opts.circuits, opts.texlabels)
+}
+
 /// Compile to a single JSON object `{ "svg": "...", "animations": [...],
 /// "diagnostics": [...], "warnings": [...] }`, or `{ "error": "...",
 /// "error_info": { ... } }` on failure. The flat `error` string is kept for
 /// backward compatibility with older bindings.
 pub fn compile_json(src: &str) -> String {
-    compile_json_impl(src, None)
+    compile_json_with_options(src, &CompileOptions::default())
 }
 
 /// Compile to a JSON bundle, resolving `copy "file"` includes relative to
 /// `base`.
 pub fn compile_json_in_dir(src: &str, base: Option<&std::path::Path>) -> String {
-    compile_json_impl(src, base)
+    compile_json_with_options(
+        src,
+        &CompileOptions {
+            base: base.map(|p| p.to_path_buf()),
+            ..Default::default()
+        },
+    )
 }
 
-fn compile_json_impl(src: &str, base: Option<&std::path::Path>) -> String {
-    let picture = match parser::parse_in_dir(src, base) {
+/// Compile to a JSON bundle with [`CompileOptions`]. Diagnostic positions are
+/// relative to the user's `src` (or carry a `file` naming the include/library
+/// they are in) — never to a concatenated stream.
+pub fn compile_json_with_options(src: &str, opts: &CompileOptions) -> String {
+    let picture = match parse_options(src, opts) {
         Ok(p) => p,
         Err(e) => return error_json(&e.to_string(), &e.diagnostic()),
     };
@@ -152,6 +193,7 @@ fn diagnostic_json(d: &Diagnostic) -> String {
     s.push_str(&format!(",\"line\":{}", json_opt_u32(d.line)));
     s.push_str(&format!(",\"col\":{}", json_opt_u32(d.col)));
     s.push_str(&format!(",\"end_col\":{}", json_opt_u32(d.end_col)));
+    s.push_str(&format!(",\"file\":{}", json_opt_str(d.file.as_deref())));
     s.push_str(&format!(",\"kind\":\"{}\"", json_str(&d.kind)));
     s.push_str(&format!(",\"found\":{}", json_opt_str(d.found.as_deref())));
     s.push_str(&format!(
@@ -296,6 +338,70 @@ mod tests {
         let both = compile(&format!("{CIRCUITS}\ncopy \"circuits\"\n{body}")).unwrap();
         let flag = compile(&format!("{CIRCUITS}\n{body}")).unwrap();
         assert_eq!(to_svg(&both), to_svg(&flag));
+    }
+
+    #[test]
+    fn options_preludes_do_not_shift_user_positions() {
+        // #181 acceptance: with the circuits/texlabels preludes on, an error
+        // on the user's line 1 reports line 1 (not ~1093), file null.
+        let opts = CompileOptions {
+            circuits: true,
+            texlabels: true,
+            ..Default::default()
+        };
+        let j = compile_json_with_options("bxo\n", &opts);
+        assert!(j.contains("\"line\":1"), "{j}");
+        assert!(j.contains("\"col\":1"), "{j}");
+        assert!(j.contains("\"file\":null"), "{j}");
+        assert!(j.contains("\"error\":\"1:1: expected an object"), "{j}");
+    }
+
+    #[test]
+    fn options_output_matches_the_prepending_it_replaces() {
+        // The prelude splice must be behaviorally identical to the old
+        // string-prepending: byte-identical SVG.
+        let body = "A:(0,0); B:(2,0)\nresistor(A,B)";
+        let opts = CompileOptions {
+            circuits: true,
+            ..Default::default()
+        };
+        let via_opts = compile_with_options(body, &opts).unwrap();
+        let via_prepend = compile(&format!("{CIRCUITS}\n{body}")).unwrap();
+        assert_eq!(to_svg(&via_opts), to_svg(&via_prepend));
+    }
+
+    #[test]
+    fn options_texlabels_is_an_initializer_only() {
+        // the source stays sovereign: `texlabels = 0` overrides the prelude
+        let opts = CompileOptions {
+            texlabels: true,
+            ..Default::default()
+        };
+        let j = compile_json_with_options("texlabels = 0\nbox \"$x$\"\n", &opts);
+        assert!(!j.contains("no math renderer"), "{j}");
+    }
+
+    #[test]
+    fn diagnostics_inside_an_include_name_the_file() {
+        // #181 acceptance: a warning (or error) inside a `copy`'d file carries
+        // the include's name and include-relative position.
+        let dir = std::env::temp_dir().join(format!("rpic_incl_diag_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("warn.pic"), "# comment\nbox \"a\" dashd\n").unwrap();
+        let j = compile_json_in_dir("circle\ncopy \"warn.pic\"", Some(dir.as_path()));
+        assert!(j.contains("\"kind\":\"ignored_attribute\""), "{j}");
+        assert!(j.contains("\"file\":\"warn.pic\""), "{j}");
+        assert!(j.contains("\"line\":2"), "{j}"); // include-relative, not stream
+
+        std::fs::write(dir.join("bad.pic"), "bxo\n").unwrap();
+        let e = compile_json_in_dir("circle\ncopy \"bad.pic\"", Some(dir.as_path()));
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(
+            e.contains("\"error\":\"bad.pic:1:1: expected an object"),
+            "{e}"
+        );
+        assert!(e.contains("\"file\":\"bad.pic\""), "{e}");
+        assert!(e.contains("\"line\":1"), "{e}");
     }
 
     #[test]

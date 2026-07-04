@@ -764,8 +764,8 @@ impl State {
             )
             .found(effect.clone())
             .expected("draw, fade, or pop");
-            if let Some(span) = a.effect_span {
-                warning = warning.at(span);
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
             }
             self.warnings.push(warning);
         }
@@ -957,7 +957,7 @@ impl State {
                 warning = warning.hint(format!("did you mean `{hint}`?"));
             }
             if let Some(span) = span {
-                warning = warning.at(*span);
+                warning = warning.at(span.clone());
             }
             self.warnings.push(warning);
         }

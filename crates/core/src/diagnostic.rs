@@ -1,17 +1,34 @@
 //! Structured compiler diagnostics for editor/front-end integrations.
 
+use std::sync::Arc;
+
 /// A source span in 1-based line/column coordinates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
     pub line: u32,
     pub col: u32,
     /// Exclusive end column when the diagnostic is on a single line.
     pub end_col: u32,
+    /// Which source the position refers to: `None` is the user's own input;
+    /// `Some` names a `copy` include (as written in the source) or a loaded
+    /// library (`"circuits"`). Positions are always relative to their own
+    /// source, never to a concatenated stream.
+    pub file: Option<Arc<str>>,
 }
 
 impl Span {
     pub fn new(line: u32, col: u32, end_col: u32) -> Self {
-        Self { line, col, end_col }
+        Self {
+            line,
+            col,
+            end_col,
+            file: None,
+        }
+    }
+
+    pub fn in_file(mut self, file: Option<Arc<str>>) -> Self {
+        self.file = file;
+        self
     }
 }
 
@@ -22,6 +39,9 @@ pub struct Diagnostic {
     pub line: Option<u32>,
     pub col: Option<u32>,
     pub end_col: Option<u32>,
+    /// See [`Span::file`]: `None` = the user's input, `Some` = an include or
+    /// library name the position is relative to.
+    pub file: Option<Arc<str>>,
     pub kind: String,
     pub found: Option<String>,
     pub expected: Option<String>,
@@ -35,6 +55,7 @@ impl Diagnostic {
             line: None,
             col: None,
             end_col: None,
+            file: None,
             kind: kind.into(),
             found: None,
             expected: None,
@@ -46,6 +67,7 @@ impl Diagnostic {
         self.line = Some(span.line);
         self.col = Some(span.col);
         self.end_col = Some(span.end_col);
+        self.file = span.file;
         self
     }
 

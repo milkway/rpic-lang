@@ -8,16 +8,19 @@
 
 use crate::ast::*;
 use crate::diagnostic::{Diagnostic, Span};
-use crate::lexer::{LexError, Spanned, lex};
+use crate::lexer::{LexError, Spanned, lex, lex_named};
 use crate::token::*;
 
-/// A parse error with source location.
+/// A parse error with source location. `file` (via [`ParseError::span`]) is
+/// `None` for the user's own input, or the `copy` include / library name the
+/// position is relative to.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseError {
     pub msg: String,
     pub line: u32,
     pub col: u32,
     pub end_col: u32,
+    file: Option<std::sync::Arc<str>>,
     detail: Box<ParseErrorDetail>,
 }
 
@@ -31,17 +34,21 @@ struct ParseErrorDetail {
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}: {}", self.line, self.col, self.msg)
+        match &self.file {
+            Some(file) => write!(f, "{}:{}:{}: {}", file, self.line, self.col, self.msg),
+            None => write!(f, "{}:{}: {}", self.line, self.col, self.msg),
+        }
     }
 }
 
 impl ParseError {
-    fn new(msg: impl Into<String>, line: u32, col: u32, end_col: u32) -> Self {
+    fn new(msg: impl Into<String>, span: Span) -> Self {
         Self {
             msg: msg.into(),
-            line,
-            col,
-            end_col,
+            line: span.line,
+            col: span.col,
+            end_col: span.end_col,
+            file: span.file,
             detail: Box::new(ParseErrorDetail {
                 kind: "parse".into(),
                 found: None,
@@ -51,20 +58,15 @@ impl ParseError {
         }
     }
 
-    fn expected(
-        expected: impl Into<String>,
-        found: impl Into<String>,
-        line: u32,
-        col: u32,
-        end_col: u32,
-    ) -> Self {
+    fn expected(expected: impl Into<String>, found: impl Into<String>, span: Span) -> Self {
         let expected = expected.into();
         let found = found.into();
         Self {
             msg: format!("expected {expected}, found {found}"),
-            line,
-            col,
-            end_col,
+            line: span.line,
+            col: span.col,
+            end_col: span.end_col,
+            file: span.file,
             detail: Box::new(ParseErrorDetail {
                 kind: "expected_token".into(),
                 found: Some(found),
@@ -74,12 +76,13 @@ impl ParseError {
         }
     }
 
+    /// The error's source span, including which source it refers to.
+    pub fn span(&self) -> Span {
+        Span::new(self.line, self.col, self.end_col).in_file(self.file.clone())
+    }
+
     pub fn diagnostic(&self) -> Diagnostic {
-        let mut d = Diagnostic::new(self.detail.kind.clone(), self.msg.clone()).at(Span::new(
-            self.line,
-            self.col,
-            self.end_col,
-        ));
+        let mut d = Diagnostic::new(self.detail.kind.clone(), self.msg.clone()).at(self.span());
         d.found = self.detail.found.clone();
         d.expected = self.detail.expected.clone();
         d.hint = self.detail.hint.clone();
@@ -94,6 +97,7 @@ impl From<LexError> for ParseError {
             line: e.line,
             col: e.col,
             end_col: e.end_col,
+            file: e.file,
             detail: Box::new(ParseErrorDetail {
                 kind: e.kind,
                 found: None,
@@ -112,13 +116,53 @@ pub fn parse(src: &str) -> Result<Picture, ParseError> {
 
 /// Parse pic source, resolving `copy "file"` includes relative to `base`.
 pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseError> {
+    parse_with_prelude(src, base, false, false)
+}
+
+/// Parse pic source with optional preludes: `circuits` loads the embedded
+/// circuit-element library and `texlabels` injects `texlabels = 1` — the
+/// library equivalents of the CLI `-c` / `-t` flags. Each prelude is lexed
+/// as its own named source unit (not text glued in front of `src`), so every
+/// diagnostic position stays relative to the source it belongs to: the user's
+/// own input reports user lines, and library problems name the library.
+pub fn parse_with_prelude(
+    src: &str,
+    base: Option<&Path>,
+    circuits: bool,
+    texlabels: bool,
+) -> Result<Picture, ParseError> {
+    let mut toks: Vec<Spanned> = Vec::new();
+    if circuits {
+        splice_unit(&mut toks, lex_named(crate::CIRCUITS, "circuits")?);
+    }
+    if texlabels {
+        // Initializer only — the source stays sovereign (`texlabels = 0` wins).
+        splice_unit(&mut toks, lex_named("texlabels = 1\n", "<texlabels>")?);
+    }
     let src = strip_backend_preamble(src);
-    let toks = lex(&src)?;
+    toks.extend(lex(&src)?);
     let (toks, macros) = preprocess(toks, base)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
     pic.base_dir = base.map(|p| p.to_path_buf());
     Ok(pic)
+}
+
+/// Append a lexed prelude unit ahead of the tokens that follow: drop its
+/// `Eof` and guarantee a trailing `Newline` so the units stay statement-
+/// separated (equivalent to the `\n` the old string-prepending inserted).
+fn splice_unit(out: &mut Vec<Spanned>, mut unit: Vec<Spanned>) {
+    if matches!(unit.last().map(|s| &s.tok), Some(Token::Eof)) {
+        unit.pop();
+    }
+    if !matches!(unit.last().map(|s| &s.tok), Some(Token::Newline)) {
+        let (line, file) = unit
+            .last()
+            .map(|s| (s.line, s.file.clone()))
+            .unwrap_or((1, None));
+        unit.push(Spanned::new(Token::Newline, line, 1).with_file(file));
+    }
+    out.extend(unit);
 }
 
 /// Parse a deferred body (the raw tokens of an `if`/`for` block) with the macro
@@ -333,9 +377,7 @@ fn expand(
     if depth > 64 {
         return Err(ParseError::new(
             "macro expansion too deep (recursive define?)",
-            0,
-            0,
-            0,
+            Span::new(0, 0, 0),
         ));
     }
     let mut out = Vec::new();
@@ -350,9 +392,7 @@ fn expand(
                     _ => {
                         return Err(ParseError::new(
                             "define: expected a macro name",
-                            span.line,
-                            span.col,
-                            span.end_col,
+                            span.clone(),
                         ));
                     }
                 };
@@ -364,9 +404,7 @@ fn expand(
                 let Some(delim) = toks.get(i).map(|s| s.tok.clone()) else {
                     return Err(ParseError::new(
                         "define: expected a body delimiter",
-                        span.line,
-                        span.col,
-                        span.end_col,
+                        span.clone(),
                     ));
                 };
                 let body = if delim == Token::LeftBrace {
@@ -389,9 +427,7 @@ fn expand(
                     if bd != 0 {
                         return Err(ParseError::new(
                             "define: unterminated `{` body",
-                            span.line,
-                            span.col,
-                            span.end_col,
+                            span.clone(),
                         ));
                     }
                     let body = trim_edge_newlines(&toks[start..i]);
@@ -402,9 +438,7 @@ fn expand(
                         let span = loc(toks, i);
                         return Err(ParseError::new(
                             "define: expected a body delimiter",
-                            span.line,
-                            span.col,
-                            span.end_col,
+                            span.clone(),
                         ));
                     }
                     i += 1; // past delimiter
@@ -415,9 +449,7 @@ fn expand(
                     if i >= toks.len() {
                         return Err(ParseError::new(
                             "define: unterminated delimited body",
-                            span.line,
-                            span.col,
-                            span.end_col,
+                            span.clone(),
                         ));
                     }
                     let body = trim_edge_newlines(&toks[start..i]);
@@ -520,9 +552,7 @@ fn expand(
                 let Some(Token::Str(fname)) = toks.get(i).map(|s| &s.tok) else {
                     return Err(ParseError::new(
                         "copy: expected a quoted file name (only `copy \"file\"` is supported)",
-                        span.line,
-                        span.col,
-                        span.end_col,
+                        span.clone(),
                     ));
                 };
                 let fname = fname.clone();
@@ -547,7 +577,10 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
     let mut depth = 0i32;
     loop {
         let Some(s) = toks.get(i) else {
-            return Err(ParseError::new("unterminated macro arguments", 0, 0, 0));
+            return Err(ParseError::new(
+                "unterminated macro arguments",
+                Span::new(0, 0, 0),
+            ));
         };
         match &s.tok {
             Token::Lparen | Token::LeftBrack | Token::LeftBrace => {
@@ -1056,7 +1089,7 @@ fn include_file(
     depth: usize,
     span: Span,
 ) -> Result<Vec<Spanned>, ParseError> {
-    let mkerr = |msg: String| ParseError::new(msg, span.line, span.col, span.end_col);
+    let mkerr = |msg: String| ParseError::new(msg, span.clone());
     // `copy "circuits"` is a reserved target: it loads the embedded native
     // circuit-element library — the in-source spelling of `-c`, usable even
     // where file includes are not (wasm, compile_json with no base dir). It
@@ -1067,7 +1100,7 @@ fn include_file(
         if macros.contains_key("__resistor") {
             return Ok(Vec::new());
         }
-        let toks = lex(crate::CIRCUITS)?;
+        let toks = lex_named(crate::CIRCUITS, "circuits")?;
         let mut expanded = expand(&toks, macros, depth + 1, None)?;
         if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
             expanded.pop();
@@ -1089,7 +1122,7 @@ fn include_file(
     };
     let content =
         std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
-    let toks = lex(&content)?;
+    let toks = lex_named(&content, fname)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
     let mut expanded = expand(&toks, macros, depth + 1, inc_base.as_deref())?;
     if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
@@ -1157,7 +1190,7 @@ fn copy_braced(
         out.push(s);
         i += 1;
     }
-    Err(ParseError::new("unterminated `{` body", 0, 0, 0))
+    Err(ParseError::new("unterminated `{` body", Span::new(0, 0, 0)))
 }
 
 fn read_braced_body(
@@ -1186,7 +1219,7 @@ fn read_braced_body(
         }
         i += 1;
     }
-    Err(ParseError::new("unterminated `{` body", 0, 0, 0))
+    Err(ParseError::new("unterminated `{` body", Span::new(0, 0, 0)))
 }
 
 fn static_truth(toks: &[Spanned]) -> Option<bool> {
@@ -1348,21 +1381,15 @@ impl Parser {
     }
     fn err<T>(&self, msg: impl Into<String>) -> PResult<T> {
         let s = &self.toks[self.idx];
-        Err(ParseError::new(msg, s.line, s.col, s.end_col))
+        Err(ParseError::new(msg, s.span()))
     }
     fn expected_here<T>(&self, expected: impl Into<String>) -> PResult<T> {
         let s = &self.toks[self.idx];
-        Err(ParseError::expected(
-            expected,
-            token_text(&s.tok),
-            s.line,
-            s.col,
-            s.end_col,
-        ))
+        Err(ParseError::expected(expected, token_text(&s.tok), s.span()))
     }
     fn expected_object<T>(&self) -> PResult<T> {
         let s = &self.toks[self.idx];
-        let mut e = ParseError::expected("an object", token_text(&s.tok), s.line, s.col, s.end_col);
+        let mut e = ParseError::expected("an object", token_text(&s.tok), s.span());
         if let Token::Name(name) | Token::Label(name) = &s.tok
             && let Some(hint) = suggest_object(name)
         {

@@ -32,11 +32,13 @@ unsafe fn as_str<'a>(p: *const c_char) -> Option<&'a str> {
     unsafe { CStr::from_ptr(p) }.to_str().ok()
 }
 
-fn with_circuits(src: &str, circuits: c_int) -> String {
-    if circuits != 0 {
-        format!("{}\n{}", rpic_core::CIRCUITS, src)
-    } else {
-        src.to_string()
+/// `circuits != 0` loads the embedded library as a compile option (not
+/// prepended text), so diagnostic positions stay relative to the caller's
+/// source.
+fn opts(circuits: c_int) -> rpic_core::CompileOptions {
+    rpic_core::CompileOptions {
+        circuits: circuits != 0,
+        ..Default::default()
     }
 }
 
@@ -68,7 +70,7 @@ pub unsafe extern "C" fn rpic_render_svg(src: *const c_char, circuits: c_int) ->
         return ptr::null_mut();
     };
     ensure_math_renderer();
-    match rpic_core::render_svg(&with_circuits(s, circuits)) {
+    match rpic_core::render_svg_with_options(s, &opts(circuits)) {
         Ok(svg) => to_c_string(svg),
         Err(_) => ptr::null_mut(),
     }
@@ -85,7 +87,7 @@ pub unsafe extern "C" fn rpic_compile_json(src: *const c_char, circuits: c_int) 
         return ptr::null_mut();
     };
     ensure_math_renderer();
-    to_c_string(rpic_core::compile_json(&with_circuits(s, circuits)))
+    to_c_string(rpic_core::compile_json_with_options(s, &opts(circuits)))
 }
 
 /// Render to PNG. Writes the length to `out_len`; returns the buffer or NULL.
@@ -103,7 +105,7 @@ pub unsafe extern "C" fn rpic_render_png(
         return ptr::null_mut();
     };
     ensure_math_renderer();
-    let svg = match rpic_core::render_svg(&with_circuits(s, circuits)) {
+    let svg = match rpic_core::render_svg_with_options(s, &opts(circuits)) {
         Ok(v) => v,
         Err(_) => return ptr::null_mut(),
     };
@@ -127,7 +129,7 @@ pub unsafe extern "C" fn rpic_render_pdf(
         return ptr::null_mut();
     };
     ensure_math_renderer();
-    let svg = match rpic_core::render_svg(&with_circuits(s, circuits)) {
+    let svg = match rpic_core::render_svg_with_options(s, &opts(circuits)) {
         Ok(v) => v,
         Err(_) => return ptr::null_mut(),
     };
