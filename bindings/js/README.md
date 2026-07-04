@@ -38,7 +38,7 @@ data) that is only fetched when you ask for it:
 
 ```js
 await rpic.ready(undefined, { math: true }); // browser: fetches pkg/rpic_wasm_math_bg.wasm
-rpic.renderSvg('box "$-\\\\frac{T}{2}$" fit', { texlabels: true });
+rpic.renderSvg('box "$-\\frac{T}{2}$" fit', { texlabels: true });
 ```
 
 Apps can keep the fast path untouched and lazy-load math only when the source

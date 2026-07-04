@@ -17,7 +17,7 @@ def test_circuits_option():
 
 
 def test_texlabels_typesets():
-    svg = rpic.render_svg('box "$-\\\\frac{T}{2}$" wid 1 ht 0.7', texlabels=True)
+    svg = rpic.render_svg('box "$-\\frac{T}{2}$" wid 1 ht 0.7', texlabels=True)
     assert "frac" not in svg  # typeset as glyph paths, no raw TeX leaks
 
 

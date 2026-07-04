@@ -8,7 +8,7 @@ import { compile, ready, renderSvg } from '../index.js';
 const wasm = readFileSync(new URL('../pkg/rpic_wasm_math_bg.wasm', import.meta.url));
 await ready(wasm, { math: true });
 
-const out = compile('box "$-\\\\frac{T}{2}$" wid 1 ht 0.7', { texlabels: true });
+const out = compile('box "$-\\frac{T}{2}$" wid 1 ht 0.7', { texlabels: true });
 assert.match(out.svg, /<svg\b/);
 // the formula is embedded as a nested <svg> fragment of glyph paths
 assert.match(out.svg, /<svg x="/);

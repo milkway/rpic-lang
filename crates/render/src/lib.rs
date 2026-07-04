@@ -154,7 +154,7 @@ mod tests {
         // rasterized by resvg / converted by svg2pdf. Pins that the exact
         // markup the extension emits stays backend-stable.
         rpic_core::set_math_renderer(math::render_math);
-        let src = "texlabels = 1\nbox \"$-\\\\frac{T}{2}$\" wid 1 ht 0.7";
+        let src = "texlabels = 1\nbox \"$-\\frac{T}{2}$\" wid 1 ht 0.7";
         let d = rpic_core::compile(src).unwrap();
         let svg = rpic_core::to_svg(&d);
         assert!(svg.contains("<svg x=\""), "{svg}");

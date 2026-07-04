@@ -29,7 +29,7 @@ png = rpic.render_png('circle "grid" hatch', scale=2)          # bytes
 pdf = rpic.render_pdf('A:(0,0); B:(2,0)\nresistor(A,B)', circuits=True)
 
 # TeX math labels, exactly like `rpic -t`
-svg = rpic.render_svg('box "$e^{j\\\\pi}+1=0$" fit', texlabels=True)
+svg = rpic.render_svg('box "$e^{j\\pi}+1=0$" fit', texlabels=True)
 
 # the parsed bundle: svg + animation manifest + diagnostics + warnings
 bundle = rpic.compile('box\nanimate last box with "pop"')
@@ -73,8 +73,13 @@ fetched artifact; opt in at init and math typesets exactly like the CLI:
 
 ```js
 await ready(undefined, { math: true });  // fetches pkg/rpic_wasm_math_bg.wasm
-renderSvg('box "$-\\\\frac{T}{2}$" fit', { texlabels: true });
+renderSvg('box "$-\\frac{T}{2}$" fit', { texlabels: true });
 ```
+
+**Escaping note (all bindings):** TeX commands take a **single** backslash in
+the pic source — `$\frac{T}{2}$`. In a JS/Python/R string literal that is
+written `"$\\frac{T}{2}$"`. A doubled backslash in the pic source (`\\`) is a
+TeX *line break*, so `"$\\\\frac{…}$"` typesets a broken multi-line label.
 
 ### Errors and warnings for editors
 
