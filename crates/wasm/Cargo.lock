@@ -472,11 +472,11 @@ checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 
 [[package]]
 name = "rpic-core"
-version = "0.6.0"
+version = "0.6.1"
 
 [[package]]
 name = "rpic-render"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "ratex-layout",
  "ratex-parser",
@@ -487,7 +487,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-wasm"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "rpic-core",
  "rpic-render",
