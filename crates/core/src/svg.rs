@@ -138,7 +138,7 @@ impl Svg {
                         "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" {}/>\n",
                         num(cc.x),
                         num(cc.y),
-                        num(r * PPI),
+                        num(r.abs() * PPI),
                         paint
                     ));
                 }
@@ -158,8 +158,8 @@ impl Svg {
                         "<ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" {}/>\n",
                         num(cc.x),
                         num(cc.y),
-                        num(w / 2.0 * PPI),
-                        num(h / 2.0 * PPI),
+                        num(w.abs() / 2.0 * PPI),
+                        num(h.abs() / 2.0 * PPI),
                         paint
                     ));
                 }
@@ -1645,6 +1645,21 @@ mod tests {
         assert!(s.contains("height=\"24\""), "{s}");
         assert!(!s.contains("width=\"-"), "{s}");
         assert!(!s.contains("height=\"-"), "{s}");
+    }
+
+    #[test]
+    fn negative_circle_and_ellipse_dimensions_emit_positive_svg_radii() {
+        let s = svg("circle rad -0.5");
+        assert!(s.contains("<circle"), "{s}");
+        assert!(s.contains(" r=\"48\""), "{s}");
+        assert!(!s.contains(" r=\"-"), "{s}");
+
+        let s = svg("ellipse wid -1 ht -0.5");
+        assert!(s.contains("<ellipse"), "{s}");
+        assert!(s.contains(" rx=\"48\""), "{s}");
+        assert!(s.contains(" ry=\"24\""), "{s}");
+        assert!(!s.contains(" rx=\"-"), "{s}");
+        assert!(!s.contains(" ry=\"-"), "{s}");
     }
 
     #[test]
