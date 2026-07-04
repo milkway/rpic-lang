@@ -294,11 +294,15 @@ pub enum Place {
     Name {
         name: String,
         subscript: Option<Box<Expr>>,
+        /// Span of the reference (for eval-phase diagnostics).
+        span: Option<Span>,
     },
     /// `last box`, `2nd last circle`, etc.
     Nth {
         count: Nth,
         obj: PrimObj,
+        /// Span of the reference (for eval-phase diagnostics).
+        span: Option<Span>,
     },
     /// `place . corner` (e.g. `A.ne`).
     Corner(Box<Place>, Corner),
