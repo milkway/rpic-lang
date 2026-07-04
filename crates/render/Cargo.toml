@@ -27,6 +27,11 @@ math = [
 
 [dependencies]
 resvg = { version = "0.47.0", optional = true }
+# svg2pdf 0.13 (newest as of 2026-07; upstream quiet since 2025-03) pins its
+# own resvg/usvg 0.45, so the lock carries both 0.45 and 0.47 pipelines
+# (kurbo/png/gif duplicated too). Deliberate: we keep resvg newest-stable
+# rather than downgrading to match. Revisit at each release — a svg2pdf
+# release on resvg 0.47+ collapses the tree (tracked in #213).
 svg2pdf = { version = "0.13.0", optional = true }
 rpic-core = { version = "0.6.1", path = "../core", optional = true }
 ratex-parser = { version = "0.1.12", optional = true }
