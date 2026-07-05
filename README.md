@@ -20,6 +20,7 @@
   <a href="https://crates.io/crates/rpic-cli"><img src="https://img.shields.io/crates/v/rpic-cli?label=crates.io&color=informational" alt="crates.io"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--2--Clause-blue.svg" alt="License"></a>
   <a href="https://pypi.org/project/rpiclang/"><img src="https://img.shields.io/pypi/v/rpiclang?label=PyPI&color=informational" alt="PyPI"></a>
+  <a href="https://www.npmjs.com/package/@strategicprojects/rpic"><img src="https://img.shields.io/npm/v/%40strategicprojects%2Frpic?label=npm&color=informational" alt="npm"></a>
   <img src="https://img.shields.io/badge/rust-edition%202024-orange.svg" alt="Rust 2024">
 </p>
 
@@ -45,6 +46,10 @@ to the modern web era:
 
 - **SVG / PNG / PDF**, all **pure-Rust** — no troff, no LaTeX, no ImageMagick,
   no system libraries.
+- **Fast**: single-digit-millisecond cold renders, flat with diagram size —
+  ~80× faster than mermaid-cli in a docs pipeline
+  ([benchmark](https://rpic.dev/docs/performance/), reproducible via
+  [`tools/bench`](tools/bench)).
 - A small **declarative animation** layer (`animate …`) that plays in the
   browser with [GSAP](https://gsap.com/).
 - A native **circuit-element library** (79 elements) — a from-scratch
