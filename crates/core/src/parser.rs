@@ -2269,6 +2269,35 @@ impl Parser {
                 self.bump();
                 Attr::BraceLabelOffset(self.parse_expr()?)
             }
+            Token::Name(n) if n == "bold" => {
+                self.bump();
+                Attr::Bold
+            }
+            Token::Name(n) if n == "italic" => {
+                self.bump();
+                Attr::Italic
+            }
+            Token::Name(n) if n == "mono" => {
+                self.bump();
+                Attr::Mono
+            }
+            Token::Name(n) if n == "font" => {
+                self.bump();
+                // a family may be a quoted string or a bareword name, like
+                // colours (`font "IBM Plex Mono"`, `font serif`)
+                let s = match self.cur().clone() {
+                    Token::Name(n) | Token::Label(n) => {
+                        self.bump();
+                        StringExpr::Lit(n)
+                    }
+                    _ => self.parse_stringexpr()?,
+                };
+                Attr::Font(s)
+            }
+            Token::Name(n) if n == "fontsize" => {
+                self.bump();
+                Attr::FontSize(self.parse_expr()?)
+            }
             Token::Name(n) if n == "behind" => {
                 self.bump();
                 Attr::Behind(self.parse_place()?)

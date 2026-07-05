@@ -1888,7 +1888,16 @@ impl State {
             .unwrap_or(self.env_dim(EnvVar::Textwid)?);
         let h = match self.dim(obj, DimKind::Ht)? {
             Some(h) => h,
-            None => self.env_dim(EnvVar::Textht)? * text.len().max(1) as f64,
+            None => {
+                // classic: textht per line; a styled line contributes its
+                // fontsize ratio, so `"big" fontsize 22` gets a 2x line
+                let lines: f64 = if text.is_empty() {
+                    1.0
+                } else {
+                    text.iter().map(|l| l.height_factor()).sum()
+                };
+                self.env_dim(EnvVar::Textht)? * lines.max(1.0)
+            }
         };
         let extent = if horizontal(dir) { w } else { h };
         let at = self.place_center(obj, dir, extent, w, h)?;
@@ -2461,6 +2470,9 @@ impl State {
         let mut fit_lines = None;
         let mut pending_halign = 0i8;
         let mut pending_valign = 0i8;
+        // rpic font attributes bind like ljust/rjust: to the preceding string,
+        // or — written before any string — to the next one.
+        let mut pending_style = PendingStyle::default();
         for a in &obj.attrs {
             match a {
                 Attr::TextPos(tp) => {
@@ -2468,6 +2480,35 @@ impl State {
                         apply_text_pos(&mut line.halign, &mut line.valign, *tp);
                     } else {
                         apply_text_pos(&mut pending_halign, &mut pending_valign, *tp);
+                    }
+                }
+                Attr::Bold => match lines.last_mut() {
+                    Some(line) => line.bold = true,
+                    None => pending_style.bold = true,
+                },
+                Attr::Italic => match lines.last_mut() {
+                    Some(line) => line.italic = true,
+                    None => pending_style.italic = true,
+                },
+                Attr::Mono => match lines.last_mut() {
+                    Some(line) => line.family = Some("monospace".into()),
+                    None => pending_style.family = Some("monospace".into()),
+                },
+                Attr::Font(se) => {
+                    let family = self.eval_stringexpr(se)?;
+                    match lines.last_mut() {
+                        Some(line) => line.family = Some(family),
+                        None => pending_style.family = Some(family),
+                    }
+                }
+                Attr::FontSize(e) => {
+                    let pt = self.eval_expr(e)?;
+                    if !pt.is_finite() || pt <= 0.0 {
+                        return err("fontsize must be a positive number of points");
+                    }
+                    match lines.last_mut() {
+                        Some(line) => line.size_pt = Some(pt),
+                        None => pending_style.size_pt = Some(pt),
                     }
                 }
                 Attr::Text(se) => {
@@ -2479,9 +2520,14 @@ impl State {
                         halign: pending_halign,
                         valign: pending_valign,
                         text_offset: self.env_dim(EnvVar::Textoffset)?,
+                        bold: pending_style.bold,
+                        italic: pending_style.italic,
+                        family: pending_style.family.take(),
+                        size_pt: pending_style.size_pt,
                     });
                     pending_halign = 0;
                     pending_valign = 0;
+                    pending_style = PendingStyle::default();
                 }
                 Attr::Fit if fit_lines.is_none() => {
                     fit_lines = Some(lines.clone());
@@ -3351,12 +3397,21 @@ fn cubics_bbox(cubics: &[[Point; 4]]) -> Bbox {
     bb
 }
 
+/// Font attributes seen before their string (they bind to the next one).
+#[derive(Default)]
+struct PendingStyle {
+    bold: bool,
+    italic: bool,
+    family: Option<String>,
+    size_pt: Option<f64>,
+}
+
 /// Line advance width: exact metrics for typeset math, the classic
-/// 0.6 em/char estimate otherwise.
+/// 0.6 em/char estimate otherwise (scaled by the line's font style).
 fn text_line_width(line: &TextLine) -> f64 {
     match &line.math {
         Some(m) => m.width,
-        None => line.s.chars().count() as f64 * TEXT_CHAR_W,
+        None => line.s.chars().count() as f64 * TEXT_CHAR_W * line.width_factor(),
     }
 }
 
@@ -3399,8 +3454,9 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
                 bb.add(Point::new(max_x, center + half));
             }
             None => {
-                bb.add(Point::new(min_x, y - TEXT_LINE_H / 2.0));
-                bb.add(Point::new(max_x, y + TEXT_LINE_H / 2.0));
+                let half_h = TEXT_LINE_H * line.height_factor() / 2.0;
+                bb.add(Point::new(min_x, y - half_h));
+                bb.add(Point::new(max_x, y + half_h));
             }
         }
     }
@@ -5451,6 +5507,60 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert_eq!(scalar("rightmargin").unwrap(), 0.0);
         assert_eq!(scalar("bottommargin").unwrap(), 0.0);
         assert_eq!(scalar("leftmargin").unwrap(), 0.0);
+    }
+
+    #[test]
+    fn font_attrs_bind_per_string_like_ljust() {
+        // after the string: binds to the preceding one
+        let d = draw("box \"a\" bold \"b\" italic fontsize 9");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(text[0].bold && !text[0].italic && text[0].size_pt.is_none());
+        assert!(text[1].italic && !text[1].bold && text[1].size_pt == Some(9.0));
+        // before any string: binds to the next one only
+        let d = draw("box bold \"a\" \"b\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(text[0].bold && !text[1].bold);
+        // mono and font "…" set the family
+        let d = draw("box \"a\" mono \"b\" font \"Georgia\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].family.as_deref(), Some("monospace"));
+        assert_eq!(text[1].family.as_deref(), Some("Georgia"));
+    }
+
+    #[test]
+    fn font_attrs_feed_fit_and_bbox() {
+        let plain = draw("box \"word\" fit");
+        let bold = draw("box \"word\" bold fit");
+        let big = draw("box \"word\" fontsize 22 fit");
+        assert!(bold.bbox.width() > plain.bbox.width());
+        assert!(big.bbox.width() > bold.bbox.width());
+        assert!(big.bbox.height() > plain.bbox.height());
+        // standalone text: default height follows the fontsize ratio
+        let plain = draw("\"word\"");
+        let big = draw("\"word\" fontsize 22");
+        assert!(big.bbox.height() > 1.5 * plain.bbox.height());
+    }
+
+    #[test]
+    fn font_attrs_reject_bad_sizes() {
+        let e = eval(&parse("box \"x\" fontsize 0").unwrap()).unwrap_err();
+        assert!(e.msg.contains("positive number of points"), "{}", e.msg);
+        let e = eval(&parse("box \"x\" fontsize -3").unwrap()).unwrap_err();
+        assert!(e.msg.contains("positive number of points"), "{}", e.msg);
+    }
+
+    #[test]
+    fn font_attr_words_stay_usable_as_variables() {
+        // `bold`/`italic`/`mono` only act in attribute position; as plain
+        // variables in expressions they keep their classic meaning
+        let d = draw("bold = 2\nbox wid bold \"x\"");
+        assert!((d.bbox.width() - 2.0).abs() < 0.05, "{}", d.bbox.width());
     }
 
     #[test]

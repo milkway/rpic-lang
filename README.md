@@ -88,7 +88,8 @@ Programmability: `define` macros with `$1…$9`, `for`, `if`, `sprintf`,
 environment variables.
 
 Explicit rpic extensions — `margin`, `canvas`, `fit`, `behind`, `close`, `brace`,
-`hatch`, `gradient`, `opacity`, `class` hooks, `dot`, **`texlabels`**
+`hatch`, `gradient`, `opacity`, `class` hooks, `dot`, font attributes
+(`bold`/`italic`/`mono`/`font`/`fontsize`), **`texlabels`**
 (KaTeX-grade TeX math in labels, rendered natively) and the `animate` layer —
 are opt-in and inert for classic pic/dpic-compatible input. Each has a page with live
 examples at [rpic.dev](https://rpic.dev/docs/extensions/margin); the design

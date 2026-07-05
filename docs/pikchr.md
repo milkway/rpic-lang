@@ -112,7 +112,7 @@ Implementation is tracked in
 | Maybe | Simple aliases such as `invisible`, `previous`, and `first` | Ergonomic and likely low risk, but aliases should be grouped and tested separately from parity work. |
 | Adopt | `dot` object | Implemented as a contextual primitive with `dotrad` (#153): the native form of the circuit-macros junction idiom. |
 | Maybe | New object types: `diamond`, `oval`, `file`, `cylinder` | `diamond` looks tractable; `file`/`cylinder` need new geometry and anchor rules. Best handled as explicit extensions. |
-| Maybe | Text styling: `bold`, `italic`, `mono`, `big`, `small`, `aligned` | Good SVG-era ergonomics, but requires IR/text model changes and careful fallback behavior. |
+| **Adopted (v0.7)** | Text styling: `bold`, `italic`, `mono` (+ rpic's `font "…"`/`fontsize n`) | Per-string attributes binding like `ljust`; styled metrics feed `fit`/bboxes; PNG/PDF embed the styled Go faces. `big`/`small` are covered by `fontsize`; `aligned` still open. |
 | Maybe | Path conveniences: `go ... heading`, `until even with`, `same as <object>` | Nice authoring improvements, but parser/evaluator surface is larger. Should wait until parity regressions are quiet. |
 | Do not adopt | Pikchr omissions of classic pic features (`copy`, `for`, `if`, `sprintf`, `sh`, block scoping changes) | rpic's compatibility target is classic pic/dpic. Security or simplicity choices in Pikchr must not remove supported pic semantics. |
 | Do not adopt | Pikchr arc approximation as a replacement for dpic arc behavior | rpic should keep dpic-compatible arc geometry; Pikchr explicitly treats legacy arc semantics as obscure and approximates them. |
