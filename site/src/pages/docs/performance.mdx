@@ -1,0 +1,64 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Performance
+description: Render-to-SVG speed — rpic vs the pic family and auto-layout tools, with an honest methodology.
+---
+
+# Performance
+
+How fast does text become SVG? The benchmark below renders the **same
+diagram** — a chain of N labelled boxes joined by arrows — expressed in each
+tool's own language, and times **cold CLI invocations** (process start to
+SVG written), which is what a documentation build or CI pipeline actually
+pays per diagram.
+
+| Tool | 5 nodes | 30 nodes | 120 nodes | Layout model |
+|------|--------:|--------:|---------:|--------------|
+| pikchr (C) | 2.3 ms | 2.7 ms | 3.4 ms | explicit (pic) |
+| dpic (C) | 3.1 ms | 3.6 ms | 4.0 ms | explicit (pic) |
+| **rpic (Rust)** | **5.3 ms** | **5.9 ms** | **6.1 ms** | explicit (pic) |
+| graphviz `dot` | 96 ms | 92 ms | 95 ms | automatic |
+| d2 | 72 ms | 161 ms | 580 ms | automatic |
+| mermaid (`mmdc`) | 622 ms | 664 ms | 1 075 ms | automatic, headless Chromium |
+
+<small>Apple M2 Pro, macOS; `hyperfine` with warmup; mean of ≥10 runs.
+Outputs verified complete (all N nodes present in every SVG). Reproduce with
+[`tools/bench/run.sh`](https://github.com/milkway/rpic-lang/tree/main/tools/bench).</small>
+
+**The docs-pipeline scenario** — 50 small diagrams rendered in sequence,
+the shape of this very site's build:
+
+| | total | per diagram |
+|---|---:|---:|
+| rpic | 0.32 s | ~6.4 ms |
+| mermaid (`mmdc`) | 25.9 s | ~519 ms |
+
+That is an **~80× difference** — the gap between a site build you don't
+notice and one you schedule around.
+
+## Read the numbers honestly
+
+- **rpic sits in the C class.** Single-digit milliseconds, essentially flat
+  with diagram size (5.3 → 6.1 ms from 5 to 120 nodes — the cost is process
+  startup, not compilation). The couple of milliseconds above dpic/pikchr
+  is binary size (embedded fonts, the math renderer), not the engine.
+- **The comparison has a built-in asymmetry.** graphviz, d2 and mermaid
+  *compute the layout* — a genuinely expensive and valuable problem. The
+  pic family delegates placement to the author. These are different value
+  propositions; this page measures pipeline cost, not which tool you
+  should love.
+- **mermaid's floor is the browser, not the algorithm.** `mmdc` boots a
+  headless Chromium per invocation (~600 ms before any diagram work).
+  Embedded in a live page, mermaid.js renders far cheaper — but in CI and
+  static-site builds, the CLI is what runs.
+- **d2's layout cost grows with size** (72 → 580 ms across our range);
+  graphviz is flat but starts near 100 ms.
+
+## Why rpic is fast
+
+No system dependencies to shell out to, no VM, no browser: one static
+binary parses, evaluates and serializes SVG in a single pass, and the
+[`texlabels`](/docs/extensions/texlabels/) math renderer only engages when
+a `$…$` label exists. The same engine compiled to WebAssembly powers the
+[playground](https://rpic.dev/) and the [JS binding](/docs/bindings/), so
+in-browser rendering needs no server round-trip at all.

@@ -62,6 +62,7 @@ export const nav: NavSection[] = [
     items: [
       { title: 'Language spec', href: '/docs/spec' },
       { title: 'The pic family', href: '/docs/pic-family' },
+      { title: 'Performance', href: '/docs/performance' },
     ],
   },
 ];
