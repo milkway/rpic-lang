@@ -112,16 +112,32 @@ compile('box "a" dashd').warnings; // [{ kind: "ignored_attribute", hint: "did y
 ## R
 
 The [`rpic` R package](https://github.com/milkway/rpic-r) wraps the same
-core via extendr:
+core via extendr — aligned with the engine at 0.6.x, with its own
+[pkgdown site and vignettes](https://milkway.github.io/rpic-r/):
 
 ```r
 library(rpic)
 svg <- rpic_svg('box "hello" fit')
 rpic_png('circle rad 0.4 gradient "gold" "white"', "out.png", scale = 2)
 rpic_svg('A:(0,0); B:(2,0)\nresistor(A,B)', circuits = TRUE)
+
+# TeX math labels, exactly like `rpic -t`
+rpic_svg('box "$-\\frac{T}{2}$" fit', texlabels = TRUE)
+
+# knitr / Quarto engine for ```{rpic} chunks
+rpic_register_knitr()
 ```
 
-It lives in its own repository and follows rpic releases with a small lag.
+Compile errors are classed `rpic_error` conditions carrying the same
+structured diagnostic as the other bindings (`NA` = absent field):
+
+```r
+tryCatch(
+  rpic_svg("bxo", circuits = TRUE),
+  rpic_error = function(e) list(line = e$info$line, hint = e$info$hint)
+)
+#> $line 1    $hint "did you mean `box`?"
+```
 
 ## C
 
@@ -157,5 +173,8 @@ int main(void) {
 ## CLI as an FFI of last resort
 
 Everything the bindings do is also one process away:
-`rpic --json file.pic` emits `{svg, animations, diagnostics, warnings}` — this
-documentation site drives its live examples exactly that way.
+`rpic --json file.pic` emits `{svg, animations, diagnostics, warnings}` on
+success and `{error, error_info}` on failure — `error_info` is the same
+structured diagnostic the bindings surface (`message`, `line`, `col`,
+`end_col`, `file`, `kind`, `found`, `expected`, `hint`). This documentation
+site drives its live examples exactly that way.
