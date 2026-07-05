@@ -16,15 +16,17 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 <DocsLayout title="rpic — pic pictures, reimagined in Rust">
   <div class="max-w-3xl">
-    <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-3">v0.4.0 — the styling &amp; typography release</p>
+    <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-3">v0.7.0 — typography, colour &amp; editor geometry</p>
     <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4">
       Describe the picture.<br />rpic draws it.
     </h1>
     <p class="text-lg text-slate-600 dark:text-slate-300 leading-8 mb-6">
       rpic is Brian Kernighan's <b>pic</b> picture-drawing language reimplemented in Rust —
       native SVG/PNG/PDF output, a 79-element circuit library, KaTeX-grade TeX math in labels,
-      gradients, hatch fills, CSS hooks, a declarative animation layer and editor-grade
-      structured diagnostics. Classic pic stays classic; every extension is opt-in.
+      real typography (bold/italic/mono, any font &amp; size), gradients, hatch fills,
+      <code class="text-base font-mono">rgb()</code>/hex colours, rotated labels, CSS hooks, a
+      declarative animation layer, structured diagnostics and per-object geometry for visual
+      editors. Classic pic stays classic; every extension is opt-in.
     </p>
     <div class="flex flex-wrap items-center gap-3 mb-12">
       <a href={`${base}/docs/installation`}
@@ -41,11 +43,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       set:html={heroSvg} />
   </div>
 
-  <div class="grid sm:grid-cols-3 gap-6 max-w-4xl">
+  <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl">
     {[
       ['Kernighan-first', 'Classic pic semantics with dpic as the practical oracle — 72/72 manual figures at parity.'],
       ['Batteries included', 'SVG, PNG and PDF from one pure-Rust binary. Python, JS/WASM, R and C bindings.'],
-      ['Honest extensions', 'texlabels, gradients, hatch, class hooks, animate — each opt-in, documented and inert when unused.'],
+      ['Honest extensions', 'Typography, colour, rotation, TeX math, gradients, hatch, animation, CSS hooks — each opt-in and inert when unused.'],
+      ['Built for editors', 'Per-object geometry, a fixed-canvas mode and structured diagnostics with exact spans — a stable base for visual tooling.'],
     ].map(([t, d]) => (
       <div class="rounded-xl border border-slate-200 dark:border-slate-800 p-5">
         <h3 class="font-semibold text-slate-900 dark:text-white mb-1 mt-0">{t}</h3>
@@ -57,12 +60,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <div class="mt-16 max-w-4xl border-t border-slate-200 dark:border-slate-800 pt-6">
     <h2 class="text-sm font-semibold text-slate-900 dark:text-white mb-2">How to cite</h2>
     <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0">
-      Using rpic in academic work? Cite it via its
+      Using rpic in academic work? Cite it via its{' '}
       <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href="https://doi.org/10.5281/zenodo.21209915">Zenodo record</a>.
       The concept DOI <code class="font-mono text-[13px]">10.5281/zenodo.21209915</code> always
       resolves to the latest release; each version also gets its own DOI, and GitHub's
-      “Cite this repository” reads the
-      <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href="https://github.com/milkway/rpic-lang/blob/main/CITATION.cff">CITATION.cff</a>
+      “Cite this repository” reads the{' '}
+      <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href="https://github.com/milkway/rpic-lang/blob/main/CITATION.cff">CITATION.cff</a>{' '}
       for BibTeX and APA.
     </p>
   </div>

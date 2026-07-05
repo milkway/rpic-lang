@@ -55,12 +55,15 @@ to the modern web era:
   browser with [GSAP](https://gsap.com/).
 - A native **circuit-element library** (79 elements) — a from-scratch
   re-imagining of `circuit_macros`.
-- **Editor-grade diagnostics**: structured errors with exact spans,
-  did-you-mean hints, and a warnings channel for accepted-but-ignored input —
-  positions always relative to your own source, even across includes and
-  loaded libraries.
+- **Real typography**: per-string `bold` / `italic` / `mono`, any font family
+  and size, `rotated` labels, and native `rgb()` / `#hex` colours — all
+  feeding the layout so `fit` and bounding boxes stay correct.
+- **Built for editors**: structured diagnostics with exact spans and
+  did-you-mean hints, per-object geometry in the `--json` output (`objects`:
+  kind, bbox, source span), and a fixed-canvas mode for a stable viewBox —
+  a base visual editors can build on without DOM heuristics.
 - One core, **many targets**: a native CLI, WebAssembly, and bindings for
-  **Python**, **R**, and **JavaScript/TypeScript**.
+  **Python**, **R**, **JavaScript/TypeScript**, and **C**.
 
 The compatibility rule is deliberately **Kernighan-first**: the 1982 paper and
 manual set the language philosophy and the meaning of classic pic constructs.
