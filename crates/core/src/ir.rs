@@ -28,6 +28,10 @@ pub struct Drawing {
     /// Extra canvas whitespace in inches. This is an rpic extension inspired by
     /// Pikchr: it affects native backend framing only, not pic geometry.
     pub canvas_margin: CanvasMargin,
+    /// rpic extension: a fixed page rectangle (`canvas from … to …`) in model
+    /// space. When set, the SVG viewBox is derived from it instead of the
+    /// content bounds; content outside is clipped by the viewBox.
+    pub canvas: Option<Bbox>,
     pub anims: Vec<Anim>,
     /// Lines emitted by pic `print` statements, without trailing newlines.
     pub diagnostics: Vec<String>,

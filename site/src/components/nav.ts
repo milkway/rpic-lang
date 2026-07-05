@@ -32,6 +32,7 @@ export const nav: NavSection[] = [
     label: 'rpic extensions',
     items: [
       { title: 'margin', href: '/docs/extensions/margin' },
+      { title: 'canvas', href: '/docs/extensions/canvas' },
       { title: 'fit', href: '/docs/extensions/fit' },
       { title: 'behind', href: '/docs/extensions/behind' },
       { title: 'close', href: '/docs/extensions/close' },

@@ -1557,6 +1557,21 @@ impl Parser {
             return Ok(Stmt::Class { target, class });
         }
 
+        // rpic `canvas from <pos> to <pos>` statement (extension). Contextual
+        // and stricter than `class`: only the exact `canvas from …` spelling
+        // triggers, so `canvas = 2`, a `canvas(…)` macro and a plain variable
+        // named canvas all keep their classic meaning.
+        if matches!(self.cur(), Token::Name(n) if n == "canvas")
+            && matches!(self.peek(1), Token::Kw(Kw::From))
+        {
+            self.bump();
+            self.bump();
+            let from = self.parse_position()?;
+            self.expect(&Token::Kw(Kw::To))?;
+            let to = self.parse_position()?;
+            return Ok(Stmt::Canvas { from, to });
+        }
+
         // control constructs
         match self.cur() {
             Token::Kw(Kw::If) => return self.parse_if(),

@@ -125,6 +125,10 @@ pub enum Stmt {
     /// rpic extension: `class <place> "name"` — append a CSS class to an
     /// already-drawn object's shape group (labels and ordinals both work).
     Class { target: Place, class: StringExpr },
+    /// rpic extension: `canvas from <pos> to <pos>` — fix the output page to
+    /// the rectangle spanned by the two corners, independent of content, so
+    /// the viewBox stays stable while objects move (visual editors).
+    Canvas { from: Position, to: Position },
     /// `if <cond> then { … } [else { … }]`. Bodies are deferred raw tokens.
     If {
         cond: Expr,

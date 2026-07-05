@@ -87,7 +87,7 @@ named labels, compass corners (`.n .ne .center …`), ordinals (`last`,
 Programmability: `define` macros with `$1…$9`, `for`, `if`, `sprintf`,
 environment variables.
 
-Explicit rpic extensions — `margin`, `fit`, `behind`, `close`, `brace`,
+Explicit rpic extensions — `margin`, `canvas`, `fit`, `behind`, `close`, `brace`,
 `hatch`, `gradient`, `opacity`, `class` hooks, `dot`, **`texlabels`**
 (KaTeX-grade TeX math in labels, rendered natively) and the `animate` layer —
 are opt-in and inert for classic pic/dpic-compatible input. Each has a page with live
