@@ -1,0 +1,137 @@
+---
+// Render-time distribution at 120 nodes, as a horizontal box plot on a LOG
+// time axis — the only honest axis for a field spanning three orders of
+// magnitude (2.7 ms → 1.3 s). Box = interquartile range, tick = median,
+// whiskers = 1.5·IQR. Highlight-vs-context colour: rpic emerald, every other
+// tool a deliberate neutral (validated: light #047857/#64748b on #fcfcfb,
+// dark #059669/#64748b on #020617 — CVD ΔE 23, contrast pass; the neutral
+// reading "gray" is the point, and every box is directly labelled so identity
+// is never colour-alone). Each box carries a full-stats <title> on hover.
+interface Box {
+  tool: string;
+  lang: string;
+  self?: boolean;
+  n: number;
+  min: number;
+  q1: number;
+  med: number;
+  q3: number;
+  whiskLo: number;
+  whiskHi: number;
+  max: number;
+}
+
+// Apple M2 Pro · hyperfine · 120-node chain · times in ms (see tools/bench).
+const boxes: Box[] = [
+  { tool: 'pikchr', lang: 'C', n: 325, min: 2.72, q1: 3.29, med: 3.43, q3: 4.19, whiskLo: 2.72, whiskHi: 5.5, max: 10.74 },
+  { tool: 'dpic', lang: 'C', n: 347, min: 3.35, q1: 3.85, med: 4.01, q3: 4.29, whiskLo: 3.35, whiskHi: 4.93, max: 10.76 },
+  { tool: 'rpic', lang: 'Rust', self: true, n: 283, min: 5.18, q1: 5.75, med: 5.94, q3: 6.27, whiskLo: 5.18, whiskHi: 7.04, max: 20.28 },
+  { tool: 'graphviz dot', lang: 'C', n: 31, min: 89.31, q1: 92.78, med: 96.93, q3: 106.36, whiskLo: 89.31, whiskHi: 118.83, max: 147.73 },
+  { tool: 'd2', lang: 'Go', n: 10, min: 561.83, q1: 571.26, med: 573.25, q3: 576.34, whiskLo: 568.02, whiskHi: 577.93, max: 591.02 },
+  { tool: 'mermaid', lang: 'mmdc', n: 10, min: 1037.82, q1: 1065.74, med: 1080.65, q3: 1180.44, whiskLo: 1037.82, whiskHi: 1316.0, max: 1316.0 },
+];
+
+// ---- geometry (SVG user units; the viewBox scales to the container) --------
+const W = 760;
+const padL = 116; // tool-label gutter
+const padR = 20;
+const padT = 30; // top axis
+const padB = 34; // bottom axis labels
+const rowH = 40;
+const H = padT + boxes.length * rowH + padB;
+const plotW = W - padL - padR;
+
+// log10 time axis, 1 ms → 2000 ms (decades 1/10/100/1000)
+const D0 = 0; // log10(1)
+const D1 = Math.log10(2000);
+const x = (ms: number) => padL + ((Math.log10(ms) - D0) / (D1 - D0)) * plotW;
+const decades = [1, 10, 100, 1000];
+const minorTicks = [2, 5, 20, 50, 200, 500];
+
+const rowY = (i: number) => padT + i * rowH + rowH / 2;
+const fmt = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v.toFixed(1)} ms`);
+const boxHalf = 9; // half-height of the IQR box
+const BOX_MIN = 3; // floor so a sub-pixel IQR still reads as a mark
+---
+
+<figure class="not-prose my-8 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <figcaption class="px-5 pt-4 pb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60">
+    <h3 class="m-0 text-sm font-semibold text-slate-900 dark:text-white">
+      Render-time distribution <span class="font-normal text-slate-500 dark:text-slate-400">— 120-node chain, log axis</span>
+    </h3>
+    <div class="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
+      <span class="inline-flex items-center gap-1.5">
+        <span class="inline-block w-3 h-2.5 rounded-[2px] bg-[#047857] dark:bg-[#059669]"></span> rpic
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <span class="inline-block w-3 h-2.5 rounded-[2px] bg-[#64748b]"></span> other tools
+      </span>
+    </div>
+  </figcaption>
+
+  <div class="overflow-x-auto px-2 py-3">
+    <svg viewBox={`0 0 ${W} ${H}`} class="w-full min-w-[560px]" role="img"
+      aria-label="Box plot of render time at 120 nodes on a logarithmic axis: pikchr median 3.4 ms, dpic 4.0 ms, rpic 5.9 ms, graphviz dot 97 ms, d2 573 ms, mermaid 1.08 s.">
+      <!-- decade gridlines -->
+      {decades.map((d) => (
+        <g>
+          <line x1={x(d)} x2={x(d)} y1={padT - 6} y2={H - padB + 4}
+            class="stroke-slate-200 dark:stroke-slate-800" stroke-width="1" />
+          <text x={x(d)} y={H - padB + 20} text-anchor="middle"
+            class="fill-slate-400 dark:fill-slate-500 text-[11px] tabular-nums">
+            {d >= 1000 ? `${d / 1000} s` : `${d} ms`}
+          </text>
+        </g>
+      ))}
+      {minorTicks.map((d) => (
+        <line x1={x(d)} x2={x(d)} y1={padT - 2} y2={H - padB} stroke-dasharray="2 3"
+          class="stroke-slate-100 dark:stroke-slate-800/50" stroke-width="1" />
+      ))}
+
+      {boxes.map((b, i) => {
+        const y = rowY(i);
+        const bx1 = x(b.q1);
+        const bx2 = Math.max(x(b.q3), bx1 + BOX_MIN);
+        const accent = b.self;
+        const boxFill = accent ? 'fill-[#047857] dark:fill-[#059669]' : 'fill-[#64748b]';
+        const stroke = accent ? 'stroke-[#047857] dark:stroke-[#059669]' : 'stroke-[#64748b]';
+        const label = accent
+          ? 'fill-emerald-900 dark:fill-emerald-200 font-semibold'
+          : 'fill-slate-600 dark:fill-slate-300';
+        return (
+          <g>
+            {b.self && (
+              <rect x={padL - 6} y={y - rowH / 2 + 3} width={plotW + 12} height={rowH - 6} rx="6"
+                class="fill-emerald-50/70 dark:fill-emerald-950/30" />
+            )}
+            <title>{`${b.tool}: median ${fmt(b.med)} · IQR ${fmt(b.q1)}–${fmt(b.q3)} · whiskers ${fmt(b.whiskLo)}–${fmt(b.whiskHi)} · min ${fmt(b.min)}, max ${fmt(b.max)} · n=${b.n}`}</title>
+            <!-- tool label + median -->
+            <text x={padL - 14} y={y - 2} text-anchor="end" class={`${label} text-[13px]`}>{b.tool}</text>
+            <text x={padL - 14} y={y + 12} text-anchor="end"
+              class="fill-slate-400 dark:fill-slate-500 text-[10px] tabular-nums">{fmt(b.med)}</text>
+            <!-- whiskers -->
+            <line x1={x(b.whiskLo)} x2={x(b.whiskHi)} y1={y} y2={y} class={stroke} stroke-width="1.25" />
+            <line x1={x(b.whiskLo)} x2={x(b.whiskLo)} y1={y - 5} y2={y + 5} class={stroke} stroke-width="1.25" />
+            <line x1={x(b.whiskHi)} x2={x(b.whiskHi)} y1={y - 5} y2={y + 5} class={stroke} stroke-width="1.25" />
+            <!-- IQR box -->
+            <rect x={bx1} y={y - boxHalf} width={bx2 - bx1} height={boxHalf * 2} rx="2"
+              class={`${boxFill} opacity-90`} />
+            <!-- surface ring so the median tick reads on the fill -->
+            <line x1={x(b.med)} x2={x(b.med)} y1={y - boxHalf - 1} y2={y + boxHalf + 1}
+              class="stroke-white dark:stroke-slate-950" stroke-width="2.5" />
+            <line x1={x(b.med)} x2={x(b.med)} y1={y - boxHalf - 1} y2={y + boxHalf + 1}
+              class={accent ? 'stroke-emerald-950 dark:stroke-white' : 'stroke-slate-900 dark:stroke-slate-100'}
+              stroke-width="1.25" />
+          </g>
+        );
+      })}
+    </svg>
+  </div>
+
+  <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800/60 text-[11px] leading-5 text-slate-400 dark:text-slate-500">
+    Box = interquartile range (middle 50%), tick = median, whiskers = 1.5×IQR ·
+    log time axis · Apple M2 Pro, <code class="font-mono">hyperfine</code>, 10–347 runs/tool.{' '}
+    <span class="text-slate-500 dark:text-slate-400">rpic's IQR is 0.5 ms</span> — the pic family
+    renders in a deterministic hairline; mermaid's box alone spans 115 ms.
+  </div>
+</figure>
