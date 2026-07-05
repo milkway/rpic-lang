@@ -102,7 +102,7 @@ rpic --png --scale 2 -o out.png diagram.pic
 rpic --pdf -o out.pdf diagram.pic
 rpic -c circuit.pic                    # load the circuit-element library
 rpic -t paper.pic                      # typeset $…$ labels as TeX math
-rpic --json diagram.pic                # {svg, animations, diagnostics, warnings}
+rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects}
 ```
 
 ## Examples
@@ -212,7 +212,7 @@ rpic::rpic_register_knitr()        # ```{rpic} chunks in R Markdown / Quarto
 ```js
 import * as rpic from '@strategicprojects/rpic';
 await rpic.ready();                      // or ready(undefined, { math: true })
-const { svg, animations, diagnostics, warnings } = rpic.compile('box "A"; arrow; box "B"');
+const { svg, animations, diagnostics, warnings, objects } = rpic.compile('box "A"; arrow; box "B"');
 rpic.animate(stage, animations, gsap);   // GSAP timeline
 ```
 

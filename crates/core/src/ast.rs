@@ -211,6 +211,9 @@ pub enum AssignOp {
 pub struct Object {
     pub kind: ObjectKind,
     pub attrs: Vec<Attr>,
+    /// Span of the statement's leading token (for per-object geometry export
+    /// and future diagnostics).
+    pub span: Option<Span>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

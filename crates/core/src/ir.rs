@@ -16,6 +16,10 @@ pub struct Drawing {
     /// `<g id="sN">` group. Inert unless the host document styles it; `None`
     /// keeps the group byte-identical to classic output.
     pub shape_classes: Vec<Option<String>>,
+    /// Source span of the statement that produced each shape (`None` for
+    /// shapes without one). Drives the per-object geometry export; never
+    /// affects rendering.
+    pub shape_spans: Vec<Option<crate::diagnostic::Span>>,
     pub bbox: Bbox,
     /// Global `linethick` in points after picture-wide sizing, used only for
     /// dpic-style backend prelude padding. Per-shape strokes keep their own

@@ -31,6 +31,17 @@ assert.match(circuits.svg, /<svg\b/);
 const inSource = compile('copy "circuits"\nA:(0,0); B:(2,0)\nresistor(A,B)');
 assert.equal(inSource.svg, circuits.svg);
 
+// #227: per-object geometry rides along in the bundle
+const geom = compile('box wid 1 ht 0.5\narrow right 0.5');
+assert.equal(geom.objects.length, 2);
+assert.equal(geom.objects[0].id, 's0');
+assert.equal(geom.objects[0].kind, 'box');
+assert.equal(geom.objects[0].bbox.w, 96);
+assert.equal(geom.objects[0].bbox.h, 48);
+assert.equal(geom.objects[1].kind, 'path');
+assert.equal(geom.objects[1].line, 2);
+assert.equal(geom.objects[1].col, 1);
+
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');
 assert.equal(warning.warnings[0].found, 'dashd');

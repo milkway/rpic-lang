@@ -76,7 +76,8 @@ pub unsafe extern "C" fn rpic_render_svg(src: *const c_char, circuits: c_int) ->
     }
 }
 
-/// Compile to the JSON `{svg, animations, diagnostics}` bundle (or `{error}`).
+/// Compile to the JSON `{svg, animations, diagnostics, warnings, objects}`
+/// bundle (or `{error, error_info}`).
 /// NULL only if `src` is null/invalid.
 ///
 /// # Safety

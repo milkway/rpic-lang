@@ -73,6 +73,57 @@ pub fn animations_json(d: &Drawing) -> String {
     s
 }
 
+/// Build the JSON per-object geometry array: one entry per emitted
+/// `<g id="sN">` group, with the shape kind, its bbox in SVG user units
+/// (`null` for invisible shapes), and — when known — the source span of the
+/// statement that produced it (`file` follows the same convention as
+/// diagnostics: absent = user input, `"circuits"` = the `-c` library, else
+/// the `copy` include name).
+pub fn objects_json(d: &Drawing) -> String {
+    let geoms = svg::object_geometries(d);
+    let mut s = String::from("[");
+    for (i, g) in geoms.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!("{{\"id\":\"s{}\",\"kind\":\"{}\"", i, g.kind));
+        match g.bbox {
+            Some((x, y, w, h)) => s.push_str(&format!(
+                ",\"bbox\":{{\"x\":{},\"y\":{},\"w\":{},\"h\":{}}}",
+                json_num(x),
+                json_num(y),
+                json_num(w),
+                json_num(h)
+            )),
+            None => s.push_str(",\"bbox\":null"),
+        }
+        if let Some(span) = d.shape_spans.get(i).and_then(|s| s.as_ref()) {
+            s.push_str(&format!(
+                ",\"line\":{},\"col\":{},\"end_col\":{}",
+                span.line, span.col, span.end_col
+            ));
+            if let Some(f) = &span.file {
+                s.push_str(&format!(",\"file\":\"{}\"", json_str(f)));
+            }
+        }
+        s.push('}');
+    }
+    s.push(']');
+    s
+}
+
+/// Format a coordinate for JSON: finite, trimmed like the SVG serializer.
+fn json_num(x: f64) -> String {
+    let v = if x.is_finite() { x } else { 0.0 };
+    let s = format!("{v:.4}");
+    let s = s.trim_end_matches('0').trim_end_matches('.');
+    if s.is_empty() || s == "-" {
+        "0".into()
+    } else {
+        s.into()
+    }
+}
+
 /// Build the JSON diagnostic array emitted by pic `print` statements.
 pub fn diagnostics_json(d: &Drawing) -> String {
     let mut s = String::from("[");
@@ -182,11 +233,12 @@ pub fn compile_json_with_options(src: &str, opts: &CompileOptions) -> String {
 
 fn drawing_json(d: &Drawing) -> String {
     format!(
-        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{}}}",
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}}}",
         json_str(&to_svg(d)),
         animations_json(d),
         diagnostics_json(d),
-        diagnostics_json_structured(&d.warnings)
+        diagnostics_json_structured(&d.warnings),
+        objects_json(d)
     )
 }
 
@@ -265,6 +317,57 @@ mod tests {
         assert!(j.contains("<g id=\\\"s0\\\">")); // stable id, JSON-escaped
         assert!(j.contains("\"animations\":[{\"id\":\"s0\",\"effect\":\"fade\""));
         assert!(j.contains("\"diagnostics\":[]"));
+    }
+
+    #[test]
+    fn json_exports_object_geometry() {
+        // #227: one entry per <g id="sN">, bbox in the viewBox's units,
+        // span of the producing statement.
+        let j = compile_json("box wid 1 ht 0.5\narrow right 0.5");
+        assert!(
+            j.contains("\"objects\":[{\"id\":\"s0\",\"kind\":\"box\",\"bbox\":{"),
+            "{j}"
+        );
+        // 1in × 0.5in box = 96 × 48 SVG px
+        assert!(j.contains("\"w\":96,\"h\":48"), "{j}");
+        assert!(j.contains("\"kind\":\"path\""), "{j}");
+        assert!(j.contains("\"line\":2,\"col\":1"), "{j}");
+    }
+
+    #[test]
+    fn json_object_geometry_marks_invisible_shapes() {
+        let j = compile_json("box invis \"x\"");
+        // the invisible box still draws its text: box shape null, text real
+        assert!(j.contains("\"kind\":\"box\",\"bbox\":null"), "{j}");
+    }
+
+    #[test]
+    fn json_object_geometry_names_library_sources() {
+        // objects drawn by the circuits library carry file:"circuits";
+        // the user's own statements stay file-less.
+        let opts = CompileOptions {
+            circuits: true,
+            ..Default::default()
+        };
+        let j = compile_json_with_options("A:(0,0); B:(2,0)\nresistor(A,B)", &opts);
+        assert!(j.contains("\"file\":\"circuits\""), "{j}");
+    }
+
+    #[test]
+    fn json_object_geometry_matches_svg_rect() {
+        // the exported bbox must agree with the emitted <rect> attributes
+        let d = compile("box wid 1 ht 0.5").unwrap();
+        let svg = to_svg(&d);
+        let g = svg::object_geometries(&d);
+        let (x, y, w, h) = g[0].bbox.unwrap();
+        let rect = svg.lines().find(|l| l.contains("<rect")).unwrap();
+        for (attr, v) in [("x", x), ("y", y), ("width", w), ("height", h)] {
+            let needle = format!("{attr}=\"");
+            let i = rect.find(&needle).unwrap() + needle.len();
+            let s = &rect[i..rect[i..].find('"').unwrap() + i];
+            let got: f64 = s.parse().unwrap();
+            assert!((got - v).abs() < 1e-3, "{attr}: rect {got} vs bbox {v}");
+        }
     }
 
     #[test]

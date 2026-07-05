@@ -129,6 +129,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         shapes: st.shapes,
         shape_layers: st.shape_layers,
         shape_classes: st.shape_classes,
+        shape_spans: st.shape_spans,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
@@ -556,6 +557,10 @@ struct State {
     shapes: Vec<Shape>,
     shape_layers: Vec<i32>,
     shape_classes: Vec<Option<String>>,
+    shape_spans: Vec<Option<Span>>,
+    /// Span of the object statement currently being evaluated (attached to
+    /// every shape it pushes).
+    current_span: Option<Span>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
     /// Visible geometry and text only; this becomes the final drawing/viewBox.
@@ -603,6 +608,8 @@ impl State {
             shapes: Vec::new(),
             shape_layers: Vec::new(),
             shape_classes: Vec::new(),
+            shape_spans: Vec::new(),
+            current_span: None,
             placed: Vec::new(),
             labels: HashMap::new(),
             bbox: Bbox::new(),
@@ -989,7 +996,12 @@ impl State {
         if !object_uses_bare_distance(&obj.kind) {
             self.warn_ignored_dist_attrs(obj);
         }
-        let idx = self.eval_object_inner(obj)?;
+        // Blocks evaluate nested objects (which set their own spans) before
+        // this frame finishes — save/restore keeps attribution per statement.
+        let saved_span = std::mem::replace(&mut self.current_span, obj.span.clone());
+        let result = self.eval_object_inner(obj);
+        self.current_span = saved_span;
+        let idx = result?;
         for a in &obj.attrs {
             if let Attr::Class(se) = a {
                 let name = self.eval_stringexpr(se)?;
@@ -1948,11 +1960,12 @@ impl State {
         }
         let layer_shift =
             self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
-        for ((mut sh, layer), class) in sub
+        for (((mut sh, layer), class), span) in sub
             .shapes
             .into_iter()
             .zip(sub.shape_layers)
             .zip(sub.shape_classes)
+            .zip(sub.shape_spans)
         {
             translate_shape(&mut sh, shift);
             if let Some(opacity) = block_fill_opacity {
@@ -1960,6 +1973,8 @@ impl State {
             }
             self.push_shape(sh, layer + layer_shift);
             *self.shape_classes.last_mut().unwrap() = class;
+            // inner objects carry their own statement spans through the merge
+            *self.shape_spans.last_mut().unwrap() = span;
         }
         let shape = if self.shapes.len() > first_shape {
             Some(first_shape)
@@ -2041,6 +2056,7 @@ impl State {
         self.shapes.push(shape);
         self.shape_layers.push(layer);
         self.shape_classes.push(None);
+        self.shape_spans.push(self.current_span.clone());
     }
 
     fn layer_of(&mut self, obj: &Object, current: i32) -> ER<i32> {

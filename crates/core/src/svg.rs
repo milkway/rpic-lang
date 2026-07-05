@@ -795,6 +795,52 @@ impl Svg {
 
 // ---- helpers ---------------------------------------------------------------
 
+/// Per-shape geometry for the JSON `objects` export. `bbox` is in SVG user
+/// units — the same space as the root `viewBox` and the `<g id="sN">` groups —
+/// so editors can hit-test without touching the DOM. `None` when the shape
+/// draws nothing (e.g. `invis`), though its `sN` group still exists.
+pub struct ObjectGeometry {
+    /// Shape kind as a stable lowercase name (`box`, `circle`, …).
+    pub kind: &'static str,
+    /// `(x, y, w, h)` of the shape's bounds in SVG user units.
+    pub bbox: Option<(f64, f64, f64, f64)>,
+}
+
+/// Compute [`ObjectGeometry`] for every shape of a drawing, index-aligned
+/// with the emitted `<g id="sN">` groups.
+pub fn object_geometries(d: &Drawing) -> Vec<ObjectGeometry> {
+    let svg = Svg::new(d);
+    d.shapes
+        .iter()
+        .map(|sh| {
+            let raw = shape_svg_bounds(sh);
+            let bbox = if raw.is_empty() {
+                None
+            } else {
+                let tl = svg.p(Point::new(raw.min.x, raw.max.y));
+                Some((tl.x, tl.y, raw.width() * PPI, raw.height() * PPI))
+            };
+            ObjectGeometry {
+                kind: shape_kind(sh),
+                bbox,
+            }
+        })
+        .collect()
+}
+
+fn shape_kind(sh: &Shape) -> &'static str {
+    match sh {
+        Shape::Box { .. } => "box",
+        Shape::Circle { .. } => "circle",
+        Shape::Ellipse { .. } => "ellipse",
+        Shape::Path { .. } => "path",
+        Shape::Spline { .. } => "spline",
+        Shape::Arc { .. } => "arc",
+        Shape::Brace { .. } => "brace",
+        Shape::Text { .. } => "text",
+    }
+}
+
 fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
     let mut out = Bbox::new();
     for sh in shapes {
@@ -2013,6 +2059,7 @@ mod tests {
             }],
             shape_layers: vec![0],
             shape_classes: vec![None],
+            shape_spans: vec![None],
             bbox: Bbox::new(),
             prelude_thick: 0.8,
             canvas_margin: CanvasMargin::default(),

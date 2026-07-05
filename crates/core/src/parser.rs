@@ -1946,6 +1946,7 @@ impl Parser {
     // ---- objects & attributes ---------------------------------------------
 
     fn parse_object(&mut self) -> PResult<Object> {
+        let span = Some(self.cur_span());
         let mut attrs = Vec::new();
         // a bare string expression (literal, `$arg`, sprintf, concatenation)
         // places a text-only object.
@@ -1955,6 +1956,7 @@ impl Parser {
                 attrs.push(a);
             }
             return Ok(Object {
+                span,
                 kind: ObjectKind::Text,
                 attrs,
             });
@@ -2028,7 +2030,7 @@ impl Parser {
         )? {
             attrs.push(a);
         }
-        Ok(Object { kind, attrs })
+        Ok(Object { kind, attrs, span })
     }
 
     /// True if the next token begins a bare scalar expression — the leading
