@@ -22,6 +22,7 @@
   <a href="https://pypi.org/project/rpiclang/"><img src="https://img.shields.io/pypi/v/rpiclang?label=PyPI&color=informational" alt="PyPI"></a>
   <a href="https://www.npmjs.com/package/@strategicprojects/rpic"><img src="https://img.shields.io/npm/v/%40strategicprojects%2Frpic?label=npm&color=informational" alt="npm"></a>
   <img src="https://img.shields.io/badge/rust-edition%202024-orange.svg" alt="Rust 2024">
+  <a href="https://doi.org/10.5281/zenodo.21209915"><img src="https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21209915-blue.svg" alt="DOI"></a>
 </p>
 
 <p align="center">
@@ -240,6 +241,24 @@ cargo test                 # full test suite
 | `bindings/{python,js}` | Python & JS/TS bindings (R lives at [milkway/rpic-r](https://github.com/milkway/rpic-r)) |
 | `web/` | browser playground (GSAP) |
 | `packaging/` | deb / Homebrew / Scoop config |
+
+## How to cite
+
+If you use `rpic` in academic work, please cite it via its
+[Zenodo record](https://doi.org/10.5281/zenodo.21209915). The concept DOI
+[10.5281/zenodo.21209915](https://doi.org/10.5281/zenodo.21209915) always
+resolves to the latest release; each version also has its own DOI. GitHub's
+“Cite this repository” reads [`CITATION.cff`](CITATION.cff) for BibTeX/APA.
+
+```bibtex
+@software{leite_rpic,
+  author    = {Leite, André},
+  title     = {{rpic: the pic picture-drawing language, reimplemented in Rust}},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.21209915},
+  url       = {https://rpic.dev}
+}
+```
 
 ## Acknowledgments
 
