@@ -203,6 +203,9 @@ pub struct TextLine {
     /// rpic extension: explicit size in points (`fontsize`); `None` keeps
     /// classic sizing (11 pt attached, height-derived standalone).
     pub size_pt: Option<f64>,
+    /// rpic extension: rotation in degrees, CCW (`rotated`); applied about
+    /// the line's anchor point in the SVG.
+    pub rotate: Option<f64>,
 }
 
 /// Classic label size in points — the baseline `fontsize` scales against.

@@ -468,6 +468,26 @@ impl Lexer {
     }
 
     fn lex_number(&mut self) -> Result<Token, LexError> {
+        // rpic extension (pikchr-compatible): `0x…` hexadecimal literals,
+        // mainly for colour values (`shaded 0x1b5e20`). `0x` without a hex
+        // digit stays classic: Num(0) followed by a name.
+        if self.peek() == Some('0')
+            && matches!(self.peek_at(1), Some('x') | Some('X'))
+            && self.peek_at(2).is_some_and(|d| d.is_ascii_hexdigit())
+        {
+            self.bump();
+            self.bump();
+            let mut v: f64 = 0.0;
+            while let Some(c) = self.peek() {
+                if let Some(d) = c.to_digit(16) {
+                    v = v * 16.0 + d as f64;
+                    self.bump();
+                } else {
+                    break;
+                }
+            }
+            return Ok(Token::Float(v));
+        }
         let mut s = String::new();
         if self.peek() == Some('.') {
             s.push('0'); // ".5" -> "0.5"

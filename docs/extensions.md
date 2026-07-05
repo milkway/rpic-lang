@@ -279,6 +279,41 @@ box "code" mono fit
 - dpic rejects these words as syntax errors, so no valid dpic input changes
   meaning; `fontsize <= 0` is an eval error.
 
+## Rotated Text
+
+`rotated <degrees>` is a per-string text attribute (binding like `ljust`):
+angles are CCW (pic convention) and the rotation pivots on the text's SVG
+anchor (`transform="rotate(-a x y)"` — negated because SVG's screen space is
+y-down). `fit` and standalone-text bounds cover the rotated extent (an
+axis-aligned cover of the rotated line box, padded for the anchor-vs-center
+offset). Attached labels keep the classic dpic behaviour of overflowing the
+canvas; `margin` gives them room. Math lines ignore it. dpic rejects the word
+(oracle-checked), and `rotated` stays usable as a variable.
+
+```pic
+arrow right 2 "gradient ascent" rotated 20 above
+"y axis" rotated 90
+```
+
+## Colour Literals
+
+The colour grammar (`outlined`/`shaded`/`color`/`hatchcolor`/`gradient`)
+accepts two native literal forms besides names and quoted strings:
+
+```pic
+box shaded rgb(27,94,32)
+circle outlined 0xb3261e
+```
+
+- `rgb(r,g,b)` takes full expressions; components 0–255, out-of-range is an
+  eval error. Evaluates to `#rrggbb`.
+- `0xRRGGBB` is pikchr's numeric-colour spelling; `0x…` is a general hex
+  number literal (usable anywhere a number is). Numeric colours range
+  0–0xFFFFFF.
+- Bare `#hex` is impossible in pic — `#` starts a comment — but the quoted
+  `shaded "#1b5e20"` form has always worked and still does. `rgb` stays
+  usable as a macro/variable name (only `rgb(` in colour position triggers).
+
 ## Fill Opacity
 
 `opacity <expr>` is an rpic-only attribute for making filled regions partially

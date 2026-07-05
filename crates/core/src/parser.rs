@@ -2197,16 +2197,9 @@ impl Parser {
             }
             Token::Color(c) => {
                 self.bump();
-                // a colour may be a quoted string or a bareword name (e.g.
-                // `shaded Custom`, `outlined red`).
-                let s = match self.cur().clone() {
-                    Token::Name(n) | Token::Label(n) => {
-                        self.bump();
-                        StringExpr::Lit(n)
-                    }
-                    _ => self.parse_stringexpr()?,
-                };
-                Attr::Color(c, s)
+                // a colour may be a quoted string, a bareword name (`shaded
+                // Custom`, `outlined red`), `rgb(r,g,b)` or a 0x hex literal.
+                Attr::Color(c, self.parse_color_like()?)
             }
             Token::Name(n) if allow_fit && n == "fit" => {
                 self.bump();
@@ -2234,14 +2227,7 @@ impl Parser {
             }
             Token::Name(n) if allow_hatch && n == "hatchcolor" => {
                 self.bump();
-                let s = match self.cur().clone() {
-                    Token::Name(n) | Token::Label(n) => {
-                        self.bump();
-                        StringExpr::Lit(n)
-                    }
-                    _ => self.parse_stringexpr()?,
-                };
-                Attr::HatchColor(s)
+                Attr::HatchColor(self.parse_color_like()?)
             }
             Token::Name(n) if allow_hatch && n == "gradient" => {
                 self.bump();
@@ -2297,6 +2283,10 @@ impl Parser {
             Token::Name(n) if n == "fontsize" => {
                 self.bump();
                 Attr::FontSize(self.parse_expr()?)
+            }
+            Token::Name(n) if n == "rotated" => {
+                self.bump();
+                Attr::Rotated(self.parse_expr()?)
             }
             Token::Name(n) if n == "behind" => {
                 self.bump();
@@ -2724,10 +2714,25 @@ impl Parser {
     /// string expression — the same grammar `hatchcolor` accepts.
     fn parse_color_like(&mut self) -> PResult<StringExpr> {
         match self.cur().clone() {
+            // rpic extension: `rgb(r,g,b)` colour literal
+            Token::Name(n) if n == "rgb" && matches!(self.peek(1), Token::Lparen) => {
+                self.bump();
+                self.expect(&Token::Lparen)?;
+                let r = self.parse_expr()?;
+                self.expect(&Token::Comma)?;
+                let g = self.parse_expr()?;
+                self.expect(&Token::Comma)?;
+                let b = self.parse_expr()?;
+                self.expect(&Token::Rparen)?;
+                Ok(StringExpr::Rgb(Box::new([r, g, b])))
+            }
             Token::Name(n) | Token::Label(n) => {
                 self.bump();
                 Ok(StringExpr::Lit(n))
             }
+            // rpic extension (pikchr-style): a numeric colour — typically a
+            // `0xRRGGBB` hex literal (`shaded 0x1b5e20`)
+            Token::Float(_) => Ok(StringExpr::ColorNum(Box::new(self.parse_expr()?))),
             _ => self.parse_stringexpr(),
         }
     }

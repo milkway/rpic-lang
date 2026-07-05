@@ -301,6 +301,8 @@ pub enum Attr {
     Font(StringExpr),
     /// rpic extension: font size in points for the preceding text string.
     FontSize(Expr),
+    /// rpic extension: rotation in degrees (CCW) for the preceding string.
+    Rotated(Expr),
     /// rpic extension: relative cusp position for a `brace` object.
     BracePos(Expr),
     /// rpic extension: extra outward spacing between a `brace` cusp and label.
@@ -420,6 +422,12 @@ pub enum StringExpr {
     Lit(String),
     Concat(Box<StringExpr>, Box<StringExpr>),
     Sprintf(Box<StringExpr>, Vec<Expr>),
+    /// rpic extension: `rgb(r,g,b)` colour literal (components 0–255);
+    /// evaluates to `#rrggbb`.
+    Rgb(Box<[Expr; 3]>),
+    /// rpic extension: a numeric colour in colour position (`shaded
+    /// 0x1b5e20`, pikchr-style); evaluates to `#rrggbb`.
+    ColorNum(Box<Expr>),
     /// dpic SVG-backend helper. rpic does not emit backend preamble text, so
     /// this evaluates to a harmless empty string.
     SvgFont(Vec<Expr>),

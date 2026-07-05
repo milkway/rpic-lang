@@ -2511,6 +2511,16 @@ impl State {
                         None => pending_style.size_pt = Some(pt),
                     }
                 }
+                Attr::Rotated(e) => {
+                    let deg = self.eval_expr(e)?;
+                    if !deg.is_finite() {
+                        return err("rotated angle must be finite");
+                    }
+                    match lines.last_mut() {
+                        Some(line) => line.rotate = Some(deg),
+                        None => pending_style.rotate = Some(deg),
+                    }
+                }
                 Attr::Text(se) => {
                     let s = self.eval_stringexpr(se)?;
                     let math = self.math_span_for(&s);
@@ -2524,6 +2534,7 @@ impl State {
                         italic: pending_style.italic,
                         family: pending_style.family.take(),
                         size_pt: pending_style.size_pt,
+                        rotate: pending_style.rotate,
                     });
                     pending_halign = 0;
                     pending_valign = 0;
@@ -2757,6 +2768,24 @@ impl State {
                 sprintf_fmt(&f, &vals)
             }
             StringExpr::SvgFont(_) => String::new(),
+            StringExpr::Rgb(args) => {
+                let mut c = [0u32; 3];
+                for (i, e) in args.iter().enumerate() {
+                    let v = self.eval_expr(e)?;
+                    if !v.is_finite() || !(0.0..=255.0).contains(&v.round()) {
+                        return err("rgb() component out of range 0-255");
+                    }
+                    c[i] = v.round() as u32;
+                }
+                format!("#{:02x}{:02x}{:02x}", c[0], c[1], c[2])
+            }
+            StringExpr::ColorNum(e) => {
+                let v = self.eval_expr(e)?;
+                if !v.is_finite() || v.round() < 0.0 || v.round() > 0xFFFFFF as f64 {
+                    return err("numeric color out of range 0-0xFFFFFF");
+                }
+                format!("#{:06x}", v.round() as u32)
+            }
         })
     }
 
@@ -3404,6 +3433,7 @@ struct PendingStyle {
     italic: bool,
     family: Option<String>,
     size_pt: Option<f64>,
+    rotate: Option<f64>,
 }
 
 /// Line advance width: exact metrics for typeset math, the classic
@@ -3455,8 +3485,14 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
             }
             None => {
                 let half_h = TEXT_LINE_H * line.height_factor() / 2.0;
-                bb.add(Point::new(min_x, y - half_h));
-                bb.add(Point::new(max_x, y + half_h));
+                let (min, max) = (Point::new(min_x, y - half_h), Point::new(max_x, y + half_h));
+                match line.rotate {
+                    Some(deg) => bb.add_rect_rotated(min, max, deg),
+                    None => {
+                        bb.add(min);
+                        bb.add(max);
+                    }
+                }
             }
         }
     }
@@ -3504,6 +3540,10 @@ fn text_object_bbox(center: Point, lines: &[TextLine], w: f64, h: f64) -> Bbox {
     let mut bb = Bbox::new();
     bb.add(Point::new(min_x, min_y));
     bb.add(Point::new(max_x, max_y));
+    // rotated lines can exceed the classic w/h grid — cover them too
+    if lines.iter().any(|l| l.rotate.is_some()) {
+        bb.union(&text_bb);
+    }
     bb
 }
 
@@ -3765,6 +3805,7 @@ fn stringexpr_lit(se: &StringExpr) -> String {
         StringExpr::Arg(n) => format!("${n}"),
         StringExpr::Sprintf(fmt, _) => stringexpr_lit(fmt),
         StringExpr::SvgFont(_) => String::new(),
+        StringExpr::Rgb(_) | StringExpr::ColorNum(_) => String::new(),
     }
 }
 
@@ -5560,6 +5601,73 @@ box wid 0.1 ht 0.1 at B.s"#,
         // `bold`/`italic`/`mono` only act in attribute position; as plain
         // variables in expressions they keep their classic meaning
         let d = draw("bold = 2\nbox wid bold \"x\"");
+        assert!((d.bbox.width() - 2.0).abs() < 0.05, "{}", d.bbox.width());
+    }
+
+    #[test]
+    fn rotated_binds_per_string_and_grows_fit() {
+        let d = draw("box \"a\" rotated 45 \"b\"");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].rotate, Some(45.0));
+        assert_eq!(text[1].rotate, None);
+        // a rotated label needs a taller fit box
+        let plain = draw("box \"long caption\" fit");
+        let rot = draw("box \"long caption\" rotated 30 fit");
+        assert!(rot.bbox.height() > plain.bbox.height());
+        // standalone rotated text: canvas covers the rotated extent
+        let plain = draw("\"long caption text\"");
+        let rot = draw("\"long caption text\" rotated 90");
+        assert!(rot.bbox.height() > 2.0 * plain.bbox.height());
+    }
+
+    #[test]
+    fn color_literals_evaluate_to_hex() {
+        let d = draw("box shaded rgb(27,94,32)");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#1b5e20".into())));
+        let d = draw("box shaded 0x1B5E20");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#1b5e20".into())));
+        // expressions inside rgb()
+        let d = draw("v = 200\nbox shaded rgb(v, v/2, 0)");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#c86400".into())));
+    }
+
+    #[test]
+    fn color_literals_reject_out_of_range() {
+        let e = eval(&parse("box shaded rgb(300,0,0)").unwrap()).unwrap_err();
+        assert!(e.msg.contains("0-255"), "{}", e.msg);
+        let e = eval(&parse("box shaded 0x1FFFFFF").unwrap()).unwrap_err();
+        assert!(e.msg.contains("0-0xFFFFFF"), "{}", e.msg);
+    }
+
+    #[test]
+    fn color_literal_words_stay_classic_elsewhere() {
+        // `rotated` as a variable; `rgb` as a macro name; quoted colors as before
+        let d = draw("rotated = 2\nbox wid rotated");
+        assert!((d.bbox.width() - 2.0).abs() < 0.05);
+        let d = draw("define rgb { box }\nrgb");
+        assert_eq!(d.shapes.len(), 1);
+        let d = draw("box shaded \"#1b5e20\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#1b5e20".into())));
+    }
+
+    #[test]
+    fn hex_number_literals_lex_as_numbers() {
+        // 0x literals are plain numbers everywhere, not just colors
+        let d = draw("box wid 0x2 ht 0x1");
         assert!((d.bbox.width() - 2.0).abs() < 0.05, "{}", d.bbox.width());
     }
 
