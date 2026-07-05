@@ -213,7 +213,7 @@ fn print_help() {
          --pdf       render to PDF\n    \
          --ast       dump the syntax tree\n    \
          --tokens    dump the token stream\n    \
-    --json      emit compile JSON (svg, animations, diagnostics, warnings)\n\n\
+    --json      emit compile JSON (svg, animations, diagnostics, warnings, objects)\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \

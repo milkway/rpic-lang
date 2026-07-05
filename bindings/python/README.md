@@ -25,6 +25,8 @@ bundle = rpic.compile('box\nanimate last box with "pop"')
 bundle["animations"]   # [{"id": "s0", "effect": "pop", ...}]
 bundle["diagnostics"]  # lines emitted by pic `print`
 bundle["warnings"]     # structured warnings (ignored attributes, ...)
+bundle["objects"]      # per-object geometry: {"id": "s0", "kind": "box",
+                       #   "bbox": {x,y,w,h} | None, "line", "col", ...}
 # (compile_json returns the same as a JSON string)
 
 # `copy "file"` includes resolve relative to `base`:

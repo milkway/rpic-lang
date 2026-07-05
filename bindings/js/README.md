@@ -9,7 +9,7 @@ import * as rpic from '@strategicprojects/rpic';
 
 await rpic.ready();                       // browser: wasm fetched automatically
 
-const { svg, animations, diagnostics, warnings } = rpic.compile('box "A"; arrow; box "B"');
+const { svg, animations, diagnostics, warnings, objects } = rpic.compile('box "A"; arrow; box "B"');
 document.querySelector('#stage').innerHTML = svg;
 
 // animate with GSAP:
@@ -52,7 +52,7 @@ first build. In Node, pass the math artifact's bytes:
 | Function | Description |
 |----------|-------------|
 | `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build; conflicting later calls reject. |
-| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics, warnings }` (throws on a pic error with `errorInfo`). |
+| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics, warnings, objects }` (throws on a pic error with `errorInfo`). |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

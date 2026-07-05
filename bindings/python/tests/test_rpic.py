@@ -38,6 +38,18 @@ def test_compile_bundle():
     assert bundle["warnings"] == []
 
 
+def test_compile_objects_geometry():
+    # #227: per-object geometry (bbox in SVG user units + source span)
+    bundle = rpic.compile("box wid 1 ht 0.5\narrow right 0.5")
+    box, path = bundle["objects"]
+    assert box["id"] == "s0" and box["kind"] == "box"
+    assert box["bbox"]["w"] == 96 and box["bbox"]["h"] == 48
+    assert path["kind"] == "path"
+    assert path["line"] == 2 and path["col"] == 1
+    invis = rpic.compile("circle invis")["objects"][0]
+    assert invis["bbox"] is None
+
+
 def test_compile_warnings():
     bundle = rpic.compile('box "a" dashd')
     (w,) = bundle["warnings"]

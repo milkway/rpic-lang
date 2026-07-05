@@ -26,6 +26,22 @@ export interface Diagnostic {
   hint: string | null;
 }
 
+export interface ObjectGeometry {
+  /** matches the shape's `<g id="sN">` group in the SVG */
+  id: string;
+  /** "box" | "circle" | "ellipse" | "path" | "spline" | "arc" | "brace" | "text" */
+  kind: string;
+  /** bounds in SVG user units (the viewBox space); `null` for invisible shapes */
+  bbox: { x: number; y: number; w: number; h: number } | null;
+  /** 1-based source position of the statement that drew it, when known */
+  line?: number;
+  col?: number;
+  /** exclusive end column of the statement's leading token */
+  end_col?: number;
+  /** absent = your own input; a `copy` include name or `"circuits"` otherwise */
+  file?: string;
+}
+
 export interface Bundle {
   svg: string;
   animations: Anim[];
@@ -33,6 +49,8 @@ export interface Bundle {
   diagnostics: string[];
   /** non-fatal compiler warnings for accepted but suspicious input */
   warnings: Diagnostic[];
+  /** per-object geometry, index-aligned with the `<g id="sN">` groups */
+  objects: ObjectGeometry[];
 }
 
 export interface CompileError extends Error {
@@ -75,7 +93,7 @@ export function ready(
   opts?: ReadyOptions
 ): Promise<void>;
 
-/** Compile pic source into `{ svg, animations, diagnostics, warnings }`. Throws on a pic error. */
+/** Compile pic source into `{ svg, animations, diagnostics, warnings, objects }`. Throws on a pic error. */
 export function compile(src: string, opts?: CompileOptions): Bundle;
 
 /** Compile and return only the SVG string. */

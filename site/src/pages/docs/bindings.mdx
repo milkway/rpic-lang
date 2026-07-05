@@ -173,7 +173,7 @@ int main(void) {
 ## CLI as an FFI of last resort
 
 Everything the bindings do is also one process away:
-`rpic --json file.pic` emits `{svg, animations, diagnostics, warnings}` on
+`rpic --json file.pic` emits `{svg, animations, diagnostics, warnings, objects}` on
 success and `{error, error_info}` on failure — `error_info` is the same
 structured diagnostic the bindings surface (`message`, `line`, `col`,
 `end_col`, `file`, `kind`, `found`, `expected`, `hint`). This documentation

@@ -190,6 +190,33 @@ fn compile<'py>(
         warnings.append(diagnostic_dict(py, w)?)?;
     }
     out.set_item("warnings", warnings)?;
+    let objects = PyList::empty(py);
+    for (i, g) in rpic_core::svg::object_geometries(&d).iter().enumerate() {
+        let obj = PyDict::new(py);
+        obj.set_item("id", format!("s{i}"))?;
+        obj.set_item("kind", g.kind)?;
+        match g.bbox {
+            Some((x, y, w, h)) => {
+                let bbox = PyDict::new(py);
+                bbox.set_item("x", x)?;
+                bbox.set_item("y", y)?;
+                bbox.set_item("w", w)?;
+                bbox.set_item("h", h)?;
+                obj.set_item("bbox", bbox)?;
+            }
+            None => obj.set_item("bbox", py.None())?,
+        }
+        if let Some(span) = d.shape_spans.get(i).and_then(|s| s.as_ref()) {
+            obj.set_item("line", span.line)?;
+            obj.set_item("col", span.col)?;
+            obj.set_item("end_col", span.end_col)?;
+            if let Some(f) = &span.file {
+                obj.set_item("file", f.as_ref())?;
+            }
+        }
+        objects.append(obj)?;
+    }
+    out.set_item("objects", objects)?;
     Ok(out)
 }
 
