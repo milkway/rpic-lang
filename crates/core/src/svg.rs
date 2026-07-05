@@ -792,6 +792,15 @@ impl Svg {
             if line.italic {
                 style_attrs.push_str(" font-style=\"italic\"");
             }
+            if let Some(deg) = line.rotate {
+                // pic angles are CCW; SVG rotate() is CW in screen space
+                style_attrs.push_str(&format!(
+                    " transform=\"rotate({} {} {})\"",
+                    num(-deg),
+                    num(p.x),
+                    num(p.y)
+                ));
+            }
             self.out.push_str(&format!(
                 "<text font-size=\"{}pt\"{} {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
                 num(line.size_pt.unwrap_or(font_pt)),
@@ -1046,8 +1055,17 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
             continue;
         }
         let y = baseline_y + (line.valign as f64) * just_offset;
-        bb.add(Point::new(at.x - half_w, y));
-        bb.add(Point::new(at.x + half_w, y + xheight));
+        let (min, max) = (
+            Point::new(at.x - half_w, y),
+            Point::new(at.x + half_w, y + xheight),
+        );
+        match line.rotate {
+            Some(deg) => bb.add_rect_rotated(min, max, deg),
+            None => {
+                bb.add(min);
+                bb.add(max);
+            }
+        }
         baseline_y -= lineskip;
     }
     bb
@@ -1101,8 +1119,14 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
             _ => (x - w / 2.0, x + w / 2.0),
         };
         let half_h = line_h * line.height_factor() / 2.0;
-        bb.add(Point::new(min_x, y - half_h));
-        bb.add(Point::new(max_x, y + half_h));
+        let (min, max) = (Point::new(min_x, y - half_h), Point::new(max_x, y + half_h));
+        match line.rotate {
+            Some(deg) => bb.add_rect_rotated(min, max, deg),
+            None => {
+                bb.add(min);
+                bb.add(max);
+            }
+        }
     }
     bb
 }
@@ -1897,6 +1921,24 @@ mod tests {
     }
 
     #[test]
+    fn rotated_text_emits_anchor_transform() {
+        // pic CCW 30° = SVG rotate(-30) about the text anchor
+        let s = svg("\"note\" rotated 30 at (0,0)");
+        let t = s.lines().find(|l| l.contains("<text")).unwrap();
+        assert!(t.contains("transform=\"rotate(-30 "), "{t}");
+        // the rotate pivot matches the emitted x/y anchor
+        let x = t.split("x=\"").nth(1).unwrap().split('"').next().unwrap();
+        let y = t.split("y=\"").nth(1).unwrap().split('"').next().unwrap();
+        assert!(t.contains(&format!("rotate(-30 {x} {y})")), "{t}");
+        // unrotated output carries no transform on <text>
+        let s = svg("box \"t\"");
+        assert!(
+            !s.contains("<text") || !s.contains("transform=\"rotate"),
+            "{s}"
+        );
+    }
+
+    #[test]
     fn canvas_stmt_pins_the_viewbox() {
         // same fixed canvas, object moved: identical <svg> header (stable
         // frame), different rect coordinates (only the object moved)
@@ -2110,6 +2152,7 @@ mod tests {
             italic: false,
             family: None,
             size_pt: None,
+            rotate: None,
         }];
         let d = Drawing {
             shapes: vec![Shape::Text {

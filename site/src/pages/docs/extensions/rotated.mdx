@@ -1,0 +1,50 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: rotated & color literals
+description: Rotated labels and native rgb()/0xRRGGBB colour literals — rpic extensions.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# rotated & colour literals
+
+Two small conveniences for figures: **rotated labels** and **native colour
+literals**.
+
+## `rotated <degrees>`
+
+A per-string text attribute (binding like `ljust` — to the string it
+follows). Angles are counter-clockwise, pic's convention; the rotation
+pivots on the text's anchor point.
+
+<PicExample code={`.PS
+margin = 0.12
+A: arrow right 2.4 "gradient ascent" rotated 18 above
+"y axis" rotated 90 at A.start + (-0.3, 0.55)
+arrow from A.start up 1.1 dashed
+.PE`} />
+
+- Composes with the [font attributes](/docs/extensions/font/):
+  `"note" bold rotated 45`.
+- [`fit`](/docs/extensions/fit/) and standalone-text bounds cover the
+  rotated extent, so a rotated caption gets a properly sized box.
+- Like classic pic, labels attached to lines/boxes may overflow the canvas
+  edge — give the drawing breathing room with
+  [`margin`](/docs/extensions/margin/).
+- Math lines (`$…$` under `texlabels`) ignore it.
+
+## Colour literals: `rgb(r,g,b)` and `0xRRGGBB`
+
+The colour grammar (for `outlined`, `shaded`, `color`, `hatchcolor` and
+`gradient`) accepts two native literal forms besides names and strings:
+
+<PicExample code={`.PS
+box shaded rgb(27,94,32) "rgb()" bold wid 1
+circle outlined 0xb3261e rad 0.35 at last box.e + (0.9,0) "hex" italic
+.PE`} />
+
+- `rgb(r,g,b)` takes full expressions (`rgb(v, v/2, 0)`), components 0–255;
+  out-of-range values are an error.
+- `0xRRGGBB` follows Pikchr's numeric colours; `0x…` is a general
+  hexadecimal number literal, usable anywhere a number is.
+- Why not bare `#1b5e20`? In pic, `#` starts a comment — the quoted form
+  `shaded "#1b5e20"` has always worked and still does.

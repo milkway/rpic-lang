@@ -79,6 +79,23 @@ impl Default for Bbox {
 }
 
 impl Bbox {
+    /// Add a `min`–`max` rectangle rotated `deg` degrees (used for `rotated`
+    /// text bounds — an axis-aligned cover of the rotated line box). The
+    /// cover rotates about the rect center plus a pad bounding the offset
+    /// between that center and the SVG rotation anchor (the text baseline,
+    /// at most half the line height away), so anchor-rotated glyphs stay
+    /// inside regardless of justification.
+    pub(crate) fn add_rect_rotated(&mut self, min: Point, max: Point, deg: f64) {
+        let c = Point::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0);
+        let (w, h) = (max.x - min.x, max.y - min.y);
+        let (sin, cos) = deg.to_radians().sin_cos();
+        let pad = h * (deg.to_radians() / 2.0).sin().abs();
+        let half_w = (w * cos).abs() / 2.0 + (h * sin).abs() / 2.0 + pad;
+        let half_h = (w * sin).abs() / 2.0 + (h * cos).abs() / 2.0 + pad;
+        self.add(Point::new(c.x - half_w, c.y - half_h));
+        self.add(Point::new(c.x + half_w, c.y + half_h));
+    }
+
     pub fn new() -> Self {
         Bbox {
             min: Point::ZERO,
