@@ -1,0 +1,55 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: canvas
+description: Fixed page rectangle — a stable viewBox for visual editors, rpic extension.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# canvas
+
+**rpic extension.** `canvas from <position> to <position>` fixes the output
+page to the rectangle spanned by the two corners, independent of the drawn
+content.
+
+Without it, the viewBox hugs the content's bounding box — so moving the
+leftmost or topmost object shifts the *whole drawing* on screen. With a fixed
+canvas, the frame's origin and size are stable: dragging one object moves only
+that object, which is exactly what a visual editor needs.
+
+<PicExample code={`.PS
+canvas from (0,0) to (4,2)
+box "stays put" fit at (1,1)
+circle rad 0.3 at (3,1.3)
+.PE`} />
+
+## Anchoring to geometry
+
+The corners are ordinary pic positions, so the page can be pinned to an
+invisible frame:
+
+<PicExample code={`.PS
+F: box wid 3.5 ht 1.6 at (1.75,0.8) invis
+canvas from F.sw to F.ne
+box "framed" fit at (0.8,0.8)
+.PE`} />
+
+## Rules
+
+- The rectangle must have **positive width and height**; corners may be given
+  in either order. The last `canvas` statement wins.
+- Content outside the canvas is **clipped by the viewBox** (the SVG default;
+  the PNG/PDF renderers behave the same way).
+- It composes with the framing pipeline: coordinates are user units (they
+  follow `scale`), the [`margin`](/docs/extensions/margin/) variables add
+  whitespace *around* the fixed page, and `.PS` width sizing plus
+  `maxpswid`/`maxpsht` clamping scale page and content together.
+- **Contextual keyword**: only the exact `canvas from …` spelling triggers.
+  `canvas = 2`, a macro named `canvas`, or any other use of the name keeps
+  its classic meaning — unused, output is byte-for-byte classic pic.
+
+## For editors
+
+The [per-object geometry export](/docs/bindings/) (`compile()` →
+`objects`, with each shape's bbox in viewBox units and its source span) uses
+the same frame. Together they close the loop for bidirectional editing:
+stable coordinates out, precise source positions back.

@@ -52,6 +52,40 @@ picture-wide `.PS` sizing, and `maxpswid`/`maxpsht` page clamping, but they do
 not affect ordinals, labels, anchors, the current point, object dimensions, or
 the drawing order.
 
+## Fixed Canvas
+
+`canvas from <position> to <position>` fixes the output page to the rectangle
+spanned by the two corners, independent of the drawn content. Without it the
+viewBox is normalized to the content's bounding box, so moving the leftmost or
+topmost object shifts the whole drawing on screen; with a fixed canvas the
+frame — origin and size — is stable, which is what a visual editor needs to
+move one object without reflowing the rest.
+
+```pic
+.PS
+canvas from (0,0) to (4,3)
+box "stays put" at (1,1)
+.PE
+```
+
+The corners are ordinary pic positions, so the page can be anchored to
+geometry (`canvas from F.sw to F.ne`, with `F` an `invis` frame). Rules:
+
+- The rectangle must have positive width and height; corners may be given in
+  either order. The last `canvas` statement wins.
+- Content outside the canvas is clipped by the viewBox (the SVG default;
+  PNG/PDF renderers behave the same).
+- It composes with the rest of the framing pipeline: coordinates are user
+  units (they follow `scale`), `margin` variables add whitespace *around* the
+  fixed page, `.PS` width sizing and `maxpswid`/`maxpsht` clamping scale the
+  page and content together.
+- Contextual keyword: only the exact `canvas from …` spelling triggers.
+  `canvas = 2`, a macro named `canvas`, or any other use of the name keeps its
+  classic meaning; unused, output is byte-for-byte classic.
+
+The per-object geometry export (`--json` → `objects`) uses the same frame, so
+bboxes stay consistent with the pinned viewBox.
+
 ## Render Layers
 
 `behind <object>` is an rpic-only attribute inspired by Pikchr. It paints the

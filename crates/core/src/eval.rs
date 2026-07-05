@@ -133,6 +133,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
+        canvas: st.canvas,
         anims: st.anims,
         diagnostics: st.diagnostics,
         warnings: st.warnings,
@@ -164,9 +165,19 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
         for sh in &mut d.shapes {
             scale_shape(sh, factor);
         }
+        scale_canvas(d, factor);
         d.prelude_thick *= factor;
         d.canvas_margin.scale_by(factor);
         d.bbox = drawing_painted_bbox(&d.shapes);
+    }
+}
+
+fn scale_canvas(d: &mut Drawing, factor: f64) {
+    if let Some(c) = d.canvas {
+        let mut bb = Bbox::new();
+        bb.add(Point::new(c.min.x * factor, c.min.y * factor));
+        bb.add(Point::new(c.max.x * factor, c.max.y * factor));
+        d.canvas = Some(bb);
     }
 }
 
@@ -188,17 +199,20 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
     for sh in &mut d.shapes {
         scale_shape(sh, factor);
     }
+    scale_canvas(d, factor);
     d.prelude_thick *= factor;
     d.canvas_margin.scale_by(factor);
     d.bbox = drawing_painted_bbox(&d.shapes);
 }
 
 fn canvas_width(d: &Drawing) -> f64 {
-    d.bbox.width() + d.canvas_margin.horizontal()
+    let raw = d.canvas.map_or_else(|| d.bbox.width(), |c| c.width());
+    raw + d.canvas_margin.horizontal()
 }
 
 fn canvas_height(d: &Drawing) -> f64 {
-    d.bbox.height() + d.canvas_margin.vertical()
+    let raw = d.canvas.map_or_else(|| d.bbox.height(), |c| c.height());
+    raw + d.canvas_margin.vertical()
 }
 
 /// The dimension variables that track `scale`.
@@ -561,6 +575,8 @@ struct State {
     /// Span of the object statement currently being evaluated (attached to
     /// every shape it pushes).
     current_span: Option<Span>,
+    /// Fixed page rectangle from `canvas from … to …` (last statement wins).
+    canvas: Option<Bbox>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
     /// Visible geometry and text only; this becomes the final drawing/viewBox.
@@ -610,6 +626,7 @@ impl State {
             shape_classes: Vec::new(),
             shape_spans: Vec::new(),
             current_span: None,
+            canvas: None,
             placed: Vec::new(),
             labels: HashMap::new(),
             bbox: Bbox::new(),
@@ -689,6 +706,17 @@ impl State {
                 let idx = self.place_index(target)?;
                 let name = self.eval_stringexpr(class)?;
                 self.append_class_at(idx, &name)?;
+            }
+            Stmt::Canvas { from, to } => {
+                let a = self.eval_pos(from)?;
+                let b = self.eval_pos(to)?;
+                let mut bb = Bbox::new();
+                bb.add(a);
+                bb.add(b);
+                if bb.width() <= 0.0 || bb.height() <= 0.0 {
+                    return err("canvas must have positive width and height");
+                }
+                self.canvas = Some(bb);
             }
             Stmt::If {
                 cond,
@@ -1975,6 +2003,14 @@ impl State {
             *self.shape_classes.last_mut().unwrap() = class;
             // inner objects carry their own statement spans through the merge
             *self.shape_spans.last_mut().unwrap() = span;
+        }
+        if let Some(c) = sub.canvas {
+            // like variables, `canvas` is global: a block's setting wins,
+            // translated into parent space with the rest of its geometry
+            let mut bb = Bbox::new();
+            bb.add(c.min + shift);
+            bb.add(c.max + shift);
+            self.canvas = Some(bb);
         }
         let shape = if self.shapes.len() > first_shape {
             Some(first_shape)
@@ -5415,6 +5451,58 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert_eq!(scalar("rightmargin").unwrap(), 0.0);
         assert_eq!(scalar("bottommargin").unwrap(), 0.0);
         assert_eq!(scalar("leftmargin").unwrap(), 0.0);
+    }
+
+    #[test]
+    fn canvas_stmt_fixes_the_page_rect() {
+        let d = draw("canvas from (0,0) to (4,3)\nbox at (1,1)");
+        let c = d.canvas.unwrap();
+        assert_eq!((c.min.x, c.min.y, c.max.x, c.max.y), (0.0, 0.0, 4.0, 3.0));
+        // corners in either order, and place references both work
+        let d = draw("F: box wid 3 ht 2 at (1.5,1) invis\ncanvas from F.ne to F.sw");
+        let c = d.canvas.unwrap();
+        assert_eq!((c.min.x, c.min.y, c.max.x, c.max.y), (0.0, 0.0, 3.0, 2.0));
+        // last statement wins
+        let d = draw("canvas from (0,0) to (9,9)\ncanvas from (0,0) to (1,1)\nbox");
+        assert_eq!(d.canvas.unwrap().max.x, 1.0);
+    }
+
+    #[test]
+    fn canvas_stmt_is_inert_as_a_variable() {
+        // `canvas = 3` stays a plain assignment; only `canvas from …` triggers
+        let d = draw("canvas = 3\nbox wid canvas");
+        assert!(d.canvas.is_none());
+        // painted bbox includes the stroke — compare loosely
+        assert!((d.bbox.width() - 3.0).abs() < 0.05, "{}", d.bbox.width());
+    }
+
+    #[test]
+    fn canvas_stmt_rejects_degenerate_rects() {
+        let e = eval(&parse("canvas from (0,0) to (0,3)").unwrap()).unwrap_err();
+        assert!(e.msg.contains("positive width and height"), "{}", e.msg);
+    }
+
+    #[test]
+    fn canvas_stmt_scales_with_the_picture() {
+        // `scale = 2`: canvas given in user units, halved internally
+        let d = draw("scale = 2\ncanvas from (0,0) to (8,6)\nbox");
+        let c = d.canvas.unwrap();
+        assert!((c.max.x - 4.0).abs() < 1e-9 && (c.max.y - 3.0).abs() < 1e-9);
+        // maxps clamps the *page* (the fixed canvas), not the content bbox
+        let d = draw("maxpswid = 2\ncanvas from (0,0) to (4,3)\nbox wid 1");
+        let c = d.canvas.unwrap();
+        assert!((c.width() - 2.0).abs() < 1e-6, "{}", c.width());
+        assert!((d.bbox.width() - 0.5).abs() < 0.05, "{}", d.bbox.width());
+    }
+
+    #[test]
+    fn canvas_stmt_propagates_out_of_blocks_translated() {
+        // canvas is global like variables; a block's rect lands in parent space
+        let d =
+            draw("box wid 1 ht 1 at (0.5,0.5)\n[ canvas from (0,0) to (2,1) ] with .sw at (0,0)");
+        let c = d.canvas.unwrap();
+        assert!((c.min.x - 0.0).abs() < 1e-9, "{}", c.min.x);
+        assert!((c.width() - 2.0).abs() < 1e-9);
     }
 
     #[test]

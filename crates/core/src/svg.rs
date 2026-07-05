@@ -30,7 +30,8 @@ struct Svg {
 
 impl Svg {
     fn new(d: &Drawing) -> Self {
-        let raw = drawing_svg_bounds(&d.shapes);
+        // a fixed `canvas` pins the page frame; otherwise it hugs the content
+        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
         let (west, north) = if raw.is_empty() {
             (0.0, 0.0)
         } else {
@@ -55,7 +56,7 @@ impl Svg {
     }
 
     fn render(&mut self, d: &Drawing) {
-        let raw = drawing_svg_bounds(&d.shapes);
+        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
         let raw_w = if raw.is_empty() { 0.0 } else { raw.width() };
         let raw_h = if raw.is_empty() { 0.0 } else { raw.height() };
         let (w, h) = if raw.is_empty() {
@@ -1864,6 +1865,32 @@ mod tests {
     }
 
     #[test]
+    fn canvas_stmt_pins_the_viewbox() {
+        // same fixed canvas, object moved: identical <svg> header (stable
+        // frame), different rect coordinates (only the object moved)
+        let a = svg("canvas from (0,0) to (4,3)\nbox at (1,1)");
+        let b = svg("canvas from (0,0) to (4,3)\nbox at (2,2)");
+        assert_eq!(a.lines().next(), b.lines().next());
+        assert_ne!(
+            a.lines().find(|l| l.contains("<rect")),
+            b.lines().find(|l| l.contains("<rect"))
+        );
+        // and the frame is the canvas, not the content: 4in × 3in + padding
+        let head = a.lines().next().unwrap();
+        assert!(head.contains("viewBox=\"0 0 387.2 291.2\""), "{head}");
+        // content-hugging baseline still reflows
+        let c = svg("box at (1,1)");
+        assert!(!c.contains("387.2"), "{c}");
+    }
+
+    #[test]
+    fn canvas_stmt_sizes_an_empty_page() {
+        // a canvas with no drawn content still yields a fixed-size page
+        let s = svg("canvas from (0,0) to (2,1)");
+        assert!(s.contains("viewBox=\"0 0 195.2 99.2\""), "{s}");
+    }
+
+    #[test]
     fn canvas_margin_expands_svg_canvas_only_when_used() {
         let base = svg("line right");
         assert_eq!(svg("margin = 0; topmargin = 0; line right"), base);
@@ -2061,6 +2088,7 @@ mod tests {
             shape_classes: vec![None],
             shape_spans: vec![None],
             bbox: Bbox::new(),
+            canvas: None,
             prelude_thick: 0.8,
             canvas_margin: CanvasMargin::default(),
             anims: Vec::new(),
