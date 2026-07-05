@@ -4,6 +4,7 @@ title: Performance
 description: Render-to-SVG speed — rpic vs the pic family and auto-layout tools, with an honest methodology.
 ---
 import PerfBench from '../../components/PerfBench.astro';
+import PerfDistribution from '../../components/PerfDistribution.astro';
 
 # Performance
 
@@ -15,13 +16,24 @@ pays per diagram.
 
 <PerfBench />
 
-That **~80× difference** in the pipeline scenario is the gap between a site
+That **~85× difference** in the pipeline scenario is the gap between a site
 build you don't notice and one you schedule around.
+
+Point estimates hide the shape of the data, so here is the full
+distribution at the largest size, on a logarithmic axis — the only honest
+way to show a field that spans three orders of magnitude:
+
+<PerfDistribution />
+
+The box widths are the story a single number can't tell: rpic's middle 50%
+of runs fall inside a **0.5 ms** window, so its timing is as predictable as
+it is fast. mermaid's box alone spans 115 ms — the headless-Chromium boot
+is not just slow but *variable*, which is what makes it painful in a build.
 
 ## Read the numbers honestly
 
 - **rpic sits in the C class.** Single-digit milliseconds, essentially flat
-  with diagram size (5.3 → 6.1 ms from 5 to 120 nodes — the cost is process
+  with diagram size (a ~5.9 ms median at 120 nodes — the cost is process
   startup, not compilation). The couple of milliseconds above dpic/pikchr
   is binary size (embedded fonts, the math renderer), not the engine.
 - **The comparison has a built-in asymmetry.** graphviz, d2 and mermaid
@@ -33,7 +45,7 @@ build you don't notice and one you schedule around.
   headless Chromium per invocation (~600 ms before any diagram work).
   Embedded in a live page, mermaid.js renders far cheaper — but in CI and
   static-site builds, the CLI is what runs.
-- **d2's layout cost grows with size** (72 → 580 ms across our range);
+- **d2's layout cost grows with size** (71 → 573 ms across our range);
   graphviz is flat but starts near 100 ms.
 
 ## Why rpic is fast

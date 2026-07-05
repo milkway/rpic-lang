@@ -47,7 +47,7 @@ to the modern web era:
 - **SVG / PNG / PDF**, all **pure-Rust** — no troff, no LaTeX, no ImageMagick,
   no system libraries.
 - **Fast**: single-digit-millisecond cold renders, flat with diagram size —
-  ~80× faster than mermaid-cli in a docs pipeline
+  ~85× faster than mermaid-cli in a docs pipeline
   ([benchmark](https://rpic.dev/docs/performance/), reproducible via
   [`tools/bench`](tools/bench)).
 - A small **declarative animation** layer (`animate …`) that plays in the
