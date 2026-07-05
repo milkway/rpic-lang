@@ -1,10 +1,27 @@
 ---
 // Curated corpus gallery: each figure is the real repository file rendered
 // by the rpic binary at build time (renderPicFile resolves `copy` next to
-// the source). Cards link to the .pic on GitHub.
+// the source). Cards link to the .pic on GitHub, and — when the source is
+// self-contained — to open it live in the Studio editor (studio.rpic.dev).
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import lzString from 'lz-string'; // CommonJS module — default-import for ESM interop
 import { renderPicFile } from '../lib/rpic';
 
+const { compressToEncodedURIComponent } = lzString;
+
 const GH = 'https://github.com/milkway/rpic-lang/blob/main/';
+const STUDIO = 'https://studio.rpic.dev/';
+
+// Studio shares source in the URL fragment (`#pic=<lz-string>`), decoded
+// client-side; it auto-detects `-c`/`-t` from the source, so no flags are
+// needed. Figures that `copy` a local shim (the m4 circuit_macros / lib3D
+// compat files) can't resolve there, so they get no Studio link.
+function studioUrl(relPath: string): string | null {
+  const source = readFileSync(resolve(process.cwd(), '..', relPath), 'utf8');
+  if (/\bcopy\s+"/.test(source)) return null;
+  return `${STUDIO}#pic=${compressToEncodedURIComponent(source)}`;
+}
 
 const entries: { path: string; caption: string; credit: string; circuits?: boolean; texlabels?: boolean }[] = [
   { path: 'examples/dpic/sources/diag1.pic', caption: 'Feedback control loop', credit: 'dpic examples — rendered with -t', texlabels: true },
@@ -31,13 +48,23 @@ function atZoom(svg: string, k = 0.78): string {
 const cards = entries.map((e) => ({
   ...e,
   svg: atZoom(renderPicFile(e.path, { circuits: e.circuits, texlabels: e.texlabels })),
+  studio: studioUrl(e.path),
 }));
 ---
 
 <div class="not-prose grid gap-5 sm:grid-cols-2 my-6">
   {cards.map((c) => (
-    <figure class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden m-0">
+    <figure class="group relative rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden m-0">
       <div class="bg-white grid place-items-center p-5 min-h-44 [&_svg]:max-w-full [&_svg]:h-auto" set:html={c.svg} />
+      {c.studio && (
+        <a href={c.studio} target="_blank" rel="noopener"
+          class="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md bg-emerald-700 text-white text-[11px] font-medium px-2 py-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shadow-sm hover:bg-emerald-600 no-underline">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Open in Studio
+        </a>
+      )}
       <figcaption class="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5 flex items-baseline justify-between gap-3">
         <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">{c.caption}</span>
         <a href={`${GH}${c.path}`} class="text-[11px] text-slate-400 hover:text-emerald-700 whitespace-nowrap">
