@@ -1,0 +1,35 @@
+{
+  "title": "rpic: the pic picture-drawing language, reimplemented in Rust",
+  "description": "<p>rpic is a modern, SVG/PNG/PDF-first reimplementation of Brian W. Kernighan's pic picture-drawing language, written in pure Rust with no system dependencies. It ships a native circuit-element library in the spirit of J. D. Aplevich's circuit_macros, natively typeset TeX math labels, structured compiler diagnostics, a declarative animation layer, and bindings for Python, R, JavaScript/WebAssembly and C. Documentation and a live playground: <a href=\"https://rpic.dev\">rpic.dev</a>.</p>",
+  "upload_type": "software",
+  "license": "BSD-2-Clause",
+  "creators": [
+    {
+      "name": "Leite, André",
+      "affiliation": "Universidade Federal de Pernambuco"
+    }
+  ],
+  "keywords": [
+    "pic",
+    "diagrams",
+    "graphics language",
+    "SVG",
+    "Rust",
+    "circuit diagrams",
+    "TeX",
+    "WebAssembly",
+    "data visualization"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/milkway/rpic-lang",
+      "resource_type": "software"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://rpic.dev",
+      "resource_type": "publication-softwaredocumentation"
+    }
+  ]
+}
