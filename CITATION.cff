@@ -11,8 +11,8 @@ authors:
 repository-code: "https://github.com/milkway/rpic-lang"
 url: "https://rpic.dev"
 license: BSD-2-Clause
-version: 0.6.2
-date-released: 2026-07-04
+version: 0.7.0
+date-released: 2026-07-05
 keywords:
   - pic
   - diagrams
