@@ -12,18 +12,46 @@
 //! on any machine — no dependency on which fonts happen to be installed. See
 //! `fonts/LICENSE`.
 
-/// Bundled font used for all text (the SVG backend emits `font-family="sans-serif"`).
+/// Bundled fonts (the SVG backend emits `font-family="sans-serif"` at the
+/// root; the rpic font attributes add `font-weight`/`font-style`/generic
+/// `monospace` per `<text>`, so the bold/italic/mono faces ship too).
 #[cfg(feature = "raster")]
 const EMBEDDED_FONT: &[u8] = include_bytes!("../fonts/Go-Regular.ttf");
+const EMBEDDED_FONT_BOLD: &[u8] = include_bytes!("../fonts/Go-Bold.ttf");
+const EMBEDDED_FONT_ITALIC: &[u8] = include_bytes!("../fonts/Go-Italic.ttf");
+const EMBEDDED_FONT_BOLD_ITALIC: &[u8] = include_bytes!("../fonts/Go-Bold-Italic.ttf");
+const EMBEDDED_FONT_MONO: &[u8] = include_bytes!("../fonts/Go-Mono.ttf");
+const EMBEDDED_FONT_MONO_BOLD: &[u8] = include_bytes!("../fonts/Go-Mono-Bold.ttf");
 /// The bundled font's internal family name.
 #[cfg(feature = "raster")]
 const EMBEDDED_FONT_FAMILY: &str = "Go";
+/// The bundled monospace family's internal name.
+const EMBEDDED_MONO_FAMILY: &str = "Go Mono";
 
 #[cfg(feature = "math")]
 pub mod math;
 
 /// Rasterize an SVG string to PNG bytes at the given scale (1.0 = 96 dpi, the
 /// SVG's native resolution).
+#[cfg(feature = "raster")]
+fn load_embedded_fonts(db: &mut resvg::usvg::fontdb::Database) {
+    for data in [
+        EMBEDDED_FONT,
+        EMBEDDED_FONT_BOLD,
+        EMBEDDED_FONT_ITALIC,
+        EMBEDDED_FONT_BOLD_ITALIC,
+        EMBEDDED_FONT_MONO,
+        EMBEDDED_FONT_MONO_BOLD,
+    ] {
+        db.load_font_data(data.to_vec());
+    }
+    db.set_serif_family(EMBEDDED_FONT_FAMILY);
+    db.set_sans_serif_family(EMBEDDED_FONT_FAMILY);
+    db.set_monospace_family(EMBEDDED_MONO_FAMILY);
+    db.set_cursive_family(EMBEDDED_FONT_FAMILY);
+    db.set_fantasy_family(EMBEDDED_FONT_FAMILY);
+}
+
 #[cfg(feature = "raster")]
 pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     use resvg::{tiny_skia, usvg};
@@ -33,15 +61,7 @@ pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     }
 
     let mut opt = usvg::Options::default();
-    {
-        let db = opt.fontdb_mut();
-        db.load_font_data(EMBEDDED_FONT.to_vec());
-        db.set_serif_family(EMBEDDED_FONT_FAMILY);
-        db.set_sans_serif_family(EMBEDDED_FONT_FAMILY);
-        db.set_monospace_family(EMBEDDED_FONT_FAMILY);
-        db.set_cursive_family(EMBEDDED_FONT_FAMILY);
-        db.set_fantasy_family(EMBEDDED_FONT_FAMILY);
-    }
+    load_embedded_fonts(opt.fontdb_mut());
     let tree = usvg::Tree::from_str(svg, &opt).map_err(|e| e.to_string())?;
 
     let size = tree.size();
@@ -62,15 +82,7 @@ pub fn to_pdf(svg: &str) -> Result<Vec<u8>, String> {
     use svg2pdf::usvg;
 
     let mut opt = usvg::Options::default();
-    {
-        let db = opt.fontdb_mut();
-        db.load_font_data(EMBEDDED_FONT.to_vec());
-        db.set_serif_family(EMBEDDED_FONT_FAMILY);
-        db.set_sans_serif_family(EMBEDDED_FONT_FAMILY);
-        db.set_monospace_family(EMBEDDED_FONT_FAMILY);
-        db.set_cursive_family(EMBEDDED_FONT_FAMILY);
-        db.set_fantasy_family(EMBEDDED_FONT_FAMILY);
-    }
+    load_embedded_fonts(opt.fontdb_mut());
     let tree = usvg::Tree::from_str(svg, &opt).map_err(|e| e.to_string())?;
 
     svg2pdf::to_pdf(

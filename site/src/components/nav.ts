@@ -34,6 +34,7 @@ export const nav: NavSection[] = [
       { title: 'margin', href: '/docs/extensions/margin' },
       { title: 'canvas', href: '/docs/extensions/canvas' },
       { title: 'fit', href: '/docs/extensions/fit' },
+      { title: 'font attributes', href: '/docs/extensions/font' },
       { title: 'behind', href: '/docs/extensions/behind' },
       { title: 'close', href: '/docs/extensions/close' },
       { title: 'dot', href: '/docs/extensions/dot' },

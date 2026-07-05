@@ -291,6 +291,16 @@ pub enum Attr {
     Behind(Place),
     /// rpic extension: CSS class hook attached to this object's shape group.
     Class(StringExpr),
+    /// rpic extension: bold face for the preceding text string.
+    Bold,
+    /// rpic extension: italic face for the preceding text string.
+    Italic,
+    /// rpic extension: monospace family for the preceding text string.
+    Mono,
+    /// rpic extension: font family for the preceding text string.
+    Font(StringExpr),
+    /// rpic extension: font size in points for the preceding text string.
+    FontSize(Expr),
     /// rpic extension: relative cusp position for a `brace` object.
     BracePos(Expr),
     /// rpic extension: extra outward spacing between a `brace` cusp and label.

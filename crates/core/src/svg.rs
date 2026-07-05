@@ -780,9 +780,22 @@ impl Svg {
             } else {
                 "stroke-width=\"0.2pt\"".to_string()
             };
+            // rpic font attributes: extra presentation attributes only when
+            // styled — unstyled lines stay byte-identical to classic output
+            let mut style_attrs = String::new();
+            if let Some(f) = &line.family {
+                style_attrs.push_str(&format!(" font-family=\"{}\"", escape(f)));
+            }
+            if line.bold {
+                style_attrs.push_str(" font-weight=\"bold\"");
+            }
+            if line.italic {
+                style_attrs.push_str(" font-style=\"italic\"");
+            }
             self.out.push_str(&format!(
-                "<text font-size=\"{}pt\" {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
-                num(font_pt),
+                "<text font-size=\"{}pt\"{} {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
+                num(line.size_pt.unwrap_or(font_pt)),
+                style_attrs,
                 text_stroke,
                 num(p.x),
                 num(p.y),
@@ -1055,7 +1068,7 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
         if line.s.is_empty() {
             continue;
         }
-        let w = line.s.chars().count() as f64 * char_w;
+        let w = line.s.chars().count() as f64 * char_w * line.width_factor();
         let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * line_h;
         let y = base_y + line.valign as f64 * (xheight / 2.0 + line.text_offset);
         let x = center.x
@@ -1087,8 +1100,9 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
             1 => (x - w, x),
             _ => (x - w / 2.0, x + w / 2.0),
         };
-        bb.add(Point::new(min_x, y - line_h / 2.0));
-        bb.add(Point::new(max_x, y + line_h / 2.0));
+        let half_h = line_h * line.height_factor() / 2.0;
+        bb.add(Point::new(min_x, y - half_h));
+        bb.add(Point::new(max_x, y + half_h));
     }
     bb
 }
@@ -1865,6 +1879,24 @@ mod tests {
     }
 
     #[test]
+    fn font_attrs_emit_presentation_attributes() {
+        let s = svg("box \"t\" bold italic mono fontsize 18");
+        assert!(
+            s.contains(
+                "<text font-size=\"18pt\" font-family=\"monospace\" font-weight=\"bold\" font-style=\"italic\""
+            ),
+            "{s}"
+        );
+        let s = svg("box \"t\" font \"Fira Sans\"");
+        assert!(s.contains("font-family=\"Fira Sans\""), "{s}");
+        // unstyled output carries none of the extension attributes
+        let s = svg("box \"t\"\n\"alone\"");
+        for needle in ["font-weight", "font-style", "font-family=\"monospace"] {
+            assert!(!s.contains(needle), "unexpected {needle} in {s}");
+        }
+    }
+
+    #[test]
     fn canvas_stmt_pins_the_viewbox() {
         // same fixed canvas, object moved: identical <svg> header (stable
         // frame), different rect coordinates (only the object moved)
@@ -2074,6 +2106,10 @@ mod tests {
             halign: 0,
             valign: 0,
             text_offset: 0.0,
+            bold: false,
+            italic: false,
+            family: None,
+            size_pt: None,
         }];
         let d = Drawing {
             shapes: vec![Shape::Text {

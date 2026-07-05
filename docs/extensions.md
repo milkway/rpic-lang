@@ -250,6 +250,35 @@ rendered text bboxes. That keeps the feature practical and backend-stable
 inside rpic, but it also means `fit` is not a dpic oracle feature. Programs that
 do not use `fit` keep their dpic-compatible dimensions and placement.
 
+## Font Attributes
+
+`bold`, `italic`, `mono`, `font "<family>"` and `fontsize <points>` style each
+text string individually (inspired by Pikchr's `bold`/`italic`). They bind
+like `ljust`/`rjust`: to the string they follow, or — written before any
+string — to the next one.
+
+```pic
+.PS
+box "Heading" bold "subtitle" italic fontsize 9
+box "code" mono fit
+"caption" font "Georgia" fontsize 14
+.PE
+```
+
+- Emission is per `<text>`: `font-weight="bold"`, `font-style="italic"`,
+  `font-family="monospace"` / the given family, `font-size="<n>pt"`. Unstyled
+  lines keep the classic output byte-for-byte.
+- Measurement follows the style: `fit`, text bboxes and standalone default
+  heights scale with `fontsize` (and bold's ~5% wider advance), so styled
+  labels stay inside their boxes.
+- PNG/PDF embed the Go family faces (bold/italic/bold-italic/mono/mono-bold),
+  keeping raster output machine-independent; arbitrary `font "…"` families
+  resolve in the viewer for SVG and fall back to the embedded face in raster.
+- Math (`$…$` under `texlabels`) is typeset by the math renderer and ignores
+  these attributes.
+- dpic rejects these words as syntax errors, so no valid dpic input changes
+  meaning; `fontsize <= 0` is an eval error.
+
 ## Fill Opacity
 
 `opacity <expr>` is an rpic-only attribute for making filled regions partially

@@ -1,0 +1,59 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: font attributes
+description: Per-string bold, italic, mono, font family and size — rpic extension inspired by Pikchr.
+---
+import PicExample from '../../../components/PicExample.astro';
+
+# font attributes
+
+**rpic extension, inspired by Pikchr.** Five text attributes style each
+string individually: `bold`, `italic`, `mono`, `font "<family>"` and
+`fontsize <points>`. They bind like `ljust`/`rjust` — to the string they
+follow (or, written before any string, to the next one).
+
+<PicExample code={`.PS
+down
+box "regular" fit
+box "bold" bold fit
+box "italic" italic fit
+box "mono" mono fit
+box "fontsize 18" fontsize 18 fit
+.PE`} />
+
+## Per-string, not per-object
+
+Each string carries its own style, so one object can mix faces:
+
+<PicExample code={`.PS
+box wid 2 "Heading" bold "a quieter subtitle" italic fontsize 9
+.PE`} />
+
+## The attributes
+
+| Attribute | Effect on the `<text>` |
+|---|---|
+| `bold` | `font-weight="bold"` |
+| `italic` | `font-style="italic"` |
+| `mono` | `font-family="monospace"` |
+| `font "IBM Plex Mono"` | `font-family="IBM Plex Mono"` (quoted or bareword, like colours) |
+| `fontsize 18` | `font-size="18pt"` (points; must be positive) |
+
+## Rules
+
+- **Geometry follows the style.** [`fit`](/docs/extensions/fit/), text
+  bounding boxes and standalone-text default heights all use the styled
+  metrics — `"big" fontsize 22` takes a proportionally taller line, and a
+  `bold` label gets a slightly wider `fit` box.
+- **PNG/PDF ship the faces.** The renderer embeds the Go family (regular,
+  bold, italic, bold-italic, mono, mono-bold), so `bold`/`italic`/`mono`
+  rasterize faithfully on any machine. A `font "…"` family is resolved by
+  the viewer for SVG; PNG/PDF fall back to the embedded face when the
+  family isn't bundled.
+- **Math lines are unaffected**: a fully `$…$` label under
+  [`texlabels`](/docs/extensions/texlabels/) is typeset by the math
+  renderer, which has its own faces.
+- **Contextual words**: `bold = 2` stays an assignment and `box wid bold`
+  still reads the variable — only attribute position triggers. Unused,
+  output is byte-for-byte classic (dpic errors on these words, so no valid
+  dpic input changes meaning).

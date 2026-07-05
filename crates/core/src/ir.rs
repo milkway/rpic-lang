@@ -193,6 +193,34 @@ pub struct TextLine {
     pub valign: i8,
     /// Extra text-position offset in inches (`textoffset`).
     pub text_offset: f64,
+    /// rpic extension: bold face (`bold`).
+    pub bold: bool,
+    /// rpic extension: italic face (`italic`).
+    pub italic: bool,
+    /// rpic extension: font family — `Some("monospace")` from `mono`, or the
+    /// family given to `font "…"`. `None` follows the root `<svg>` family.
+    pub family: Option<String>,
+    /// rpic extension: explicit size in points (`fontsize`); `None` keeps
+    /// classic sizing (11 pt attached, height-derived standalone).
+    pub size_pt: Option<f64>,
+}
+
+/// Classic label size in points — the baseline `fontsize` scales against.
+pub(crate) const FONT_PT_CLASSIC: f64 = 11.0;
+
+impl TextLine {
+    /// Width scale vs. the classic 11 pt regular estimate: explicit
+    /// `fontsize` scales linearly; bold glyphs run ~5% wider.
+    pub(crate) fn width_factor(&self) -> f64 {
+        let size = self.size_pt.map_or(1.0, |pt| pt / FONT_PT_CLASSIC);
+        let weight = if self.bold { 1.05 } else { 1.0 };
+        size * weight
+    }
+
+    /// Height scale (explicit `fontsize` vs. classic 11 pt).
+    pub(crate) fn height_factor(&self) -> f64 {
+        self.size_pt.map_or(1.0, |pt| pt / FONT_PT_CLASSIC)
+    }
 }
 
 /// A placed drawing primitive.
