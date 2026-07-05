@@ -7,6 +7,7 @@ authors:
     given-names: "André"
     affiliation: "Universidade Federal de Pernambuco"
     email: leite@castlab.org
+    orcid: "https://orcid.org/0000-0002-4718-9766"
 repository-code: "https://github.com/milkway/rpic-lang"
 url: "https://rpic.dev"
 license: BSD-2-Clause
