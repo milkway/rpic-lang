@@ -1,0 +1,118 @@
+---
+// The render-benchmark table, hand-laid-out like PicFamilyTable: real <table>
+// semantics, tabular numerals, and a linear meter for the 120-node column
+// with the value at the bar tip. Highlight-vs-context color scheme: one
+// emerald accent for rpic, a deliberate neutral for everything else —
+// identity is carried by the row label and every value is printed, so the
+// neutral reading "gray" is the point (validated: light #047857/#64748b on
+// #fff, dark #059669/#64748b on #020617 — contrast/CVD/lightness pass).
+interface Row {
+  tool: string;
+  lang: string;
+  kind: 'pic' | 'auto';
+  ms: [number, number, number]; // 5, 30, 120 nodes
+  self?: boolean;
+  note?: string;
+}
+
+const rows: Row[] = [
+  { tool: 'pikchr', lang: 'C', kind: 'pic', ms: [2.3, 2.7, 3.4] },
+  { tool: 'dpic', lang: 'C', kind: 'pic', ms: [3.1, 3.6, 4.0] },
+  { tool: 'rpic', lang: 'Rust', kind: 'pic', ms: [5.3, 5.9, 6.1], self: true },
+  { tool: 'graphviz dot', lang: 'C', kind: 'auto', ms: [96, 92, 95] },
+  { tool: 'd2', lang: 'Go', kind: 'auto', ms: [72, 161, 580] },
+  { tool: 'mermaid', lang: 'mmdc · Chromium', kind: 'auto', ms: [622, 664, 1075] },
+];
+
+const max = Math.max(...rows.map((r) => r.ms[2]));
+const fmt = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${v} ms`);
+// linear scale, honest: sub-pixel bars get a 3px stub — the hairline IS the story
+const pct = (v: number) => Math.max((v / max) * 100, 0.45);
+
+const batch = [
+  { tool: 'rpic', s: 0.32, self: true },
+  { tool: 'mermaid (mmdc)', s: 25.9 },
+];
+const bmax = Math.max(...batch.map((b) => b.s));
+---
+
+<div class="not-prose my-8 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <div class="px-5 pt-4 pb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60">
+    <h3 class="m-0 text-sm font-semibold text-slate-900 dark:text-white">
+      Cold render to SVG <span class="font-normal text-slate-500 dark:text-slate-400">— chain of N labelled boxes</span>
+    </h3>
+    <div class="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
+      <span class="inline-flex items-center gap-1.5">
+        <span class="inline-block w-2.5 h-2.5 rounded-[3px] bg-[#047857] dark:bg-[#059669]"></span> rpic
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <span class="inline-block w-2.5 h-2.5 rounded-[3px] bg-[#64748b]"></span> other tools
+      </span>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse min-w-[560px]">
+      <thead>
+        <tr class="text-[11px] uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <th class="text-left font-medium pl-5 pr-2 py-2.5 whitespace-nowrap w-0">Tool</th>
+          <th class="text-right font-medium px-2 py-2.5 w-16 whitespace-nowrap">5 nodes</th>
+          <th class="text-right font-medium px-2 py-2.5 w-16 whitespace-nowrap">30 nodes</th>
+          <th class="text-left font-medium pl-6 pr-5 py-2.5 w-full">120 nodes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr class={`border-t border-slate-100 dark:border-slate-800/60 transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50 ${r.self ? 'bg-emerald-50/60 dark:bg-emerald-950/30' : ''}`}>
+            <td class="pl-5 pr-2 py-2.5 whitespace-nowrap">
+              <span class={`${r.self ? 'font-semibold text-emerald-900 dark:text-emerald-200' : 'font-medium text-slate-700 dark:text-slate-300'}`}>{r.tool}</span>
+              <span class="ml-2 text-[11px] text-slate-400 dark:text-slate-500">{r.lang}</span>
+              {r.kind === 'auto' && (
+                <span class="ml-2 align-middle text-[10px] font-medium uppercase tracking-wide rounded-full border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 px-1.5 py-px">auto-layout</span>
+              )}
+            </td>
+            <td class="text-right px-2 py-2.5 tabular-nums text-slate-600 dark:text-slate-400 whitespace-nowrap">{fmt(r.ms[0])}</td>
+            <td class="text-right px-2 py-2.5 tabular-nums text-slate-600 dark:text-slate-400 whitespace-nowrap">{fmt(r.ms[1])}</td>
+            <td class="pl-6 pr-5 py-2.5 w-full">
+              <div class="flex items-center gap-2.5">
+                <div class="h-2.5 rounded-r-[4px] shrink-0"
+                  class:list={[r.self ? 'bg-[#047857] dark:bg-[#059669]' : 'bg-[#64748b]']}
+                  style={`width:${pct(r.ms[2])}%; min-width:3px; max-width:calc(100% - 5rem)`}></div>
+                <span class={`tabular-nums whitespace-nowrap text-[13px] ${r.self ? 'font-semibold text-emerald-900 dark:text-emerald-200' : 'text-slate-600 dark:text-slate-400'}`}>{fmt(r.ms[2])}</span>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800/60 text-[11px] leading-5 text-slate-400 dark:text-slate-500">
+    Apple M2 Pro · <code class="font-mono">hyperfine</code>, warmup, mean of ≥10 runs · bars are linear in the 120-node time —
+    the near-invisible pic-family bars are the honest picture · outputs verified complete ·
+    reproduce with <a href="https://github.com/milkway/rpic-lang/tree/main/tools/bench" class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-800 dark:hover:text-emerald-300">tools/bench</a>
+  </div>
+</div>
+
+<div class="not-prose my-8 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+  <div class="grid sm:grid-cols-[auto_1fr] items-stretch">
+    <div class="px-6 py-5 sm:border-r border-b sm:border-b-0 border-slate-100 dark:border-slate-800/60 flex flex-col justify-center">
+      <div class="text-4xl font-extrabold tracking-tight text-emerald-800 dark:text-emerald-300 tabular-nums">81×</div>
+      <div class="mt-1 text-[13px] leading-5 text-slate-500 dark:text-slate-400 max-w-[16rem]">
+        faster in a docs pipeline —<br />50 small diagrams, rendered in sequence
+      </div>
+    </div>
+    <div class="px-5 py-5 flex flex-col justify-center gap-3">
+      {batch.map((b) => (
+        <div>
+          <div class="flex items-baseline justify-between gap-3 mb-1">
+            <span class={`text-[13px] ${b.self ? 'font-semibold text-emerald-900 dark:text-emerald-200' : 'font-medium text-slate-600 dark:text-slate-400'}`}>{b.tool}</span>
+            <span class={`tabular-nums text-[13px] ${b.self ? 'font-semibold text-emerald-900 dark:text-emerald-200' : 'text-slate-600 dark:text-slate-400'}`}>{b.s < 1 ? `${(b.s * 1000).toFixed(0)} ms` : `${b.s.toFixed(1)} s`}</span>
+          </div>
+          <div class={`h-2.5 rounded-r-[4px] ${b.self ? 'bg-[#047857] dark:bg-[#059669]' : 'bg-[#64748b]'}`}
+            style={`width:${Math.max((b.s / bmax) * 100, 0.45)}%; min-width:3px`}></div>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>

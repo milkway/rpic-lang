@@ -3,6 +3,7 @@ layout: ../../layouts/MdxLayout.astro
 title: Performance
 description: Render-to-SVG speed — rpic vs the pic family and auto-layout tools, with an honest methodology.
 ---
+import PerfBench from '../../components/PerfBench.astro';
 
 # Performance
 
@@ -12,29 +13,10 @@ tool's own language, and times **cold CLI invocations** (process start to
 SVG written), which is what a documentation build or CI pipeline actually
 pays per diagram.
 
-| Tool | 5 nodes | 30 nodes | 120 nodes | Layout model |
-|------|--------:|--------:|---------:|--------------|
-| pikchr (C) | 2.3 ms | 2.7 ms | 3.4 ms | explicit (pic) |
-| dpic (C) | 3.1 ms | 3.6 ms | 4.0 ms | explicit (pic) |
-| **rpic (Rust)** | **5.3 ms** | **5.9 ms** | **6.1 ms** | explicit (pic) |
-| graphviz `dot` | 96 ms | 92 ms | 95 ms | automatic |
-| d2 | 72 ms | 161 ms | 580 ms | automatic |
-| mermaid (`mmdc`) | 622 ms | 664 ms | 1 075 ms | automatic, headless Chromium |
+<PerfBench />
 
-<small>Apple M2 Pro, macOS; `hyperfine` with warmup; mean of ≥10 runs.
-Outputs verified complete (all N nodes present in every SVG). Reproduce with
-[`tools/bench/run.sh`](https://github.com/milkway/rpic-lang/tree/main/tools/bench).</small>
-
-**The docs-pipeline scenario** — 50 small diagrams rendered in sequence,
-the shape of this very site's build:
-
-| | total | per diagram |
-|---|---:|---:|
-| rpic | 0.32 s | ~6.4 ms |
-| mermaid (`mmdc`) | 25.9 s | ~519 ms |
-
-That is an **~80× difference** — the gap between a site build you don't
-notice and one you schedule around.
+That **~80× difference** in the pipeline scenario is the gap between a site
+build you don't notice and one you schedule around.
 
 ## Read the numbers honestly
 
