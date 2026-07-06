@@ -1013,6 +1013,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Ease => "ease",
         Kw::Along => "along",
         Kw::Stagger => "stagger",
+        Kw::Out => "out",
     }
 }
 
@@ -1800,6 +1801,8 @@ impl Parser {
         let mut along = None;
         let mut color = None;
         let mut stagger = None;
+        let mut out = false;
+        let mut slide_from = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1821,6 +1824,10 @@ impl Parser {
                 color = Some(self.parse_color_like()?);
             } else if self.eat_kw(Kw::Stagger) {
                 stagger = Some(self.parse_expr()?);
+            } else if self.eat_kw(Kw::Out) {
+                out = true;
+            } else if self.eat_kw(Kw::From) {
+                slide_from = Some(self.parse_dir()?);
             } else {
                 break;
             }
@@ -1838,7 +1845,20 @@ impl Parser {
             along,
             color,
             stagger,
+            out,
+            slide_from,
         })
+    }
+
+    /// Consume a bare compass direction token (`up`/`down`/`left`/`right`).
+    fn parse_dir(&mut self) -> PResult<Dir> {
+        if let Token::Dir(d) = self.cur() {
+            let d = *d;
+            self.bump();
+            Ok(d)
+        } else {
+            self.expected_here("a direction (up, down, left, or right)")
+        }
     }
 
     /// True if the current `Label` is followed by `:` (allowing a `[suffix]`).

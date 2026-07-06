@@ -34,8 +34,8 @@ why the source reserves headroom with `margin`.
 ## Syntax
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [stagger <d>]
-        [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [to <colour>] [from <dir>] [out]
+        [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Only the target and effect are required; the trailing clauses are optional and
@@ -46,6 +46,8 @@ may appear in any order.
 | `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object (required) |
 | `along` *place* | `along L` | path to follow — required by `move`, ignored elsewhere |
 | `to` *colour* | `to "crimson"` | target colour for `highlight`; any rpic colour form, ignored elsewhere |
+| `from` *dir* | `from left` | entry direction (`up`/`down`/`left`/`right`) — required by `slide`, ignored elsewhere |
+| `out` | `out` | play the effect as an **exit** (reverse) instead of an entrance |
 | `stagger` *expr* | `stagger 0.12` | on a block target, fan the effect across its children, `d`s apart |
 | `for` *expr* | `for 0.4` | duration in seconds (default `0.6`) |
 | `at` *expr* | `at 1.5` | start at an absolute time |
@@ -68,6 +70,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 | `draw` | strokes trace themselves; arrowheads and text pop/fade in as the shaft reaches them | `none` for the trace |
 | `move` | travel along another object's path (needs `along`) | `none` |
 | `highlight` | recolour the outline to `to <colour>`, or a colour-free scale pulse | `power1.inOut` |
+| `slide` | translate in from a compass direction (needs `from <dir>`) | `power2.out` |
 
 Any other effect string is accepted by the parser but flagged with an
 `unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
@@ -228,6 +231,38 @@ resumes after the last child, so a following `animate` picks up cleanly.
 `stagger` on a non-block target is ignored with a `stagger_without_block`
 warning (the single object still animates).
 
+## Direction and exit
+
+`slide` enters an object by translating it in from a compass direction —
+`from up`, `down`, `left`, or `right` — offset by its own size so it clears its
+slot. The `out` modifier is orthogonal: it turns **any** effect into an exit,
+reversing the tween (fade away, pop out, retract a `draw`, slide off). Together
+they let a diagram tell a two-beat story — build up, then tear down.
+
+<AnimatedPic code={`.PS
+margin = 0.3
+A: box "L" fit
+B: box "U" fit at A + (1.2,0)
+C: box "R" fit at B + (1.2,0)
+animate A with "slide" from left for 0.5
+animate B with "slide" from up for 0.5 delay 0.15
+animate C with "slide" from right for 0.5 delay 0.3
+.PE`} />
+
+`out` composes with the timing clauses, so an object can enter and later leave —
+here a box pops in, then fades out a beat afterwards:
+
+<AnimatedPic code={`.PS
+margin = 0.2
+S: box "step" fit
+animate S with "pop" for 0.4
+animate S with "fade" out for 0.5 after S delay 0.6
+.PE`} />
+
+`slide` needs a `from` direction (omitting it is an error); `from` on any other
+effect is ignored with a `from_without_slide` warning. `out` rides the manifest
+as `"out":true`, and `slide`'s direction as `"from":"left"` — both only when set.
+
 A control loop drawing itself, wires first:
 
 <AnimatedPic code={String.raw`.PS
@@ -251,8 +286,8 @@ animate last line with "draw" for 0.9
 `rpic_core::compile_json` (and the JS/Python bindings) return
 `{ svg, animations, diagnostics, warnings }`. Each animation is
 `{ id, effect, start, duration }` plus the optional `repeat` / `yoyo` / `ease` /
-`path` / `color` keys — present only when the source set them, so plain
-manifests stay compact. The JS package ships the player, which folds those keys
+`path` / `color` / `out` / `from` keys — present only when the source set them,
+so plain manifests stay compact. The JS package ships the player, which folds those keys
 straight into GSAP. The `move` effect needs MotionPathPlugin registered on your
 GSAP instance:
 

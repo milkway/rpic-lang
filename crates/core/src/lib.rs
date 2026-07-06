@@ -86,6 +86,12 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(color) = &a.color {
             s.push_str(&format!(",\"color\":\"{}\"", json_str(color)));
         }
+        if a.out {
+            s.push_str(",\"out\":true");
+        }
+        if let Some(from) = &a.from {
+            s.push_str(&format!(",\"from\":\"{}\"", json_str(from)));
+        }
         s.push('}');
     }
     s.push(']');
@@ -372,6 +378,17 @@ mod tests {
         assert!(
             j.contains(
                 "\"effect\":\"highlight\",\"start\":0,\"duration\":0.6,\"color\":\"#ff8c00\"}"
+            ),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_emits_out_and_slide_direction() {
+        let j = compile_json("box\nanimate last box with \"slide\" from left for 0.4 out");
+        assert!(
+            j.contains(
+                "\"effect\":\"slide\",\"start\":0,\"duration\":0.4,\"out\":true,\"from\":\"left\"}"
             ),
             "{j}"
         );

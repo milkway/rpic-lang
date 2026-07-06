@@ -93,7 +93,7 @@ export function renderSvg(src, opts) {
  * Build a GSAP timeline from a drawing's animation manifest and play it on the
  * SVG inside `root`. Browser-only (needs the DOM and a GSAP instance).
  * @param {Element} root container holding the injected SVG
- * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string,color?:string}>} animations
+ * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string,color?:string,out?:boolean,from?:string}>} animations
  * @param {*} gsap the GSAP instance (register MotionPathPlugin for the `move` effect)
  * @returns the GSAP timeline
  */
@@ -106,14 +106,18 @@ export function animate(root, animations, gsap) {
     if (!el) continue;
     switch (a.effect) {
       case 'fade':
-        tl.from(el, withOverrides({ opacity: 0, duration: a.duration, ease: 'power1.out' }, a), a.start);
+        enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration, ease: 'power1.out' }, a), a);
         break;
       case 'pop':
-        tl.from(
+        enterExit(
+          tl,
           el,
           withOverrides({ scale: 0, transformOrigin: '50% 50%', duration: a.duration, ease: 'back.out(1.7)' }, a),
-          a.start
+          a
         );
+        break;
+      case 'slide':
+        slideIn(tl, el, a);
         break;
       case 'draw':
         drawOn(el, a, tl);
@@ -125,10 +129,34 @@ export function animate(root, animations, gsap) {
         highlightWith(el, a, tl);
         break;
       default:
-        tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
+        enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
     }
   }
   return tl;
+}
+
+// Entrances tween FROM the hidden `vars` to the natural state; `out` reverses
+// it into an exit (TO the hidden state). Shared by fade/pop/slide.
+function enterExit(tl, el, vars, a) {
+  return a.out ? tl.to(el, vars, a.start) : tl.from(el, vars, a.start);
+}
+
+// The `slide` effect: enter (or, with `out`, leave) by translating from a
+// compass direction, offset by the element's own extent so it clears its slot.
+function slideIn(tl, el, a) {
+  let bb = { width: 0, height: 0 };
+  try {
+    bb = el.getBBox();
+  } catch {
+    /* not yet laid out */
+  }
+  const off = {
+    left: { x: -(bb.width * 1.5 || 40) },
+    right: { x: bb.width * 1.5 || 40 },
+    up: { y: -(bb.height * 1.5 || 40) },
+    down: { y: bb.height * 1.5 || 40 },
+  }[a.from || 'left'];
+  enterExit(tl, el, withOverrides({ ...off, opacity: 0, duration: a.duration, ease: 'power2.out' }, a), a);
 }
 
 // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars.
@@ -205,14 +233,16 @@ function drawOn(group, a, tl) {
       len = 0;
     }
     if (len > 0) {
+      // `out` reverses the trace: the stroke retracts (dashoffset 0 → len).
+      const [begin, end] = a.out ? [0, len] : [len, 0];
       tl.fromTo(
         el,
-        { strokeDasharray: len, strokeDashoffset: len },
-        withOverrides({ strokeDashoffset: 0, duration: a.duration, ease: 'none' }, a),
+        { strokeDasharray: len, strokeDashoffset: begin },
+        withOverrides({ strokeDashoffset: end, duration: a.duration, ease: 'none' }, a),
         a.start
       );
     } else {
-      tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
+      enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
     }
   });
   const texts = group.querySelectorAll('text');
