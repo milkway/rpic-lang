@@ -181,6 +181,16 @@ fn compile<'py>(
         anim.set_item("effect", &a.effect)?;
         anim.set_item("start", a.start)?;
         anim.set_item("duration", a.duration)?;
+        // Optional GSAP overrides — only present when the source set them.
+        if a.repeat != 0 {
+            anim.set_item("repeat", a.repeat)?;
+        }
+        if a.yoyo {
+            anim.set_item("yoyo", true)?;
+        }
+        if let Some(ease) = &a.ease {
+            anim.set_item("ease", ease)?;
+        }
         anims.append(anim)?;
     }
     out.set_item("animations", anims)?;

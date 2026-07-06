@@ -186,12 +186,16 @@ injects the SVG and builds a GSAP timeline from the manifest. Toolchain note:
 ### Animation syntax (implemented)
 
 ```
-animate <object> with "<effect>" [for <dur>] [at <t> | after <object>] [delay <d>]
+animate <object> with "<effect>" [for <dur>] [at <t> | after <object>]
+        [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Effects: `draw` (stroke-on), `fade`, `pop`. Timing is sequential by default, or
-absolute (`at`) / relative to another object's end (`after`). Each primitive gets
-a stable SVG id `s<N>`; the manifest references it; GSAP tweens it.
+absolute (`at`) / relative to another object's end (`after`). `repeat`/`yoyo`/
+`ease` are GSAP-tween passthroughs (loop count, ping-pong, easing override);
+they land in the manifest only when set, and an infinite `repeat` tracks only
+its first pass so it can't stall the sequence. Each primitive gets a stable SVG
+id `s<N>`; the manifest references it; GSAP tweens it.
 
 ## Circuit element library (native, replacing m4/circuit_macros)
 

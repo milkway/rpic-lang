@@ -185,6 +185,57 @@ declares motion itself (rpic's `animate`), reserve room in the source with the
 [canvas margin extension](#canvas-margins), e.g. `margin = 0.15`. rpic never
 adds space automatically.
 
+## Declarative Animation
+
+`animate` is an rpic-only extension that declares how objects enter the drawing.
+It is **metadata only**: the static SVG is byte-for-byte unchanged except for the
+stable per-shape ids (`s0`, `s1`, …) rpic already emits, and PNG/PDF/plain-SVG
+consumers ignore it entirely. A thin web player drives a GSAP timeline against
+those ids; the `compile_json` bundle carries the timeline as a separate
+`animations` array.
+
+```
+animate <place> with "<effect>" [for <dur>] [at <t> | after <place>]
+        [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+```
+
+```pic
+.PS
+margin = 0.12
+B1: box "load" fit
+arrow
+B2: box "run" fit
+animate B1 with "pop" for 0.4
+animate 1st arrow with "draw"
+animate B2 with "fade" after 1st arrow delay 0.2
+.PE
+```
+
+- **Target** is any native pic reference (label, ordinal such as `1st arrow` or
+  `last box`, or `previous`) — the same delegation contract as `class`, riding
+  the same `s<N>` ids. It must be a drawn shape; a bare point is an error.
+- **Effects**: `fade` (opacity), `pop` (scale, overshoots), `draw` (strokes
+  trace themselves). Any other string is accepted but flagged with an
+  `unknown_animation_effect` warning and renders nothing.
+- **Duration** (`for`) defaults to `0.6` seconds.
+- **Timing** is one of: *sequential* (default — start when the previously
+  declared animation ends), *absolute* (`at <t>`), or *relative* (`after
+  <place>` — start when that object's animation ends). `at` and `after` share a
+  slot, so the last one given wins. `delay <d>` then offsets the resolved start.
+- **Looping / easing** (GSAP passthrough): `repeat <n>` replays the effect (`-1`
+  loops forever, `0`/absent plays once); `yoyo` reverses each pass (and warns
+  with `yoyo_without_repeat` if used alone); `ease "<name>"` overrides the
+  effect's default easing with any GSAP ease (e.g. `"elastic.out(1, 0.3)"`). An
+  infinite `repeat` does not stall the sequence — sequential/`after` timing
+  tracks only the first pass.
+- The manifest is a flat array of `{ id, effect, start, duration }` (plus
+  `repeat`/`yoyo`/`ease` only when set) with **absolute** start times in
+  seconds — readable without a player.
+
+Pop/draw overshoot can escape the canvas; reserve room with
+[`margin`](#canvas-margins). See also [Class Hooks](#class-hooks) — both share
+the `s<N>` id contract, so one shape can carry both a CSS hook and an animation.
+
 ## Closed Line Paths
 
 `close` is an rpic-only attribute for turning a multi-segment `line` into a

@@ -61,13 +61,25 @@ pub fn animations_json(d: &Drawing) -> String {
         if i > 0 {
             s.push(',');
         }
+        // Only the always-present keys are emitted for a plain animation, so
+        // manifests that don't use repeat/yoyo/ease stay byte-identical.
         s.push_str(&format!(
-            "{{\"id\":\"s{}\",\"effect\":\"{}\",\"start\":{},\"duration\":{}}}",
+            "{{\"id\":\"s{}\",\"effect\":\"{}\",\"start\":{},\"duration\":{}",
             a.shape,
             json_str(&a.effect),
             a.start,
             a.duration
         ));
+        if a.repeat != 0 {
+            s.push_str(&format!(",\"repeat\":{}", a.repeat));
+        }
+        if a.yoyo {
+            s.push_str(",\"yoyo\":true");
+        }
+        if let Some(ease) = &a.ease {
+            s.push_str(&format!(",\"ease\":\"{}\"", json_str(ease)));
+        }
+        s.push('}');
     }
     s.push(']');
     s
@@ -317,6 +329,22 @@ mod tests {
         assert!(j.contains("<g id=\\\"s0\\\">")); // stable id, JSON-escaped
         assert!(j.contains("\"animations\":[{\"id\":\"s0\",\"effect\":\"fade\""));
         assert!(j.contains("\"diagnostics\":[]"));
+        // A plain animation carries none of the optional GSAP keys, so the
+        // object closes right after duration (byte-inert when unused).
+        assert!(j.contains("\"effect\":\"fade\",\"start\":0,\"duration\":0.6}"));
+    }
+
+    #[test]
+    fn json_emits_repeat_yoyo_ease_only_when_set() {
+        let j = compile_json(
+            "box\nanimate last box with \"pop\" for 0.4 repeat -1 yoyo ease \"power2.inOut\"",
+        );
+        assert!(
+            j.contains(
+                "\"effect\":\"pop\",\"start\":0,\"duration\":0.4,\"repeat\":-1,\"yoyo\":true,\"ease\":\"power2.inOut\"}"
+            ),
+            "{j}"
+        );
     }
 
     #[test]

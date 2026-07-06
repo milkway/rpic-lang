@@ -844,9 +844,27 @@ impl State {
         if let Some(d) = &a.delay {
             start += self.eval_expr(d)?;
         }
+        // Sequential/`after` timing tracks the *first* iteration's end, not the
+        // repeated total — an ambient `repeat` loop (or an infinite one) must
+        // not stall everything declared after it.
         let end = start + dur;
         self.anim_cursor = end;
         self.anim_end.insert(shape, end);
+        let repeat = match &a.repeat {
+            Some(e) => self.eval_expr(e)?.round() as i64,
+            None => 0,
+        };
+        if a.yoyo && repeat == 0 {
+            let mut warning = Diagnostic::new(
+                "yoyo_without_repeat",
+                "`yoyo` has no effect without `repeat` (there is nothing to reverse)",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
+        let ease = a.ease.as_ref().map(stringexpr_lit);
         let effect = stringexpr_lit(&a.effect);
         if !matches!(effect.as_str(), "draw" | "fade" | "pop") {
             let mut warning = Diagnostic::new(
@@ -867,6 +885,9 @@ impl State {
             effect,
             start,
             duration: dur,
+            repeat,
+            yoyo: a.yoyo,
+            ease,
         });
         Ok(())
     }
@@ -4484,6 +4505,47 @@ mod tests {
         // 2nd box: pop, after A (ends at 0.5) -> start 0.5, shape 2
         assert_eq!(d.anims[2].shape, 2);
         assert!((d.anims[2].start - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn animate_repeat_yoyo_ease() {
+        let d =
+            draw("box\nanimate last box with \"pop\" repeat 3 yoyo ease \"elastic.out(1, 0.3)\"");
+        assert_eq!(d.anims.len(), 1);
+        let a = &d.anims[0];
+        assert_eq!(a.repeat, 3);
+        assert!(a.yoyo);
+        assert_eq!(a.ease.as_deref(), Some("elastic.out(1, 0.3)"));
+        // No warning: yoyo is paired with a repeat.
+        assert!(!d.warnings.iter().any(|w| w.kind == "yoyo_without_repeat"));
+    }
+
+    #[test]
+    fn animate_infinite_repeat_does_not_stall_sequence() {
+        // An infinite loop must not push the next animation's start to infinity:
+        // sequential timing tracks only the first iteration's end.
+        let d = draw(
+            "box\nbox\nanimate 1st box with \"fade\" for 0.4 repeat -1\nanimate 2nd box with \"pop\"",
+        );
+        assert_eq!(d.anims[0].repeat, -1);
+        assert!((d.anims[1].start - 0.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn animate_yoyo_without_repeat_warns() {
+        let d = draw("box\nanimate last box with \"fade\" yoyo");
+        assert_eq!(d.anims[0].repeat, 0);
+        assert!(d.anims[0].yoyo); // flag is still recorded, just inert in GSAP
+        assert!(d.warnings.iter().any(|w| w.kind == "yoyo_without_repeat"));
+    }
+
+    #[test]
+    fn animate_defaults_leave_repeat_fields_inert() {
+        let d = draw("box\nanimate last box with \"fade\"");
+        let a = &d.anims[0];
+        assert_eq!(a.repeat, 0);
+        assert!(!a.yoyo);
+        assert_eq!(a.ease, None);
     }
 
     #[test]
