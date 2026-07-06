@@ -34,8 +34,8 @@ why the source reserves headroom with `margin`.
 ## Syntax
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [for <dur>]
-        [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [to <colour>] [stagger <d>]
+        [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Only the target and effect are required; the trailing clauses are optional and
@@ -46,6 +46,7 @@ may appear in any order.
 | `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object (required) |
 | `along` *place* | `along L` | path to follow — required by `move`, ignored elsewhere |
 | `to` *colour* | `to "crimson"` | target colour for `highlight`; any rpic colour form, ignored elsewhere |
+| `stagger` *expr* | `stagger 0.12` | on a block target, fan the effect across its children, `d`s apart |
 | `for` *expr* | `for 0.4` | duration in seconds (default `0.6`) |
 | `at` *expr* | `at 1.5` | start at an absolute time |
 | `after` *place* | `after 1st arrow` | start when that object's animation ends |
@@ -206,6 +207,26 @@ animate B with "highlight" to "crimson" for 0.6 repeat -1 yoyo
 The target colour rides the manifest entry as a `color` key
 (`"color":"crimson"` above; `rgb()`/`0xRRGGBB` resolve to `#rrggbb`). `to` on any
 non-`highlight` effect is ignored with a `to_without_highlight` warning.
+
+## Staggering a group
+
+Point `animate` at a `[ … ]` block and add `stagger <d>` to fan the effect
+across the block's children — each successive child starts `d` seconds after
+the previous, so a row or grid assembles itself one piece at a time. It expands
+to one ordinary manifest entry per child, so the timeline stays a flat array.
+
+<AnimatedPic code={`.PS
+margin = 0.15
+Row: [ box "1"; move 0.2; box "2"; move 0.2; box "3"; move 0.2; box "4" ]
+animate Row with "pop" for 0.4 stagger 0.12
+.PE`} />
+
+Only the block's **visible** children get a slot — invisible helpers (explicit
+`move`s, `invis` spines) are skipped, so the four boxes above stagger evenly
+even though moves separate them. Children fan in source order; the sequence
+resumes after the last child, so a following `animate` picks up cleanly.
+`stagger` on a non-block target is ignored with a `stagger_without_block`
+warning (the single object still animates).
 
 A control loop drawing itself, wires first:
 

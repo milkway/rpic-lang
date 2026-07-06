@@ -378,6 +378,19 @@ mod tests {
     }
 
     #[test]
+    fn json_stagger_expands_to_plain_entries() {
+        // stagger fans into one ordinary entry per child — no new key, so the
+        // manifest schema is unchanged.
+        let j = compile_json("B: [ box; box ]\nanimate B with \"fade\" for 0.2 stagger 0.1");
+        assert!(
+            j.contains(
+                "[{\"id\":\"s0\",\"effect\":\"fade\",\"start\":0,\"duration\":0.2},{\"id\":\"s1\",\"effect\":\"fade\",\"start\":0.1,\"duration\":0.2}]"
+            ),
+            "{j}"
+        );
+    }
+
+    #[test]
     fn json_exports_object_geometry() {
         // #227: one entry per <g id="sN">, bbox in the viewBox's units,
         // span of the producing statement.

@@ -195,8 +195,8 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [for <dur>]
-        [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [to <colour>] [stagger <d>]
+        [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 ```pic
@@ -228,6 +228,12 @@ animate B2 with "fade" after 1st arrow delay 0.2
   pulse. One-directional — add `repeat 1 yoyo` for a flash-and-return or
   `repeat -1 yoyo` for a continuous pulse. The colour rides the manifest as a
   `color` key; `to` on any non-`highlight` effect warns `to_without_highlight`.
+- **Staggering a group** (`stagger <d>`): point `animate` at a `[ … ]` block to
+  fan the effect across its **visible** children (invisible `move`/`invis`
+  helpers are skipped), each starting `d` seconds after the previous, in source
+  order. It expands to one ordinary manifest entry per child (no new key), and
+  the sequence resumes after the last child. `stagger` on a non-block target is
+  ignored with a `stagger_without_block` warning.
 - **Duration** (`for`) defaults to `0.6` seconds.
 - **Timing** is one of: *sequential* (default — start when the previously
   declared animation ends), *absolute* (`at <t>`), or *relative* (`after

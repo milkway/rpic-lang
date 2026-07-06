@@ -187,6 +187,9 @@ pub struct Animate {
     /// Target colour for the `highlight` effect (`to <colour>`); any rpic
     /// colour form (name, `rgb()`, `0xRRGGBB`).
     pub color: Option<StringExpr>,
+    /// When the target is a block, fan the effect across its children with this
+    /// per-child start offset in seconds (GSAP-style `stagger`).
+    pub stagger: Option<Expr>,
 }
 
 /// When an animation starts.

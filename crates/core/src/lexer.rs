@@ -754,6 +754,7 @@ fn word_keyword(w: &str) -> Token {
         "yoyo" => Kw(self::Kw::Yoyo),
         "ease" => Kw(self::Kw::Ease),
         "along" => Kw(self::Kw::Along),
+        "stagger" => Kw(self::Kw::Stagger),
         // line types
         "solid" => LineType(self::LineType::Solid),
         "dotted" => LineType(self::LineType::Dotted),

@@ -1012,6 +1012,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Yoyo => "yoyo",
         Kw::Ease => "ease",
         Kw::Along => "along",
+        Kw::Stagger => "stagger",
     }
 }
 
@@ -1798,6 +1799,7 @@ impl Parser {
         let mut ease = None;
         let mut along = None;
         let mut color = None;
+        let mut stagger = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1817,6 +1819,8 @@ impl Parser {
                 along = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::To) {
                 color = Some(self.parse_color_like()?);
+            } else if self.eat_kw(Kw::Stagger) {
+                stagger = Some(self.parse_expr()?);
             } else {
                 break;
             }
@@ -1833,6 +1837,7 @@ impl Parser {
             ease,
             along,
             color,
+            stagger,
         })
     }
 

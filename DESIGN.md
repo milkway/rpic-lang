@@ -186,15 +186,17 @@ injects the SVG and builds a GSAP timeline from the manifest. Toolchain note:
 ### Animation syntax (implemented)
 
 ```
-animate <object> with "<effect>" [along <path>] [to <colour>] [for <dur>]
-        [at <t> | after <object>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <object> with "<effect>" [along <path>] [to <colour>] [stagger <d>]
+        [for <dur>] [at <t> | after <object>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Effects: `draw` (stroke-on), `fade`, `pop`, `move` (travel along `along <path>`'s
 geometry via GSAP MotionPathPlugin — manifest entry gains a `path` id; `move`
 needs `along`, `along` elsewhere warns), `highlight` (`to <colour>` tweens the
 outline — manifest gains a `color` key; no colour = scale pulse; `to` elsewhere
-warns). Timing is sequential by default, or
+warns). `stagger <d>` on a block target fans the effect across its visible
+children (source order, invisible helpers skipped), expanding to one manifest
+entry per child. Timing is sequential by default, or
 absolute (`at`) / relative to another object's end (`after`). `repeat`/`yoyo`/
 `ease` are GSAP-tween passthroughs (loop count, ping-pong, easing override);
 they land in the manifest only when set, and an infinite `repeat` tracks only
