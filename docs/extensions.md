@@ -195,7 +195,7 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [for <dur>] [at <t> | after <place>]
+animate <place> with "<effect>" [along <path>] [for <dur>] [at <t> | after <place>]
         [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
@@ -215,8 +215,14 @@ animate B2 with "fade" after 1st arrow delay 0.2
   `last box`, or `previous`) — the same delegation contract as `class`, riding
   the same `s<N>` ids. It must be a drawn shape; a bare point is an error.
 - **Effects**: `fade` (opacity), `pop` (scale, overshoots), `draw` (strokes
-  trace themselves). Any other string is accepted but flagged with an
-  `unknown_animation_effect` warning and renders nothing.
+  trace themselves), `move` (travel along another object's path — see below).
+  Any other string is accepted but flagged with an `unknown_animation_effect`
+  warning and renders nothing.
+- **Motion along a path** (`move`): `along <path>` names a drawn `line`/`arrow`/
+  `spline` whose geometry the target follows (GSAP MotionPathPlugin); the target
+  is typically a `dot` at the path's start. The manifest entry gains a `path`
+  key (`"path":"s1"`). `move` without `along` is an error; `along` on any other
+  effect is ignored with an `along_without_move` warning.
 - **Duration** (`for`) defaults to `0.6` seconds.
 - **Timing** is one of: *sequential* (default — start when the previously
   declared animation ends), *absolute* (`at <t>`), or *relative* (`after

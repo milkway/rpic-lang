@@ -143,6 +143,7 @@ pub enum Kw {
     Repeat,
     Yoyo,
     Ease,
+    Along,
 }
 
 /// Compass / named corners of an object.

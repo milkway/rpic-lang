@@ -80,6 +80,9 @@ pub struct Anim {
     pub yoyo: bool,
     /// GSAP easing name overriding the per-effect default, if given.
     pub ease: Option<String>,
+    /// For the `move` effect: index of the shape whose geometry to follow.
+    /// The SVG backend gives it the id `s{path}`, the MotionPath target.
+    pub path: Option<usize>,
 }
 
 /// Line dash style.
