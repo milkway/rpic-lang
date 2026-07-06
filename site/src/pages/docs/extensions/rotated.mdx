@@ -32,6 +32,19 @@ arrow from A.start up 1.1 dashed
   [`margin`](/docs/extensions/margin/).
 - Math lines (`$…$` under `texlabels`) ignore it.
 
+## `aligned` — follow the line
+
+`aligned` (pikchr's spelling) rotates a label to the **host segment's angle**
+automatically, so edge labels ride their line. It works on linear objects
+(line/arrow/spline) and normalizes the angle to keep the text upright — a
+leftward or downward segment reads horizontally, never upside down.
+
+<PicExample code={`.PS
+margin = 0.12
+arrow from (0,0) to (2.4,1.3) "gradient ascent" aligned above
+arrow from (0,0) to (2.4,-1.1) "descent" aligned below
+.PE`} />
+
 ## Colour literals: `rgb(r,g,b)` and `0xRRGGBB`
 
 The colour grammar (for `outlined`, `shaded`, `color`, `hatchcolor` and

@@ -2153,6 +2153,7 @@ mod tests {
             family: None,
             size_pt: None,
             rotate: None,
+            aligned: false,
         }];
         let d = Drawing {
             shapes: vec![Shape::Text {

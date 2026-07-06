@@ -93,8 +93,8 @@ environment variables.
 
 Explicit rpic extensions — `margin`, `canvas`, `fit`, `behind`, `close`, `brace`,
 `hatch`, `gradient`, `opacity`, `class` hooks, `dot`, font attributes
-(`bold`/`italic`/`mono`/`font`/`fontsize`), `rotated` labels, `rgb()`/`0xRRGGBB`
-colour literals, **`texlabels`**
+(`bold`/`italic`/`mono`/`font`/`fontsize`/`big`/`small`), `rotated` &
+`aligned` labels, `rgb()`/`0xRRGGBB` colour literals, **`texlabels`**
 (KaTeX-grade TeX math in labels, rendered natively) and the `animate` layer —
 are opt-in and inert for classic pic/dpic-compatible input. Each has a page with live
 examples at [rpic.dev](https://rpic.dev/docs/extensions/margin); the design

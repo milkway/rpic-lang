@@ -303,6 +303,12 @@ pub enum Attr {
     FontSize(Expr),
     /// rpic extension: rotation in degrees (CCW) for the preceding string.
     Rotated(Expr),
+    /// rpic extension: align the preceding string to the host segment's angle
+    /// (pikchr `aligned`). Only linear objects have a segment; elsewhere inert.
+    Aligned,
+    /// rpic extension: pikchr `big`/`small` text size (sugar over `fontsize`);
+    /// `true` = big (1.5×), `false` = small (0.7×) of the classic 11 pt.
+    Sized(bool),
     /// rpic extension: relative cusp position for a `brace` object.
     BracePos(Expr),
     /// rpic extension: extra outward spacing between a `brace` cusp and label.

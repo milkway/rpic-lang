@@ -1495,7 +1495,7 @@ impl State {
 
     fn open(&mut self, p: Prim, obj: &Object) -> ER<usize> {
         let mut style = self.style_of(obj)?;
-        let text = self.text_of(obj)?;
+        let mut text = self.text_of(obj)?;
         let line_wid = style.arrow_wid;
         let line_ht = style.arrow_ht;
         let is_move = matches!(p, Prim::Move);
@@ -1689,6 +1689,20 @@ impl State {
         } else {
             None
         };
+        // rpic `aligned`: rotate any aligned label to the segment's angle
+        // (start → end), normalized to keep text upright.
+        if text.iter().any(|l| l.aligned) {
+            let seg = end - pts[0];
+            if seg.x.abs() > 1e-9 || seg.y.abs() > 1e-9 {
+                let deg = readable_angle(seg.y.atan2(seg.x).to_degrees());
+                // a ~horizontal segment leaves the label upright (no transform)
+                if deg.abs() > 1e-6 {
+                    for l in text.iter_mut().filter(|l| l.aligned && l.rotate.is_none()) {
+                        l.rotate = Some(deg);
+                    }
+                }
+            }
+        }
         let shape = if matches!(p, Prim::Spline) {
             Shape::Spline {
                 pts: pts.clone(),
@@ -2273,7 +2287,7 @@ impl State {
             if let Attr::With { anchor, at } = a {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
-                    WithAnchor::Corner(c) => corner(*c, w, h),
+                    WithAnchor::Corner(c) => corner(dir_start_end_corner(*c, dir), w, h),
                     WithAnchor::Pair(x, y) => Point::new(self.expr_dim(x)?, self.expr_dim(y)?),
                     WithAnchor::Place(_) => {
                         return err("`with .label` anchors are only valid on blocks");
@@ -2304,7 +2318,7 @@ impl State {
             if let Attr::With { anchor, at } = a {
                 let ap = self.eval_pos(at)?;
                 let off = match anchor {
-                    WithAnchor::Corner(c) => corner_offset(*c, w, h),
+                    WithAnchor::Corner(c) => corner_offset(dir_start_end_corner(*c, dir), w, h),
                     WithAnchor::Pair(x, y) => {
                         Point::new(self.expr_dim(x)?, self.expr_dim(y)?) - local_center
                     }
@@ -2521,6 +2535,18 @@ impl State {
                         None => pending_style.rotate = Some(deg),
                     }
                 }
+                Attr::Aligned => match lines.last_mut() {
+                    Some(line) => line.aligned = true,
+                    None => pending_style.aligned = true,
+                },
+                Attr::Sized(big) => {
+                    // pikchr big/small: 1.5× / 0.7× of the classic 11 pt
+                    let pt = FONT_PT_CLASSIC * if *big { 1.5 } else { 0.7 };
+                    match lines.last_mut() {
+                        Some(line) => line.size_pt = Some(pt),
+                        None => pending_style.size_pt = Some(pt),
+                    }
+                }
                 Attr::Text(se) => {
                     let s = self.eval_stringexpr(se)?;
                     let math = self.math_span_for(&s);
@@ -2535,6 +2561,7 @@ impl State {
                         family: pending_style.family.take(),
                         size_pt: pending_style.size_pt,
                         rotate: pending_style.rotate,
+                        aligned: pending_style.aligned,
                     });
                     pending_halign = 0;
                     pending_valign = 0;
@@ -3434,6 +3461,7 @@ struct PendingStyle {
     family: Option<String>,
     size_pt: Option<f64>,
     rotate: Option<f64>,
+    aligned: bool,
 }
 
 /// Line advance width: exact metrics for typeset math, the classic
@@ -3597,6 +3625,41 @@ fn install_dpic_compat_vars(vars: &mut HashMap<String, f64>) {
         vars.insert(name.to_string(), val);
     }
     vars.insert("dpicopt".to_string(), 8.0);
+}
+
+/// Map a linear-style `.start`/`.end` anchor to the box/ellipse compass
+/// corner it means for an object flowing in `dir` (entry vs exit edge), so
+/// `with .start at …` / `with .end at …` edge-align closed objects the way
+/// pikchr does — and consistently with the read path (`box_corner`, which
+/// returns the stored `self.start`/`self.end`). Other corners pass through.
+fn dir_start_end_corner(c: Corner, dir: Dir) -> Corner {
+    match c {
+        Corner::Start => match dir {
+            Dir::Right => Corner::W,
+            Dir::Left => Corner::E,
+            Dir::Up => Corner::S,
+            Dir::Down => Corner::N,
+        },
+        Corner::End => match dir {
+            Dir::Right => Corner::E,
+            Dir::Left => Corner::W,
+            Dir::Up => Corner::N,
+            Dir::Down => Corner::S,
+        },
+        other => other,
+    }
+}
+
+/// Normalize a text-alignment angle (degrees) to (-90, 90] so an `aligned`
+/// label never renders upside down on a leftward/downward segment.
+fn readable_angle(mut deg: f64) -> f64 {
+    while deg > 90.0 {
+        deg -= 180.0;
+    }
+    while deg <= -90.0 {
+        deg += 180.0;
+    }
+    deg
 }
 
 fn corner_offset(c: Corner, w: f64, h: f64) -> Point {
@@ -5602,6 +5665,87 @@ box wid 0.1 ht 0.1 at B.s"#,
         // variables in expressions they keep their classic meaning
         let d = draw("bold = 2\nbox wid bold \"x\"");
         assert!((d.bbox.width() - 2.0).abs() < 0.05, "{}", d.bbox.width());
+    }
+
+    #[test]
+    fn with_start_end_edge_aligns_closed_objects() {
+        // #240: `with .start at X` / `with .end at X` edge-align, not center.
+        // right dir: B.start (its .w) on A.end=(1,0) → B centered at 1.2
+        let d = draw("A: box wid 1 ht 0.5\nB: box wid 0.4 ht 0.4 with .start at A.end");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 1.2).abs() < 1e-9, "B.c.x = {}", c.x);
+        // .end anchor: B.end (its .e) on A.start=(1.5,0) → B centered at 1.3
+        let d = draw("A: box wid 1 ht 0.5 at (2,0)\nB: box wid 0.4 ht 0.4 with .end at A.start");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 1.3).abs() < 1e-9, "B.c.x = {}", c.x);
+        // vertical up: .start maps to the south edge → B centered at y=0.7
+        let d =
+            draw("up\nA: box wid 0.5 ht 1 at (0,0)\nB: box wid 0.4 ht 0.4 with .start at A.end");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.y - 0.7).abs() < 1e-9, "B.c.y = {}", c.y);
+        // .c anchor unchanged: B centered on A.e=(1,0)
+        let d = draw("A: box wid 1 ht 0.5\nB: box wid 0.4 with .c at A.e");
+        let Shape::Box { c, .. } = &d.shapes[1] else {
+            panic!()
+        };
+        assert!((c.x - 1.0).abs() < 1e-9, "B.c.x = {}", c.x);
+    }
+
+    #[test]
+    fn previous_is_a_synonym_for_last() {
+        // #240: pikchr `previous` == `last`
+        let a = crate::to_svg(&draw("box\ncircle at previous.e rad 0.1"));
+        let b = crate::to_svg(&draw("box\ncircle at last.e rad 0.1"));
+        assert_eq!(a, b);
+        // `previous box`, `2nd previous box` parse and resolve
+        assert!(eval(&parse("box; box\ncircle at previous box.n").unwrap()).is_ok());
+        assert!(eval(&parse("box; box; box\ncircle at 2nd previous box.n").unwrap()).is_ok());
+    }
+
+    #[test]
+    fn aligned_rotates_label_to_segment_angle() {
+        // #240: aligned sets the label rotation to the segment angle, readable
+        let d = draw("line from (0,0) to (2,2) \"up\" aligned");
+        let Shape::Path { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (text[0].rotate.unwrap() - 45.0).abs() < 1e-6,
+            "{:?}",
+            text[0].rotate
+        );
+        // horizontal → no rotation (upright, byte-identical to a plain label)
+        let d = draw("line right 2 \"flat\" aligned");
+        let Shape::Path { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].rotate, None);
+        // leftward → normalized to stay readable (not 180)
+        let d = draw("line from (2,0) to (0,0) \"back\" aligned");
+        let Shape::Path { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].rotate, None); // 180 → 0 (upright)
+    }
+
+    #[test]
+    fn big_small_size_labels() {
+        // #240: pikchr big/small sugar over fontsize (1.5× / 0.7× of 11pt)
+        let d = draw("box \"a\" big \"b\" small");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].size_pt, Some(16.5));
+        assert!((text[1].size_pt.unwrap() - 7.7).abs() < 1e-9);
+        // no ignored_attribute warning
+        let d = draw("box \"a\" big");
+        assert!(d.warnings.is_empty());
     }
 
     #[test]
