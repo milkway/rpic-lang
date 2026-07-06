@@ -3,6 +3,7 @@
 // rpic calling card: pic source next to the SVG rendered by rpic itself.
 import DocsLayout from '../layouts/DocsLayout.astro';
 import { Code } from 'astro:components';
+import AnimatedPic from '../components/AnimatedPic.astro';
 import heroPic from '../assets/hero.pic?raw';
 import { renderPic } from '../lib/rpic';
 import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
@@ -25,8 +26,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       native SVG/PNG/PDF output, a 79-element circuit library, KaTeX-grade TeX math in labels,
       real typography (bold/italic/mono, any font &amp; size), gradients, hatch fills,
       <code class="text-base font-mono">rgb()</code>/hex colours, rotated labels, CSS hooks, a
-      declarative animation layer, structured diagnostics and per-object geometry for visual
-      editors. Classic pic stays classic; every extension is opt-in.
+      GSAP animation layer (enter/exit, motion, morph, stagger), structured diagnostics and
+      per-object geometry for visual editors. Classic pic stays classic; every extension is opt-in.
     </p>
     <div class="flex flex-wrap items-center gap-3 mb-12">
       <a href={`${base}/docs/installation`}
@@ -76,6 +77,32 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0">{d}</p>
       </div>
     ))}
+  </div>
+
+  <div class="mt-16 max-w-4xl border-t border-slate-200 dark:border-slate-800 pt-8">
+    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1 mt-0">Watch it build</h2>
+    <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-5">
+      The same source, plus a few <code class="font-mono text-[13px]">animate</code> lines: rpic
+      emits a GSAP timeline alongside the SVG. Scroll into view, or hit ▶ replay.
+    </p>
+    <AnimatedPic code={`.PS
+margin = 0.2
+In: box "input" fit
+arrow
+P: box "process" fit
+arrow
+Out: circle "done" rad 0.32
+animate In with "slide" from left for 0.5
+animate 1st arrow with "draw" for 0.4
+animate P with "pop" for 0.4
+animate 2nd arrow with "draw" for 0.4
+animate Out with "pop" for 0.5
+animate P with "highlight" to "crimson" for 0.6 after Out delay 0.3 repeat -1 yoyo
+.PE`} />
+    <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0">
+      Full palette on the{' '}
+      <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href={`${base}/docs/extensions/animate`}>animate reference</a>.
+    </p>
   </div>
 
   <div class="mt-16 max-w-4xl border-t border-slate-200 dark:border-slate-800 pt-6">

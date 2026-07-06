@@ -51,8 +51,10 @@ to the modern web era:
   ~85× faster than mermaid-cli in a docs pipeline
   ([benchmark](https://rpic.dev/docs/performance/), reproducible via
   [`tools/bench`](tools/bench)).
-- A small **declarative animation** layer (`animate …`) that plays in the
-  browser with [GSAP](https://gsap.com/).
+- A **declarative animation** layer (`animate …`) that plays in the browser
+  with [GSAP](https://gsap.com/) — enter/exit effects (fade, pop, draw, slide),
+  motion along a path, colour highlights, shape morphs, block staggering and a
+  scroll-scrub hint, all emitted as a plain JSON timeline.
 - A native **circuit-element library** (79 elements) — a from-scratch
   re-imagining of `circuit_macros`.
 - **Real typography**: per-string `bold` / `italic` / `mono`, any font family
@@ -136,11 +138,22 @@ A declarative extension, faithful to pic's style:
 box "A"; arrow; box "B"
 animate 1st box   with "pop"   for 0.4
 animate 1st arrow with "draw"
-animate 2nd box   with "fade"  after 1st arrow
+animate 2nd box   with "fade"  after 1st arrow delay 0.2
 ```
 
-This compiles to an SVG plus a JSON manifest; the browser layer turns it into a
-GSAP timeline. Try it in the **playground**:
+The full effect palette: **`fade`**, **`pop`**, **`draw`** (stroke-on),
+**`slide`** (from a compass direction), **`move`** (travel along another
+object's path), **`highlight`** (recolour the outline), and **`morph`** (tween
+into another shape). Any effect can play as an exit with **`out`**, loop with
+**`repeat`/`yoyo`**, take a custom **`ease`**, or fan across a block's children
+with **`stagger`**; **`animate scroll`** hints the host to scrub the timeline on
+scroll. Timing is sequential by default, or absolute (`at`) / relative
+(`after`), with an optional `delay`.
+
+This compiles to an SVG plus a flat JSON manifest (`{id, effect, start,
+duration, …}`); the browser layer turns it into a GSAP timeline. Full reference:
+[rpic.dev/docs/extensions/animate](https://rpic.dev/docs/extensions/animate).
+Try it in the **playground**:
 
 ```sh
 ./web/build.sh && (cd web && python3 -m http.server 8080)   # http://localhost:8080
