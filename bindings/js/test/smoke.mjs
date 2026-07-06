@@ -42,6 +42,22 @@ assert.equal(geom.objects[1].kind, 'path');
 assert.equal(geom.objects[1].line, 2);
 assert.equal(geom.objects[1].col, 1);
 
+// animate manifest: optional GSAP keys ride along only when set
+const anim = compile(
+  'box\nanimate last box with "pop" for 0.4 repeat -1 yoyo ease "power2.inOut"'
+);
+assert.equal(anim.animations.length, 1);
+assert.equal(anim.animations[0].id, 's0');
+assert.equal(anim.animations[0].effect, 'pop');
+assert.equal(anim.animations[0].repeat, -1);
+assert.equal(anim.animations[0].yoyo, true);
+assert.equal(anim.animations[0].ease, 'power2.inOut');
+// a plain animation stays compact — no repeat/yoyo/ease keys
+const plainAnim = compile('box\nanimate last box with "fade"');
+assert.equal(plainAnim.animations[0].repeat, undefined);
+assert.equal(plainAnim.animations[0].yoyo, undefined);
+assert.equal(plainAnim.animations[0].ease, undefined);
+
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');
 assert.equal(warning.warnings[0].found, 'dashd');

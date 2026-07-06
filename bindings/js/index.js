@@ -93,7 +93,7 @@ export function renderSvg(src, opts) {
  * Build a GSAP timeline from a drawing's animation manifest and play it on the
  * SVG inside `root`. Browser-only (needs the DOM and a GSAP instance).
  * @param {Element} root container holding the injected SVG
- * @param {Array<{id:string,effect:string,start:number,duration:number}>} animations
+ * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string}>} animations
  * @param {*} gsap the GSAP instance
  * @returns the GSAP timeline
  */
@@ -106,12 +106,12 @@ export function animate(root, animations, gsap) {
     if (!el) continue;
     switch (a.effect) {
       case 'fade':
-        tl.from(el, { opacity: 0, duration: a.duration, ease: 'power1.out' }, a.start);
+        tl.from(el, withOverrides({ opacity: 0, duration: a.duration, ease: 'power1.out' }, a), a.start);
         break;
       case 'pop':
         tl.from(
           el,
-          { scale: 0, transformOrigin: '50% 50%', duration: a.duration, ease: 'back.out(1.7)' },
+          withOverrides({ scale: 0, transformOrigin: '50% 50%', duration: a.duration, ease: 'back.out(1.7)' }, a),
           a.start
         );
         break;
@@ -119,10 +119,19 @@ export function animate(root, animations, gsap) {
         drawOn(el, a, tl);
         break;
       default:
-        tl.from(el, { opacity: 0, duration: a.duration }, a.start);
+        tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
     }
   }
   return tl;
+}
+
+// Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars.
+// `ease` replaces the effect's default easing; repeat/yoyo loop the tween.
+function withOverrides(vars, a) {
+  if (a.repeat) vars.repeat = a.repeat;
+  if (a.yoyo) vars.yoyo = true;
+  if (a.ease) vars.ease = a.ease;
+  return vars;
 }
 
 function drawOn(group, a, tl) {
@@ -149,11 +158,11 @@ function drawOn(group, a, tl) {
       tl.fromTo(
         el,
         { strokeDasharray: len, strokeDashoffset: len },
-        { strokeDashoffset: 0, duration: a.duration, ease: 'none' },
+        withOverrides({ strokeDashoffset: 0, duration: a.duration, ease: 'none' }, a),
         a.start
       );
     } else {
-      tl.from(el, { opacity: 0, duration: a.duration }, a.start);
+      tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
     }
   });
   const texts = group.querySelectorAll('text');

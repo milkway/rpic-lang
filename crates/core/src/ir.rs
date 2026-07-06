@@ -74,6 +74,12 @@ pub struct Anim {
     /// Absolute start time in seconds.
     pub start: f64,
     pub duration: f64,
+    /// GSAP `repeat`: `-1` loops forever, `0` plays once.
+    pub repeat: i64,
+    /// GSAP `yoyo`: alternate direction each repeat.
+    pub yoyo: bool,
+    /// GSAP easing name overriding the per-effect default, if given.
+    pub ease: Option<String>,
 }
 
 /// Line dash style.

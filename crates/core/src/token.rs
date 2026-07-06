@@ -140,6 +140,9 @@ pub enum Kw {
     Animate,
     After,
     Delay,
+    Repeat,
+    Yoyo,
+    Ease,
 }
 
 /// Compass / named corners of an object.

@@ -33,15 +33,117 @@ why the source reserves headroom with `margin`.
 
 ## Syntax
 
-| Syntax | Example | Meaning |
-|---|---|---|
-| `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object |
-| `for` *expr* | `for 0.4` | duration in seconds |
-| `after` *place* | `after 1st arrow` | start when that object's animation ends |
-| `at` *expr* | `at 1.5` | start at an absolute time |
+```
+animate <place> with "<effect>" [for <dur>] [at <t> | after <place>]
+        [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+```
 
-Effects: `fade`, `pop`, `draw` (paths draw themselves). Without a timing
-clause, animations run in declaration order.
+Only the target and effect are required; the trailing clauses are optional and
+may appear in any order.
+
+| Clause | Example | Meaning |
+|---|---|---|
+| `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object (required) |
+| `for` *expr* | `for 0.4` | duration in seconds (default `0.6`) |
+| `at` *expr* | `at 1.5` | start at an absolute time |
+| `after` *place* | `after 1st arrow` | start when that object's animation ends |
+| `delay` *expr* | `delay 0.3` | offset added on top of the computed start |
+| `repeat` *expr* | `repeat 2` | replay count; `-1` loops forever, `0`/absent plays once |
+| `yoyo` | `yoyo` | reverse direction on each repeat (needs `repeat`) |
+| `ease` *"name"* | `ease "elastic.out"` | override the effect's default easing with any GSAP ease |
+
+The *place* is any native pic reference — a label (`B1`), an ordinal
+(`1st arrow`, `2nd last line`, `last box`), or `previous`. The target must be a
+drawn shape; animating a bare point (a name with no geometry) is an error.
+
+### Effects
+
+| Effect | Motion | Easing |
+|---|---|---|
+| `fade` | opacity 0 → 1 | `power1.out` |
+| `pop` | scale 0 → 1 | `back.out(1.7)` (overshoots) |
+| `draw` | strokes trace themselves; arrowheads and text pop/fade in as the shaft reaches them | `none` for the trace |
+
+Any other effect string is accepted by the parser but flagged with an
+`unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
+
+## Timing model
+
+Every animation resolves to an absolute `start` and `duration` in seconds.
+There are four ways to place one on the timeline:
+
+1. **Sequential (default).** With no `at`/`after`, an animation begins when the
+   *previously declared* one ends — animations cascade in source order.
+2. **`after` *place*** — begin when a specific named object's animation ends.
+   This lets you branch instead of running one straight chain.
+3. **`at` *t*** — pin to an absolute second (run things in parallel, or line up
+   with an external soundtrack). `at` and `after` write the same slot, so if you
+   give both the last one wins.
+4. **`delay` *d*** — shift whatever start the clauses above produced by *d*
+   seconds. It stacks on sequential, `at`, or `after`.
+
+The example below exercises all four in one timeline:
+
+<AnimatedPic code={`.PS
+margin = 0.12
+B1: box "load" fit
+arrow
+B2: box "run" fit
+arrow
+C: circle "done" rad 0.3
+animate B1 with "pop" for 0.4
+animate 1st arrow with "draw"
+animate B2 with "pop" after 1st arrow
+animate 2nd arrow with "draw" at 1.2
+animate C with "fade" for 0.8 delay 0.3
+.PE`} />
+
+Its `--json` manifest is a flat, absolute-time array — no player needed to read it:
+
+```json
+[
+  { "id": "s0", "effect": "pop",  "start": 0,   "duration": 0.4 },
+  { "id": "s1", "effect": "draw", "start": 0.4, "duration": 0.6 },
+  { "id": "s2", "effect": "pop",  "start": 1,   "duration": 0.6 },
+  { "id": "s3", "effect": "draw", "start": 1.2, "duration": 0.6 },
+  { "id": "s4", "effect": "fade", "start": 2.1, "duration": 0.8 }
+]
+```
+
+## Looping and easing
+
+`repeat`, `yoyo`, and `ease` map straight onto the GSAP tween that plays each
+object — they let an object pulse, breathe, or bounce instead of entering once.
+
+- **`repeat` *n*** replays the effect *n* more times; `repeat -1` loops forever.
+- **`yoyo`** reverses every other pass, so a `repeat`ed effect eases back to its
+  start instead of snapping. On its own (no `repeat`) it does nothing and rpic
+  emits a `yoyo_without_repeat` warning.
+- **`ease` *"name"*** swaps the effect's built-in easing for any
+  [GSAP ease](https://gsap.com/docs/v3/Eases) — `"none"`, `"power2.inOut"`,
+  `"elastic.out(1, 0.3)"`, `"bounce.out"`, `"steps(6)"`, and so on.
+
+An infinite `repeat` never blocks the sequence: sequential and `after` timing
+track only the first pass, so a looping highlight can run under everything else.
+
+<AnimatedPic code={`.PS
+margin = 0.2
+P: circle "ping" rad 0.35 fill 0.9
+box "settle" with .w at P.e + (0.6,0) fit
+animate P with "pop" for 0.7 repeat -1 yoyo ease "sine.inOut"
+animate last box with "fade" for 0.6 ease "elastic.out(1, 0.4)"
+.PE`} />
+
+Only the keys you set reach the manifest, so this timeline is:
+
+```json
+[
+  { "id": "s0", "effect": "pop",  "start": 0, "duration": 0.7,
+    "repeat": -1, "yoyo": true, "ease": "sine.inOut" },
+  { "id": "s1", "effect": "fade", "start": 0.7, "duration": 0.6,
+    "ease": "elastic.out(1, 0.4)" }
+]
+```
 
 A control loop drawing itself, wires first:
 
@@ -64,7 +166,10 @@ animate last line with "draw" for 0.9
 ## Consuming the manifest
 
 `rpic_core::compile_json` (and the JS/Python bindings) return
-`{ svg, animations, diagnostics, warnings }`; the JS package ships the player:
+`{ svg, animations, diagnostics, warnings }`. Each animation is
+`{ id, effect, start, duration }` plus the optional `repeat` / `yoyo` / `ease`
+keys — present only when the source set them, so plain manifests stay compact.
+The JS package ships the player, which folds those keys straight into GSAP:
 
 ```js
 import { ready, compile, animate } from '@strategicprojects/rpic';

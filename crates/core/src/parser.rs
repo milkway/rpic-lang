@@ -1008,6 +1008,9 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Animate => "animate",
         Kw::After => "after",
         Kw::Delay => "delay",
+        Kw::Repeat => "repeat",
+        Kw::Yoyo => "yoyo",
+        Kw::Ease => "ease",
     }
 }
 
@@ -1789,6 +1792,9 @@ impl Parser {
         let mut duration = None;
         let mut timing = Timing::Sequential;
         let mut delay = None;
+        let mut repeat = None;
+        let mut yoyo = false;
+        let mut ease = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1798,6 +1804,12 @@ impl Parser {
                 timing = Timing::After(self.parse_place()?);
             } else if self.eat_kw(Kw::Delay) {
                 delay = Some(self.parse_expr()?);
+            } else if self.eat_kw(Kw::Repeat) {
+                repeat = Some(self.parse_expr()?);
+            } else if self.eat_kw(Kw::Yoyo) {
+                yoyo = true;
+            } else if self.eat_kw(Kw::Ease) {
+                ease = Some(self.parse_stringexpr()?);
             } else {
                 break;
             }
@@ -1809,6 +1821,9 @@ impl Parser {
             duration,
             timing,
             delay,
+            repeat,
+            yoyo,
+            ease,
         })
     }
 

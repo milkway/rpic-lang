@@ -163,7 +163,8 @@ pub enum PrintItem {
     Expr(Expr),
 }
 
-/// `animate <target> with "<effect>" [for <dur>] [at <t> | after <ref>] [delay <d>]`.
+/// `animate <target> with "<effect>" [for <dur>] [at <t> | after <ref>] [delay <d>]
+///   [repeat <n>] [yoyo] [ease "<name>"]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Animate {
     pub target: Place,
@@ -172,6 +173,13 @@ pub struct Animate {
     pub duration: Option<Expr>,
     pub timing: Timing,
     pub delay: Option<Expr>,
+    /// Number of repeats after the first play (GSAP `repeat`): `-1` loops
+    /// forever, `0`/absent plays once.
+    pub repeat: Option<Expr>,
+    /// Alternate direction on each repeat (GSAP `yoyo`).
+    pub yoyo: bool,
+    /// GSAP easing name overriding the per-effect default (e.g. `"elastic.out"`).
+    pub ease: Option<StringExpr>,
 }
 
 /// When an animation starts.
