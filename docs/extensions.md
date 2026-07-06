@@ -252,8 +252,12 @@ animate B2 with "fade" after 1st arrow delay 0.2
   infinite `repeat` does not stall the sequence — sequential/`after` timing
   tracks only the first pass.
 - The manifest is a flat array of `{ id, effect, start, duration }` (plus
-  `repeat`/`yoyo`/`ease` only when set) with **absolute** start times in
-  seconds — readable without a player.
+  `repeat`/`yoyo`/`ease`/`path`/`color`/`out`/`from` only when set) with
+  **absolute** start times in seconds — readable without a player.
+- **Scroll-scrubbing** (`animate scroll`): a bare directive that hints the host
+  should scrub the timeline by scroll position instead of autoplaying. It is a
+  whole-timeline decision, surfaced as a top-level `scroll: true` in the compile
+  bundle (only when present); the host wires GSAP ScrollTrigger.
 
 Pop/draw overshoot can escape the canvas; reserve room with
 [`margin`](#canvas-margins). See also [Class Hooks](#class-hooks) — both share

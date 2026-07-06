@@ -33,6 +33,10 @@ pub struct Drawing {
     /// content bounds; content outside is clipped by the viewBox.
     pub canvas: Option<Bbox>,
     pub anims: Vec<Anim>,
+    /// rpic extension (`animate scroll`): a timeline-level hint that the host
+    /// should scrub the animation on scroll rather than autoplay. Surfaced in
+    /// the compile bundle as top-level `scroll`; the host wires ScrollTrigger.
+    pub anim_scroll: bool,
     /// Lines emitted by pic `print` statements, without trailing newlines.
     pub diagnostics: Vec<String>,
     /// Non-fatal compiler warnings for accepted but likely unintended input.

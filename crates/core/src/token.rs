@@ -146,6 +146,7 @@ pub enum Kw {
     Along,
     Stagger,
     Out,
+    Scroll,
 }
 
 /// Compass / named corners of an object.

@@ -1014,6 +1014,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Along => "along",
         Kw::Stagger => "stagger",
         Kw::Out => "out",
+        Kw::Scroll => "scroll",
     }
 }
 
@@ -1547,6 +1548,13 @@ impl Parser {
 
         // rpic animation directive.
         if self.at_kw(Kw::Animate) {
+            // `animate scroll` is a timeline-level directive, not an object
+            // animation — dispatch it before the `animate <place> …` form.
+            if matches!(self.peek(1), Token::Kw(Kw::Scroll)) {
+                self.bump();
+                self.bump();
+                return Ok(Stmt::AnimateScroll);
+            }
             return Ok(Stmt::Animate(Box::new(self.parse_animate()?)));
         }
 

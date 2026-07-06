@@ -257,13 +257,21 @@ pub fn compile_json_with_options(src: &str, opts: &CompileOptions) -> String {
 }
 
 fn drawing_json(d: &Drawing) -> String {
+    // `animate scroll` adds a top-level hint; omitted when unset so plain
+    // bundles stay byte-identical.
+    let scroll = if d.anim_scroll {
+        ",\"scroll\":true"
+    } else {
+        ""
+    };
     format!(
-        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}}}",
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}}}",
         json_str(&to_svg(d)),
         animations_json(d),
         diagnostics_json(d),
         diagnostics_json_structured(&d.warnings),
-        objects_json(d)
+        objects_json(d),
+        scroll
     )
 }
 
@@ -381,6 +389,14 @@ mod tests {
             ),
             "{j}"
         );
+    }
+
+    #[test]
+    fn json_emits_scroll_hint_only_when_set() {
+        let on = compile_json("box\nanimate last box with \"fade\"\nanimate scroll");
+        assert!(on.contains(",\"scroll\":true}"), "{on}");
+        let off = compile_json("box\nanimate last box with \"fade\"");
+        assert!(!off.contains("scroll"), "{off}");
     }
 
     #[test]

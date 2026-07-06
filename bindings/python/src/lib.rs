@@ -239,6 +239,10 @@ fn compile<'py>(
         objects.append(obj)?;
     }
     out.set_item("objects", objects)?;
+    // rpic `animate scroll`: timeline-level scroll-scrub hint for the host.
+    if d.anim_scroll {
+        out.set_item("scroll", true)?;
+    }
     Ok(out)
 }
 

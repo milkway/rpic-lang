@@ -78,6 +78,9 @@ const outAnim = compile('box\nanimate last box with "slide" from left out');
 assert.equal(outAnim.animations[0].effect, 'slide');
 assert.equal(outAnim.animations[0].from, 'left');
 assert.equal(outAnim.animations[0].out, true);
+// animate scroll: top-level hint, present only when set
+assert.equal(compile('box\nanimate last box with "fade"\nanimate scroll').scroll, true);
+assert.equal(compile('box\nanimate last box with "fade"').scroll, undefined);
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');

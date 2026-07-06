@@ -198,7 +198,10 @@ warns), `slide` (translate in from `from <dir>` — manifest gains a `from` id;
 needs `from`, elsewhere warns). The `out` modifier reverses any effect into an
 exit (manifest `out:true`). `stagger <d>` on a block target fans the effect
 across its visible children (source order, invisible helpers skipped), expanding
-to one manifest entry per child. Timing is sequential by default, or
+to one manifest entry per child. A bare `animate scroll` directive sets a
+timeline-level hint (top-level `scroll:true` in the bundle) that the host should
+scrub the timeline on scroll rather than autoplay. Timing is sequential by
+default, or
 absolute (`at`) / relative to another object's end (`after`). `repeat`/`yoyo`/
 `ease` are GSAP-tween passthroughs (loop count, ping-pong, easing override);
 they land in the manifest only when set, and an infinite `repeat` tracks only
