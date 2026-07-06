@@ -12,15 +12,12 @@ repository-code: "https://github.com/milkway/rpic-lang"
 url: "https://rpic.dev"
 doi: "10.5281/zenodo.21209915"
 license: BSD-2-Clause
-version: 0.7.0
-date-released: 2026-07-05
+version: 0.7.1
+date-released: 2026-07-06
 identifiers:
   - type: doi
     value: "10.5281/zenodo.21209915"
     description: "Concept DOI — always resolves to the latest release"
-  - type: doi
-    value: "10.5281/zenodo.21209916"
-    description: "Version DOI for v0.7.0"
 keywords:
   - pic
   - diagrams
