@@ -191,6 +191,9 @@ fn compile<'py>(
         if let Some(ease) = &a.ease {
             anim.set_item("ease", ease)?;
         }
+        if let Some(path) = a.path {
+            anim.set_item("path", format!("s{path}"))?;
+        }
         anims.append(anim)?;
     }
     out.set_item("animations", anims)?;

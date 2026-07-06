@@ -121,7 +121,9 @@ pub enum Stmt {
     /// `{ … }` grouping block (local scope, no bounding object).
     Group(Vec<Stmt>),
     /// rpic animation directive (extension; see [`Animate`]).
-    Animate(Animate),
+    // Boxed: `Animate` carries several `Place`s and is far larger than the
+    // other variants (clippy::large_enum_variant).
+    Animate(Box<Animate>),
     /// rpic extension: `class <place> "name"` — append a CSS class to an
     /// already-drawn object's shape group (labels and ordinals both work).
     Class { target: Place, class: StringExpr },
@@ -163,8 +165,8 @@ pub enum PrintItem {
     Expr(Expr),
 }
 
-/// `animate <target> with "<effect>" [for <dur>] [at <t> | after <ref>] [delay <d>]
-///   [repeat <n>] [yoyo] [ease "<name>"]`.
+/// `animate <target> with "<effect>" [along <path>] [for <dur>]
+///   [at <t> | after <ref>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Animate {
     pub target: Place,
@@ -173,6 +175,8 @@ pub struct Animate {
     pub duration: Option<Expr>,
     pub timing: Timing,
     pub delay: Option<Expr>,
+    /// Object whose geometry the `move` effect follows (GSAP MotionPath).
+    pub along: Option<Place>,
     /// Number of repeats after the first play (GSAP `repeat`): `-1` loops
     /// forever, `0`/absent plays once.
     pub repeat: Option<Expr>,

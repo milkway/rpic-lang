@@ -57,6 +57,11 @@ const plainAnim = compile('box\nanimate last box with "fade"');
 assert.equal(plainAnim.animations[0].repeat, undefined);
 assert.equal(plainAnim.animations[0].yoyo, undefined);
 assert.equal(plainAnim.animations[0].ease, undefined);
+assert.equal(plainAnim.animations[0].path, undefined);
+// the move effect records the followed path's id
+const moveAnim = compile('L: line right 3\nD: dot at L.start\nanimate D with "move" along L');
+assert.equal(moveAnim.animations[0].effect, 'move');
+assert.equal(moveAnim.animations[0].path, 's0');
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');

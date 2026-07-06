@@ -79,6 +79,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(ease) = &a.ease {
             s.push_str(&format!(",\"ease\":\"{}\"", json_str(ease)));
         }
+        if let Some(path) = a.path {
+            s.push_str(&format!(",\"path\":\"s{path}\""));
+        }
         s.push('}');
     }
     s.push(']');
@@ -342,6 +345,18 @@ mod tests {
         assert!(
             j.contains(
                 "\"effect\":\"pop\",\"start\":0,\"duration\":0.4,\"repeat\":-1,\"yoyo\":true,\"ease\":\"power2.inOut\"}"
+            ),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_emits_move_path_reference() {
+        let j = compile_json("L: line right 3\nD: dot at L.start\nanimate D with \"move\" along L");
+        // The dot (s1) moves along the line (s0); the path id rides the entry.
+        assert!(
+            j.contains(
+                "\"id\":\"s1\",\"effect\":\"move\",\"start\":0,\"duration\":0.6,\"path\":\"s0\"}"
             ),
             "{j}"
         );

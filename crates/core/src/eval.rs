@@ -866,15 +866,44 @@ impl State {
         }
         let ease = a.ease.as_ref().map(stringexpr_lit);
         let effect = stringexpr_lit(&a.effect);
-        if !matches!(effect.as_str(), "draw" | "fade" | "pop") {
+        let is_move = effect == "move";
+        // Resolve the `along` path (a drawn object) to its shape index.
+        let path = match &a.along {
+            Some(p) => {
+                let i = self.place_index(p)?;
+                let sh = self.placed[i].shape.ok_or_else(|| EvalError {
+                    msg: "`along` target has no drawn path".into(),
+                    info: None,
+                })?;
+                Some(sh)
+            }
+            None => None,
+        };
+        if is_move && path.is_none() {
+            return Err(EvalError {
+                msg: "`move` needs a path: `animate <obj> with \"move\" along <path>`".into(),
+                info: None,
+            });
+        }
+        if path.is_some() && !is_move {
+            let mut warning = Diagnostic::new(
+                "along_without_move",
+                "`along` only applies to the `move` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
+        if !matches!(effect.as_str(), "draw" | "fade" | "pop" | "move") {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, and `pop`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, and `move`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, or pop");
+            .expected("draw, fade, pop, or move");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -888,6 +917,7 @@ impl State {
             repeat,
             yoyo: a.yoyo,
             ease,
+            path: if is_move { path } else { None },
         });
         Ok(())
     }
@@ -4546,6 +4576,39 @@ mod tests {
         assert_eq!(a.repeat, 0);
         assert!(!a.yoyo);
         assert_eq!(a.ease, None);
+        assert_eq!(a.path, None);
+    }
+
+    #[test]
+    fn animate_move_records_the_path_shape() {
+        // The dot (shape 1) travels along the line (shape 0).
+        let d = draw("L: line right 3\nD: dot at L.start\nanimate D with \"move\" along L for 2");
+        assert_eq!(d.anims.len(), 1);
+        let a = &d.anims[0];
+        assert_eq!(a.effect, "move");
+        assert_eq!(a.shape, 1);
+        assert_eq!(a.path, Some(0));
+        assert!((a.duration - 2.0).abs() < 1e-9);
+        // `move` is a known effect: no unknown-effect warning.
+        assert!(
+            !d.warnings
+                .iter()
+                .any(|w| w.kind == "unknown_animation_effect")
+        );
+    }
+
+    #[test]
+    fn animate_move_without_path_errors() {
+        let err = eval(&parse("box\nanimate last box with \"move\"").unwrap()).unwrap_err();
+        assert!(err.msg.contains("`move` needs a path"));
+    }
+
+    #[test]
+    fn animate_along_without_move_warns_and_is_dropped() {
+        let d = draw("L: line right 2\nbox\nanimate last box with \"fade\" along L");
+        assert!(d.warnings.iter().any(|w| w.kind == "along_without_move"));
+        // `along` is ignored for non-move effects — no path leaks into the manifest.
+        assert_eq!(d.anims[0].path, None);
     }
 
     #[test]

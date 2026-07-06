@@ -93,8 +93,8 @@ export function renderSvg(src, opts) {
  * Build a GSAP timeline from a drawing's animation manifest and play it on the
  * SVG inside `root`. Browser-only (needs the DOM and a GSAP instance).
  * @param {Element} root container holding the injected SVG
- * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string}>} animations
- * @param {*} gsap the GSAP instance
+ * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string}>} animations
+ * @param {*} gsap the GSAP instance (register MotionPathPlugin for the `move` effect)
  * @returns the GSAP timeline
  */
 export function animate(root, animations, gsap) {
@@ -118,6 +118,9 @@ export function animate(root, animations, gsap) {
       case 'draw':
         drawOn(el, a, tl);
         break;
+      case 'move':
+        moveAlong(root, el, a, tl);
+        break;
       default:
         tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
     }
@@ -132,6 +135,33 @@ function withOverrides(vars, a) {
   if (a.yoyo) vars.yoyo = true;
   if (a.ease) vars.ease = a.ease;
   return vars;
+}
+
+// The `move` effect: travel `el` along the geometry of the object `a.path`
+// references, via GSAP's MotionPathPlugin. The consumer must have registered
+// it (`gsap.registerPlugin(MotionPathPlugin)`); without it GSAP no-ops the
+// motionPath and the object simply stays put.
+function moveAlong(root, el, a, tl) {
+  if (!a.path) return;
+  const psel =
+    typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.path) : `[id="${a.path}"]`;
+  const group = root.querySelector(psel);
+  const pathEl = group && group.querySelector('path, polyline, line, polygon');
+  if (!pathEl) return;
+  // `align` maps the path into the traveller's coordinate space; a `move`
+  // tween is a `.to()` (current position → along the path), not a `.from()`.
+  tl.to(
+    el,
+    withOverrides(
+      {
+        motionPath: { path: pathEl, align: pathEl, alignOrigin: [0.5, 0.5], autoRotate: false },
+        duration: a.duration,
+        ease: 'none',
+      },
+      a
+    ),
+    a.start
+  );
 }
 
 function drawOn(group, a, tl) {

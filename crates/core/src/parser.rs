@@ -1011,6 +1011,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Repeat => "repeat",
         Kw::Yoyo => "yoyo",
         Kw::Ease => "ease",
+        Kw::Along => "along",
     }
 }
 
@@ -1544,7 +1545,7 @@ impl Parser {
 
         // rpic animation directive.
         if self.at_kw(Kw::Animate) {
-            return Ok(Stmt::Animate(self.parse_animate()?));
+            return Ok(Stmt::Animate(Box::new(self.parse_animate()?)));
         }
 
         // rpic `class <place> "name"` statement (extension). Contextual:
@@ -1795,6 +1796,7 @@ impl Parser {
         let mut repeat = None;
         let mut yoyo = false;
         let mut ease = None;
+        let mut along = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1810,6 +1812,8 @@ impl Parser {
                 yoyo = true;
             } else if self.eat_kw(Kw::Ease) {
                 ease = Some(self.parse_stringexpr()?);
+            } else if self.eat_kw(Kw::Along) {
+                along = Some(self.parse_place()?);
             } else {
                 break;
             }
@@ -1824,6 +1828,7 @@ impl Parser {
             repeat,
             yoyo,
             ease,
+            along,
         })
     }
 
