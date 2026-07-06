@@ -63,7 +63,9 @@ function ensure() {
 }
 
 /**
- * Compile pic source into `{ svg, animations, diagnostics, warnings, objects }` (throws on a pic error).
+ * Compile pic source into `{ svg, animations, diagnostics, warnings, objects }`
+ * (throws on a pic error). A top-level `scroll: true` is present when the source
+ * used `animate scroll` — a hint to scrub the timeline on scroll (see `animate`).
  * @param {string} src
  * @param {{circuits?: boolean, texlabels?: boolean}} [opts]
  */

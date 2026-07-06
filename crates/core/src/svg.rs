@@ -2172,6 +2172,7 @@ mod tests {
             prelude_thick: 0.8,
             canvas_margin: CanvasMargin::default(),
             anims: Vec::new(),
+            anim_scroll: false,
             diagnostics: Vec::new(),
             warnings: Vec::new(),
         };

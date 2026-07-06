@@ -301,6 +301,32 @@ stage.innerHTML = svg;
 animate(stage, animations, gsap);
 ```
 
+## Scroll-scrubbing
+
+Autoplay is the default. Add a bare `animate scroll` directive anywhere to hint
+that the timeline should instead be **scrubbed by scroll position** — the
+diagram builds as the reader scrolls through it. This is a whole-timeline
+decision, so it isn't attached to any one object; it surfaces as a top-level
+`scroll: true` in the compile bundle (present only when the directive is used).
+
+Scrubbing is the host's call, so the flag is a neutral hint: the player still
+returns a GSAP timeline, and the consumer decides how to drive it. Wire it with
+[ScrollTrigger](https://gsap.com/docs/v3/Plugins/ScrollTrigger/):
+
+```js
+import { ready, compile, animate } from '@strategicprojects/rpic';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+gsap.registerPlugin(ScrollTrigger);
+await ready();
+const { svg, animations, scroll } = compile(src);
+stage.innerHTML = svg;
+const tl = animate(stage, animations, gsap);
+if (scroll) {
+  tl.pause();
+  ScrollTrigger.create({ animation: tl, trigger: stage, start: 'top 80%', end: 'bottom 20%', scrub: true });
+}
+```
+
 ## Rules
 
 - Metadata only — PNG/PDF and plain SVG consumers are unaffected.

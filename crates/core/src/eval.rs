@@ -135,6 +135,7 @@ pub fn eval(pic: &Picture) -> ER<Drawing> {
         canvas_margin,
         canvas: st.canvas,
         anims: st.anims,
+        anim_scroll: st.anim_scroll,
         diagnostics: st.diagnostics,
         warnings: st.warnings,
     };
@@ -590,6 +591,7 @@ struct State {
     layout_bbox: Bbox,
     // animation state
     anims: Vec<Anim>,
+    anim_scroll: bool,
     diagnostics: Vec<String>,
     warnings: Vec<Diagnostic>,
     anim_cursor: f64,
@@ -636,6 +638,7 @@ impl State {
             bbox: Bbox::new(),
             layout_bbox: Bbox::new(),
             anims: Vec::new(),
+            anim_scroll: false,
             diagnostics: Vec::new(),
             warnings: Vec::new(),
             anim_cursor: 0.0,
@@ -707,6 +710,7 @@ impl State {
                 }
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
+            Stmt::AnimateScroll => self.anim_scroll = true,
             Stmt::Class { target, class } => {
                 let idx = self.place_index(target)?;
                 let name = self.eval_stringexpr(class)?;
@@ -4777,6 +4781,20 @@ mod tests {
         assert!(d.warnings.iter().any(|w| w.kind == "stagger_without_block"));
         assert_eq!(d.anims.len(), 1);
         assert_eq!(d.anims[0].shape, 0);
+    }
+
+    #[test]
+    fn animate_scroll_sets_the_timeline_hint() {
+        let d = draw("box\nanimate last box with \"fade\"\nanimate scroll");
+        assert!(d.anim_scroll);
+        // it is a directive, not an object animation
+        assert_eq!(d.anims.len(), 1);
+    }
+
+    #[test]
+    fn animate_scroll_defaults_off() {
+        let d = draw("box\nanimate last box with \"fade\"");
+        assert!(!d.anim_scroll);
     }
 
     #[test]

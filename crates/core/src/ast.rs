@@ -124,6 +124,9 @@ pub enum Stmt {
     // Boxed: `Animate` carries several `Place`s and is far larger than the
     // other variants (clippy::large_enum_variant).
     Animate(Box<Animate>),
+    /// rpic extension: `animate scroll` — a timeline-level hint that the host
+    /// should scrub the animation on scroll instead of autoplaying.
+    AnimateScroll,
     /// rpic extension: `class <place> "name"` — append a CSS class to an
     /// already-drawn object's shape group (labels and ordinals both work).
     Class { target: Place, class: StringExpr },
