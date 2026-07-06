@@ -867,6 +867,7 @@ impl State {
         let ease = a.ease.as_ref().map(stringexpr_lit);
         let effect = stringexpr_lit(&a.effect);
         let is_move = effect == "move";
+        let is_highlight = effect == "highlight";
         // Resolve the `along` path (a drawn object) to its shape index.
         let path = match &a.along {
             Some(p) => {
@@ -877,6 +878,11 @@ impl State {
                 })?;
                 Some(sh)
             }
+            None => None,
+        };
+        // Resolve the `to` colour (any rpic colour form) to a CSS string.
+        let color = match &a.color {
+            Some(se) => Some(self.eval_color_expr(se)?),
             None => None,
         };
         if is_move && path.is_none() {
@@ -895,15 +901,28 @@ impl State {
             }
             self.warnings.push(warning);
         }
-        if !matches!(effect.as_str(), "draw" | "fade" | "pop" | "move") {
+        if color.is_some() && !is_highlight {
+            let mut warning = Diagnostic::new(
+                "to_without_highlight",
+                "`to <colour>` only applies to the `highlight` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
+        if !matches!(
+            effect.as_str(),
+            "draw" | "fade" | "pop" | "move" | "highlight"
+        ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, and `move`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, and `highlight`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, or move");
+            .expected("draw, fade, pop, move, or highlight");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -918,6 +937,7 @@ impl State {
             yoyo: a.yoyo,
             ease,
             path: if is_move { path } else { None },
+            color: if is_highlight { color } else { None },
         });
         Ok(())
     }
@@ -4609,6 +4629,37 @@ mod tests {
         assert!(d.warnings.iter().any(|w| w.kind == "along_without_move"));
         // `along` is ignored for non-move effects — no path leaks into the manifest.
         assert_eq!(d.anims[0].path, None);
+    }
+
+    #[test]
+    fn animate_highlight_resolves_colour_forms() {
+        // Named colour passes through; rgb()/0xRRGGBB resolve to hex.
+        let d = draw(
+            "box\nbox\nbox\nanimate 1st box with \"highlight\" to \"crimson\"\nanimate 2nd box with \"highlight\" to rgb(255,140,0)\nanimate 3rd box with \"highlight\" to 0x1b5e20",
+        );
+        assert_eq!(d.anims[0].color.as_deref(), Some("crimson"));
+        assert_eq!(d.anims[1].color.as_deref(), Some("#ff8c00"));
+        assert_eq!(d.anims[2].color.as_deref(), Some("#1b5e20"));
+        assert!(
+            !d.warnings
+                .iter()
+                .any(|w| w.kind == "unknown_animation_effect")
+        );
+    }
+
+    #[test]
+    fn animate_highlight_without_colour_is_allowed() {
+        let d = draw("box\nanimate last box with \"highlight\" repeat 1 yoyo");
+        assert_eq!(d.anims[0].effect, "highlight");
+        assert_eq!(d.anims[0].color, None);
+    }
+
+    #[test]
+    fn animate_to_without_highlight_warns_and_is_dropped() {
+        let d = draw("box\nanimate last box with \"fade\" to \"red\"");
+        assert!(d.warnings.iter().any(|w| w.kind == "to_without_highlight"));
+        // `to` is ignored for non-highlight effects — no colour in the manifest.
+        assert_eq!(d.anims[0].color, None);
     }
 
     #[test]

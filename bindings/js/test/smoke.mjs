@@ -62,6 +62,10 @@ assert.equal(plainAnim.animations[0].path, undefined);
 const moveAnim = compile('L: line right 3\nD: dot at L.start\nanimate D with "move" along L');
 assert.equal(moveAnim.animations[0].effect, 'move');
 assert.equal(moveAnim.animations[0].path, 's0');
+// the highlight effect resolves its target colour
+const hlAnim = compile('box\nanimate last box with "highlight" to rgb(255,140,0)');
+assert.equal(hlAnim.animations[0].effect, 'highlight');
+assert.equal(hlAnim.animations[0].color, '#ff8c00');
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');
