@@ -338,6 +338,10 @@ struct Placed {
     /// For blocks: inner labels (sub-objects), translated into parent
     /// coordinates, so `B.A` / `last [].Outer` resolve. Empty otherwise.
     members: HashMap<String, Placed>,
+    /// For blocks: the half-open range of child shape indices `[lo, hi)` the
+    /// block drew, so `animate <block> … stagger` can fan across them. `None`
+    /// for non-blocks and empty blocks.
+    block_shapes: Option<(usize, usize)>,
 }
 
 impl Placed {
@@ -685,6 +689,7 @@ impl State {
                     layer: 0,
                     shape: None,
                     members: HashMap::new(),
+                    block_shapes: None,
                 });
                 self.labels.insert(key, idx);
             }
@@ -928,17 +933,47 @@ impl State {
             }
             self.warnings.push(warning);
         }
-        self.anims.push(Anim {
+        let path = if is_move { path } else { None };
+        let color = if is_highlight { color } else { None };
+        let make = |shape: usize, start: f64| Anim {
             shape,
-            effect,
+            effect: effect.clone(),
             start,
             duration: dur,
             repeat,
             yoyo: a.yoyo,
-            ease,
-            path: if is_move { path } else { None },
-            color: if is_highlight { color } else { None },
-        });
+            ease: ease.clone(),
+            path,
+            color: color.clone(),
+        };
+        // `stagger <d>` on a block fans the effect across its *visible*
+        // children (skipping `move`/invis spines), offset by d seconds each,
+        // in source order — one manifest entry per child.
+        if let Some(se) = &a.stagger {
+            let step = self.eval_expr(se)?;
+            let children: Vec<usize> = self.placed[idx]
+                .block_shapes
+                .map(|(lo, hi)| (lo..hi).filter(|&i| self.shapes[i].is_visible()).collect())
+                .unwrap_or_default();
+            if !children.is_empty() {
+                for (k, &child) in children.iter().enumerate() {
+                    self.anims.push(make(child, start + k as f64 * step));
+                }
+                let last_end = start + (children.len() - 1) as f64 * step + dur;
+                self.anim_cursor = last_end;
+                self.anim_end.insert(children[0], last_end);
+                return Ok(());
+            }
+            let mut warning = Diagnostic::new(
+                "stagger_without_block",
+                "`stagger` only applies to a block target with drawn children; animating the single object instead",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
+        self.anims.push(make(shape, start));
         Ok(())
     }
 
@@ -2098,6 +2133,10 @@ impl State {
             // inner objects carry their own statement spans through the merge
             *self.shape_spans.last_mut().unwrap() = span;
         }
+        // The block's child shapes occupy [first_shape, child_end); captured
+        // before the block's own centred label (pushed below) so a `stagger`
+        // fans across the members, not the title.
+        let child_end = self.shapes.len();
         if let Some(c) = sub.canvas {
             // like variables, `canvas` is global: a block's setting wins,
             // translated into parent space with the rest of its geometry
@@ -2145,6 +2184,9 @@ impl State {
         self.dir = dir;
         let idx = self.record(PKind::Block, target, bb, start, end, 0.0, shape);
         self.placed[idx].members = members;
+        if child_end > first_shape {
+            self.placed[idx].block_shapes = Some((first_shape, child_end));
+        }
         Ok(idx)
     }
 
@@ -2178,6 +2220,7 @@ impl State {
                 .unwrap_or(0),
             shape,
             members: HashMap::new(),
+            block_shapes: None,
         });
         idx
     }
@@ -4660,6 +4703,51 @@ mod tests {
         assert!(d.warnings.iter().any(|w| w.kind == "to_without_highlight"));
         // `to` is ignored for non-highlight effects — no colour in the manifest.
         assert_eq!(d.anims[0].color, None);
+    }
+
+    #[test]
+    fn animate_stagger_fans_across_block_children() {
+        let d = draw(
+            "B: [ box \"a\"; box \"b\"; box \"c\" ]\nanimate B with \"fade\" for 0.3 stagger 0.15",
+        );
+        assert_eq!(d.anims.len(), 3);
+        assert_eq!(d.anims[0].shape, 0);
+        assert_eq!(d.anims[1].shape, 1);
+        assert_eq!(d.anims[2].shape, 2);
+        assert!((d.anims[0].start - 0.0).abs() < 1e-9);
+        assert!((d.anims[1].start - 0.15).abs() < 1e-9);
+        assert!((d.anims[2].start - 0.3).abs() < 1e-9);
+        assert!(d.anims.iter().all(|a| a.effect == "fade"));
+    }
+
+    #[test]
+    fn animate_stagger_skips_invisible_spines() {
+        // The explicit `move`s between boxes are invisible: only the 3 boxes
+        // (s0, s2, s4) get stagger slots — s1/s3 are skipped.
+        let d = draw("B: [ box; move; box; move; box ]\nanimate B with \"pop\" stagger 0.1");
+        assert_eq!(d.anims.len(), 3);
+        assert_eq!(
+            d.anims.iter().map(|a| a.shape).collect::<Vec<_>>(),
+            vec![0, 2, 4]
+        );
+    }
+
+    #[test]
+    fn animate_stagger_advances_the_sequence_past_the_last_child() {
+        let d = draw(
+            "B: [ box; box ]\ncircle\nanimate B with \"pop\" for 0.2 stagger 0.1\nanimate last circle with \"fade\"",
+        );
+        // children at 0.0 and 0.1 (dur 0.2) → last ends at 0.1+0.2 = 0.3.
+        assert!((d.anims[2].start - 0.3).abs() < 1e-9);
+        assert_eq!(d.anims[2].effect, "fade");
+    }
+
+    #[test]
+    fn animate_stagger_without_block_warns_and_animates_single() {
+        let d = draw("box\nanimate last box with \"fade\" stagger 0.1");
+        assert!(d.warnings.iter().any(|w| w.kind == "stagger_without_block"));
+        assert_eq!(d.anims.len(), 1);
+        assert_eq!(d.anims[0].shape, 0);
     }
 
     #[test]

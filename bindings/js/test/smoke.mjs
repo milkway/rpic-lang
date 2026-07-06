@@ -66,6 +66,13 @@ assert.equal(moveAnim.animations[0].path, 's0');
 const hlAnim = compile('box\nanimate last box with "highlight" to rgb(255,140,0)');
 assert.equal(hlAnim.animations[0].effect, 'highlight');
 assert.equal(hlAnim.animations[0].color, '#ff8c00');
+// stagger fans across a block's children into one entry each
+const stAnim = compile('B: [ box; box; box ]\nanimate B with "fade" for 0.3 stagger 0.15');
+assert.equal(stAnim.animations.length, 3);
+assert.deepEqual(
+  stAnim.animations.map((a) => [a.id, a.start]),
+  [['s0', 0], ['s1', 0.15], ['s2', 0.3]]
+);
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');

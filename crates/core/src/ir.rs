@@ -312,3 +312,21 @@ pub enum Shape {
         standalone: bool,
     },
 }
+
+impl Shape {
+    /// Whether the shape paints anything. `false` for `move`/`invis` helpers
+    /// (their `style.invis` is set) and empty text. Used by `animate … stagger`
+    /// to fan only across a block's visible children, skipping spines.
+    pub fn is_visible(&self) -> bool {
+        match self {
+            Shape::Box { style, .. }
+            | Shape::Circle { style, .. }
+            | Shape::Ellipse { style, .. }
+            | Shape::Path { style, .. }
+            | Shape::Spline { style, .. }
+            | Shape::Arc { style, .. }
+            | Shape::Brace { style, .. } => !style.invis,
+            Shape::Text { text, .. } => !text.is_empty(),
+        }
+    }
+}
