@@ -190,6 +190,11 @@ pub struct Animate {
     /// When the target is a block, fan the effect across its children with this
     /// per-child start offset in seconds (GSAP-style `stagger`).
     pub stagger: Option<Expr>,
+    /// Play the effect as an exit (reverse: `.to()` the hidden state) rather
+    /// than an entrance.
+    pub out: bool,
+    /// Direction the `slide` effect enters from (`from left`, …).
+    pub slide_from: Option<Dir>,
 }
 
 /// When an animation starts.

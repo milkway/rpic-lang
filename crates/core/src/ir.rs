@@ -85,6 +85,11 @@ pub struct Anim {
     pub path: Option<usize>,
     /// For the `highlight` effect: the CSS target colour (`to <colour>`).
     pub color: Option<String>,
+    /// Play as an exit (reverse) rather than an entrance.
+    pub out: bool,
+    /// For the `slide` effect: the direction it enters from
+    /// (`"left"`/`"right"`/`"up"`/`"down"`).
+    pub from: Option<String>,
 }
 
 /// Line dash style.

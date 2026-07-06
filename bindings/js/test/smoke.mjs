@@ -73,6 +73,11 @@ assert.deepEqual(
   stAnim.animations.map((a) => [a.id, a.start]),
   [['s0', 0], ['s1', 0.15], ['s2', 0.3]]
 );
+// exit modifier and directional slide
+const outAnim = compile('box\nanimate last box with "slide" from left out');
+assert.equal(outAnim.animations[0].effect, 'slide');
+assert.equal(outAnim.animations[0].from, 'left');
+assert.equal(outAnim.animations[0].out, true);
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');

@@ -873,6 +873,16 @@ impl State {
         let effect = stringexpr_lit(&a.effect);
         let is_move = effect == "move";
         let is_highlight = effect == "highlight";
+        let is_slide = effect == "slide";
+        let from = a.slide_from.map(|d| {
+            match d {
+                Dir::Up => "up",
+                Dir::Down => "down",
+                Dir::Left => "left",
+                Dir::Right => "right",
+            }
+            .to_string()
+        });
         // Resolve the `along` path (a drawn object) to its shape index.
         let path = match &a.along {
             Some(p) => {
@@ -916,18 +926,34 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        if is_slide && from.is_none() {
+            return Err(EvalError {
+                msg: "`slide` needs a direction: `animate <obj> with \"slide\" from <dir>`".into(),
+                info: None,
+            });
+        }
+        if from.is_some() && !is_slide {
+            let mut warning = Diagnostic::new(
+                "from_without_slide",
+                "`from <dir>` only applies to the `slide` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
         if !matches!(
             effect.as_str(),
-            "draw" | "fade" | "pop" | "move" | "highlight"
+            "draw" | "fade" | "pop" | "move" | "highlight" | "slide"
         ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, and `highlight`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, and `slide`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, move, or highlight");
+            .expected("draw, fade, pop, move, highlight, or slide");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -935,6 +961,7 @@ impl State {
         }
         let path = if is_move { path } else { None };
         let color = if is_highlight { color } else { None };
+        let from = if is_slide { from } else { None };
         let make = |shape: usize, start: f64| Anim {
             shape,
             effect: effect.clone(),
@@ -945,6 +972,8 @@ impl State {
             ease: ease.clone(),
             path,
             color: color.clone(),
+            out: a.out,
+            from: from.clone(),
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,
@@ -4748,6 +4777,41 @@ mod tests {
         assert!(d.warnings.iter().any(|w| w.kind == "stagger_without_block"));
         assert_eq!(d.anims.len(), 1);
         assert_eq!(d.anims[0].shape, 0);
+    }
+
+    #[test]
+    fn animate_slide_records_direction() {
+        let d = draw("box\nanimate last box with \"slide\" from left for 0.4");
+        assert_eq!(d.anims[0].effect, "slide");
+        assert_eq!(d.anims[0].from.as_deref(), Some("left"));
+        assert!(!d.anims[0].out);
+    }
+
+    #[test]
+    fn animate_slide_without_direction_errors() {
+        let err = eval(&parse("box\nanimate last box with \"slide\"").unwrap()).unwrap_err();
+        assert!(err.msg.contains("`slide` needs a direction"));
+    }
+
+    #[test]
+    fn animate_from_without_slide_warns_and_is_dropped() {
+        let d = draw("box\nanimate last box with \"fade\" from up");
+        assert!(d.warnings.iter().any(|w| w.kind == "from_without_slide"));
+        assert_eq!(d.anims[0].from, None);
+    }
+
+    #[test]
+    fn animate_out_is_a_modifier_on_any_effect() {
+        let d = draw("box\nbox\nanimate 1st box with \"fade\" out\nanimate 2nd box with \"pop\"");
+        assert!(d.anims[0].out);
+        assert!(!d.anims[1].out); // default is an entrance
+    }
+
+    #[test]
+    fn animate_slide_and_out_compose() {
+        let d = draw("box\nanimate last box with \"slide\" from down out");
+        assert_eq!(d.anims[0].from.as_deref(), Some("down"));
+        assert!(d.anims[0].out);
     }
 
     #[test]

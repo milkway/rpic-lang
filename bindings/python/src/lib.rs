@@ -197,6 +197,12 @@ fn compile<'py>(
         if let Some(color) = &a.color {
             anim.set_item("color", color)?;
         }
+        if a.out {
+            anim.set_item("out", true)?;
+        }
+        if let Some(from) = &a.from {
+            anim.set_item("from", from)?;
+        }
         anims.append(anim)?;
     }
     out.set_item("animations", anims)?;

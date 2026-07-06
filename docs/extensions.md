@@ -195,8 +195,8 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [stagger <d>]
-        [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [to <colour>] [from <dir>] [out]
+        [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 ```pic
@@ -216,8 +216,14 @@ animate B2 with "fade" after 1st arrow delay 0.2
   the same `s<N>` ids. It must be a drawn shape; a bare point is an error.
 - **Effects**: `fade` (opacity), `pop` (scale, overshoots), `draw` (strokes
   trace themselves), `move` (travel along another object's path — see below),
-  `highlight` (emphasis — see below). Any other string is accepted but flagged
-  with an `unknown_animation_effect` warning and renders nothing.
+  `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`).
+  Any other string is accepted but flagged with an `unknown_animation_effect`
+  warning and renders nothing.
+- **Direction / exit**: `slide` enters from a compass direction (`from
+  up`/`down`/`left`/`right` — required; `from` elsewhere warns
+  `from_without_slide`). The `out` modifier reverses **any** effect into an exit
+  (fade away, pop out, retract a `draw`, slide off), for two-beat build-up /
+  tear-down. Both ride the manifest (`"out":true`, `"from":"left"`) only when set.
 - **Motion along a path** (`move`): `along <path>` names a drawn `line`/`arrow`/
   `spline` whose geometry the target follows (GSAP MotionPathPlugin); the target
   is typically a `dot` at the path's start. The manifest entry gains a `path`

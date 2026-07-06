@@ -47,6 +47,29 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     return vars;
   }
 
+  // Entrances tween FROM the hidden vars; `out` reverses into an exit (TO them).
+  function enterExit(tl: gsap.core.Timeline, el: Element, vars: any, a: any) {
+    return a.out ? tl.to(el, vars, a.start) : tl.from(el, vars, a.start);
+  }
+
+  // The `slide` effect: translate in (or, with `out`, away) from a compass
+  // direction, offset by the element's own extent so it clears its slot.
+  function slideIn(tl: gsap.core.Timeline, el: Element, a: any) {
+    let bb = { width: 0, height: 0 };
+    try {
+      bb = (el as SVGGraphicsElement).getBBox();
+    } catch {
+      /* not yet laid out */
+    }
+    const off: any = {
+      left: { x: -(bb.width * 1.5 || 40) },
+      right: { x: bb.width * 1.5 || 40 },
+      up: { y: -(bb.height * 1.5 || 40) },
+      down: { y: bb.height * 1.5 || 40 },
+    }[a.from || 'left'];
+    enterExit(tl, el, withOverrides({ ...off, opacity: 0, duration: a.duration, ease: 'power2.out' }, a), a);
+  }
+
   // The `highlight` effect: emphasise `el` — tween its stroke to `a.color`,
   // or a colour-free scale pulse. One-directional; pair with repeat/yoyo.
   function highlightWith(el: Element, a: any, tl: gsap.core.Timeline) {
@@ -102,14 +125,16 @@ const { svg, animations } = renderPicBundle(code, { circuits });
         len = 0;
       }
       if (len > 0) {
+        // `out` reverses the trace: the stroke retracts (dashoffset 0 → len).
+        const [begin, end] = a.out ? [0, len] : [len, 0];
         tl.fromTo(
           el,
-          { strokeDasharray: len, strokeDashoffset: len },
-          withOverrides({ strokeDashoffset: 0, duration: a.duration, ease: 'none' }, a),
+          { strokeDasharray: len, strokeDashoffset: begin },
+          withOverrides({ strokeDashoffset: end, duration: a.duration, ease: 'none' }, a),
           a.start
         );
       } else {
-        tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
+        enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
       }
     });
     group.querySelectorAll('text').forEach((el) => {
@@ -133,14 +158,18 @@ const { svg, animations } = renderPicBundle(code, { circuits });
       if (!el) continue;
       switch (a.effect) {
         case 'fade':
-          tl.from(el, withOverrides({ opacity: 0, duration: a.duration, ease: 'power1.out' }, a), a.start);
+          enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration, ease: 'power1.out' }, a), a);
           break;
         case 'pop':
-          tl.from(
+          enterExit(
+            tl,
             el,
             withOverrides({ scale: 0, transformOrigin: '50% 50%', duration: a.duration, ease: 'back.out(1.7)' }, a),
-            a.start
+            a
           );
+          break;
+        case 'slide':
+          slideIn(tl, el, a);
           break;
         case 'draw':
           drawOn(el, a, tl);
