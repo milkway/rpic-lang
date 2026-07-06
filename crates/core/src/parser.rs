@@ -1015,6 +1015,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Stagger => "stagger",
         Kw::Out => "out",
         Kw::Scroll => "scroll",
+        Kw::Into => "into",
     }
 }
 
@@ -1811,6 +1812,7 @@ impl Parser {
         let mut stagger = None;
         let mut out = false;
         let mut slide_from = None;
+        let mut morph_into = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1836,6 +1838,8 @@ impl Parser {
                 out = true;
             } else if self.eat_kw(Kw::From) {
                 slide_from = Some(self.parse_dir()?);
+            } else if self.eat_kw(Kw::Into) {
+                morph_into = Some(self.parse_place()?);
             } else {
                 break;
             }
@@ -1855,6 +1859,7 @@ impl Parser {
             stagger,
             out,
             slide_from,
+            morph_into,
         })
     }
 

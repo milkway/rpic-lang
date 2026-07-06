@@ -35,8 +35,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
 <script>
   import { gsap } from 'gsap';
   import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
+  import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 
-  gsap.registerPlugin(MotionPathPlugin);
+  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin);
 
   // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars —
   // `ease` replaces the effect's default easing; repeat/yoyo loop the tween.
@@ -83,6 +84,18 @@ const { svg, animations } = renderPicBundle(code, { circuits });
         a.start
       );
     }
+  }
+
+  // The `morph` effect: tween `el`'s outline into the shape referenced by
+  // `a.morph`, via GSAP's MorphSVGPlugin.
+  function morphInto(stage: HTMLElement, el: Element, a: any, tl: gsap.core.Timeline) {
+    if (!a.morph) return;
+    const target = stage.querySelector(`[id="${a.morph}"]`);
+    const sel = 'path, polyline, line, rect, circle, ellipse, polygon';
+    const src = el.querySelector(sel);
+    const dst = target && target.querySelector(sel);
+    if (!src || !dst) return;
+    tl.to(src, withOverrides({ morphSVG: dst, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
   }
 
   // The `move` effect: travel `el` along the geometry referenced by `a.path`.
@@ -176,6 +189,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
           break;
         case 'move':
           moveAlong(stage, el, a, tl);
+          break;
+        case 'morph':
+          morphInto(stage, el, a, tl);
           break;
         case 'highlight':
           highlightWith(el, a, tl);

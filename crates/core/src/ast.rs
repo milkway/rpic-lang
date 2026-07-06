@@ -198,6 +198,8 @@ pub struct Animate {
     pub out: bool,
     /// Direction the `slide` effect enters from (`from left`, …).
     pub slide_from: Option<Dir>,
+    /// Target object the `morph` effect morphs into (`into B`).
+    pub morph_into: Option<Place>,
 }
 
 /// When an animation starts.

@@ -92,6 +92,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(from) = &a.from {
             s.push_str(&format!(",\"from\":\"{}\"", json_str(from)));
         }
+        if let Some(morph) = a.morph {
+            s.push_str(&format!(",\"morph\":\"s{morph}\""));
+        }
         s.push('}');
     }
     s.push(']');
@@ -386,6 +389,17 @@ mod tests {
         assert!(
             j.contains(
                 "\"effect\":\"highlight\",\"start\":0,\"duration\":0.6,\"color\":\"#ff8c00\"}"
+            ),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_emits_morph_target_reference() {
+        let j = compile_json("A: box\nB: circle at A+(2,0)\nanimate A with \"morph\" into B for 1");
+        assert!(
+            j.contains(
+                "\"id\":\"s0\",\"effect\":\"morph\",\"start\":0,\"duration\":1,\"morph\":\"s1\"}"
             ),
             "{j}"
         );

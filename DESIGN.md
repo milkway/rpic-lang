@@ -187,7 +187,7 @@ injects the SVG and builds a GSAP timeline from the manifest. Toolchain note:
 
 ```
 animate <object> with "<effect>" [along <path>] [to <colour>] [from <dir>] [out]
-        [stagger <d>] [for <dur>] [at <t> | after <object>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+        [into <shape>] [stagger <d>] [for <dur>] [at <t> | after <object>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Effects: `draw` (stroke-on), `fade`, `pop`, `move` (travel along `along <path>`'s
@@ -195,8 +195,9 @@ geometry via GSAP MotionPathPlugin — manifest entry gains a `path` id; `move`
 needs `along`, `along` elsewhere warns), `highlight` (`to <colour>` tweens the
 outline — manifest gains a `color` key; no colour = scale pulse; `to` elsewhere
 warns), `slide` (translate in from `from <dir>` — manifest gains a `from` id;
-needs `from`, elsewhere warns). The `out` modifier reverses any effect into an
-exit (manifest `out:true`). `stagger <d>` on a block target fans the effect
+needs `from`, elsewhere warns), `morph` (morph `into <shape>`'s geometry via GSAP
+MorphSVGPlugin — manifest gains a `morph` id; needs `into`, elsewhere warns). The
+`out` modifier reverses any effect into an exit (manifest `out:true`). `stagger <d>` on a block target fans the effect
 across its visible children (source order, invisible helpers skipped), expanding
 to one manifest entry per child. A bare `animate scroll` directive sets a
 timeline-level hint (top-level `scroll:true` in the bundle) that the host should

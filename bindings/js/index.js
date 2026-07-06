@@ -95,8 +95,8 @@ export function renderSvg(src, opts) {
  * Build a GSAP timeline from a drawing's animation manifest and play it on the
  * SVG inside `root`. Browser-only (needs the DOM and a GSAP instance).
  * @param {Element} root container holding the injected SVG
- * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string,color?:string,out?:boolean,from?:string}>} animations
- * @param {*} gsap the GSAP instance (register MotionPathPlugin for the `move` effect)
+ * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string,color?:string,out?:boolean,from?:string,morph?:string}>} animations
+ * @param {*} gsap the GSAP instance (register MotionPathPlugin for `move`, MorphSVGPlugin for `morph`)
  * @returns the GSAP timeline
  */
 export function animate(root, animations, gsap) {
@@ -126,6 +126,9 @@ export function animate(root, animations, gsap) {
         break;
       case 'move':
         moveAlong(root, el, a, tl);
+        break;
+      case 'morph':
+        morphInto(root, el, a, tl);
         break;
       case 'highlight':
         highlightWith(el, a, tl);
@@ -185,6 +188,22 @@ function highlightWith(el, a, tl) {
       a.start
     );
   }
+}
+
+// The `morph` effect: tween `el`'s outline into the shape of the object
+// `a.morph` references, via GSAP's MorphSVGPlugin. The consumer must have
+// registered it (`gsap.registerPlugin(MorphSVGPlugin)`); without it GSAP
+// no-ops the morphSVG and the shape stays put.
+function morphInto(root, el, a, tl) {
+  if (!a.morph) return;
+  const tsel =
+    typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.morph) : `[id="${a.morph}"]`;
+  const target = root.querySelector(tsel);
+  const sel = 'path, polyline, line, rect, circle, ellipse, polygon';
+  const src = el.querySelector(sel);
+  const dst = target && target.querySelector(sel);
+  if (!src || !dst) return;
+  tl.to(src, withOverrides({ morphSVG: dst, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
 }
 
 // The `move` effect: travel `el` along the geometry of the object `a.path`

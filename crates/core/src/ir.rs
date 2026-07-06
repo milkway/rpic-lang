@@ -94,6 +94,9 @@ pub struct Anim {
     /// For the `slide` effect: the direction it enters from
     /// (`"left"`/`"right"`/`"up"`/`"down"`).
     pub from: Option<String>,
+    /// For the `morph` effect: index of the shape whose geometry to morph into.
+    /// The SVG backend gives it the id `s{morph}`, the MorphSVG target.
+    pub morph: Option<usize>,
 }
 
 /// Line dash style.

@@ -81,6 +81,10 @@ assert.equal(outAnim.animations[0].out, true);
 // animate scroll: top-level hint, present only when set
 assert.equal(compile('box\nanimate last box with "fade"\nanimate scroll').scroll, true);
 assert.equal(compile('box\nanimate last box with "fade"').scroll, undefined);
+// morph records the target shape id
+const morphAnim = compile('A: box\nB: circle at A+(2,0)\nanimate A with "morph" into B');
+assert.equal(morphAnim.animations[0].effect, 'morph');
+assert.equal(morphAnim.animations[0].morph, 's1');
 
 const warning = compile('box "a" dashd');
 assert.equal(warning.warnings[0].kind, 'ignored_attribute');

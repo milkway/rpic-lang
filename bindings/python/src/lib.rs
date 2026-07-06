@@ -203,6 +203,9 @@ fn compile<'py>(
         if let Some(from) = &a.from {
             anim.set_item("from", from)?;
         }
+        if let Some(morph) = a.morph {
+            anim.set_item("morph", format!("s{morph}"))?;
+        }
         anims.append(anim)?;
     }
     out.set_item("animations", anims)?;
