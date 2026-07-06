@@ -206,6 +206,10 @@ pub struct TextLine {
     /// rpic extension: rotation in degrees, CCW (`rotated`); applied about
     /// the line's anchor point in the SVG.
     pub rotate: Option<f64>,
+    /// rpic extension: `aligned` — rotate to the host segment's angle. Set
+    /// during text collection; the linear-object eval resolves it into
+    /// `rotate` once the segment's start/end are known.
+    pub aligned: bool,
 }
 
 /// Classic label size in points — the baseline `fontsize` scales against.

@@ -252,10 +252,11 @@ do not use `fit` keep their dpic-compatible dimensions and placement.
 
 ## Font Attributes
 
-`bold`, `italic`, `mono`, `font "<family>"` and `fontsize <points>` style each
-text string individually (inspired by Pikchr's `bold`/`italic`). They bind
-like `ljust`/`rjust`: to the string they follow, or — written before any
-string — to the next one.
+`bold`, `italic`, `mono`, `font "<family>"`, `fontsize <points>` and the
+pikchr size words `big`/`small` style each text string individually (inspired
+by Pikchr's `bold`/`italic`). They bind like `ljust`/`rjust`: to the string
+they follow, or — written before any string — to the next one. `big`/`small`
+are sugar over `fontsize` (1.5× / 0.7× of the classic 11 pt).
 
 ```pic
 .PS
@@ -295,6 +296,19 @@ arrow right 2 "gradient ascent" rotated 20 above
 "y axis" rotated 90
 ```
 
+### `aligned` (pikchr)
+
+`aligned` is a per-string text attribute that rotates the label to the host
+segment's angle — the pikchr spelling, reusing the `rotated` machinery. Only
+linear objects have a segment (line/arrow/spline/move); elsewhere it is inert.
+The angle is `atan2(end − start)`, normalized to keep the text upright (a
+leftward or downward segment reads horizontally, never upside down; a nearly
+horizontal segment leaves the label unrotated, byte-identical to a plain one).
+
+```pic
+arrow from (0,0) to (2,1) "gradient ascent" aligned above
+```
+
 ## Colour Literals
 
 The colour grammar (`outlined`/`shaded`/`color`/`hatchcolor`/`gradient`)
@@ -313,6 +327,24 @@ circle outlined 0xb3261e
 - Bare `#hex` is impossible in pic — `#` starts a comment — but the quoted
   `shaded "#1b5e20"` form has always worked and still does. `rgb` stays
   usable as a macro/variable name (only `rgb(` in colour position triggers).
+
+## Pikchr Positioning Niceties
+
+Two small pikchr conveniences that dpic lacks:
+
+- **`previous`** is a synonym for `last` (the immediately preceding object):
+  `previous`, `previous box`, `2nd previous`, `previous.e` all work. Like
+  `last`, it is a reserved word.
+- **`.start` / `.end` as `with` anchors on closed objects.** rpic already reads
+  `box.start` / `box.end` (the entry/exit edge for the current direction — for
+  a rightward box, `.w` and `.e`); now they also work as placement anchors, so
+  `B: box with .start at A.end` edge-aligns `B` against `A` instead of centring
+  it. Compass corners and `.c` are unchanged.
+
+  ```pic
+  A: box "in"
+  B: box "out" with .start at A.end
+  ```
 
 ## Fill Opacity
 

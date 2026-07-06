@@ -719,7 +719,10 @@ fn word_keyword(w: &str) -> Token {
         "way" => Kw(self::Kw::Way),
         "between" => Kw(self::Kw::Between),
         "and" => Kw(self::Kw::And),
-        "last" => Kw(self::Kw::Last),
+        // rpic extension: `previous` is a pikchr-compatible synonym for `last`
+        // (the immediately preceding object; `previous box`, `2nd previous`,
+        // `previous.e` all work). Reserves the word, like `last` already is.
+        "last" | "previous" => Kw(self::Kw::Last),
         "fill" | "filled" => Kw(self::Kw::Fill),
         "st" | "nd" | "rd" | "th" => Kw(self::Kw::Nth),
         "Here" => Kw(self::Kw::Here),

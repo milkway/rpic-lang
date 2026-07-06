@@ -2288,6 +2288,18 @@ impl Parser {
                 self.bump();
                 Attr::Rotated(self.parse_expr()?)
             }
+            Token::Name(n) if n == "aligned" => {
+                self.bump();
+                Attr::Aligned
+            }
+            Token::Name(n) if n == "big" => {
+                self.bump();
+                Attr::Sized(true)
+            }
+            Token::Name(n) if n == "small" => {
+                self.bump();
+                Attr::Sized(false)
+            }
             Token::Name(n) if n == "behind" => {
                 self.bump();
                 Attr::Behind(self.parse_place()?)
