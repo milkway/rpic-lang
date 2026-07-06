@@ -199,7 +199,8 @@ sudo dpkg -i rpic_*.deb
 ```
 
 Prebuilt binaries for macOS / Linux / Windows are attached to each
-[release](https://github.com/milkway/rpic-lang/releases).
+[release](https://github.com/milkway/rpic-lang/releases). See
+[`CHANGELOG.md`](CHANGELOG.md) for what changed in each version.
 
 ## Language bindings
 
