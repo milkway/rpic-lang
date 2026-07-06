@@ -165,7 +165,7 @@ pub enum PrintItem {
     Expr(Expr),
 }
 
-/// `animate <target> with "<effect>" [along <path>] [for <dur>]
+/// `animate <target> with "<effect>" [along <path>] [to <colour>] [for <dur>]
 ///   [at <t> | after <ref>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Animate {
@@ -184,6 +184,9 @@ pub struct Animate {
     pub yoyo: bool,
     /// GSAP easing name overriding the per-effect default (e.g. `"elastic.out"`).
     pub ease: Option<StringExpr>,
+    /// Target colour for the `highlight` effect (`to <colour>`); any rpic
+    /// colour form (name, `rgb()`, `0xRRGGBB`).
+    pub color: Option<StringExpr>,
 }
 
 /// When an animation starts.

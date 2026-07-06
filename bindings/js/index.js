@@ -93,7 +93,7 @@ export function renderSvg(src, opts) {
  * Build a GSAP timeline from a drawing's animation manifest and play it on the
  * SVG inside `root`. Browser-only (needs the DOM and a GSAP instance).
  * @param {Element} root container holding the injected SVG
- * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string}>} animations
+ * @param {Array<{id:string,effect:string,start:number,duration:number,repeat?:number,yoyo?:boolean,ease?:string,path?:string,color?:string}>} animations
  * @param {*} gsap the GSAP instance (register MotionPathPlugin for the `move` effect)
  * @returns the GSAP timeline
  */
@@ -121,6 +121,9 @@ export function animate(root, animations, gsap) {
       case 'move':
         moveAlong(root, el, a, tl);
         break;
+      case 'highlight':
+        highlightWith(el, a, tl);
+        break;
       default:
         tl.from(el, withOverrides({ opacity: 0, duration: a.duration }, a), a.start);
     }
@@ -135,6 +138,23 @@ function withOverrides(vars, a) {
   if (a.yoyo) vars.yoyo = true;
   if (a.ease) vars.ease = a.ease;
   return vars;
+}
+
+// The `highlight` effect: emphasise `el`. With a target colour, tween the
+// stroke of its geometry to that colour; without one, a colour-free scale
+// pulse. It's a one-directional `.to()` — pair with `repeat 1 yoyo` for a
+// flash-and-return, or `repeat -1 yoyo` for a continuous pulse.
+function highlightWith(el, a, tl) {
+  if (a.color) {
+    const shapes = el.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
+    tl.to(shapes, withOverrides({ stroke: a.color, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
+  } else {
+    tl.to(
+      el,
+      withOverrides({ scale: 1.12, transformOrigin: '50% 50%', duration: a.duration, ease: 'power1.inOut' }, a),
+      a.start
+    );
+  }
 }
 
 // The `move` effect: travel `el` along the geometry of the object `a.path`

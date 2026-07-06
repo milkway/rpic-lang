@@ -61,8 +61,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if i > 0 {
             s.push(',');
         }
-        // Only the always-present keys are emitted for a plain animation, so
-        // manifests that don't use repeat/yoyo/ease stay byte-identical.
+        // Only the always-present keys are emitted for a plain animation; the
+        // optional repeat/yoyo/ease/path/color keys ride along only when set,
+        // so manifests that don't use them stay byte-identical.
         s.push_str(&format!(
             "{{\"id\":\"s{}\",\"effect\":\"{}\",\"start\":{},\"duration\":{}",
             a.shape,
@@ -81,6 +82,9 @@ pub fn animations_json(d: &Drawing) -> String {
         }
         if let Some(path) = a.path {
             s.push_str(&format!(",\"path\":\"s{path}\""));
+        }
+        if let Some(color) = &a.color {
+            s.push_str(&format!(",\"color\":\"{}\"", json_str(color)));
         }
         s.push('}');
     }
@@ -357,6 +361,17 @@ mod tests {
         assert!(
             j.contains(
                 "\"id\":\"s1\",\"effect\":\"move\",\"start\":0,\"duration\":0.6,\"path\":\"s0\"}"
+            ),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_emits_highlight_colour() {
+        let j = compile_json("box\nanimate last box with \"highlight\" to rgb(255,140,0)");
+        assert!(
+            j.contains(
+                "\"effect\":\"highlight\",\"start\":0,\"duration\":0.6,\"color\":\"#ff8c00\"}"
             ),
             "{j}"
         );

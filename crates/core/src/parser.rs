@@ -1797,6 +1797,7 @@ impl Parser {
         let mut yoyo = false;
         let mut ease = None;
         let mut along = None;
+        let mut color = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1814,6 +1815,8 @@ impl Parser {
                 ease = Some(self.parse_stringexpr()?);
             } else if self.eat_kw(Kw::Along) {
                 along = Some(self.parse_place()?);
+            } else if self.eat_kw(Kw::To) {
+                color = Some(self.parse_color_like()?);
             } else {
                 break;
             }
@@ -1829,6 +1832,7 @@ impl Parser {
             yoyo,
             ease,
             along,
+            color,
         })
     }
 

@@ -83,6 +83,8 @@ pub struct Anim {
     /// For the `move` effect: index of the shape whose geometry to follow.
     /// The SVG backend gives it the id `s{path}`, the MotionPath target.
     pub path: Option<usize>,
+    /// For the `highlight` effect: the CSS target colour (`to <colour>`).
+    pub color: Option<String>,
 }
 
 /// Line dash style.

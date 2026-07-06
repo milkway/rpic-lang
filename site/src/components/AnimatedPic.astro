@@ -47,6 +47,21 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     return vars;
   }
 
+  // The `highlight` effect: emphasise `el` — tween its stroke to `a.color`,
+  // or a colour-free scale pulse. One-directional; pair with repeat/yoyo.
+  function highlightWith(el: Element, a: any, tl: gsap.core.Timeline) {
+    if (a.color) {
+      const shapes = el.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
+      tl.to(shapes, withOverrides({ stroke: a.color, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
+    } else {
+      tl.to(
+        el,
+        withOverrides({ scale: 1.12, transformOrigin: '50% 50%', duration: a.duration, ease: 'power1.inOut' }, a),
+        a.start
+      );
+    }
+  }
+
   // The `move` effect: travel `el` along the geometry referenced by `a.path`.
   function moveAlong(stage: HTMLElement, el: Element, a: any, tl: gsap.core.Timeline) {
     if (!a.path) return;
@@ -132,6 +147,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
           break;
         case 'move':
           moveAlong(stage, el, a, tl);
+          break;
+        case 'highlight':
+          highlightWith(el, a, tl);
           break;
       }
     }
