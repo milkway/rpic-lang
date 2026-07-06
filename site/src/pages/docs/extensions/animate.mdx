@@ -34,8 +34,8 @@ why the source reserves headroom with `margin`.
 ## Syntax
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [from <dir>] [out]
-        [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>]
+        [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 Only the target and effect are required; the trailing clauses are optional and
@@ -45,6 +45,7 @@ may appear in any order.
 |---|---|---|
 | `animate` *place* `with` *"effect"* | `animate B1 with "pop"` | animate that object (required) |
 | `along` *place* | `along L` | path to follow — required by `move`, ignored elsewhere |
+| `into` *place* | `into B` | shape to morph into — required by `morph`, ignored elsewhere |
 | `to` *colour* | `to "crimson"` | target colour for `highlight`; any rpic colour form, ignored elsewhere |
 | `from` *dir* | `from left` | entry direction (`up`/`down`/`left`/`right`) — required by `slide`, ignored elsewhere |
 | `out` | `out` | play the effect as an **exit** (reverse) instead of an entrance |
@@ -71,6 +72,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 | `move` | travel along another object's path (needs `along`) | `none` |
 | `highlight` | recolour the outline to `to <colour>`, or a colour-free scale pulse | `power1.inOut` |
 | `slide` | translate in from a compass direction (needs `from <dir>`) | `power2.out` |
+| `morph` | tween the outline into another shape's geometry (needs `into <shape>`) | `power1.inOut` |
 
 Any other effect string is accepted by the parser but flagged with an
 `unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
@@ -186,6 +188,26 @@ The manifest entry gains a `path` key naming the followed object's id
 ignored with an `along_without_move` warning. Combine `move` with `repeat -1`
 for a continuous flow, or `yoyo` for a there-and-back shuttle.
 
+## Morphing shapes
+
+`morph` tweens an object's outline **into another shape's geometry** — a box
+becoming a circle, one symbol flowing into the next. Name the target with
+`into <shape>`; both are ordinary drawn objects, so place the target where the
+morph should land (a shared centre reads as a shape-shift in place). The player
+uses GSAP's MorphSVGPlugin.
+
+<AnimatedPic code={`.PS
+margin = 0.25
+B: circle rad 0.45 at (1.2,0)
+A: box wid 0.8 ht 0.8 "shape" fit at (1.2,0)
+animate A with "morph" into B for 1.2 repeat -1 yoyo ease "power1.inOut"
+.PE`} />
+
+The manifest entry gains a `morph` key naming the target's id (`"morph":"s0"`).
+The target must be a **visible** shape (an `invis` reference draws no geometry to
+read). `morph` without `into` is an error; `into` on any other effect is ignored
+with an `into_without_morph` warning.
+
 ## Emphasis
 
 `highlight` draws the eye to an already-drawn object — the "now look here" beat
@@ -286,15 +308,16 @@ animate last line with "draw" for 0.9
 `rpic_core::compile_json` (and the JS/Python bindings) return
 `{ svg, animations, diagnostics, warnings }`. Each animation is
 `{ id, effect, start, duration }` plus the optional `repeat` / `yoyo` / `ease` /
-`path` / `color` / `out` / `from` keys — present only when the source set them,
-so plain manifests stay compact. The JS package ships the player, which folds those keys
-straight into GSAP. The `move` effect needs MotionPathPlugin registered on your
-GSAP instance:
+`path` / `color` / `out` / `from` / `morph` keys — present only when the source
+set them, so plain manifests stay compact. The JS package ships the player,
+which folds those keys straight into GSAP. `move` needs MotionPathPlugin and
+`morph` needs MorphSVGPlugin registered on your GSAP instance:
 
 ```js
 import { ready, compile, animate } from '@strategicprojects/rpic';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
-gsap.registerPlugin(MotionPathPlugin); // only needed for the `move` effect
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin); // for `move` / `morph`
 await ready();
 const { svg, animations } = compile(src);
 stage.innerHTML = svg;

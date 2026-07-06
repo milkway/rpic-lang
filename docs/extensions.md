@@ -195,8 +195,8 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [along <path>] [to <colour>] [from <dir>] [out]
-        [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>]
+        [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 ```pic
@@ -216,9 +216,9 @@ animate B2 with "fade" after 1st arrow delay 0.2
   the same `s<N>` ids. It must be a drawn shape; a bare point is an error.
 - **Effects**: `fade` (opacity), `pop` (scale, overshoots), `draw` (strokes
   trace themselves), `move` (travel along another object's path — see below),
-  `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`).
-  Any other string is accepted but flagged with an `unknown_animation_effect`
-  warning and renders nothing.
+  `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`),
+  `morph` (morph into another shape — see below). Any other string is accepted
+  but flagged with an `unknown_animation_effect` warning and renders nothing.
 - **Direction / exit**: `slide` enters from a compass direction (`from
   up`/`down`/`left`/`right` — required; `from` elsewhere warns
   `from_without_slide`). The `out` modifier reverses **any** effect into an exit
@@ -229,6 +229,10 @@ animate B2 with "fade" after 1st arrow delay 0.2
   is typically a `dot` at the path's start. The manifest entry gains a `path`
   key (`"path":"s1"`). `move` without `along` is an error; `along` on any other
   effect is ignored with an `along_without_move` warning.
+- **Morphing shapes** (`morph`): `into <shape>` names another drawn (visible)
+  object whose geometry the target morphs into (GSAP MorphSVGPlugin); the
+  manifest gains a `morph` key (`"morph":"s0"`). `morph` without `into` is an
+  error; `into` on any other effect warns `into_without_morph`.
 - **Emphasis** (`highlight`): `to <colour>` (any rpic colour form) tweens the
   object's outline to that colour; without a colour it's a colour-free scale
   pulse. One-directional — add `repeat 1 yoyo` for a flash-and-return or

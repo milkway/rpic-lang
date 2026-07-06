@@ -878,6 +878,7 @@ impl State {
         let is_move = effect == "move";
         let is_highlight = effect == "highlight";
         let is_slide = effect == "slide";
+        let is_morph = effect == "morph";
         let from = a.slide_from.map(|d| {
             match d {
                 Dir::Up => "up",
@@ -893,6 +894,18 @@ impl State {
                 let i = self.place_index(p)?;
                 let sh = self.placed[i].shape.ok_or_else(|| EvalError {
                     msg: "`along` target has no drawn path".into(),
+                    info: None,
+                })?;
+                Some(sh)
+            }
+            None => None,
+        };
+        // Resolve the `into` morph target (a drawn object) to its shape index.
+        let morph = match &a.morph_into {
+            Some(p) => {
+                let i = self.place_index(p)?;
+                let sh = self.placed[i].shape.ok_or_else(|| EvalError {
+                    msg: "`into` target has no drawn shape".into(),
                     info: None,
                 })?;
                 Some(sh)
@@ -946,18 +959,34 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        if is_morph && morph.is_none() {
+            return Err(EvalError {
+                msg: "`morph` needs a target: `animate <obj> with \"morph\" into <shape>`".into(),
+                info: None,
+            });
+        }
+        if morph.is_some() && !is_morph {
+            let mut warning = Diagnostic::new(
+                "into_without_morph",
+                "`into <shape>` only applies to the `morph` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
         if !matches!(
             effect.as_str(),
-            "draw" | "fade" | "pop" | "move" | "highlight" | "slide"
+            "draw" | "fade" | "pop" | "move" | "highlight" | "slide" | "morph"
         ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, and `slide`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, and `morph`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, move, highlight, or slide");
+            .expected("draw, fade, pop, move, highlight, slide, or morph");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -966,6 +995,7 @@ impl State {
         let path = if is_move { path } else { None };
         let color = if is_highlight { color } else { None };
         let from = if is_slide { from } else { None };
+        let morph = if is_morph { morph } else { None };
         let make = |shape: usize, start: f64| Anim {
             shape,
             effect: effect.clone(),
@@ -978,6 +1008,7 @@ impl State {
             color: color.clone(),
             out: a.out,
             from: from.clone(),
+            morph,
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,
@@ -4781,6 +4812,34 @@ mod tests {
         assert!(d.warnings.iter().any(|w| w.kind == "stagger_without_block"));
         assert_eq!(d.anims.len(), 1);
         assert_eq!(d.anims[0].shape, 0);
+    }
+
+    #[test]
+    fn animate_morph_records_the_target_shape() {
+        // Box A (shape 0) morphs into circle B (shape 1).
+        let d = draw("A: box\nB: circle at A+(2,0)\nanimate A with \"morph\" into B for 1");
+        assert_eq!(d.anims.len(), 1);
+        assert_eq!(d.anims[0].effect, "morph");
+        assert_eq!(d.anims[0].shape, 0);
+        assert_eq!(d.anims[0].morph, Some(1));
+        assert!(
+            !d.warnings
+                .iter()
+                .any(|w| w.kind == "unknown_animation_effect")
+        );
+    }
+
+    #[test]
+    fn animate_morph_without_target_errors() {
+        let err = eval(&parse("box\nanimate last box with \"morph\"").unwrap()).unwrap_err();
+        assert!(err.msg.contains("`morph` needs a target"));
+    }
+
+    #[test]
+    fn animate_into_without_morph_warns_and_is_dropped() {
+        let d = draw("A: box\nB: circle at A+(2,0)\nanimate A with \"fade\" into B");
+        assert!(d.warnings.iter().any(|w| w.kind == "into_without_morph"));
+        assert_eq!(d.anims[0].morph, None);
     }
 
     #[test]

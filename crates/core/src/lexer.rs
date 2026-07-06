@@ -757,6 +757,7 @@ fn word_keyword(w: &str) -> Token {
         "stagger" => Kw(self::Kw::Stagger),
         "out" => Kw(self::Kw::Out),
         "scroll" => Kw(self::Kw::Scroll),
+        "into" => Kw(self::Kw::Into),
         // line types
         "solid" => LineType(self::LineType::Solid),
         "dotted" => LineType(self::LineType::Dotted),
