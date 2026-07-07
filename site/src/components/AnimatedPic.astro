@@ -4,6 +4,7 @@
 // Effects mirror the @strategicprojects/rpic web player (fade/pop/draw).
 import { Code } from 'astro:components';
 import { renderPicBundle } from '../lib/rpic';
+import ExampleToolbar from './ExampleToolbar.astro';
 import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
 import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
 import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
@@ -17,8 +18,11 @@ const { svg, animations } = renderPicBundle(code, { circuits });
 ---
 
 <div class="not-prose grid gap-4 mb-6 md:grid-cols-2 items-stretch">
-  <div class="min-w-0 h-full [&_pre]:h-full">
-    <Code code={code.trim()} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
+  <div class="min-w-0 h-full flex flex-col">
+    <ExampleToolbar code={code} />
+    <div class="min-w-0 flex-1 [&_pre]:h-full">
+      <Code code={code.trim()} lang={grammar} themes={{ light: forestLight, dark: forestDark }} />
+    </div>
   </div>
   <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white relative">
     <div
