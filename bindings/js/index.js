@@ -101,6 +101,11 @@ export function renderSvg(src, opts) {
  */
 export function animate(root, animations, gsap) {
   const tl = gsap.timeline();
+  // GSAP's MotionPath/MorphSVG plugins need real <path> elements, but rpic
+  // emits <line>/<rect>/<circle>/<polygon>. Convert the shapes those effects
+  // reference to <path> up front — before any tween captures element refs, so
+  // a `draw` on the same shape traces the path instead of a detached primitive.
+  preconvertGeometry(root, animations);
   for (const a of animations) {
     const sel =
       typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.id) : `[id="${a.id}"]`;
@@ -173,6 +178,72 @@ function withOverrides(vars, a) {
   return vars;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+// Build SVG path data (`d`) for the primitives rpic emits. GSAP's MotionPath
+// and MorphSVG need a real <path>; passing a raw <line>/<rect>/<circle> throws
+// "Expecting a <path> element or an SVG path data string".
+function pathDataOf(el) {
+  const n = el.tagName.toLowerCase();
+  const f = (a) => parseFloat(el.getAttribute(a)) || 0;
+  if (n === 'path') return el.getAttribute('d');
+  if (n === 'line') return `M${f('x1')},${f('y1')} L${f('x2')},${f('y2')}`;
+  if (n === 'polyline' || n === 'polygon') {
+    const nums = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+    if (nums.length < 4) return null;
+    let d = '';
+    for (let i = 0; i + 1 < nums.length; i += 2) d += `${i ? 'L' : 'M'}${nums[i]},${nums[i + 1]} `;
+    return n === 'polygon' ? d + 'Z' : d.trim();
+  }
+  if (n === 'rect') return `M${f('x')},${f('y')} h${f('width')} v${f('height')} h${-f('width')} Z`;
+  if (n === 'circle') {
+    const r = f('r'), cx = f('cx'), cy = f('cy');
+    return `M${cx - r},${cy} a${r},${r} 0 1,0 ${2 * r},0 a${r},${r} 0 1,0 ${-2 * r},0 Z`;
+  }
+  if (n === 'ellipse') {
+    const rx = f('rx'), ry = f('ry'), cx = f('cx'), cy = f('cy');
+    return `M${cx - rx},${cy} a${rx},${ry} 0 1,0 ${2 * rx},0 a${rx},${ry} 0 1,0 ${-2 * rx},0 Z`;
+  }
+  return null;
+}
+
+// Replace a primitive SVG element with an equivalent <path> (preserving paint),
+// in place. Idempotent: a <path> is returned untouched.
+function convertToPath(el) {
+  if (!el || el.tagName.toLowerCase() === 'path') return el;
+  const d = pathDataOf(el);
+  if (!d || !el.parentNode || typeof document === 'undefined') return el;
+  const p = document.createElementNS(SVG_NS, 'path');
+  p.setAttribute('d', d);
+  for (const attr of el.attributes) {
+    if (!/^(x1|y1|x2|y2|points|x|y|width|height|cx|cy|r|rx|ry)$/.test(attr.name)) {
+      p.setAttribute(attr.name, attr.value);
+    }
+  }
+  el.parentNode.replaceChild(p, el);
+  return p;
+}
+
+// Convert every shape a `move`/`morph` references to a <path> before any tween
+// captures element references (so a concurrent `draw` traces the path, not a
+// now-detached primitive).
+function preconvertGeometry(root, animations) {
+  const ALL = 'path, polyline, line, rect, circle, ellipse, polygon';
+  const pick = (id, sel) => {
+    if (!id) return;
+    const g = root.querySelector(`[id="${id}"]`);
+    const prim = g && g.querySelector(sel);
+    if (prim) convertToPath(prim);
+  };
+  for (const a of animations || []) {
+    if (a.effect === 'move') pick(a.path, 'path, polyline, line');
+    if (a.effect === 'morph') {
+      pick(a.id, ALL);
+      pick(a.morph, ALL);
+    }
+  }
+}
+
 // The `highlight` effect: emphasise `el`. With a target colour, tween the
 // stroke of its geometry to that colour; without one, a colour-free scale
 // pulse. It's a one-directional `.to()` — pair with `repeat 1 yoyo` for a
@@ -193,15 +264,15 @@ function highlightWith(el, a, tl) {
 // The `morph` effect: tween `el`'s outline into the shape of the object
 // `a.morph` references, via GSAP's MorphSVGPlugin. The consumer must have
 // registered it (`gsap.registerPlugin(MorphSVGPlugin)`); without it GSAP
-// no-ops the morphSVG and the shape stays put.
+// no-ops the morphSVG and the shape stays put. Both source and target were
+// converted to <path> by preconvertGeometry.
 function morphInto(root, el, a, tl) {
   if (!a.morph) return;
   const tsel =
     typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.morph) : `[id="${a.morph}"]`;
   const target = root.querySelector(tsel);
-  const sel = 'path, polyline, line, rect, circle, ellipse, polygon';
-  const src = el.querySelector(sel);
-  const dst = target && target.querySelector(sel);
+  const src = el.querySelector('path');
+  const dst = target && target.querySelector('path');
   if (!src || !dst) return;
   tl.to(src, withOverrides({ morphSVG: dst, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
 }
@@ -215,7 +286,9 @@ function moveAlong(root, el, a, tl) {
   const psel =
     typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(a.path) : `[id="${a.path}"]`;
   const group = root.querySelector(psel);
-  const pathEl = group && group.querySelector('path, polyline, line, polygon');
+  // The shaft was converted to a <path> by preconvertGeometry; skip the
+  // arrowhead <polygon> — we want the line the traveller rides, not the tip.
+  const pathEl = group && group.querySelector('path');
   if (!pathEl) return;
   // `align` maps the path into the traveller's coordinate space; a `move`
   // tween is a `.to()` (current position → along the path), not a `.from()`.
