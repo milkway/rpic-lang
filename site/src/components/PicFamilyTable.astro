@@ -39,6 +39,18 @@ const rows: { label: string; cells: Cell[] }[] = [
     ],
   },
   {
+    label: 'Animation',
+    cells: [
+      { g: NO, note: 'static' },
+      { g: NO, note: 'static' },
+      { g: NO, note: 'static SVG' },
+      {
+        g: YES,
+        note: 'declarative animate → flat JSON timeline, played by GSAP (fade · pop · draw · slide · move · highlight · morph, + out · stagger · scroll)',
+      },
+    ],
+  },
+  {
     label: 'define · copy · sh',
     cells: [
       { g: YES, note: '' },
@@ -61,7 +73,7 @@ const rows: { label: string; cells: Cell[] }[] = [
       '—',
       'backend constants; powers circuit_macros',
       'fit, behind, margins, new object types',
-      'opt-in: margin · fit · behind · close · brace · hatch · gradient · opacity · class · texlabels · animate',
+      'opt-in: margin · canvas · fit · behind · dot · close · brace · hatch · gradient · opacity · rgb()/hex · font attrs · rotated · class · texlabels · animate',
     ],
   },
 ];
