@@ -135,12 +135,22 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     enterExit(tl, el, withOverrides({ ...off, opacity: 0, duration: a.duration, ease: 'power2.out' }, a), a);
   }
 
-  // The `highlight` effect: emphasise `el` — tween its stroke to `a.color`,
-  // or a colour-free scale pulse. One-directional; pair with repeat/yoyo.
+  // The `highlight` effect: emphasise `el` — recolour + thicken its outline and
+  // give the object a small scale pulse (so it reads at a glance), or a
+  // colour-free scale pulse. One-directional; pair with repeat/yoyo.
   function highlightWith(el: Element, a: any, tl: gsap.core.Timeline) {
     if (a.color) {
       const shapes = el.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
-      tl.to(shapes, withOverrides({ stroke: a.color, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
+      tl.to(
+        shapes,
+        withOverrides({ stroke: a.color, strokeWidth: '+=2', duration: a.duration, ease: 'power1.inOut' }, a),
+        a.start
+      );
+      tl.to(
+        el,
+        withOverrides({ scale: 1.1, transformOrigin: '50% 50%', duration: a.duration, ease: 'power1.inOut' }, a),
+        a.start
+      );
     } else {
       tl.to(
         el,

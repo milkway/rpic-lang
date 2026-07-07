@@ -70,7 +70,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 | `pop` | scale 0 → 1 | `back.out(1.7)` (overshoots) |
 | `draw` | strokes trace themselves; arrowheads and text pop/fade in as the shaft reaches them | `none` for the trace |
 | `move` | travel along another object's path (needs `along`) | `none` |
-| `highlight` | recolour the outline to `to <colour>`, or a colour-free scale pulse | `power1.inOut` |
+| `highlight` | recolour + thicken the outline with a scale pulse (`to <colour>`), or a colour-free pulse | `power1.inOut` |
 | `slide` | translate in from a compass direction (needs `from <dir>`) | `power2.out` |
 | `morph` | tween the outline into another shape's geometry (needs `into <shape>`) | `power1.inOut` |
 
@@ -170,7 +170,7 @@ arrow right 1.6
 B: box "out" fit
 D: dot at 1st arrow.start rad 0.07 colored "red"
 animate 1st arrow with "draw" for 0.8
-animate D with "move" along 1st arrow for 1.2 after 1st arrow repeat -1
+animate D with "move" along 1st arrow for 1.2 after 1st arrow
 .PE`} />
 
 The manifest entry gains a `path` key naming the followed object's id
@@ -179,14 +179,14 @@ The manifest entry gains a `path` key naming the followed object's id
 ```json
 [
   { "id": "s1", "effect": "draw", "start": 0, "duration": 0.8 },
-  { "id": "s3", "effect": "move", "start": 0.8, "duration": 1.2,
-    "repeat": -1, "path": "s1" }
+  { "id": "s3", "effect": "move", "start": 0.8, "duration": 1.2, "path": "s1" }
 ]
 ```
 
-`move` without an `along` path is an error; an `along` on any other effect is
-ignored with an `along_without_move` warning. Combine `move` with `repeat -1`
-for a continuous flow, or `yoyo` for a there-and-back shuttle.
+The dot travels once and rests at the path's end. `move` without an `along`
+path is an error; an `along` on any other effect is ignored with an
+`along_without_move` warning. Add `repeat -1` for a continuous flow, or
+`repeat -1 yoyo` for a there-and-back shuttle.
 
 ## Morphing shapes
 
@@ -211,9 +211,10 @@ with an `into_without_morph` warning.
 ## Emphasis
 
 `highlight` draws the eye to an already-drawn object — the "now look here" beat
-of a step-by-step explanation. With `to <colour>` it tweens the object's
-**outline** to that colour (any rpic colour form — a name, `rgb()`, `0xRRGGBB`);
-without a colour it gives a colour-free scale pulse.
+of a step-by-step explanation. With `to <colour>` it recolours **and thickens**
+the object's outline (any rpic colour form — a name, `rgb()`, `0xRRGGBB`) and
+gives it a small scale pulse, so the emphasis reads at a glance; without a
+colour it's a colour-free scale pulse.
 
 Like the other effects it's a one-directional tween, so it composes with the
 timing clauses: add `repeat 1 yoyo` for a single flash-and-return, or

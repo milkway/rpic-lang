@@ -244,14 +244,24 @@ function preconvertGeometry(root, animations) {
   }
 }
 
-// The `highlight` effect: emphasise `el`. With a target colour, tween the
-// stroke of its geometry to that colour; without one, a colour-free scale
-// pulse. It's a one-directional `.to()` — pair with `repeat 1 yoyo` for a
-// flash-and-return, or `repeat -1 yoyo` for a continuous pulse.
+// The `highlight` effect: emphasise `el`. With a target colour, recolour and
+// thicken its outline AND give the whole object a small scale pulse, so the
+// emphasis reads at a glance rather than a bare colour swap; without a colour,
+// a colour-free scale pulse. One-directional `.to()` — pair with `repeat 1
+// yoyo` for a flash-and-return, or `repeat -1 yoyo` for a continuous pulse.
 function highlightWith(el, a, tl) {
   if (a.color) {
     const shapes = el.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
-    tl.to(shapes, withOverrides({ stroke: a.color, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
+    tl.to(
+      shapes,
+      withOverrides({ stroke: a.color, strokeWidth: '+=2', duration: a.duration, ease: 'power1.inOut' }, a),
+      a.start
+    );
+    tl.to(
+      el,
+      withOverrides({ scale: 1.1, transformOrigin: '50% 50%', duration: a.duration, ease: 'power1.inOut' }, a),
+      a.start
+    );
   } else {
     tl.to(
       el,
