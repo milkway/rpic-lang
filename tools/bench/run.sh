@@ -24,6 +24,9 @@ for size in small medium large; do
 done
 
 echo "===== batch: 50 small diagrams in sequence (docs-pipeline cost)"
-hyperfine --warmup 1 \
-  "for i in {1..50}; do $RPIC --svg small.pic > /dev/null; done" \
-  $(command -v mmdc >/dev/null && echo '"for i in {1..50}; do mmdc -i small.mmd -o /tmp/bench-mmd.svg >/dev/null 2>&1; done"')
+# Build the command list as an array so each pipeline stays one hyperfine
+# argument (a bare command-substitution split mmdc's `-o` into a stray flag).
+batch=("for i in {1..50}; do $RPIC --svg small.pic > /dev/null; done")
+command -v mmdc >/dev/null && \
+  batch+=("for i in {1..50}; do mmdc -i small.mmd -o /tmp/bench-mmd.svg >/dev/null 2>&1; done")
+hyperfine --warmup 1 "${batch[@]}"

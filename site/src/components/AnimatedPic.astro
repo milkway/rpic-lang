@@ -48,6 +48,70 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     return vars;
   }
 
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // Build SVG path data for the primitives rpic emits — MotionPath/MorphSVG
+  // need a real <path>, not a raw <line>/<rect>/<circle>.
+  function pathDataOf(el: Element): string | null {
+    const n = el.tagName.toLowerCase();
+    const f = (a: string) => parseFloat(el.getAttribute(a) || '0') || 0;
+    if (n === 'path') return el.getAttribute('d');
+    if (n === 'line') return `M${f('x1')},${f('y1')} L${f('x2')},${f('y2')}`;
+    if (n === 'polyline' || n === 'polygon') {
+      const nums = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+      if (nums.length < 4) return null;
+      let d = '';
+      for (let i = 0; i + 1 < nums.length; i += 2) d += `${i ? 'L' : 'M'}${nums[i]},${nums[i + 1]} `;
+      return n === 'polygon' ? d + 'Z' : d.trim();
+    }
+    if (n === 'rect') return `M${f('x')},${f('y')} h${f('width')} v${f('height')} h${-f('width')} Z`;
+    if (n === 'circle') {
+      const r = f('r'), cx = f('cx'), cy = f('cy');
+      return `M${cx - r},${cy} a${r},${r} 0 1,0 ${2 * r},0 a${r},${r} 0 1,0 ${-2 * r},0 Z`;
+    }
+    if (n === 'ellipse') {
+      const rx = f('rx'), ry = f('ry'), cx = f('cx'), cy = f('cy');
+      return `M${cx - rx},${cy} a${rx},${ry} 0 1,0 ${2 * rx},0 a${rx},${ry} 0 1,0 ${-2 * rx},0 Z`;
+    }
+    return null;
+  }
+
+  // Replace a primitive with an equivalent <path> in place (preserving paint).
+  function convertToPath(el: Element): Element {
+    if (!el || el.tagName.toLowerCase() === 'path') return el;
+    const d = pathDataOf(el);
+    if (!d || !el.parentNode) return el;
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.setAttribute('d', d);
+    for (const attr of Array.from(el.attributes)) {
+      if (!/^(x1|y1|x2|y2|points|x|y|width|height|cx|cy|r|rx|ry)$/.test(attr.name)) {
+        p.setAttribute(attr.name, attr.value);
+      }
+    }
+    el.parentNode.replaceChild(p, el);
+    return p;
+  }
+
+  // Convert every shape a move/morph references to a <path> before any tween
+  // captures element refs (so a concurrent draw traces the path, not a
+  // now-detached primitive).
+  function preconvertGeometry(stage: HTMLElement, anims: any[]) {
+    const ALL = 'path, polyline, line, rect, circle, ellipse, polygon';
+    const pick = (id: string | undefined, sel: string) => {
+      if (!id) return;
+      const g = stage.querySelector(`[id="${id}"]`);
+      const prim = g && g.querySelector(sel);
+      if (prim) convertToPath(prim);
+    };
+    for (const a of anims) {
+      if (a.effect === 'move') pick(a.path, 'path, polyline, line');
+      if (a.effect === 'morph') {
+        pick(a.id, ALL);
+        pick(a.morph, ALL);
+      }
+    }
+  }
+
   // Entrances tween FROM the hidden vars; `out` reverses into an exit (TO them).
   function enterExit(tl: gsap.core.Timeline, el: Element, vars: any, a: any) {
     return a.out ? tl.to(el, vars, a.start) : tl.from(el, vars, a.start);
@@ -71,12 +135,22 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     enterExit(tl, el, withOverrides({ ...off, opacity: 0, duration: a.duration, ease: 'power2.out' }, a), a);
   }
 
-  // The `highlight` effect: emphasise `el` — tween its stroke to `a.color`,
-  // or a colour-free scale pulse. One-directional; pair with repeat/yoyo.
+  // The `highlight` effect: emphasise `el` — recolour + thicken its outline and
+  // give the object a small scale pulse (so it reads at a glance), or a
+  // colour-free scale pulse. One-directional; pair with repeat/yoyo.
   function highlightWith(el: Element, a: any, tl: gsap.core.Timeline) {
     if (a.color) {
       const shapes = el.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
-      tl.to(shapes, withOverrides({ stroke: a.color, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
+      tl.to(
+        shapes,
+        withOverrides({ stroke: a.color, strokeWidth: '+=2', duration: a.duration, ease: 'power1.inOut' }, a),
+        a.start
+      );
+      tl.to(
+        el,
+        withOverrides({ scale: 1.1, transformOrigin: '50% 50%', duration: a.duration, ease: 'power1.inOut' }, a),
+        a.start
+      );
     } else {
       tl.to(
         el,
@@ -91,9 +165,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
   function morphInto(stage: HTMLElement, el: Element, a: any, tl: gsap.core.Timeline) {
     if (!a.morph) return;
     const target = stage.querySelector(`[id="${a.morph}"]`);
-    const sel = 'path, polyline, line, rect, circle, ellipse, polygon';
-    const src = el.querySelector(sel);
-    const dst = target && target.querySelector(sel);
+    // Both were converted to <path> by preconvertGeometry.
+    const src = el.querySelector('path');
+    const dst = target && target.querySelector('path');
     if (!src || !dst) return;
     tl.to(src, withOverrides({ morphSVG: dst, duration: a.duration, ease: 'power1.inOut' }, a), a.start);
   }
@@ -102,7 +176,8 @@ const { svg, animations } = renderPicBundle(code, { circuits });
   function moveAlong(stage: HTMLElement, el: Element, a: any, tl: gsap.core.Timeline) {
     if (!a.path) return;
     const group = stage.querySelector(`[id="${a.path}"]`);
-    const pathEl = group && group.querySelector('path, polyline, line, polygon');
+    // The shaft was converted to a <path>; skip the arrowhead <polygon>.
+    const pathEl = group && group.querySelector('path');
     if (!pathEl) return;
     tl.to(
       el,
@@ -165,6 +240,7 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     const anims = JSON.parse(stage.dataset.anims || '[]');
     timelines.get(stage)?.kill();
     gsap.set(stage.querySelectorAll('svg, svg *'), { clearProps: 'all' });
+    preconvertGeometry(stage, anims);
     const tl = gsap.timeline();
     for (const a of anims) {
       const el = stage.querySelector(`[id="${a.id}"]`);
