@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# Cancel superseded runs on the same branch/PR — no point finishing CI for a
+# commit that's already been replaced.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -43,12 +49,17 @@ jobs:
           npm ci
           npm test
 
+  # macOS is validated at release time (release.yml builds the arm64/x86_64
+  # binaries, python.yml the wheels), not on every PR/push — the routine
+  # macOS runner minutes were the bulk of this repo's Actions bill. rpic is
+  # pure, portable Rust; Linux + Windows cover the platform differences that
+  # matter between releases.
   test:
     name: test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
