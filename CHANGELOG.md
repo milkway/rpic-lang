@@ -8,6 +8,24 @@ Each release is also archived on Zenodo under the concept DOI
 [10.5281/zenodo.21209915](https://doi.org/10.5281/zenodo.21209915), which always
 resolves to the latest version.
 
+## [0.8.1] — 2026-07-06
+
+### Fixed
+
+- **JS player crashed on the `move` and `morph` effects.** GSAP's MotionPath and
+  MorphSVG plugins need a real `<path>`, but rpic emits primitives
+  (`<line>`/`<rect>`/`<circle>`/`<polygon>`), so `@strategicprojects/rpic`'s
+  `animate()` threw "Expecting a `<path>` element or an SVG path data string" and
+  looped under `repeat`. The player now converts the referenced shapes to
+  `<path>` up front (pure DOM, no plugin dependency). The engine, manifest and
+  the other bindings were unaffected — this is a browser-player fix, so it ships
+  only in the npm package; crates.io / PyPI 0.8.0 were already correct.
+
+### Changed
+
+- The `highlight` effect now also thickens the outline and adds a small scale
+  pulse alongside the colour tween, so the emphasis reads at a glance.
+
 ## [0.8.0] — 2026-07-06
 
 ### Highlights — a complete animation subsystem
