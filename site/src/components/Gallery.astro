@@ -5,22 +5,18 @@
 // self-contained — to open it live in the Studio editor (studio.rpic.dev).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import lzString from 'lz-string'; // CommonJS module — default-import for ESM interop
 import { renderPicFile } from '../lib/rpic';
-
-const { compressToEncodedURIComponent } = lzString;
+import { studioUrl } from '../lib/studio';
 
 const GH = 'https://github.com/milkway/rpic-lang/blob/main/';
-const STUDIO = 'https://studio.rpic.dev/';
 
 // Studio shares source in the URL fragment (`#pic=<lz-string>`), decoded
 // client-side; it auto-detects `-c`/`-t` from the source, so no flags are
 // needed. Figures that `copy` a local shim (the m4 circuit_macros / lib3D
 // compat files) can't resolve there, so they get no Studio link.
-function studioUrl(relPath: string): string | null {
+function studioLink(relPath: string): string | null {
   const source = readFileSync(resolve(process.cwd(), '..', relPath), 'utf8');
-  if (/\bcopy\s+"/.test(source)) return null;
-  return `${STUDIO}#pic=${compressToEncodedURIComponent(source)}`;
+  return studioUrl(source);
 }
 
 const entries: { path: string; caption: string; credit: string; circuits?: boolean; texlabels?: boolean }[] = [
@@ -48,7 +44,7 @@ function atZoom(svg: string, k = 0.78): string {
 const cards = entries.map((e) => ({
   ...e,
   svg: atZoom(renderPicFile(e.path, { circuits: e.circuits, texlabels: e.texlabels })),
-  studio: studioUrl(e.path),
+  studio: studioLink(e.path),
 }));
 ---
 

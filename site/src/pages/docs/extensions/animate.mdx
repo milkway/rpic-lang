@@ -5,6 +5,7 @@ description: Declarative GSAP animations on drawing objects — rpic extension.
 ---
 import PicExample from '../../../components/PicExample.astro';
 import AnimatedPic from '../../../components/AnimatedPic.astro';
+import Callout from '../../../components/Callout.astro';
 
 # animate
 
@@ -76,6 +77,33 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 
 Any other effect string is accepted by the parser but flagged with an
 `unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
+
+<Callout type="warn" title="move and morph need GSAP plugins registered">
+  `rpic` only emits **metadata** — the browser player does the animating. Two
+  effects lean on optional [GSAP](https://gsap.com) plugins that you must
+  **register before playing the timeline**:
+
+  - **`move`** (motion along a path) → [`MotionPathPlugin`](https://gsap.com/docs/v3/Plugins/MotionPathPlugin/)
+  - **`morph`** (shape-into-shape) → [`MorphSVGPlugin`](https://gsap.com/docs/v3/Plugins/MorphSVGPlugin/)
+
+  Use **GSAP ≥ 3.13**. Since [3.13](https://gsap.com/blog/3-13/) (May 2025,
+  after Webflow's acquisition) the *entire* toolset — `MorphSVGPlugin`
+  included — is **free, even commercially**; on older versions `MorphSVGPlugin`
+  was a paid Club GreenSock plugin and silently loaded a watermarked trial
+  build. Register them once, up front:
+
+  ```js
+  import { gsap } from 'gsap';
+  import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
+  import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin);
+  ```
+
+  The other effects (`fade`, `pop`, `draw`, `slide`, `highlight`) use only the
+  GSAP core and need no plugins. `animate scroll` additionally wants
+  [`ScrollTrigger`](https://gsap.com/docs/v3/Plugins/ScrollTrigger/) — see
+  [Scroll-scrubbing](#scroll-scrubbing) below.
+</Callout>
 
 ## Timing model
 
@@ -311,11 +339,13 @@ animate last line with "draw" for 0.9
 `{ id, effect, start, duration }` plus the optional `repeat` / `yoyo` / `ease` /
 `path` / `color` / `out` / `from` / `morph` keys — present only when the source
 set them, so plain manifests stay compact. The JS package ships the player,
-which folds those keys straight into GSAP. `move` needs MotionPathPlugin and
-`morph` needs MorphSVGPlugin registered on your GSAP instance:
+which folds those keys straight into GSAP. `move` needs `MotionPathPlugin` and
+`morph` needs `MorphSVGPlugin` registered on your GSAP instance (**GSAP ≥
+3.13**, where both are free — see the note under [Effects](#effects)):
 
 ```js
 import { ready, compile, animate } from '@strategicprojects/rpic';
+import { gsap } from 'gsap';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin); // for `move` / `morph`

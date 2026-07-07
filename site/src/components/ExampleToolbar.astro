@@ -1,0 +1,78 @@
+---
+// A small action bar for every code example: copy the pic source to the
+// clipboard, and (when the source resolves under wasm) open it live in the
+// Studio editor. The Studio link is built at build time; copy runs in the
+// browser off the source stashed in the button's data attribute.
+import { studioUrl } from '../lib/studio';
+
+interface Props {
+  /** the pic source shown in the example */
+  code: string;
+}
+const { code } = Astro.props;
+const source = code.trim();
+const studio = studioUrl(source);
+---
+
+<div class="example-toolbar not-prose flex items-center justify-end gap-2 mb-1.5">
+  <button
+    type="button"
+    class="example-copy inline-flex items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 text-[11px] font-medium px-2.5 py-1 hover:text-emerald-800 hover:border-emerald-700 dark:hover:text-emerald-300 transition-colors"
+    data-code={source}
+    aria-label="Copy example source to clipboard"
+  >
+    <svg class="icon-copy" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+    <span class="copy-label">Copy</span>
+  </button>
+  {studio && (
+    <a
+      href={studio}
+      target="_blank"
+      rel="noopener"
+      class="inline-flex items-center gap-1.5 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-medium px-2.5 py-1 no-underline transition-colors"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+      Open in Studio
+    </a>
+  )}
+</div>
+
+<script>
+  // One delegated listener for every copy button on the page.
+  document.addEventListener('click', async (ev) => {
+    const btn = (ev.target as HTMLElement)?.closest?.('.example-copy') as HTMLButtonElement | null;
+    if (!btn) return;
+    const code = btn.dataset.code ?? '';
+    const label = btn.querySelector('.copy-label');
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      // Fallback for insecure contexts / older browsers.
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* give up quietly */
+      }
+      ta.remove();
+    }
+    if (label) {
+      const prev = label.textContent;
+      label.textContent = 'Copied!';
+      btn.classList.add('text-emerald-800', 'dark:text-emerald-300', 'border-emerald-700');
+      window.setTimeout(() => {
+        label.textContent = prev;
+        btn.classList.remove('text-emerald-800', 'dark:text-emerald-300', 'border-emerald-700');
+      }, 1400);
+    }
+  });
+</script>

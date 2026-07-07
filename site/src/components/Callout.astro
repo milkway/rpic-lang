@@ -1,0 +1,42 @@
+---
+// A small admonition box for docs prose — a coloured left border, an icon,
+// and a bold title, with the slotted body inside. `type` picks the palette.
+interface Props {
+  type?: 'note' | 'warn' | 'tip';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props;
+
+const STYLE = {
+  note: {
+    box: 'border-sky-400 bg-sky-50/70 dark:border-sky-500/60 dark:bg-sky-500/10',
+    head: 'text-sky-800 dark:text-sky-300',
+    icon: 'M12 16v-4M12 8h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+    label: 'Note',
+  },
+  warn: {
+    box: 'border-amber-400 bg-amber-50/70 dark:border-amber-500/60 dark:bg-amber-500/10',
+    head: 'text-amber-800 dark:text-amber-300',
+    icon: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0ZM12 9v4M12 17h.01',
+    label: 'Heads up',
+  },
+  tip: {
+    box: 'border-emerald-400 bg-emerald-50/70 dark:border-emerald-500/60 dark:bg-emerald-500/10',
+    head: 'text-emerald-800 dark:text-emerald-300',
+    icon: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z',
+    label: 'Tip',
+  },
+}[type];
+---
+
+<div class={`not-prose my-5 rounded-lg border-l-4 px-4 py-3 ${STYLE.box}`}>
+  <div class={`flex items-center gap-2 font-semibold text-sm mb-1 ${STYLE.head}`}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d={STYLE.icon} />
+    </svg>
+    {title ?? STYLE.label}
+  </div>
+  <div class="callout-body text-[14px] leading-6 text-slate-700 dark:text-slate-300 [&_a]:text-emerald-800 [&_a]:dark:text-emerald-300 [&_a]:font-medium [&_a]:underline [&_code]:text-[12.5px] [&_code]:font-mono [&_code]:bg-white/70 [&_code]:dark:bg-slate-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mt-1">
+    <slot />
+  </div>
+</div>
