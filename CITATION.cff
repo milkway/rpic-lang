@@ -12,7 +12,7 @@ repository-code: "https://github.com/milkway/rpic-lang"
 url: "https://rpic.dev"
 doi: "10.5281/zenodo.21209915"
 license: BSD-2-Clause
-version: 0.8.0
+version: 0.8.1
 date-released: 2026-07-06
 identifiers:
   - type: doi
