@@ -8,6 +8,25 @@ Each release is also archived on Zenodo under the concept DOI
 [10.5281/zenodo.21209915](https://doi.org/10.5281/zenodo.21209915), which always
 resolves to the latest version.
 
+## [Unreleased]
+
+### Added
+
+- **Colours can be held in a variable or computed.** In colour position
+  (`outlined`, `shaded`, `color`, `hatchcolor`, `gradient`, `animate … to`), a
+  bareword that names a variable now resolves to its value as a `0xRRGGBB`
+  colour (`accent = 0x2f855a; … outlined accent`), and a parenthesised
+  expression is evaluated (`shaded (accent + 0x60)`) — so a palette defined once
+  can drive a whole figure. A bareword that is *not* a variable still stays a
+  literal colour name, so existing sources are byte-for-byte unaffected.
+
+### Fixed
+
+- **A quoted `"0xRRGGBB"` colour string no longer slips through to invalid
+  SVG.** It is normalised to `#rrggbb` (the bare `0xRRGGBB` literal already
+  worked); previously the string form was emitted verbatim as `stroke="0x…"`,
+  which no renderer understands.
+
 ## [0.8.1] — 2026-07-06
 
 ### Fixed

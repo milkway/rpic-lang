@@ -2805,8 +2805,11 @@ impl Parser {
                 Ok(StringExpr::Lit(n))
             }
             // rpic extension (pikchr-style): a numeric colour — typically a
-            // `0xRRGGBB` hex literal (`shaded 0x1b5e20`)
-            Token::Float(_) => Ok(StringExpr::ColorNum(Box::new(self.parse_expr()?))),
+            // `0xRRGGBB` hex literal (`shaded 0x1b5e20`), or a parenthesised
+            // expression in colour position (`colored (base + 0x10)`).
+            Token::Float(_) | Token::Lparen => {
+                Ok(StringExpr::ColorNum(Box::new(self.parse_expr()?)))
+            }
             _ => self.parse_stringexpr(),
         }
     }
