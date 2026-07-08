@@ -15,17 +15,27 @@
 /// Bundled fonts (the SVG backend emits `font-family="sans-serif"` at the
 /// root; the rpic font attributes add `font-weight`/`font-style`/generic
 /// `monospace` per `<text>`, so the bold/italic/mono faces ship too).
+// All the embedded faces are used only by `load_embedded_fonts`, which is
+// itself `raster`-gated — so gate the fonts too, or a math-only build (the
+// wasm size split: `default-features = false, features = ["math"]`)
+// `include_bytes!`s ~hundreds of KB of TTFs it never reads (#288).
 #[cfg(feature = "raster")]
 const EMBEDDED_FONT: &[u8] = include_bytes!("../fonts/Go-Regular.ttf");
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_BOLD: &[u8] = include_bytes!("../fonts/Go-Bold.ttf");
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_ITALIC: &[u8] = include_bytes!("../fonts/Go-Italic.ttf");
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_BOLD_ITALIC: &[u8] = include_bytes!("../fonts/Go-Bold-Italic.ttf");
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_MONO: &[u8] = include_bytes!("../fonts/Go-Mono.ttf");
+#[cfg(feature = "raster")]
 const EMBEDDED_FONT_MONO_BOLD: &[u8] = include_bytes!("../fonts/Go-Mono-Bold.ttf");
 /// The bundled font's internal family name.
 #[cfg(feature = "raster")]
 const EMBEDDED_FONT_FAMILY: &str = "Go";
 /// The bundled monospace family's internal name.
+#[cfg(feature = "raster")]
 const EMBEDDED_MONO_FAMILY: &str = "Go Mono";
 
 #[cfg(feature = "math")]
