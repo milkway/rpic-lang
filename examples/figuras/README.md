@@ -44,10 +44,10 @@ In addition:
 
 - **PStricks colour directives** (`\newrgbcolor`, `\psset`, …) are removed — rpic
   targets SVG, so the geometry renders but the original colours are not applied.
-- **LaTeX math labels** (`"$\omega$"`, `"$Q_4$"`, …) render as **literal text**;
-  rpic does not typeset math. When such a label is passed *unquoted* through a
-  macro (e.g. `dimension_(…, $\beta V$, …)`), the inter-word spaces are not
-  preserved (`$\beta V$` → `$\beta V$` reads as `$\betaV$`).
+- **LaTeX math labels** (`"$\omega$"`, `"$Q_4$"`, …) render as **literal text**
+  here (rpic typesets them under `-t`/texlabels). A label passed *unquoted*
+  through a macro (e.g. `dimension_(…, $\beta V$, …)`) keeps its source
+  spacing when spliced.
 
 So these are **geometry-faithful** renderings of the originals, not pixel-perfect
 reproductions.

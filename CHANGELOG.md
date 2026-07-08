@@ -39,6 +39,16 @@ resolves to the latest version.
 
 ### Fixed
 
+- **Macro-argument splices (`"$n"` inside a string) reproduce the argument's
+  source text.** A multi-token argument used to be glued without separators,
+  with keywords silently dropped and string quotes stripped — a statically
+  exec'd `"$2"` holding `box shaded "#00ff00"` re-lexed as `boxshaded` and the
+  bare `#…` started a comment. Spacing now comes from the tokens' source spans
+  (adjacent tokens like `2L` stay glued; separated words like `$\beta V$` keep
+  their gap — that TeX label used to collapse into the undefined `$\betaV$`),
+  keywords render, and inner strings keep their quotes. A lone quoted argument
+  still splices as bare content, so the classic `box "$1"` label idiom is
+  untouched.
 - **`gradient` + `hatch` now paints one gradient across the whole object.** An
   SVG pattern tile is stamped once and replicated, so the gradient embedded as
   the tile background restarted in every hatch cell (a "quilted" look) instead

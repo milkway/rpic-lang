@@ -18,7 +18,10 @@ D3:line dashed from (0,2.5*dimen_) to (2*dimen_,2.5*dimen_);
 C2:circle radius .05 with .c at (2*dimen_,2.5*dimen_)
 D4:line dashed from (.8*2*dimen_,0) to (2*.8*dimen_,3*dimen_);
 C3:circle radius .05 with .c at (2*.8*dimen_,3*dimen_)
-dimension_(from C2.c to C1.c,-.2,"$^{0.2}$" ljust);
+# the shim's dimension_ splices its label into a string ("$3"), so it takes a
+# plain label, not label-plus-justification — `"…" ljust` would render the
+# word into the text (adapted; the m4 original passes attributes textually)
+dimension_(from C2.c to C1.c,-.2,"$^{0.2}$");
 dimension_(from C3.c to C1.c,.2,"$^{0.2}$");
 line from (0.5*2*dimen_,3.7*dimen_) to (2.8*dimen_,1.55*dimen_)
 C4:circle radius .05 with .c at (.8*2*dimen_,2.5*dimen_)
