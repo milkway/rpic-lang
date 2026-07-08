@@ -159,7 +159,8 @@ object — they let an object pulse, breathe, or bounce instead of entering once
   emits a `yoyo_without_repeat` warning.
 - **`ease` *"name"*** swaps the effect's built-in easing for any
   [GSAP ease](https://gsap.com/docs/v3/Eases) — `"none"`, `"power2.inOut"`,
-  `"elastic.out(1, 0.3)"`, `"bounce.out"`, `"steps(6)"`, and so on.
+  `"elastic.out(1, 0.3)"`, `"bounce.out"`, `"steps(6)"`, and so on. See the
+  [easing reference](#easing-reference) below for the full family/variant list.
 
 An infinite `repeat` never blocks the sequence: sequential and `after` timing
 track only the first pass, so a looping highlight can run under everything else.
@@ -182,6 +183,46 @@ Only the keys you set reach the manifest, so this timeline is:
     "ease": "elastic.out(1, 0.4)" }
 ]
 ```
+
+### Easing reference
+
+rpic passes the `ease` string **straight through** — it never parses or
+validates it, so **any name [GSAP](https://gsap.com/docs/v3/Eases) understands
+works**, and that page is the authoritative catalogue (including plugin eases
+like `CustomEase` once you register them). The names follow one pattern:
+
+```
+<family>.<variant>          e.g. power2.out, sine.inOut, bounce.in
+<family>.<variant>(<args>)  e.g. back.out(1.7), elastic.out(1, 0.3), steps(6)
+```
+
+The **variant** is the curve's shape — always spell it out (a bare `power2` is
+ambiguous):
+
+| Variant | Motion |
+|---|---|
+| `.in` | starts slow, accelerates into the end |
+| `.out` | starts fast, decelerates to a stop — the everyday choice (GSAP's default is `power1.out`) |
+| `.inOut` | eases at both ends |
+
+The **families** (each with all three variants unless noted):
+
+| Family | Feel |
+|---|---|
+| `none` / `power0` | linear — no easing (no variants) |
+| `power1` … `power4` | polynomial ramps, gentle (`power1`) to sharp (`power4`) |
+| `sine` | soft, sinusoidal |
+| `expo` | very sharp — near-flat, then snaps |
+| `circ` | circular arc |
+| `back` | overshoots and settles; `back.out(1.7)` sets the overshoot |
+| `elastic` | springy wobble; `elastic.out(amp, period)` tunes it |
+| `bounce` | bounces like a dropped ball |
+| `steps(n)` | snaps through `n` discrete stops (no variants) |
+
+Because it's an opaque passthrough, a typo (`"powr2.out"`) sails through rpic
+and only surfaces in the browser, where GSAP falls back to its default ease —
+so copy names from the GSAP page, or use its live [ease
+visualizer](https://gsap.com/docs/v3/Eases) to preview a curve before pasting.
 
 ## Motion along a path
 
