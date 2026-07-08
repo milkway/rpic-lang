@@ -2550,13 +2550,26 @@ impl State {
                             Some(e) => self.expr_dim(e)?,
                             None => self.env_dim(EnvVar::Dashwid)?,
                         };
+                        // a non-positive pitch would emit an invalid negative
+                        // `stroke-dasharray` (#291); fall back to the default
+                        let w = if w.is_finite() && w > 0.0 {
+                            w
+                        } else {
+                            self.env_dim(EnvVar::Dashwid)?
+                        };
                         s.dash = Dash::Dashed(w);
                     }
                     LineType::Dotted => {
-                        s.dash = Dash::Dotted(match opt {
-                            Some(e) => Some(self.expr_dim(e)?),
+                        // a non-positive pitch would emit an invalid dot gap
+                        // (#291); drop it so the default spacing is used
+                        let pitch = match opt {
+                            Some(e) => {
+                                let w = self.expr_dim(e)?;
+                                (w.is_finite() && w > 0.0).then_some(w)
+                            }
                             None => None,
-                        });
+                        };
+                        s.dash = Dash::Dotted(pitch);
                     }
                     LineType::Invis => s.invis = true,
                 },
