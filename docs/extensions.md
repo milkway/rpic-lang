@@ -409,6 +409,16 @@ circle outlined 0xb3261e
 - Bare `#hex` is impossible in pic — `#` starts a comment — but the quoted
   `shaded "#1b5e20"` form has always worked and still does. `rgb` stays
   usable as a macro/variable name (only `rgb(` in colour position triggers).
+- A colour can be held in a **variable** or **computed**: a bareword that
+  names a variable resolves to its `0xRRGGBB` value (`accent = 0x2f855a; …
+  outlined accent`), and a parenthesised expression is evaluated (`shaded
+  (accent + 0x60)`). A bareword that is not a variable stays a literal name.
+- **dvips/xcolor names** browsers can't render (`Dandelion`, `BurntOrange`, …)
+  resolve to their `dvipsnam.def` RGB; names that are also CSS keywords
+  (`Goldenrod`, `Plum`) stay as-is (browsers render those).
+- An **unknown** colour — a typo, a malformed hex — raises an `invalid_color`
+  warning in the `--json` bundle (with a "did you mean" suggestion), instead of
+  silently rendering blank; the colour is still passed through unchanged.
 
 ## Pikchr Positioning Niceties
 
