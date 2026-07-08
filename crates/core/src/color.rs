@@ -236,6 +236,56 @@ static XCOLOR_NAMED: &[&str] = &[
     "YellowOrange",
 ];
 
+/// The dvips names browsers can't render, mapped to their RGB — derived from
+/// `dvipsnam.def`'s cmyk values (channel = 1 − min(1, c + k)); `Dandelion`
+/// checks out against man19.pic's own comment (`1, 0.71, 0.16` → `#ffb529`).
+/// Deliberately excludes the xcolor names that are *also* CSS keywords
+/// (`Goldenrod`, `Plum`, …): those render natively, case-insensitively, and
+/// remapping them to the (different!) dvips values would change figures that
+/// already display correctly. Sorted for binary search.
+static XCOLOR_HEX: &[(&str, &str)] = &[
+    ("Apricot", "#ffad7a"),
+    ("Bittersweet", "#c20300"),
+    ("BlueGreen", "#26ffab"),
+    ("BrickRed", "#b80000"),
+    ("BurntOrange", "#ff7d00"),
+    ("CarnationPink", "#ff5eff"),
+    ("Cerulean", "#0fe3ff"),
+    ("Dandelion", "#ffb529"),
+    ("Emerald", "#00ff80"),
+    ("JungleGreen", "#03ff7a"),
+    ("Mahogany", "#a60000"),
+    ("Melon", "#ff8a80"),
+    ("Mulberry", "#a314fa"),
+    ("NavyBlue", "#0f75ff"),
+    ("OliveGreen", "#009900"),
+    ("Peach", "#ff804d"),
+    ("Periwinkle", "#6e73ff"),
+    ("PineGreen", "#00bf29"),
+    ("ProcessBlue", "#0affff"),
+    ("RawSienna", "#8c0000"),
+    ("RedOrange", "#ff3b21"),
+    ("RedViolet", "#9600a8"),
+    ("Rhodamine", "#ff2eff"),
+    ("RoyalPurple", "#4019ff"),
+    ("RubineRed", "#ff00de"),
+    ("Sepia", "#4d0000"),
+    ("TealBlue", "#1ffaa3"),
+    ("VioletRed", "#ff30ff"),
+    ("WildStrawberry", "#ff0a9c"),
+    ("YellowOrange", "#ff9400"),
+];
+
+/// The hex for a dvips/xcolor name **no browser understands** (`Dandelion` →
+/// `#ffb529`), or `None` for everything else — including the xcolor names that
+/// are also CSS keywords, which must stay untouched.
+pub fn xcolor_hex(name: &str) -> Option<&'static str> {
+    XCOLOR_HEX
+        .binary_search_by_key(&name, |(n, _)| n)
+        .ok()
+        .map(|i| XCOLOR_HEX[i].1)
+}
+
 /// Is `s` a colour an SVG renderer will understand? Used to warn on an unknown
 /// colour name; a `false` result never blocks rendering, it only flags.
 pub fn is_valid_color(s: &str) -> bool {
@@ -291,6 +341,38 @@ mod tests {
         let mut sorted = CSS_NAMED.to_vec();
         sorted.sort_unstable();
         assert_eq!(CSS_NAMED, sorted.as_slice(), "CSS_NAMED must stay sorted");
+    }
+
+    #[test]
+    fn xcolor_hex_table_is_sorted_and_consistent() {
+        let mut sorted = XCOLOR_HEX.to_vec();
+        sorted.sort_unstable_by_key(|(n, _)| *n);
+        assert_eq!(XCOLOR_HEX, sorted.as_slice(), "XCOLOR_HEX must stay sorted");
+        for (name, hex) in XCOLOR_HEX {
+            // every mapped name is a recognised xcolor name …
+            assert!(XCOLOR_NAMED.contains(name), "{name} not in XCOLOR_NAMED");
+            // … that is NOT also a CSS keyword (those must stay unmapped) …
+            assert!(
+                CSS_NAMED
+                    .binary_search(&name.to_ascii_lowercase().as_str())
+                    .is_err(),
+                "{name} is a CSS keyword and must not be remapped"
+            );
+            // … and maps to well-formed hex
+            assert!(is_hex(hex), "bad hex for {name}: {hex}");
+        }
+    }
+
+    #[test]
+    fn xcolor_hex_maps_non_css_names_only() {
+        // dvipsnam.def: Dandelion = cmyk(0,.29,.84,0) -> rgb(1,.71,.16)
+        assert_eq!(xcolor_hex("Dandelion"), Some("#ffb529"));
+        // Goldenrod IS a CSS keyword — browsers render it; stays untouched
+        assert_eq!(xcolor_hex("Goldenrod"), None);
+        // case matters: the CSS name `dandelion` doesn't exist, and the
+        // xcolor spelling is CamelCase — lowercase input is not remapped
+        assert_eq!(xcolor_hex("dandelion"), None);
+        assert_eq!(xcolor_hex("notacolor"), None);
     }
 
     #[test]
