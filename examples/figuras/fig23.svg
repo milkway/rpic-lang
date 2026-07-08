@@ -1,189 +1,189 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="300.693333" height="242.92" viewBox="0 0 300.693333 242.92" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="423.893333" height="242.92" viewBox="0 0 423.893333 242.92" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="205.226667" cy="50.72" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="266.826667" cy="50.72" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s1">
-<line x1="199.466667" y1="35.36" x2="199.466667" y2="66.08" stroke="black" stroke-width="1.6"/>
+<line x1="261.066667" y1="35.36" x2="261.066667" y2="66.08" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s2">
-<line x1="159.146667" y1="50.72" x2="199.466667" y2="50.72" stroke="black" stroke-width="1.6"/>
+<line x1="220.746667" y1="50.72" x2="261.066667" y2="50.72" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s3">
-<line x1="199.466667" y1="57.44" x2="220.586667" y2="71.84" stroke="black" stroke-width="1.6"/>
+<line x1="261.066667" y1="57.44" x2="282.186667" y2="71.84" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s4">
-<line x1="220.586667" y1="71.84" x2="220.586667" y2="91.04" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="71.84" x2="282.186667" y2="91.04" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s5">
-<line x1="220.586667" y1="29.6" x2="202.191965" y2="42.141842" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="208.750458,40.574912 199.466667,44 206.046441,36.609021" fill="black"/>
+<line x1="282.186667" y1="29.6" x2="263.791965" y2="42.141842" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="270.350458,40.574912 261.066667,44 267.646441,36.609021" fill="black"/>
 </g>
 <g id="s6">
-<line x1="220.586667" y1="29.6" x2="220.586667" y2="10.4" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="29.6" x2="282.186667" y2="10.4" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s7">
 </g>
 <g id="s8">
-<circle cx="93.866667" cy="50.72" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="155.466667" cy="50.72" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<line x1="99.626667" y1="35.36" x2="99.626667" y2="66.08" stroke="black" stroke-width="1.6"/>
+<line x1="161.226667" y1="35.36" x2="161.226667" y2="66.08" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<line x1="139.946667" y1="50.72" x2="99.626667" y2="50.72" stroke="black" stroke-width="1.6"/>
+<line x1="201.546667" y1="50.72" x2="161.226667" y2="50.72" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s11">
-<line x1="99.626667" y1="57.44" x2="78.506667" y2="71.84" stroke="black" stroke-width="1.6"/>
+<line x1="161.226667" y1="57.44" x2="140.106667" y2="71.84" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<line x1="78.506667" y1="71.84" x2="78.506667" y2="91.04" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="71.84" x2="140.106667" y2="91.04" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<line x1="78.506667" y1="29.6" x2="96.901369" y2="42.141842" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="93.046893,36.609021 99.626667,44 90.342876,40.574912" fill="black"/>
+<line x1="140.106667" y1="29.6" x2="158.501369" y2="42.141842" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="154.646893,36.609021 161.226667,44 151.942876,40.574912" fill="black"/>
 </g>
 <g id="s14">
-<line x1="78.506667" y1="29.6" x2="78.506667" y2="10.4" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="29.6" x2="140.106667" y2="10.4" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s15">
 </g>
 <g id="s16">
-<circle cx="235.946667" cy="150.56" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="297.546667" cy="150.56" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s17">
-<line x1="241.706667" y1="165.92" x2="241.706667" y2="135.2" stroke="black" stroke-width="1.6"/>
+<line x1="303.306667" y1="165.92" x2="303.306667" y2="135.2" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s18">
-<line x1="282.026667" y1="150.56" x2="241.706667" y2="150.56" stroke="black" stroke-width="1.6"/>
+<line x1="343.626667" y1="150.56" x2="303.306667" y2="150.56" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s19">
-<line x1="241.706667" y1="143.84" x2="220.586667" y2="129.44" stroke="black" stroke-width="1.6"/>
+<line x1="303.306667" y1="143.84" x2="282.186667" y2="129.44" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s20">
-<line x1="220.586667" y1="129.44" x2="220.586667" y2="110.24" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="129.44" x2="282.186667" y2="110.24" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s21">
-<line x1="241.706667" y1="157.28" x2="223.311965" y2="169.821842" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="229.870458,168.254912 220.586667,171.68 227.166441,164.289021" fill="black"/>
+<line x1="303.306667" y1="157.28" x2="284.911965" y2="169.821842" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="291.470458,168.254912 282.186667,171.68 288.766441,164.289021" fill="black"/>
 </g>
 <g id="s22">
-<line x1="220.586667" y1="171.68" x2="220.586667" y2="190.88" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="171.68" x2="282.186667" y2="190.88" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s23">
 </g>
 <g id="s24">
-<circle cx="63.146667" cy="150.56" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="124.746667" cy="150.56" r="28.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s25">
-<line x1="57.386667" y1="165.92" x2="57.386667" y2="135.2" stroke="black" stroke-width="1.6"/>
+<line x1="118.986667" y1="165.92" x2="118.986667" y2="135.2" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s26">
-<line x1="17.066667" y1="150.56" x2="57.386667" y2="150.56" stroke="black" stroke-width="1.6"/>
+<line x1="78.666667" y1="150.56" x2="118.986667" y2="150.56" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s27">
-<line x1="57.386667" y1="143.84" x2="78.506667" y2="129.44" stroke="black" stroke-width="1.6"/>
+<line x1="118.986667" y1="143.84" x2="140.106667" y2="129.44" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s28">
-<line x1="78.506667" y1="129.44" x2="78.506667" y2="110.24" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="129.44" x2="140.106667" y2="110.24" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s29">
-<line x1="57.386667" y1="157.28" x2="75.781369" y2="169.821842" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="71.926893,164.289021 78.506667,171.68 69.222876,168.254912" fill="black"/>
+<line x1="118.986667" y1="157.28" x2="137.381369" y2="169.821842" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="133.526893,164.289021 140.106667,171.68 130.822876,168.254912" fill="black"/>
 </g>
 <g id="s30">
-<line x1="78.506667" y1="171.68" x2="78.506667" y2="190.88" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="171.68" x2="140.106667" y2="190.88" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s31">
-<line x1="220.586667" y1="190.88" x2="78.506667" y2="190.88" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="190.88" x2="140.106667" y2="190.88" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s32">
-<line x1="149.546667" y1="190.88" x2="149.546667" y2="200.48" stroke="black" stroke-width="1.6"/>
+<line x1="211.146667" y1="190.88" x2="211.146667" y2="200.48" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s33">
 </g>
 <g id="s34">
-<line x1="149.546667" y1="200.48" x2="149.546667" y2="190.88" stroke="black" stroke-width="1.6"/>
+<line x1="211.146667" y1="200.48" x2="211.146667" y2="190.88" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s35">
-<circle cx="149.546667" cy="210.08" r="19.2" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="211.146667" cy="210.08" r="19.2" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s36">
-<line x1="149.546667" y1="199.52" x2="149.546667" y2="217.341515" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="151.946667,211.04 149.546667,220.64 147.146667,211.04" fill="black"/>
+<line x1="211.146667" y1="199.52" x2="211.146667" y2="217.341515" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="213.546667,211.04 211.146667,220.64 208.746667,211.04" fill="black"/>
 </g>
 <g id="s37">
-<line x1="149.546667" y1="229.28" x2="149.546667" y2="219.68" stroke="black" stroke-width="1.6"/>
+<line x1="211.146667" y1="229.28" x2="211.146667" y2="219.68" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s38">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="134.08" y="229.32" text-anchor="end">1mA</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="195.68" y="229.32" text-anchor="end">1mA</text>
 </g>
 <g id="s39">
-<line x1="136.746667" y1="229.32" x2="136.746667" y2="238.92" stroke="black" stroke-width="1.6"/>
+<line x1="198.346667" y1="229.32" x2="198.346667" y2="238.92" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s40">
-<line x1="78.506667" y1="110.24" x2="78.506667" y2="91.04" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="110.24" x2="140.106667" y2="91.04" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s41">
-<line x1="220.586667" y1="110.24" x2="220.586667" y2="91.04" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="110.24" x2="282.186667" y2="91.04" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s42">
-<line x1="159.146667" y1="50.72" x2="139.946667" y2="50.72" stroke="black" stroke-width="1.6"/>
+<line x1="220.746667" y1="50.72" x2="201.546667" y2="50.72" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s43">
-<polyline points="139.946667,50.72 139.946667,91.04 139.946667,91.04 78.506667,91.04" fill="none" stroke="black" stroke-width="1.6"/>
+<polyline points="201.546667,50.72 201.546667,91.04 201.546667,91.04 140.106667,91.04" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s44">
-<line x1="220.586667" y1="10.4" x2="220.586667" y2="0.8" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="10.4" x2="282.186667" y2="0.8" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s45">
-<line x1="78.506667" y1="10.4" x2="78.506667" y2="0.8" stroke="black" stroke-width="1.6"/>
+<line x1="140.106667" y1="10.4" x2="140.106667" y2="0.8" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s46">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="220.586667" y="34.44" text-anchor="middle">$Q_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="282.186667" y="34.44" text-anchor="middle">$Q_1$</text>
 </g>
 <g id="s47">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="78.506667" y="34.44" text-anchor="middle">$Q_2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="140.106667" y="34.44" text-anchor="middle">$Q_2$</text>
 </g>
 <g id="s48">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="220.586667" y="134.28" text-anchor="middle">$Q_3$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="282.186667" y="134.28" text-anchor="middle">$Q_3$</text>
 </g>
 <g id="s49">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="78.506667" y="134.28" text-anchor="middle">$Q_4$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="140.106667" y="134.28" text-anchor="middle">$Q_4$</text>
 </g>
 <g id="s50">
-<line x1="59.306667" y1="0.8" x2="239.786667" y2="0.8" stroke="black" stroke-width="1.6"/>
-<text font-size="11pt" stroke-width="0.2pt" fill="black" x="149.546667" y="-1.866667" text-anchor="middle">$V_{cc}$</text>
+<line x1="120.906667" y1="0.8" x2="301.386667" y2="0.8" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="211.146667" y="-1.866667" text-anchor="middle">$V_{cc}$</text>
 </g>
 <g id="s51">
-<line x1="59.306667" y1="238.92" x2="239.786667" y2="238.92" stroke="black" stroke-width="1.6"/>
-<text font-size="11pt" stroke-width="0.2pt" fill="black" x="149.546667" y="251.266667" text-anchor="middle">$V_{ss}$</text>
+<line x1="120.906667" y1="238.92" x2="301.386667" y2="238.92" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="211.146667" y="251.266667" text-anchor="middle">$V_{ss}$</text>
 </g>
 <g id="s52">
 </g>
 <g id="s53">
-<circle cx="282.026667" cy="146.72" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
+<circle cx="343.626667" cy="146.72" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s54">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="297.493333" y="151.56" text-anchor="start">V_{en+}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="359.093333" y="151.56" text-anchor="start">V_{en+}</text>
 </g>
 <g id="s55">
 </g>
 <g id="s56">
-<circle cx="17.066667" cy="146.72" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
+<circle cx="78.666667" cy="146.72" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s57">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="151.56" text-anchor="end">V_{en-}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="63.2" y="151.56" text-anchor="end">V_{en-}</text>
 </g>
 <g id="s58">
 </g>
 <g id="s59">
-<line x1="220.586667" y1="91.04" x2="239.786667" y2="91.04" stroke="black" stroke-width="1.6"/>
+<line x1="282.186667" y1="91.04" x2="301.386667" y2="91.04" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s60">
-<circle cx="239.786667" cy="87.2" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
+<circle cx="301.386667" cy="87.2" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s61">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="255.253333" y="92.04" text-anchor="start">V_{sa}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="316.853333" y="92.04" text-anchor="start">V_{sa}</text>
 </g>
 <g id="s62">
 </g>

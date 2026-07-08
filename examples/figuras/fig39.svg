@@ -1,65 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="36.8" height="72.08" viewBox="0 0 36.8 72.08" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="104" height="72.08" viewBox="0 0 104 72.08" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="3.2" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="23.6" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s1">
-<circle cx="17.6" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="38" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s2">
-<circle cx="32" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="52.4" cy="44.04" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s3">
-<circle cx="3.2" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="23.6" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s4">
-<circle cx="17.6" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="38" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s5">
-<circle cx="32" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="52.4" cy="24.84" r="1.6" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<line x1="3.2" y1="42.44" x2="3.2" y2="26.44" stroke="black" stroke-width="1.6"/>
+<line x1="23.6" y1="42.44" x2="23.6" y2="26.44" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s7">
-<line x1="16.468629" y1="42.908629" x2="4.331371" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="36.868629" y1="42.908629" x2="24.731371" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s8">
-<line x1="30.868629" y1="42.908629" x2="4.331371" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="51.268629" y1="42.908629" x2="24.731371" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<line x1="4.331371" y1="42.908629" x2="16.468629" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="24.731371" y1="42.908629" x2="36.868629" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<line x1="17.6" y1="42.44" x2="17.6" y2="26.44" stroke="black" stroke-width="1.6"/>
+<line x1="38" y1="42.44" x2="38" y2="26.44" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s11">
-<line x1="30.868629" y1="42.908629" x2="18.731371" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="51.268629" y1="42.908629" x2="39.131371" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<line x1="4.331371" y1="42.908629" x2="30.868629" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="24.731371" y1="42.908629" x2="51.268629" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<line x1="18.731371" y1="42.908629" x2="30.868629" y2="25.971371" stroke="black" stroke-width="1.6"/>
+<line x1="39.131371" y1="42.908629" x2="51.268629" y2="25.971371" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s14">
-<line x1="32" y1="42.44" x2="32" y2="26.44" stroke="black" stroke-width="1.6"/>
+<line x1="52.4" y1="42.44" x2="52.4" y2="26.44" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s15">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="3.2" y="68.08" text-anchor="middle">$x_0$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="23.6" y="68.08" text-anchor="middle">$x_0$</text>
 </g>
 <g id="s16">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="17.6" y="68.08" text-anchor="middle">$x_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="38" y="68.08" text-anchor="middle">$x_1$</text>
 </g>
 <g id="s17">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="32" y="68.08" text-anchor="middle">Polarização</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="52.4" y="68.08" text-anchor="middle">Polarização</text>
 </g>
 <g id="s18">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="3.2" y="10.48" text-anchor="middle">$y_0$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="23.6" y="10.48" text-anchor="middle">$y_0$</text>
 </g>
 <g id="s19">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="17.6" y="10.48" text-anchor="middle">$y_1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="38" y="10.48" text-anchor="middle">$y_1$</text>
 </g>
 <g id="s20">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="32" y="10.48" text-anchor="middle">$y_2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="52.4" y="10.48" text-anchor="middle">$y_2$</text>
 </g>
 </svg>
