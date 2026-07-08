@@ -70,6 +70,34 @@ for (const kw of ['fit', 'behind', 'close', 'hatch', 'crosshatch', 'opacity', 'g
 }
 expectScope('animate B1 with "pop"', 'animate', 'keyword.control');
 
+// newly-covered keywords (#289) — font/text attrs, canvas, animate clauses
+for (const kw of ['rotated', 'aligned', 'bold', 'italic', 'mono', 'fontsize', 'big', 'small', 'canvas']) {
+  expectScope(`box ${kw}`, kw, 'keyword.other.extension');
+}
+for (const kw of ['along', 'into', 'stagger', 'repeat', 'yoyo', 'ease', 'delay', 'out']) {
+  expectScope(`animate D with "move" ${kw} L`, kw, 'keyword.other.extension');
+}
+expectScope('animate scroll', 'scroll', 'keyword.other.extension');
+// classic attributes that were missing
+expectScope('box thin', 'thin', 'keyword.other.attribute');
+expectScope('line continue', 'continue', 'keyword.other.attribute');
+expectScope('box shade 0.5', 'shade', 'keyword.other.attribute');
+expectScope('box previous', 'previous', 'keyword.other.attribute');
+// math builtins that were missing
+for (const fn of ['abs', 'floor', 'tan', 'atan2', 'pmod']) {
+  expectScope(`x = ${fn}(2)`, fn, 'support.function.builtin');
+}
+// phantom tokens must NOT be highlighted as keywords (they aren't in the lexer)
+for (const ghost of ['srand', 'heading', 'dotstart', 'dotend']) {
+  const scopes = scopesOf(`box ${ghost}`, ghost);
+  if (scopes.some((s) => s.startsWith('keyword') || s.startsWith('support.function'))) {
+    console.error(`FAIL  phantom ${JSON.stringify(ghost)} should not be a keyword, got: ${scopes.join(', ')}`);
+    failures++;
+  } else {
+    console.log(`  ok  ${JSON.stringify(ghost)} is not a keyword`);
+  }
+}
+
 // smoke: full corpus samples must tokenize without throwing
 const samples = [
   '../../examples/dpic/sources/diag1.pic',
