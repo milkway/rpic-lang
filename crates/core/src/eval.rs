@@ -807,7 +807,7 @@ impl State {
                 let src = unescape_exec_source(&self.eval_stringexpr(command)?);
                 let stmts = crate::parser::parse_exec_source(
                     &src,
-                    &self.macros,
+                    &mut self.macros,
                     &self.includes,
                     arg_frame.as_deref(),
                 )
@@ -3816,26 +3816,27 @@ fn fmt_num(v: f64) -> String {
 }
 
 fn install_dpic_compat_vars(vars: &mut HashMap<String, f64>) {
-    // dpic backend option constants are zero-based in the order used by dpic's
-    // own `case(dpicopt, ...)` examples. rpic renders SVG.
+    // dpic backend option constants are ONE-based (oracle: `dpic -v` prints
+    // optMFpic=1 … optSVG=9 … optxfig=12), matching the branch order of the
+    // dpic suite's own `case(dpicopt, ...)` dispatch. rpic renders SVG.
     let opts = [
-        ("optMFpic", 0.0),
-        ("optMpost", 1.0),
-        ("optPDF", 2.0),
-        ("optPGF", 3.0),
-        ("optPict2e", 4.0),
-        ("optPS", 5.0),
-        ("optPSfrag", 6.0),
-        ("optPSTricks", 7.0),
-        ("optSVG", 8.0),
-        ("optTeX", 9.0),
-        ("opttTeX", 10.0),
-        ("optxfig", 11.0),
+        ("optMFpic", 1.0),
+        ("optMpost", 2.0),
+        ("optPDF", 3.0),
+        ("optPGF", 4.0),
+        ("optPict2e", 5.0),
+        ("optPS", 6.0),
+        ("optPSfrag", 7.0),
+        ("optPSTricks", 8.0),
+        ("optSVG", 9.0),
+        ("optTeX", 10.0),
+        ("opttTeX", 11.0),
+        ("optxfig", 12.0),
     ];
     for (name, val) in opts {
         vars.insert(name.to_string(), val);
     }
-    vars.insert("dpicopt".to_string(), 8.0);
+    vars.insert("dpicopt".to_string(), 9.0);
 }
 
 /// Map a linear-style `.start`/`.end` anchor to the box/ellipse compass
@@ -5962,6 +5963,45 @@ box wid 0.1 ht 0.1 at B.s"#,
     fn dpicopt_defaults_to_svg_backend() {
         let d = draw("if dpicopt == optSVG then { box } else { circle }");
         assert!(matches!(d.shapes[0], Shape::Box { .. }));
+        // absolute values are ONE-based, oracle-checked against dpic
+        // (`dpic -v` prints dpicopt=9, optMFpic=1 … optxfig=12): the dpic
+        // suite's `case(dpicopt, …)` dispatch depends on them.
+        assert_eq!(scalar("dpicopt").unwrap(), 9.0);
+        assert_eq!(scalar("optMFpic").unwrap(), 1.0);
+        assert_eq!(scalar("optPSTricks").unwrap(), 8.0);
+        assert_eq!(scalar("optxfig").unwrap(), 12.0);
+    }
+
+    #[test]
+    fn exec_defines_persist_after_the_exec() {
+        // a `define` inside exec'd text must register in the caller's macro
+        // table (dpic behaviour) — it used to land in a discarded clone
+        let d = draw("exec \"define Custom {\\\"#00ff00\\\"}\"\nbox shaded Custom");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#00ff00".into())));
+    }
+
+    #[test]
+    fn dpic_suite_define_rgb_color_machinery_works() {
+        // the dpic test suite's DefineRGBColor: case() exec-dispatches on
+        // dpicopt into a nested define of the colour macro — end to end,
+        // Custom must resolve to the same rgb() string dpic -v emits
+        let d = draw(concat!(
+            "define case { exec sprintf(\"$%g\",floor($1+0.5)+1); }\n",
+            "define DefineRGBColor { case(dpicopt,\n",
+            "  A , B , C , D , E , F , G , H ,\n",
+            "  define $1 {sprintf(\"rgb(%g,%g,%g)\",int($2*255),int($3*255),int($4*255))} ,\n",
+            "  I , J , K ) }\n",
+            "DefineRGBColor(Custom,0.8,0.7,0.6)\n",
+            "box shaded Custom",
+        ));
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("rgb(204,178,153)".into())));
+        assert!(!d.warnings.iter().any(|w| w.kind == "invalid_color"));
     }
 
     #[test]

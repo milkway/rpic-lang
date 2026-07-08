@@ -48,7 +48,7 @@
 <g id="s11">
 </g>
 <g id="s12">
-<rect x="346.666667" y="0.533333" width="48" height="72" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<rect x="346.666667" y="0.533333" width="48" height="72" fill="rgb(204,178,153)" stroke="blue" stroke-width="1.066667"/>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="19.373333" text-anchor="middle">shaded</text>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="34.04" text-anchor="middle">Custom</text>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="48.706667" text-anchor="middle">outline</text>
@@ -91,7 +91,7 @@
 <g id="s24">
 </g>
 <g id="s25">
-<rect x="346.666667" y="82.133333" width="48" height="72" rx="16" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<rect x="346.666667" y="82.133333" width="48" height="72" rx="16" fill="rgb(204,178,153)" stroke="blue" stroke-width="1.066667"/>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="122.973333" text-anchor="middle">7</text>
 </g>
 <g id="s26">
@@ -131,7 +131,7 @@
 <g id="s37">
 </g>
 <g id="s38">
-<circle cx="370.666667" cy="187.733333" r="24" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<circle cx="370.666667" cy="187.733333" r="24" fill="rgb(204,178,153)" stroke="blue" stroke-width="1.066667"/>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="192.573333" text-anchor="middle">7</text>
 </g>
 <g id="s39">
@@ -171,7 +171,7 @@
 <g id="s50">
 </g>
 <g id="s51">
-<ellipse cx="370.666667" cy="257.333333" rx="24" ry="36" fill="Custom" stroke="blue" stroke-width="1.066667"/>
+<ellipse cx="370.666667" cy="257.333333" rx="24" ry="36" fill="rgb(204,178,153)" stroke="blue" stroke-width="1.066667"/>
 <text font-size="11pt" stroke-width="0.2pt" fill="black" x="370.666667" y="262.173333" text-anchor="middle">7</text>
 </g>
 <g id="s52">
@@ -218,7 +218,7 @@
 <g id="s63">
 </g>
 <g id="s64">
-<path d="M 363.637229 350.72801 A 24 24 0 1 0 346.666667 309.757447" fill="Custom" stroke-width="0" stroke="black"/>
+<path d="M 363.637229 350.72801 A 24 24 0 1 0 346.666667 309.757447" fill="rgb(204,178,153)" stroke-width="0" stroke="black"/>
 <path stroke-width="0" stroke="blue" fill="blue" d="M 372.98327,348.833474 L 372.048666,346.622927 A 24 24 0 0 1 363.637229 350.72801 A 24 24 0 0 0 373.917874 351.04402 L 372.98327,348.833474"/>
 <path stroke-width="0" stroke="blue" fill="blue" d="M 354.614954,304.488438 L 355.517182,306.712395 A 24 24 0 0 0 346.666667 309.757447 A 24 24 0 0 1 353.712727 302.264481 L 354.614954,304.488438"/>
 <path d="M 370.856982 349.616329 A 24 24 0 1 0 352.55788 305.438388" fill="none" stroke="blue" stroke-width="3.666667" stroke-dasharray="0.5,7.333333" stroke-linecap="round"/>
@@ -262,7 +262,7 @@
 <g id="s76">
 </g>
 <g id="s77">
-<polyline points="346.666667,408.32801 394.666667,408.32801 394.666667,360.32801 346.666667,360.32801" fill="Custom" stroke-width="0" stroke="black"/>
+<polyline points="346.666667,408.32801 394.666667,408.32801 394.666667,360.32801 346.666667,360.32801" fill="rgb(204,178,153)" stroke-width="0" stroke="black"/>
 <polyline points="355.600062,408.32801 394.666667,408.32801 394.666667,360.32801 355.600062,360.32801" fill="none" stroke="blue" stroke-width="4.333333" stroke-dasharray="0.5,8.666667" stroke-linecap="round"/>
 <polygon stroke-width="0" points="356.266667,362.72801 346.666667,360.32801 356.266667,357.92801" fill="blue"/>
 <polygon stroke-width="0" points="356.266667,410.72801 346.666667,408.32801 356.266667,405.92801" fill="blue"/>
@@ -307,7 +307,7 @@
 <g id="s90">
 </g>
 <g id="s91">
-<path d="M 346.666667 465.92801 C 354.666667 465.92801 362.666667 465.92801 370.666667 465.92801 386.666667 465.92801 394.666667 457.92801 394.666667 441.92801 394.666667 425.92801 386.666667 417.92801 370.666667 417.92801 362.666667 417.92801 354.666667 417.92801 346.666667 417.92801" fill="Custom" stroke-width="0" stroke="black"/>
+<path d="M 346.666667 465.92801 C 354.666667 465.92801 362.666667 465.92801 370.666667 465.92801 386.666667 465.92801 394.666667 457.92801 394.666667 441.92801 394.666667 425.92801 386.666667 417.92801 370.666667 417.92801 362.666667 417.92801 354.666667 417.92801 346.666667 417.92801" fill="rgb(204,178,153)" stroke-width="0" stroke="black"/>
 <path d="M 356.266667 465.92801 C 362.666667 465.92801 369.066667 465.92801 375.466667 465.92801 388.266667 465.92801 394.666667 457.92801 394.666667 441.92801 394.666667 425.92801 388.266667 417.92801 375.466667 417.92801 369.066667 417.92801 362.666667 417.92801 356.266667 417.92801" fill="none" stroke="blue" stroke-width="5" stroke-dasharray="0.5,10" stroke-linecap="round"/>
 <polygon stroke-width="0" points="356.266667,420.32801 346.666667,417.92801 356.266667,415.52801" fill="blue"/>
 <polygon stroke-width="0" points="356.266667,468.32801 346.666667,465.92801 356.266667,463.52801" fill="blue"/>
@@ -370,7 +370,7 @@
 <g id="s110">
 </g>
 <g id="s111">
-<path d="M 346.666667 523.52801 C 385.066667 523.52801 394.666667 518.72801 394.666667 499.52801 C 394.666667 480.32801 385.066667 475.52801 346.666667 475.52801" fill="Custom" stroke-width="0" stroke="black"/>
+<path d="M 346.666667 523.52801 C 385.066667 523.52801 394.666667 518.72801 394.666667 499.52801 C 394.666667 480.32801 385.066667 475.52801 346.666667 475.52801" fill="rgb(204,178,153)" stroke-width="0" stroke="black"/>
 <path d="M 356.266667 523.52801 C 386.986667 523.52801 394.666667 518.72801 394.666667 499.52801 C 394.666667 480.32801 386.986667 475.52801 356.266667 475.52801" fill="none" stroke="blue" stroke-width="5.666667" stroke-dasharray="0.5,11.333333" stroke-linecap="round"/>
 <polygon stroke-width="0" points="356.266667,477.92801 346.666667,475.52801 356.266667,473.12801" fill="blue"/>
 <polygon stroke-width="0" points="356.266667,525.92801 346.666667,523.52801 356.266667,521.12801" fill="blue"/>
@@ -407,9 +407,9 @@
 <g id="s121">
 </g>
 <g id="s122">
-<line x1="236.791789" y1="597.140327" x2="274.141545" y2="541.115693" stroke="Custom" stroke-width="6.333333" stroke-dasharray="0.5,12.666667" stroke-linecap="round"/>
-<polygon stroke-width="0" points="272.144624,539.784412 279.466667,533.12801 276.138465,542.446973" fill="Custom"/>
-<polygon stroke-width="0" points="238.788709,598.471608 231.466667,605.12801 234.794868,595.809047" fill="Custom"/>
+<line x1="236.791789" y1="597.140327" x2="274.141545" y2="541.115693" stroke="rgb(204,178,153)" stroke-width="6.333333" stroke-dasharray="0.5,12.666667" stroke-linecap="round"/>
+<polygon stroke-width="0" points="272.144624,539.784412 279.466667,533.12801 276.138465,542.446973" fill="rgb(204,178,153)"/>
+<polygon stroke-width="0" points="238.788709,598.471608 231.466667,605.12801 234.794868,595.809047" fill="rgb(204,178,153)"/>
 </g>
 <g id="s123">
 </g>
