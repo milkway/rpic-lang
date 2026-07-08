@@ -1,83 +1,83 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="324.266667" height="417.64" viewBox="0 0 324.266667 417.64" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="746.133333" height="417.64" viewBox="0 0 746.133333 417.64" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="220.266667" cy="269.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="528.266667" cy="269.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s1">
-<circle cx="220.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="528.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s2">
-<circle cx="268.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="576.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s3">
-<circle cx="268.266667" cy="221.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="576.266667" cy="221.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s4">
-<circle cx="316.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="624.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s5">
-<circle cx="100.266667" cy="197.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="408.266667" cy="197.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<circle cx="76.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="384.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s7">
-<circle cx="100.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="408.266667" cy="245.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s8">
-<circle cx="112.266667" cy="221.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="420.266667" cy="221.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<circle cx="28.266667" cy="233.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="336.266667" cy="233.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<circle cx="100.266667" cy="317.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="408.266667" cy="317.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s11">
-<circle cx="148.266667" cy="341.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="456.266667" cy="341.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<circle cx="196.266667" cy="341.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="504.266667" cy="341.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<circle cx="112.266667" cy="365.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="420.266667" cy="365.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s14">
-<circle cx="172.266667" cy="353.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="480.266667" cy="353.64" r="4.8" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s15">
-<line x1="268.266667" y1="413.64" x2="124.266667" y2="101.64" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
+<line x1="576.266667" y1="413.64" x2="432.266667" y2="101.64" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s16">
-<line x1="28.266667" y1="341.64" x2="268.266667" y2="149.64" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
+<line x1="336.266667" y1="341.64" x2="576.266667" y2="149.64" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s17">
-<line x1="4.266667" y1="284.04" x2="316.266667" y2="298.44" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
+<line x1="312.266667" y1="284.04" x2="624.266667" y2="298.44" stroke="black" stroke-width="1.6" stroke-dasharray="5.6,4"/>
 </g>
 <g id="s18">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="28.266667" y="202.48" text-anchor="middle">{\small Classe $0$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="336.266667" y="202.48" text-anchor="middle">{\small Classe $0$}</text>
 </g>
 <g id="s19">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="172.266667" y="394.48" text-anchor="middle">{\small Classe $1$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="480.266667" y="394.48" text-anchor="middle">{\small Classe $1$}</text>
 </g>
 <g id="s20">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="268.266667" y="202.48" text-anchor="middle">{\small Classe $2$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="576.266667" y="202.48" text-anchor="middle">{\small Classe $2$}</text>
 </g>
 <g id="s21">
 </g>
 <g id="s22">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="126.933333" y="106.48" text-anchor="start">{\tiny Reta de Decisão para nó $1$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="434.933333" y="106.48" text-anchor="start">{\tiny Reta de Decisão para nó $1$}</text>
 </g>
 <g id="s23">
 </g>
 <g id="s24">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="25.6" y="346.48" text-anchor="end">{\tiny Reta de Decisão para nó $0$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="333.6" y="346.48" text-anchor="end">{\tiny Reta de Decisão para nó $0$}</text>
 </g>
 <g id="s25">
 </g>
 <g id="s26">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="288.88" text-anchor="end">{\tiny Reta de Decisão para nó $2$}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="309.6" y="288.88" text-anchor="end">{\tiny Reta de Decisão para nó $2$}</text>
 </g>
 <g id="s27">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="172.266667" y="10.48" text-anchor="middle">{ }</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="480.266667" y="10.48" text-anchor="middle">{ }</text>
 </g>
 </svg>

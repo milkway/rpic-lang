@@ -1,76 +1,76 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="115.2" height="52.8" viewBox="0 0 115.2 52.8" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="246.4" height="52.8" viewBox="0 0 246.4 52.8" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<circle cx="42.4" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="117.2" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s1">
-<circle cx="42.4" cy="20" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="117.2" cy="20" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s2">
-<circle cx="42.4" cy="39.2" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="117.2" cy="39.2" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s3">
-<circle cx="56.8" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="131.6" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s4">
-<circle cx="71.2" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="146" cy="29.6" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s5">
-<circle cx="71.2" cy="20" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="146" cy="20" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<circle cx="71.2" cy="39.2" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
+<circle cx="146" cy="39.2" r="2.4" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s7">
-<line x1="44.8" y1="29.6" x2="54.4" y2="29.6" stroke="black" stroke-width="1.6"/>
+<line x1="119.6" y1="29.6" x2="129.2" y2="29.6" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s8">
-<line x1="44.097056" y1="21.697056" x2="55.102944" y2="27.902944" stroke="black" stroke-width="1.6"/>
+<line x1="118.897056" y1="21.697056" x2="129.902944" y2="27.902944" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s9">
-<line x1="44.097056" y1="37.502944" x2="55.102944" y2="31.297056" stroke="black" stroke-width="1.6"/>
+<line x1="118.897056" y1="37.502944" x2="129.902944" y2="31.297056" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s10">
-<line x1="59.2" y1="29.6" x2="68.8" y2="29.6" stroke="black" stroke-width="1.6"/>
+<line x1="134" y1="29.6" x2="143.6" y2="29.6" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s11">
-<line x1="58.497056" y1="27.902944" x2="69.502944" y2="21.697056" stroke="black" stroke-width="1.6"/>
+<line x1="133.297056" y1="27.902944" x2="144.302944" y2="21.697056" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s12">
-<line x1="58.497056" y1="31.297056" x2="69.502944" y2="37.502944" stroke="black" stroke-width="1.6"/>
+<line x1="133.297056" y1="31.297056" x2="144.302944" y2="37.502944" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s13">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="42.4" y="34.44" text-anchor="middle">$1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="117.2" y="34.44" text-anchor="middle">$1$</text>
 </g>
 <g id="s14">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="42.4" y="24.84" text-anchor="middle">$2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="117.2" y="24.84" text-anchor="middle">$2$</text>
 </g>
 <g id="s15">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="42.4" y="44.04" text-anchor="middle">$n$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="117.2" y="44.04" text-anchor="middle">$n$</text>
 </g>
 <g id="s16">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="56.8" y="34.44" text-anchor="middle">$j$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="131.6" y="34.44" text-anchor="middle">$j$</text>
 </g>
 <g id="s17">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="71.2" y="34.44" text-anchor="middle">$1$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="146" y="34.44" text-anchor="middle">$1$</text>
 </g>
 <g id="s18">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="71.2" y="24.84" text-anchor="middle">$2$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="146" y="24.84" text-anchor="middle">$2$</text>
 </g>
 <g id="s19">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="71.2" y="44.04" text-anchor="middle">$m$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="146" y="44.04" text-anchor="middle">$m$</text>
 </g>
 <g id="s20">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="34.44" text-anchor="middle">{\small entradas}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="76.4" y="34.44" text-anchor="middle">{\small entradas}</text>
 </g>
 <g id="s21">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="102.4" y="34.44" text-anchor="middle">{\small saídas}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="177.2" y="34.44" text-anchor="middle">{\small saídas}</text>
 </g>
 <g id="s22">
-<polyline points="112,48.8 64,48.8 56.8,48.8" fill="none" stroke="black" stroke-width="1.6"/>
-<text font-size="11pt" stroke-width="0.2pt" fill="black" x="84.4" y="46.133333" text-anchor="middle">{\small unidade de processamento}</text>
+<polyline points="186.8,48.8 138.8,48.8 131.6,48.8" fill="none" stroke="black" stroke-width="1.6"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="159.2" y="46.133333" text-anchor="middle">{\small unidade de processamento}</text>
 </g>
 <g id="s23">
-<polyline points="56.8,48.8 56.8,0.8 56.8,38.301515" fill="none" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="59.2,32 56.8,41.6 54.4,32" fill="black"/>
+<polyline points="131.6,48.8 131.6,0.8 131.6,38.301515" fill="none" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="134,32 131.6,41.6 129.2,32" fill="black"/>
 </g>
 </svg>

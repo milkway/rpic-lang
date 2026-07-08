@@ -26,6 +26,11 @@ resolves to the latest version.
 
 ### Fixed
 
+- **Standalone labels (`"text" at P`) no longer clip at the page edge.** Their
+  glyph ink is now included in the drawing bounds — matching what attached
+  labels already did — so a wide or edge-anchored label is fully visible without
+  a hand-tuned `margin`. This intentionally diverges from dpic, which bounds
+  attached-label ink but leaves standalone labels zero-width (and so clips them).
 - **A quoted `"0xRRGGBB"` colour string no longer slips through to invalid
   SVG.** It is normalised to `#rrggbb` (the bare `0xRRGGBB` literal already
   worked); previously the string form was emitted verbatim as `stroke="0x…"`,

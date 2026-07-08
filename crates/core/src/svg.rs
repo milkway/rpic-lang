@@ -1003,14 +1003,12 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
     if text.is_empty() {
         return bb;
     }
-    let mut half_w = w.abs() / 2.0;
-    if half_w <= 1e-12 {
-        half_w = text
-            .iter()
-            .filter(|line| line.halign != 0 && !line.s.is_empty())
-            .map(|line| line.text_offset.abs())
-            .fold(0.0, f64::max);
-    }
+    // An explicit `wid` keeps the classic symmetric box; otherwise each line is
+    // bounded by its actual glyph ink (like `attached_text_bounds`), so edge
+    // labels no longer clip (#270).
+    let explicit_w = w.abs() > 1e-12;
+    let half_w = w.abs() / 2.0;
+    let char_w = 0.6 * FONT_PT / 72.0;
     let n = text.len() as f64;
     let v = n - 1.0 + DP_TEXT_RATIO;
     let lineskip = if h.abs() > 1e-12 && v.abs() > 1e-12 {
@@ -1055,10 +1053,17 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
             continue;
         }
         let y = baseline_y + (line.valign as f64) * just_offset;
-        let (min, max) = (
-            Point::new(at.x - half_w, y),
-            Point::new(at.x + half_w, y + xheight),
-        );
+        let (min_x, max_x) = if explicit_w {
+            (at.x - half_w, at.x + half_w)
+        } else {
+            let gw = line.s.chars().count() as f64 * char_w * line.width_factor();
+            match line.halign {
+                -1 => (x, x + gw),
+                1 => (x - gw, x),
+                _ => (x - gw / 2.0, x + gw / 2.0),
+            }
+        };
+        let (min, max) = (Point::new(min_x, y), Point::new(max_x, y + xheight));
         match line.rotate {
             Some(deg) => bb.add_rect_rotated(min, max, deg),
             None => {
@@ -2031,14 +2036,33 @@ mod tests {
     #[test]
     fn standalone_text_below_offsets_svg_baseline_like_dpic() {
         let s = svg(".PS\nscale=0.25\nline up 0.05 from (0,0)\n\"0\" below at (0,0)\n.PE");
+        // Baseline (y) still matches dpic; the width now bounds the glyph ink
+        // instead of dpic's zero-width standalone box (#270) — dpic would emit
+        // width 3.2, clipping wide standalone labels at the page edge.
         assert!(
-            s.contains("width=\"3.2\" height=\"34.746667\" viewBox=\"0 0 3.2 34.746667\""),
+            s.contains("width=\"12\" height=\"34.746667\" viewBox=\"0 0 12 34.746667\""),
             "{s}"
         );
         assert!(
-            s.contains("stroke-width=\"0.266667\" fill=\"black\" x=\"1.066667\" y=\"32.08\""),
+            s.contains("stroke-width=\"0.266667\" fill=\"black\" x=\"5.466667\" y=\"32.08\""),
             "{s}"
         );
+    }
+
+    #[test]
+    fn standalone_label_ink_is_bounded_not_clipped() {
+        // A wide standalone label used to leave the viewBox (dpic-faithful but
+        // clipped at the page edge); now its glyph extent is inside the bounds.
+        // rjust text extends left of its anchor — the bounds must reach there.
+        let s = svg(".PS\n\"wide label here\" rjust at (0,0)\n.PE");
+        let vb = s
+            .split("viewBox=\"")
+            .nth(1)
+            .and_then(|t| t.split('"').next())
+            .unwrap();
+        let w: f64 = vb.split_whitespace().nth(2).unwrap().parse().unwrap();
+        // 15 chars at ~8.8px each ⇒ well over 100px, not the old ~8px stub
+        assert!(w > 100.0, "viewBox too narrow, label clipped: {vb}");
     }
 
     #[test]
