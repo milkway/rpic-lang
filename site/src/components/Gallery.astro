@@ -19,17 +19,28 @@ function studioLink(relPath: string): string | null {
   return studioUrl(source);
 }
 
+// Curated (#157): classics first, then programmability, TeX labels, the
+// circuit library, and 3D projection — each row pairing on the 2-col grid.
 const entries: { path: string; caption: string; credit: string; circuits?: boolean; texlabels?: boolean }[] = [
-  { path: 'examples/dpic/sources/diag1.pic', caption: 'Feedback control loop', credit: 'dpic examples — rendered with -t', texlabels: true },
+  // the classics — Kernighan's manual figures
+  { path: 'examples/pipeline.pic', caption: 'The troff pipeline (1982)', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man29.pic', caption: 'Compiler structure', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man36.pic', caption: 'Binary heaps', credit: "Kernighan's pic manual" },
   { path: 'examples/dpic/manual/man35.pic', caption: 'Sorting network', credit: "Kernighan's pic manual" },
-  { path: 'examples/pipeline.pic', caption: 'The troff pipeline', credit: "Kernighan's pic manual" },
-  { path: 'examples/dpic/manual/man16.pic', caption: 'Compass anchors reference', credit: "Kernighan's pic manual" },
-  { path: 'examples/dpic/manual/man30.pic', caption: 'Minicomputer system', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man19.pic', caption: 'Master/slave in 3D, dvips colours', credit: "Kernighan's pic manual" },
+  { path: 'examples/dpic/manual/man50.pic', caption: 'No smoking — arcs and fills', credit: "Kernighan's pic manual" },
+  // programmability — loops and expressions drawing maths
+  { path: 'examples/dpic/shapes/trochoid.pic', caption: 'Trochoid, one for loop', credit: 'dpic examples' },
+  { path: 'examples/ease-gallery.pic', caption: 'GSAP easing curves, plotted by rpic', credit: 'rpic examples' },
+  // TeX labels
+  { path: 'examples/dpic/sources/diag1.pic', caption: 'Feedback control loop', credit: 'dpic examples — rendered with -t', texlabels: true },
+  // the circuit-element library
+  { path: 'examples/logic.pic', caption: 'Logic gates', credit: 'rpic circuit library', circuits: true },
   { path: 'examples/flashlight.pic', caption: 'Flashlight circuit', credit: 'rpic circuit library', circuits: true },
   { path: 'examples/rlc.pic', caption: 'RLC loop', credit: 'rpic circuit library', circuits: true },
-  { path: 'examples/figuras/fig14.pic', caption: 'Pulse train with dimensions', credit: 'circuit_macros figures — with -t', circuits: true, texlabels: true },
-  { path: 'examples/figuras/fig09.pic', caption: 'Transform pair', credit: 'circuit_macros figures — with -t', circuits: true, texlabels: true },
-  { path: 'examples/lib3d/frame.pic', caption: 'Axonometric frame', credit: 'lib3D projection library', circuits: true },
+  { path: 'examples/figuras/fig23.pic', caption: 'Differential pair', credit: 'circuit_macros figures — with -t', circuits: true, texlabels: true },
+  // 3D projection
+  { path: 'examples/lib3d/views.pic', caption: 'One cube, three viewpoints', credit: 'lib3D projection library', circuits: true },
 ];
 
 // Display every figure at the same zoom (0.78x natural) so type sizes look
