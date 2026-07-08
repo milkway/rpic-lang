@@ -21,7 +21,11 @@ pub fn init_math() {
 /// bundle (or `{error, error_info}`).
 #[wasm_bindgen]
 pub fn compile(src: &str) -> String {
-    rpic_core::compile_json(src)
+    // Force Deny like the other entry points: wasm has no filesystem, so a
+    // `copy "file"` should fail with the clean policy error rather than the
+    // opaque io error `compile_json`'s Unrestricted default would give (#286).
+    // The reserved `copy "circuits"` still works under Deny.
+    compile_with(src, false, false)
 }
 
 /// Like [`compile`], but with the native circuit-element library loaded

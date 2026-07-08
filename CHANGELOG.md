@@ -12,6 +12,12 @@ resolves to the latest version.
 
 ### Added
 
+- **C ABI: full compile options via `*_ex` entry points.** A new `RpicOptions`
+  struct and `rpic_render_svg_ex` / `rpic_compile_json_ex` / `rpic_render_png_ex`
+  / `rpic_render_pdf_ex` let C/R embedders enable `texlabels`, sandbox
+  `copy "file"` includes (`include_policy` 0/1/2), and set the include `base` —
+  the circuits-only functions (unchanged ABI) previously exposed none of these,
+  so untrusted-input embedders had no way to restrict filesystem access.
 - **`thin` line-thickness keyword.** A pikchr-flavoured convenience for a
   lighter stroke — `line thin` / `box thin`, no value — set to two-thirds of the
   current `linethick`, so it tracks your global line width. Complements the
@@ -46,6 +52,11 @@ resolves to the latest version.
   return a "nested too deeply" error instead of overflowing the stack, and a
   `sprintf` precision like `"%.999999999f"` is clamped (to 512 digits) instead
   of allocating gigabytes.
+- **wasm `compile()` denies filesystem includes like its siblings.** It
+  delegated to the Unrestricted-default core entry, so a `copy "file"` gave an
+  opaque io error instead of the clean policy error `compile_circuits`/
+  `compile_with` return; it now forces `Deny` (wasm has no filesystem;
+  `copy "circuits"` still works).
 - **A gradient-only fill now honours `opacity`.** `box gradient … opacity 0.3`
   rendered fully opaque, while solid `fill`/`shaded` and `hatch` fills (and
   gradient+hatch) honoured it — the opacity predicate didn't count a gradient as
