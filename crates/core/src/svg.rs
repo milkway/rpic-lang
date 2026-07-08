@@ -124,6 +124,14 @@ impl Svg {
                     if *rad > 0.0 {
                         attrs.push_str(&format!(" rx=\"{}\"", num(rad * PPI)));
                     }
+                    if let Some(fill) = self.underlay_fill(style) {
+                        self.out.push_str(&format!(
+                            "<rect {} fill=\"{}\"{}/>\n",
+                            attrs,
+                            fill,
+                            fill_opacity_attr(style)
+                        ));
+                    }
                     let paint = self.paint(style);
                     self.out.push_str(&format!("<rect {} {}/>\n", attrs, paint));
                 }
@@ -134,14 +142,22 @@ impl Svg {
             } => {
                 if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
-                    let paint = self.paint(style);
-                    self.out.push_str(&format!(
-                        "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" {}/>\n",
+                    let geo = format!(
+                        "cx=\"{}\" cy=\"{}\" r=\"{}\"",
                         num(cc.x),
                         num(cc.y),
-                        num(r.abs() * PPI),
-                        paint
-                    ));
+                        num(r.abs() * PPI)
+                    );
+                    if let Some(fill) = self.underlay_fill(style) {
+                        self.out.push_str(&format!(
+                            "<circle {} fill=\"{}\"{}/>\n",
+                            geo,
+                            fill,
+                            fill_opacity_attr(style)
+                        ));
+                    }
+                    let paint = self.paint(style);
+                    self.out.push_str(&format!("<circle {} {}/>\n", geo, paint));
                 }
                 self.text(*c, text);
             }
@@ -154,15 +170,24 @@ impl Svg {
             } => {
                 if closed_shape_is_visible(style) {
                     let cc = self.p(*c);
-                    let paint = self.paint(style);
-                    self.out.push_str(&format!(
-                        "<ellipse cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\" {}/>\n",
+                    let geo = format!(
+                        "cx=\"{}\" cy=\"{}\" rx=\"{}\" ry=\"{}\"",
                         num(cc.x),
                         num(cc.y),
                         num(w.abs() / 2.0 * PPI),
-                        num(h.abs() / 2.0 * PPI),
-                        paint
-                    ));
+                        num(h.abs() / 2.0 * PPI)
+                    );
+                    if let Some(fill) = self.underlay_fill(style) {
+                        self.out.push_str(&format!(
+                            "<ellipse {} fill=\"{}\"{}/>\n",
+                            geo,
+                            fill,
+                            fill_opacity_attr(style)
+                        ));
+                    }
+                    let paint = self.paint(style);
+                    self.out
+                        .push_str(&format!("<ellipse {} {}/>\n", geo, paint));
                 }
                 self.text(*c, text);
             }
@@ -197,22 +222,24 @@ impl Svg {
                             })
                             .collect();
                         if style.fill_open {
-                            let fill = self.fill_attr(style);
-                            if *closed {
+                            let el = if *closed { "polygon" } else { "polyline" };
+                            if let Some(fill) = self.underlay_fill(style) {
                                 self.out.push_str(&format!(
-                                    "<polygon points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
-                                    pstr.join(" "),
-                                    fill,
-                                    fill_opacity_attr(style)
-                                ));
-                            } else {
-                                self.out.push_str(&format!(
-                                    "<polyline points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                    "<{} points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                    el,
                                     pstr.join(" "),
                                     fill,
                                     fill_opacity_attr(style)
                                 ));
                             }
+                            let fill = self.fill_attr(style);
+                            self.out.push_str(&format!(
+                                "<{} points=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                el,
+                                pstr.join(" "),
+                                fill,
+                                fill_opacity_attr(style)
+                            ));
                         }
                         if !style.invis {
                             let stroke_pstr: Vec<String> = stroke_pts
@@ -252,6 +279,14 @@ impl Svg {
                 if pts.len() >= 2 {
                     if style.fill_open {
                         let d = self.spline_path(pts, *tension);
+                        if let Some(fill) = self.underlay_fill(style) {
+                            self.out.push_str(&format!(
+                                "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                                d,
+                                fill,
+                                fill_opacity_attr(style)
+                            ));
+                        }
                         let fill = self.fill_attr(style);
                         self.out.push_str(&format!(
                             "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
@@ -290,6 +325,14 @@ impl Svg {
                 let arc_angle0 = *a1 - *a0;
                 if style.fill_open {
                     let d = self.arc_path(start0, end0, *r, arc_angle0);
+                    if let Some(fill) = self.underlay_fill(style) {
+                        self.out.push_str(&format!(
+                            "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
+                            d,
+                            fill,
+                            fill_opacity_attr(style)
+                        ));
+                    }
                     let fill = self.fill_attr(style);
                     self.out.push_str(&format!(
                         "<path d=\"{}\" fill=\"{}\"{} stroke-width=\"0\" stroke=\"black\"/>\n",
@@ -455,6 +498,17 @@ impl Svg {
         }
     }
 
+    /// When hatch and gradient combine, the gradient must be painted by a
+    /// separate element *under* the hatch pattern: a pattern tile is stamped
+    /// once and replicated, so a gradient inside it restarts in every cell
+    /// instead of spanning the object (#273). Returns the underlay's fill.
+    fn underlay_fill(&mut self, style: &Style) -> Option<String> {
+        match (&style.hatch, &style.gradient) {
+            (Some(_), Some(g)) => Some(format!("url(#{})", self.define_linear_gradient(g))),
+            _ => None,
+        }
+    }
+
     fn define_linear_gradient(&mut self, g: &Gradient) -> String {
         let id = format!("grad{}", self.next_pattern);
         self.next_pattern += 1;
@@ -495,10 +549,10 @@ impl Svg {
         let sep = positive_extent(hatch.sep * PPI).max(1.0);
         let width = (hatch.width.max(0.0) * PPI / 72.0).max(0.0);
         let color = attr(&hatch.color);
-        let bg = match &style.gradient {
-            Some(g) => format!("url(#{})", self.define_linear_gradient(g)),
-            None => self.fill_value(style),
-        };
+        // A gradient background is painted by an underlay element (see
+        // `underlay_fill`), never inside the tile; a solid fill is uniform, so
+        // per-tile is indistinguishable from per-object and stays here.
+        let bg = self.fill_value(style);
         self.out.push_str(&format!(
             "<defs><pattern id=\"{}\" patternUnits=\"userSpaceOnUse\" width=\"{}\" height=\"{}\" patternTransform=\"rotate({})\">\n",
             id,
@@ -2249,14 +2303,19 @@ mod tests {
 
     #[test]
     fn gradient_composes_with_hatch_and_opacity() {
-        // gradient becomes the hatch pattern background, and fill-opacity
-        // still applies to the composed fill
+        // the gradient is painted by an underlay element spanning the object,
+        // with the hatch pattern (transparent tile) on top — inside the tile
+        // it would restart in every cell (#273); fill-opacity rides both
         let s = svg("box gradient \"gold\" \"white\" hatch opacity 0.5");
-        assert!(s.contains("<linearGradient id=\"grad1\""), "{s}");
-        assert!(s.contains("<pattern id=\"hatch0\""), "{s}");
-        assert!(s.contains("fill=\"url(#grad1)\"/>"), "{s}"); // pattern bg rect
-        assert!(s.contains("fill=\"url(#hatch0)\""), "{s}"); // shape fill
-        assert!(s.contains("fill-opacity=\"0.5\""), "{s}");
+        assert!(s.contains("<linearGradient id=\"grad0\""), "{s}");
+        assert!(s.contains("<pattern id=\"hatch1\""), "{s}");
+        let under = s.find("fill=\"url(#grad0)\"").expect("gradient underlay");
+        let main = s.find("fill=\"url(#hatch1)\"").expect("hatch fill");
+        assert!(under < main, "underlay must be painted before the hatch");
+        // the pattern tile must NOT embed the gradient
+        let pattern = &s[s.find("<pattern").unwrap()..s.find("</pattern>").unwrap()];
+        assert!(!pattern.contains("url(#grad"), "{s}");
+        assert_eq!(s.matches("fill-opacity=\"0.5\"").count(), 2, "{s}");
     }
 
     #[test]

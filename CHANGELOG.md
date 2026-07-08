@@ -39,6 +39,13 @@ resolves to the latest version.
 
 ### Fixed
 
+- **`gradient` + `hatch` now paints one gradient across the whole object.** An
+  SVG pattern tile is stamped once and replicated, so the gradient embedded as
+  the tile background restarted in every hatch cell (a "quilted" look) instead
+  of spanning the object. The gradient is now painted by a separate underlay
+  element with the hatch pattern (transparent tile) on top — in every shape
+  kind, and identically in browsers and the PNG/PDF rasterizer. A solid
+  `fill`/`shaded` background is uniform, so it stays in the tile as before.
 - **`define`s inside `exec` now persist, and the `dpicopt`/`opt*` constants
   match dpic's.** A macro defined by exec'd text landed in a discarded clone of
   the macro table, and the backend-option constants were zero-based where dpic's

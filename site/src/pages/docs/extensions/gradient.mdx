@@ -32,9 +32,10 @@ move right 0.35
 line right 0.9 then up 0.65 close gradient "plum" "indigo" gradientangle 90 outlined "black"
 .PE`} />
 
-- `gradient` takes the fill slot (wins over `fill`/`shaded`); under
-  [`hatch`](/docs/extensions/hatch) it becomes the pattern background;
-  [`opacity`](/docs/extensions/opacity) applies to the result.
+- `gradient` takes the fill slot (wins over `fill`/`shaded`); with
+  [`hatch`](/docs/extensions/hatch) it paints once across the whole object,
+  under the hatch lines; [`opacity`](/docs/extensions/opacity) applies to the
+  result.
 - Colors use the same grammar as `shaded` — quoted or bare names.
 - Deferred by design: multi-stop lists, radial gradients, per-stop opacity.
 - Rendered as native SVG `<linearGradient>` — PNG/PDF rasterize

@@ -537,8 +537,9 @@ and rasterizes identically in PNG/PDF (resvg/svg2pdf support it natively).
 Composition follows the fill slot:
 
 - `gradient` takes precedence over `fill`/`shaded` on the same object;
-- combined with `hatch`/`crosshatch`, the gradient becomes the pattern
-  background behind the hatch lines;
+- combined with `hatch`/`crosshatch`, the gradient paints once across the
+  whole object, under the hatch lines (an underlay element in the SVG — a
+  gradient inside the pattern tile would restart in every cell);
 - `opacity` applies to the composed fill as usual.
 
 Deferred extensions (each additive later): multi-stop lists,
