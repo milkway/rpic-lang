@@ -862,18 +862,21 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
         return t.clone();
     }
     let mut s = String::new();
-    let mut prev: Option<(u32, u32, usize)> = None; // line, col, rendered len
+    let mut prev: Option<(u32, u32)> = None; // previous token's source line, end_col
     for t in material {
         let piece = arg_token_text(&t.tok);
         if piece.is_empty() {
             continue;
         }
-        if let Some((pline, pcol, plen)) = prev {
-            let end = pcol as usize + plen;
+        if let Some((pline, pend)) = prev {
+            // Spacing comes from the SOURCE spans, not the rendered lengths:
+            // a token that renders shorter/longer than its source (a
+            // normalized float `1.50`→`1.5`, an escaped string) must not skew
+            // the gap test (#282 follow-up).
             let sep = if t.line != pline {
                 true
-            } else if t.col as usize >= end {
-                t.col as usize > end
+            } else if t.col >= pend {
+                t.col > pend
             } else {
                 // spans not comparable (mixed provenance): separate only
                 // where gluing could merge word-like tokens
@@ -885,7 +888,7 @@ fn tokens_to_text(toks: &[Spanned]) -> String {
             }
         }
         s.push_str(&piece);
-        prev = Some((t.line, t.col, piece.chars().count()));
+        prev = Some((t.line, t.end_col));
     }
     s
 }

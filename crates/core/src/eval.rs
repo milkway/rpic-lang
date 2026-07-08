@@ -6065,6 +6065,14 @@ box wid 0.1 ht 0.1 at B.s"#,
             panic!()
         };
         assert_eq!(text[0].s, "hello");
+        // a token that renders shorter than its source span (a normalized
+        // float `1.50`→`1.5`) must not skew the gap test into spurious spaces
+        // — spacing comes from the source spans, not rendered lengths
+        let d = draw("define lbl { box \"$1\" }\nlbl((1.50,2.50))");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "(1.5,2.5)");
     }
 
     #[test]

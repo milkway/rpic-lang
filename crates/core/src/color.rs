@@ -366,6 +366,24 @@ mod tests {
     }
 
     #[test]
+    fn every_valid_xcolor_name_actually_renders() {
+        // `is_valid_color` accepts every XCOLOR_NAMED entry (so it doesn't
+        // warn), so each MUST render to real paint — either it's also a CSS
+        // keyword the browser knows, or we remap it to hex. A future name that
+        // is neither would validate yet paint nothing (the silent-blank-ink
+        // failure this module exists to prevent).
+        for name in XCOLOR_NAMED {
+            let is_css = CSS_NAMED
+                .binary_search(&name.to_ascii_lowercase().as_str())
+                .is_ok();
+            assert!(
+                is_css || xcolor_hex(name).is_some(),
+                "{name} is a valid xcolor name but neither a CSS keyword nor remapped to hex — it would render blank"
+            );
+        }
+    }
+
+    #[test]
     fn xcolor_hex_maps_non_css_names_only() {
         // dvipsnam.def: Dandelion = cmyk(0,.29,.84,0) -> rgb(1,.71,.16)
         assert_eq!(xcolor_hex("Dandelion"), Some("#ffb529"));
