@@ -46,6 +46,10 @@ resolves to the latest version.
   return a "nested too deeply" error instead of overflowing the stack, and a
   `sprintf` precision like `"%.999999999f"` is clamped (to 512 digits) instead
   of allocating gigabytes.
+- **A gradient-only fill now honours `opacity`.** `box gradient … opacity 0.3`
+  rendered fully opaque, while solid `fill`/`shaded` and `hatch` fills (and
+  gradient+hatch) honoured it — the opacity predicate didn't count a gradient as
+  a fill.
 - **Macro-argument splices (`"$n"` inside a string) reproduce the argument's
   source text.** A multi-token argument used to be glued without separators,
   with keywords silently dropped and string quotes stripped — a statically

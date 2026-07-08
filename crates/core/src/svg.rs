@@ -1624,7 +1624,9 @@ fn closed_shape_is_visible(style: &Style) -> bool {
 }
 
 fn fill_opacity_attr(style: &Style) -> String {
-    if style.fill.is_none() && style.hatch.is_none() {
+    // A gradient is a fill too (#285) — without it here, `box gradient … opacity`
+    // rendered fully opaque while solid and hatch fills honoured the opacity.
+    if style.fill.is_none() && style.hatch.is_none() && style.gradient.is_none() {
         return String::new();
     }
     match style.fill_opacity {
@@ -2299,6 +2301,13 @@ mod tests {
         // classic output carries no gradient defs
         let plain = svg("box\ncircle fill 0.5");
         assert!(!plain.contains("linearGradient"), "{plain}");
+
+        // #285: a gradient-only fill honours opacity (like solid/hatch fills)
+        let s = svg("box gradient \"gold\" \"red\" opacity 0.3");
+        assert!(
+            s.contains("fill=\"url(#grad0)\" fill-opacity=\"0.3\""),
+            "{s}"
+        );
     }
 
     #[test]
