@@ -38,12 +38,14 @@ impl std::fmt::Display for EvalError {
 
 type ER<T> = Result<T, EvalError>;
 
-const DP_TEXT_RATIO: f64 = 0.66;
-const TEXT_EM: f64 = 11.0 / 72.0;
+// Text metrics derive from the shared source of truth in `ir` (#291) — the
+// SVG backend consumes the same constants, so the layout bbox and the
+// rendered geometry cannot silently desync.
+use crate::ir::{DP_TEXT_RATIO, TEXT_EM_IN as TEXT_EM};
 /// Label font size in points, matching the SVG backend's `FONT_PT`.
-const FONT_PT_MATH: f64 = 11.0;
-const TEXT_CHAR_W: f64 = 0.6 * TEXT_EM;
-const TEXT_LINE_H: f64 = 1.2 * TEXT_EM;
+const FONT_PT_MATH: f64 = crate::ir::FONT_PT_CLASSIC;
+const TEXT_CHAR_W: f64 = crate::ir::TEXT_CHAR_W_RATIO * TEXT_EM;
+const TEXT_LINE_H: f64 = crate::ir::TEXT_LINE_H_RATIO * TEXT_EM;
 const TEXT_XHEIGHT: f64 = DP_TEXT_RATIO * TEXT_EM;
 const DEFAULT_BRACE_DEPTH: f64 = 0.18;
 const DEFAULT_BRACE_POS: f64 = 0.5;
@@ -3691,10 +3693,7 @@ struct PendingStyle {
 /// Line advance width: exact metrics for typeset math, the classic
 /// 0.6 em/char estimate otherwise (scaled by the line's font style).
 fn text_line_width(line: &TextLine) -> f64 {
-    match &line.math {
-        Some(m) => m.width,
-        None => line.s.chars().count() as f64 * TEXT_CHAR_W * line.width_factor(),
-    }
+    line.ink_width_in()
 }
 
 fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
