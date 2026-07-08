@@ -42,6 +42,47 @@ fn opts(circuits: c_int) -> rpic_core::CompileOptions {
     }
 }
 
+/// Full compile options for the `*_ex` entry points — the C mirror of
+/// [`rpic_core::CompileOptions`], so C/R embedders can enable `texlabels`,
+/// sandbox `copy "file"` includes, and set the include base directory (the
+/// circuits-only functions above cover the common case and stay for ABI
+/// stability). All fields default to the circuits-only behaviour when zeroed.
+#[repr(C)]
+pub struct RpicOptions {
+    /// Load the embedded circuit-element library (nonzero = on).
+    pub circuits: c_int,
+    /// Inject `texlabels = 1` (nonzero = on); the source can still override it.
+    pub texlabels: c_int,
+    /// `copy "file"` policy: 0 = unrestricted (CLI default), 1 = sandboxed to
+    /// `base`, 2 = deny all filesystem includes. Any other value = unrestricted.
+    pub include_policy: c_int,
+    /// Directory `copy "file"` resolves against; NULL = none.
+    pub base: *const c_char,
+}
+
+/// Build [`CompileOptions`] from a C options struct (NULL = circuits-only
+/// defaults).
+///
+/// # Safety
+/// `ex` must be null or point to a valid `RpicOptions`; its `base`, if set,
+/// must be a valid NUL-terminated string for the call.
+unsafe fn opts_ex(ex: *const RpicOptions) -> rpic_core::CompileOptions {
+    let Some(o) = (unsafe { ex.as_ref() }) else {
+        return rpic_core::CompileOptions::default();
+    };
+    let includes = match o.include_policy {
+        1 => rpic_core::IncludePolicy::SandboxedToBase,
+        2 => rpic_core::IncludePolicy::Deny,
+        _ => rpic_core::IncludePolicy::Unrestricted,
+    };
+    rpic_core::CompileOptions {
+        circuits: o.circuits != 0,
+        texlabels: o.texlabels != 0,
+        base: unsafe { as_str(o.base) }.map(std::path::PathBuf::from),
+        includes,
+    }
+}
+
 fn to_c_string(s: String) -> *mut c_char {
     match CString::new(s) {
         Ok(c) => c.into_raw(),
@@ -60,20 +101,75 @@ fn to_c_bytes(bytes: Vec<u8>, out_len: *mut usize) -> *mut u8 {
     p
 }
 
+// ---- internal implementations (shared by the plain and `_ex` entry points) --
+
+fn render_svg_impl(src: *const c_char, o: &rpic_core::CompileOptions) -> *mut c_char {
+    let Some(s) = (unsafe { as_str(src) }) else {
+        return ptr::null_mut();
+    };
+    ensure_math_renderer();
+    match rpic_core::render_svg_with_options(s, o) {
+        Ok(svg) => to_c_string(svg),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+fn compile_json_impl(src: *const c_char, o: &rpic_core::CompileOptions) -> *mut c_char {
+    let Some(s) = (unsafe { as_str(src) }) else {
+        return ptr::null_mut();
+    };
+    ensure_math_renderer();
+    to_c_string(rpic_core::compile_json_with_options(s, o))
+}
+
+fn render_png_impl(
+    src: *const c_char,
+    scale: c_double,
+    o: &rpic_core::CompileOptions,
+    out_len: *mut usize,
+) -> *mut u8 {
+    let Some(s) = (unsafe { as_str(src) }) else {
+        return ptr::null_mut();
+    };
+    ensure_math_renderer();
+    let svg = match rpic_core::render_svg_with_options(s, o) {
+        Ok(v) => v,
+        Err(_) => return ptr::null_mut(),
+    };
+    match rpic_render::to_png(&svg, scale as f32) {
+        Ok(bytes) => to_c_bytes(bytes, out_len),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+fn render_pdf_impl(
+    src: *const c_char,
+    o: &rpic_core::CompileOptions,
+    out_len: *mut usize,
+) -> *mut u8 {
+    let Some(s) = (unsafe { as_str(src) }) else {
+        return ptr::null_mut();
+    };
+    ensure_math_renderer();
+    let svg = match rpic_core::render_svg_with_options(s, o) {
+        Ok(v) => v,
+        Err(_) => return ptr::null_mut(),
+    };
+    match rpic_render::to_pdf(&svg) {
+        Ok(bytes) => to_c_bytes(bytes, out_len),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
+// ---- circuits-only entry points (unchanged ABI) ----------------------------
+
 /// Render pic source to an SVG string. NULL on error.
 ///
 /// # Safety
 /// `src` must be a valid NUL-terminated UTF-8 string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpic_render_svg(src: *const c_char, circuits: c_int) -> *mut c_char {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    match rpic_core::render_svg_with_options(s, &opts(circuits)) {
-        Ok(svg) => to_c_string(svg),
-        Err(_) => ptr::null_mut(),
-    }
+    render_svg_impl(src, &opts(circuits))
 }
 
 /// Compile to the JSON `{svg, animations, diagnostics, warnings, objects}`
@@ -84,11 +180,7 @@ pub unsafe extern "C" fn rpic_render_svg(src: *const c_char, circuits: c_int) ->
 /// `src` must be a valid NUL-terminated UTF-8 string.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpic_compile_json(src: *const c_char, circuits: c_int) -> *mut c_char {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    to_c_string(rpic_core::compile_json_with_options(s, &opts(circuits)))
+    compile_json_impl(src, &opts(circuits))
 }
 
 /// Render to PNG. Writes the length to `out_len`; returns the buffer or NULL.
@@ -102,18 +194,7 @@ pub unsafe extern "C" fn rpic_render_png(
     circuits: c_int,
     out_len: *mut usize,
 ) -> *mut u8 {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    let svg = match rpic_core::render_svg_with_options(s, &opts(circuits)) {
-        Ok(v) => v,
-        Err(_) => return ptr::null_mut(),
-    };
-    match rpic_render::to_png(&svg, scale as f32) {
-        Ok(bytes) => to_c_bytes(bytes, out_len),
-        Err(_) => ptr::null_mut(),
-    }
+    render_png_impl(src, scale, &opts(circuits), out_len)
 }
 
 /// Render to PDF. Writes the length to `out_len`; returns the buffer or NULL.
@@ -126,18 +207,62 @@ pub unsafe extern "C" fn rpic_render_pdf(
     circuits: c_int,
     out_len: *mut usize,
 ) -> *mut u8 {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    let svg = match rpic_core::render_svg_with_options(s, &opts(circuits)) {
-        Ok(v) => v,
-        Err(_) => return ptr::null_mut(),
-    };
-    match rpic_render::to_pdf(&svg) {
-        Ok(bytes) => to_c_bytes(bytes, out_len),
-        Err(_) => ptr::null_mut(),
-    }
+    render_pdf_impl(src, &opts(circuits), out_len)
+}
+
+// ---- full-options entry points (`_ex`, mirror `RpicOptions`) ----------------
+
+/// Like [`rpic_render_svg`] with full [`RpicOptions`] (NULL = circuits-off
+/// defaults).
+///
+/// # Safety
+/// `src` must be a valid NUL-terminated UTF-8 string; `ex` null or a valid
+/// `RpicOptions` (its `base`, if set, a valid NUL-terminated string).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_render_svg_ex(
+    src: *const c_char,
+    ex: *const RpicOptions,
+) -> *mut c_char {
+    render_svg_impl(src, &unsafe { opts_ex(ex) })
+}
+
+/// Like [`rpic_compile_json`] with full [`RpicOptions`] (NULL = defaults).
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_compile_json_ex(
+    src: *const c_char,
+    ex: *const RpicOptions,
+) -> *mut c_char {
+    compile_json_impl(src, &unsafe { opts_ex(ex) })
+}
+
+/// Like [`rpic_render_png`] with full [`RpicOptions`] (NULL = defaults).
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`]; `out_len` must be a valid pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_render_png_ex(
+    src: *const c_char,
+    scale: c_double,
+    ex: *const RpicOptions,
+    out_len: *mut usize,
+) -> *mut u8 {
+    render_png_impl(src, scale, &unsafe { opts_ex(ex) }, out_len)
+}
+
+/// Like [`rpic_render_pdf`] with full [`RpicOptions`] (NULL = defaults).
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`]; `out_len` must be a valid pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_render_pdf_ex(
+    src: *const c_char,
+    ex: *const RpicOptions,
+    out_len: *mut usize,
+) -> *mut u8 {
+    render_pdf_impl(src, &unsafe { opts_ex(ex) }, out_len)
 }
 
 /// Free a string returned by `rpic_render_svg` / `rpic_compile_json`.
@@ -192,5 +317,36 @@ mod tests {
         assert!(json.contains("<svg x=\\\""), "{json}");
         assert!(!json.contains("no math renderer"), "{json}");
         assert!(!json.contains("frac"), "{json}");
+    }
+
+    #[test]
+    fn c_api_ex_exposes_texlabels_flag_and_deny_policy() {
+        // #286: the `_ex` entry point can enable texlabels as a flag …
+        let src = CString::new("box \"$-\\frac{T}{2}$\" wid 1 ht 0.7").unwrap();
+        let opts = RpicOptions {
+            circuits: 0,
+            texlabels: 1,
+            include_policy: 0,
+            base: ptr::null(),
+        };
+        let svg = string_from_owned_ptr(unsafe { rpic_render_svg_ex(src.as_ptr(), &opts) });
+        assert!(!svg.contains("frac"), "texlabels flag not applied: {svg}");
+
+        // … and sandbox includes: policy 2 (Deny) turns a `copy "file"` into a
+        // clean policy error instead of a filesystem read
+        let inc = CString::new("copy \"/etc/hostname\"\nbox").unwrap();
+        let deny = RpicOptions {
+            circuits: 0,
+            texlabels: 0,
+            include_policy: 2,
+            base: ptr::null(),
+        };
+        let json = string_from_owned_ptr(unsafe { rpic_compile_json_ex(inc.as_ptr(), &deny) });
+        assert!(json.contains("error"), "expected an include error: {json}");
+
+        // NULL options == circuits-off defaults (no panic)
+        let plain = CString::new("box").unwrap();
+        let svg = string_from_owned_ptr(unsafe { rpic_render_svg_ex(plain.as_ptr(), ptr::null()) });
+        assert!(svg.contains("<svg"), "{svg}");
     }
 }
