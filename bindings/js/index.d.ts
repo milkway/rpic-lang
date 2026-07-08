@@ -2,10 +2,27 @@
 
 export interface Anim {
   id: string;
+  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" */
   effect: string;
   /** absolute start time in seconds */
   start: number;
   duration: number;
+  /** replay count; -1 loops forever. Present only when set. */
+  repeat?: number;
+  /** reverse on each repeat. Present only when set. */
+  yoyo?: boolean;
+  /** GSAP easing name overriding the effect's default. Present only when set. */
+  ease?: string;
+  /** id of the object whose path a `move` follows. Present only for `move`. */
+  path?: string;
+  /** target colour for `highlight` (`#rrggbb` or a name). Present only when set. */
+  color?: string;
+  /** play the effect as an exit (reverse) instead of an entrance. */
+  out?: boolean;
+  /** entry direction for `slide` ("up" | "down" | "left" | "right"). */
+  from?: string;
+  /** id of the shape a `morph` tweens into. Present only for `morph`. */
+  morph?: string;
 }
 
 export interface Diagnostic {
@@ -51,6 +68,11 @@ export interface Bundle {
   warnings: Diagnostic[];
   /** per-object geometry, index-aligned with the `<g id="sN">` groups */
   objects: ObjectGeometry[];
+  /**
+   * `true` when the source used `animate scroll`, hinting the host to scrub
+   * the timeline on scroll rather than autoplay. Present only when set.
+   */
+  scroll?: boolean;
 }
 
 export interface CompileError extends Error {

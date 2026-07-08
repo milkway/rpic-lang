@@ -229,9 +229,12 @@ const { svg, animations } = renderPicBundle(code, { circuits });
         enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
       }
     });
-    group.querySelectorAll('text').forEach((el) => {
-      tl.from(el, { opacity: 0, duration: 0.15 }, a.start + a.duration * 0.6);
-    });
+    // fade the labels in together as the trace nears completion — same timing
+    // as the npm player (bindings/js/index.js) so the two stay in lockstep
+    const texts = group.querySelectorAll('text');
+    if (texts.length) {
+      tl.from(texts, { opacity: 0, duration: a.duration * 0.6 }, a.start + a.duration * 0.4);
+    }
   }
 
   // One live timeline per stage: a replay mid-animation must kill the
@@ -276,6 +279,10 @@ const { svg, animations } = renderPicBundle(code, { circuits });
         case 'highlight':
           highlightWith(el, a, tl);
           break;
+        default:
+          // unknown effect: fade it in, mirroring the npm player
+          // (bindings/js/index.js) so the two stay in lockstep
+          enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
       }
     }
     timelines.set(stage, tl);

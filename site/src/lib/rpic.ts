@@ -34,9 +34,26 @@ function rpicBin(): string {
 const CACHE_DIR = resolve(process.cwd(), 'node_modules/.rpic-cache');
 const CACHE_VERSION = 2;
 
+/** One animation manifest entry. The trailing keys ride only when the source
+ *  sets them — mirrors `Anim` in bindings/js/index.d.ts and the player here. */
+export interface Anim {
+  id: string;
+  effect: string;
+  start: number;
+  duration: number;
+  repeat?: number;
+  yoyo?: boolean;
+  ease?: string;
+  path?: string;
+  color?: string;
+  out?: boolean;
+  from?: string;
+  morph?: string;
+}
+
 export interface Bundle {
   svg: string;
-  animations: { id: string; effect: string; start: number; duration: number }[];
+  animations: Anim[];
 }
 
 /** Render pic source to {svg, animations} via `rpic --json` (cached). */
