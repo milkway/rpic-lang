@@ -140,7 +140,10 @@ Attributes read left to right; when two conflict, the later one wins.
 | `shaded` *color* | `shaded "honeydew"` | Fill color |
 | `colored` *color* | `colored "teal"` | Stroke and fill at once |
 
-*color* is a CSS color name, quoted or bare: `"gold"` or `gold`.
+*color* is a CSS color name (quoted or bare: `"gold"` or `gold`), an
+`rgb(r,g,b)` literal, a `0xRRGGBB` hex number, or a variable/parenthesised
+expression holding one. An unknown name raises an `invalid_color` warning. See
+[colour literals](/docs/extensions/rotated#colour-literals-rgbrgb-and-0xrrggbb).
 
 ### Text on objects
 
@@ -293,11 +296,12 @@ expr        ::= NUMBER | name | place "." ("x"|"y")
               | func1 "(" expr ")" | func2 "(" expr "," expr ")"
               | "rand" "(" ")"
 op          ::= "+"|"-"|"*"|"/"|"%"|"^"|"=="|"!="|"<"|"<="|">"|">="|"&&"|"||"
-func1       ::= "sin"|"cos"|"log"|"exp"|"sqrt"|"int"
-func2       ::= "atan2"|"max"|"min"
+func1       ::= "sin"|"cos"|"tan"|"asin"|"acos"|"log"|"loge"|"exp"|"expe"
+              | "sqrt"|"int"|"floor"|"abs"|"sign"
+func2       ::= "atan2"|"max"|"min"|"pmod"
 string      ::= QUOTED | "sprintf" "(" QUOTED ("," expr)* ")"
               | string "+" string
-color       ::= QUOTED | name
+color       ::= QUOTED | name | "rgb" "(" expr "," expr "," expr ")" | HEX0X | expr
 label       ::= /[A-Z][A-Za-z0-9_]*/
 name        ::= /[a-z][A-Za-z0-9_]*/
 ```
