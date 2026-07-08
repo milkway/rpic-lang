@@ -9,8 +9,10 @@ use crate::geom::{Bbox, Point};
 use crate::ir::*;
 
 const PPI: f64 = 96.0;
-const FONT_PT: f64 = 11.0;
-const DP_TEXT_RATIO: f64 = 0.66;
+// Text metrics come from the shared source of truth in `ir` (#291):
+// `DP_TEXT_RATIO` arrives via the glob import above, and the label font size
+// derives from the same constant the evaluator's layout bbox uses.
+const FONT_PT: f64 = FONT_PT_CLASSIC;
 
 /// Render a drawing to an SVG document string.
 pub fn to_svg(d: &Drawing) -> String {
@@ -1062,7 +1064,6 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
     // labels no longer clip (#270).
     let explicit_w = w.abs() > 1e-12;
     let half_w = w.abs() / 2.0;
-    let char_w = 0.6 * FONT_PT / 72.0;
     let n = text.len() as f64;
     let v = n - 1.0 + DP_TEXT_RATIO;
     let lineskip = if h.abs() > 1e-12 && v.abs() > 1e-12 {
@@ -1110,7 +1111,7 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
         let (min_x, max_x) = if explicit_w {
             (at.x - half_w, at.x + half_w)
         } else {
-            let gw = line.s.chars().count() as f64 * char_w * line.width_factor();
+            let gw = line.ink_width_in();
             match line.halign {
                 -1 => (x, x + gw),
                 1 => (x - gw, x),
@@ -1135,9 +1136,8 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
     if text.iter().all(|line| line.s.is_empty()) {
         return bb;
     }
-    let em = FONT_PT / 72.0;
-    let char_w = 0.6 * em;
-    let line_h = 1.2 * em;
+    let em = TEXT_EM_IN;
+    let line_h = TEXT_LINE_H_RATIO * em;
     let xheight = DP_TEXT_RATIO * em;
     let n = text.len() as f64;
     let v = n - 1.0 + DP_TEXT_RATIO;
@@ -1145,7 +1145,7 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
         if line.s.is_empty() {
             continue;
         }
-        let w = line.s.chars().count() as f64 * char_w * line.width_factor();
+        let w = line.ink_width_in();
         let base_y = center.y - (i as f64 - (n - 1.0) / 2.0) * line_h;
         let y = base_y + line.valign as f64 * (xheight / 2.0 + line.text_offset);
         let x = center.x

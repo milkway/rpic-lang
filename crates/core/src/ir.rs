@@ -238,6 +238,21 @@ pub struct TextLine {
 /// Classic label size in points — the baseline `fontsize` scales against.
 pub(crate) const FONT_PT_CLASSIC: f64 = 11.0;
 
+// ---- shared text metrics (#291) ---------------------------------------------
+// The single source of truth for label sizing, consumed by BOTH the evaluator
+// (layout/canvas bbox) and the SVG backend (rendered ink bounds). They must
+// agree, or label bounds silently desync from label geometry — keep any font
+// sizing change here, never in a per-module copy.
+
+/// dpic's x-height : em ratio.
+pub(crate) const DP_TEXT_RATIO: f64 = 0.66;
+/// The classic label em in inches (11 pt at 72 pt/in).
+pub(crate) const TEXT_EM_IN: f64 = FONT_PT_CLASSIC / 72.0;
+/// Estimated average glyph advance, as a fraction of the em.
+pub(crate) const TEXT_CHAR_W_RATIO: f64 = 0.6;
+/// Line height, as a fraction of the em.
+pub(crate) const TEXT_LINE_H_RATIO: f64 = 1.2;
+
 impl TextLine {
     /// Width scale vs. the classic 11 pt regular estimate: explicit
     /// `fontsize` scales linearly; bold glyphs run ~5% wider.
@@ -250,6 +265,18 @@ impl TextLine {
     /// Height scale (explicit `fontsize` vs. classic 11 pt).
     pub(crate) fn height_factor(&self) -> f64 {
         self.size_pt.map_or(1.0, |pt| pt / FONT_PT_CLASSIC)
+    }
+
+    /// Estimated ink width in inches: a math span's measured width, or
+    /// chars × average advance × the size/weight factor — the one estimator
+    /// behind the evaluator's layout bbox and the SVG backend's ink bounds.
+    pub(crate) fn ink_width_in(&self) -> f64 {
+        match &self.math {
+            Some(m) => m.width,
+            None => {
+                self.s.chars().count() as f64 * TEXT_CHAR_W_RATIO * TEXT_EM_IN * self.width_factor()
+            }
+        }
     }
 }
 
