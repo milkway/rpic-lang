@@ -839,46 +839,128 @@ fn subst_in_string(text: &str, args: &[Vec<Spanned>]) -> String {
 }
 
 /// Best-effort textual rendering of an argument token list, for `$n` splicing
-/// inside string literals.
+/// inside string literals. dpic treats macro arguments as raw source text, so
+/// the splice must reproduce it: a single string keeps splicing as bare
+/// content (the `box "$1"` label idiom), but a multi-token argument — exec'd
+/// statements like `box shaded "#00ff00"` — keeps its inner quotes (bare `#…`
+/// would start a comment) and the source's own spacing, where it used to glue
+/// everything into `boxshaded#00ff00` (#280). Spacing comes from the token
+/// spans: a gap in the source becomes a space, and source-adjacent tokens
+/// (`2L` = `2`+`L`) stay glued — re-gluing what the lexer split apart is safe
+/// by construction. The word-boundary heuristic only decides for tokens of
+/// mixed provenance (nested expansions), where spans aren't comparable.
 fn tokens_to_text(toks: &[Spanned]) -> String {
+    let material: Vec<&Spanned> = toks
+        .iter()
+        .filter(|s| !matches!(s.tok, Token::Eof))
+        .collect();
+    if let [one] = material.as_slice()
+        && let Token::Str(t) = &one.tok
+    {
+        // a lone string argument splices as its content, quote-free — the
+        // classic quote-at-use-site idiom (`box "$1"` with a quoted label)
+        return t.clone();
+    }
     let mut s = String::new();
-    for t in toks {
-        match &t.tok {
-            Token::Float(v) => s.push_str(&format!("{v}")),
-            Token::Str(t) => s.push_str(t),
-            Token::Name(n) | Token::Label(n) => s.push_str(n),
-            Token::Lparen => s.push('('),
-            Token::Rparen => s.push(')'),
-            Token::LeftBrack => s.push('['),
-            Token::RightBrack => s.push(']'),
-            Token::LeftBrace => s.push('{'),
-            Token::RightBrace => s.push('}'),
-            Token::Comma => s.push(','),
-            Token::Colon => s.push(':'),
-            Token::Dot => s.push('.'),
-            Token::Plus => s.push('+'),
-            Token::Minus => s.push('-'),
-            Token::Mult => s.push('*'),
-            Token::Div => s.push('/'),
-            Token::Percent => s.push('%'),
-            Token::Dollar => s.push('$'),
-            Token::Backslash => s.push('\\'),
-            Token::DotX => s.push_str(".x"),
-            Token::DotY => s.push_str(".y"),
-            Token::DotPS => s.push_str(".PS"),
-            Token::DotPE => s.push_str(".PE"),
-            Token::Corner(c) => s.push_str(corner_text(*c)),
-            Token::Param(p) => s.push_str(param_text(*p)),
-            Token::LineType(l) => s.push_str(line_type_text(*l)),
-            Token::TextPos(p) => s.push_str(text_pos_text(*p)),
-            Token::Arrow(a) => s.push_str(arrow_text(*a)),
-            Token::Dir(d) => s.push_str(dir_text(*d)),
-            Token::Prim(p) => s.push_str(prim_text(*p)),
-            Token::Color(c) => s.push_str(color_text(*c)),
-            _ => {}
+    let mut prev: Option<(u32, u32, usize)> = None; // line, col, rendered len
+    for t in material {
+        let piece = arg_token_text(&t.tok);
+        if piece.is_empty() {
+            continue;
         }
+        if let Some((pline, pcol, plen)) = prev {
+            let end = pcol as usize + plen;
+            let sep = if t.line != pline {
+                true
+            } else if t.col as usize >= end {
+                t.col as usize > end
+            } else {
+                // spans not comparable (mixed provenance): separate only
+                // where gluing could merge word-like tokens
+                matches!((s.chars().last(), piece.chars().next()),
+                    (Some(a), Some(b)) if wordish(a) && wordish(b))
+            };
+            if sep {
+                s.push(' ');
+            }
+        }
+        s.push_str(&piece);
+        prev = Some((t.line, t.col, piece.chars().count()));
     }
     s
+}
+
+/// Would these two characters merge into (or corrupt) a token if adjacent?
+fn wordish(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, '_' | '"' | '$')
+}
+
+/// The source text of one token, for argument splicing.
+fn arg_token_text(tok: &Token) -> String {
+    match tok {
+        Token::Float(v) => format!("{v}"),
+        // inner quotes escaped so the splice survives an exec round-trip
+        // (`unescape_exec_source` folds them back before re-lexing)
+        Token::Str(t) => format!("\"{}\"", t.replace('"', "\\\"")),
+        Token::Name(n) | Token::Label(n) => n.clone(),
+        Token::Arg(k) => format!("${k}"),
+        Token::ArgCount => "$+".into(),
+        Token::Dollar => "$".into(),
+        Token::Backslash => "\\".into(),
+        Token::Newline => ";".into(),
+        Token::DotPS => ".PS".into(),
+        Token::DotPE => ".PE".into(),
+        Token::Eof => String::new(),
+        Token::Lt => "<".into(),
+        Token::Gt => ">".into(),
+        Token::Le => "<=".into(),
+        Token::Ge => ">=".into(),
+        Token::EqEq => "==".into(),
+        Token::Neq => "!=".into(),
+        Token::Eq => "=".into(),
+        Token::ColonEq => ":=".into(),
+        Token::PlusEq => "+=".into(),
+        Token::MinusEq => "-=".into(),
+        Token::MultEq => "*=".into(),
+        Token::DivEq => "/=".into(),
+        Token::RemEq => "%=".into(),
+        Token::Not => "!".into(),
+        Token::AndAnd => "&&".into(),
+        Token::OrOr => "||".into(),
+        Token::Ampersand => "&".into(),
+        Token::Caret => "^".into(),
+        Token::Lparen => "(".into(),
+        Token::Rparen => ")".into(),
+        Token::LeftBrack => "[".into(),
+        Token::RightBrack => "]".into(),
+        Token::LeftBrace => "{".into(),
+        Token::RightBrace => "}".into(),
+        Token::Block => "[]".into(),
+        Token::LeftQuote => "`".into(),
+        Token::RightQuote => "'".into(),
+        Token::Comma => ",".into(),
+        Token::Colon => ":".into(),
+        Token::Dot => ".".into(),
+        Token::Plus => "+".into(),
+        Token::Minus => "-".into(),
+        Token::Mult => "*".into(),
+        Token::Div => "/".into(),
+        Token::Percent => "%".into(),
+        Token::DotX => ".x".into(),
+        Token::DotY => ".y".into(),
+        Token::Corner(c) => corner_text(*c).into(),
+        Token::Param(p) => param_text(*p).into(),
+        Token::LineType(l) => line_type_text(*l).into(),
+        Token::TextPos(p) => text_pos_text(*p).into(),
+        Token::Arrow(a) => arrow_text(*a).into(),
+        Token::Dir(d) => dir_text(*d).into(),
+        Token::Prim(p) => prim_text(*p).into(),
+        Token::Color(c) => color_text(*c).into(),
+        Token::Kw(k) => kw_text(*k).into(),
+        Token::Func1(f) => format!("{f:?}").to_ascii_lowercase(),
+        Token::Func2(f) => format!("{f:?}").to_ascii_lowercase(),
+        Token::EnvVar(e) => format!("{e:?}").to_ascii_lowercase(),
+    }
 }
 
 fn corner_text(c: Corner) -> &'static str {

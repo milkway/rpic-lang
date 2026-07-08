@@ -6005,6 +6005,51 @@ box wid 0.1 ht 0.1 at B.s"#,
     }
 
     #[test]
+    fn static_exec_arg_splice_relexes_cleanly() {
+        // #280: a static `$N` inside an exec string glued the argument's
+        // tokens (`box shaded "#00ff00"` → `boxshaded#00ff00`) and dropped
+        // the quotes that keep `#…` from starting a comment
+        let d = draw(
+            "define pick { exec \"$2\" }\n\
+             pick( box shaded \"#ff0000\" , box shaded \"#00ff00\" )",
+        );
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#00ff00".into())));
+        // keywords in the argument used to be silently dropped
+        let d = draw("define pick { exec \"$1\" }\npick( box thick 3 )");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((style.thick.unwrap() - 3.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn string_splice_keeps_source_spacing() {
+        // spans drive the spacing: tokens adjacent in the source stay glued …
+        let d = draw("define lbl { box \"$1\" }\nlbl(2L)");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "2L");
+        // … and tokens the source separates keep their gap (an unquoted TeX
+        // label like `$\beta V$` used to collapse into `$\betaV$`)
+        let d = draw("define lbl { box \"$1\" }\nlbl($\\beta V$)");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "$\\beta V$");
+        // a lone quoted argument still splices as bare content (the classic
+        // quote-at-use-site label idiom)
+        let d = draw("define lbl { box \"$1\" }\nlbl(\"hello\")");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "hello");
+    }
+
+    #[test]
     fn svg_font_stub_and_string_sprintf_are_harmless() {
         let d = draw("box sprintf(\"x%s\", svg_font(\"Times\", 12))");
         let Shape::Box { text, .. } = &d.shapes[0] else {
