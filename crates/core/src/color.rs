@@ -308,9 +308,11 @@ pub fn is_valid_color(s: &str) -> bool {
 }
 
 /// Nearest known colour name to `s` (edit distance ≤ 2) for a "did you mean"
-/// hint — matched against the CSS keywords, lowercased.
+/// hint. Tries the CSS keywords (case-insensitively) then the dvips/xcolor
+/// names (case-sensitive CamelCase) — so `"Dandelio"` suggests `Dandelion`.
 pub fn suggest(s: &str) -> Option<&'static str> {
     crate::diagnostic::closest(&s.to_ascii_lowercase(), CSS_NAMED)
+        .or_else(|| crate::diagnostic::closest(s, XCOLOR_NAMED))
 }
 
 /// `#` followed by exactly 3, 4, 6, or 8 hex digits.
@@ -373,6 +375,13 @@ mod tests {
         // xcolor spelling is CamelCase — lowercase input is not remapped
         assert_eq!(xcolor_hex("dandelion"), None);
         assert_eq!(xcolor_hex("notacolor"), None);
+    }
+
+    #[test]
+    fn suggest_covers_css_and_xcolor() {
+        assert_eq!(suggest("crimsom"), Some("crimson")); // CSS typo
+        assert_eq!(suggest("Dandelio"), Some("Dandelion")); // xcolor typo (#291)
+        assert_eq!(suggest("zzzzzzzz"), None); // nothing close
     }
 
     #[test]
