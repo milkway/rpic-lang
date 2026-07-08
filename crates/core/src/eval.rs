@@ -2639,18 +2639,31 @@ impl State {
     }
 
     fn eval_color_expr(&mut self, se: &StringExpr) -> ER<String> {
-        if let StringExpr::Lit(name) = se
-            && let Some(body) = self.macros.get(name).cloned()
-        {
-            if let Some(lit) = single_token_macro_string(&body) {
-                return Ok(lit);
+        if let StringExpr::Lit(name) = se {
+            // A bareword in colour position that names a variable resolves to
+            // its value as a numeric colour (`c = 0xRRGGBB; … colored c`), so
+            // colours can be held in variables and computed. Variables win over
+            // a same-named macro; a bareword that is neither stays a literal
+            // colour name (`colored crimson`), so existing sources are inert.
+            if let Some(&v) = self.vars.get(name) {
+                return num_to_color(v);
             }
-            let parsed =
-                crate::parser::parse_stringexpr_tokens(&body, &mut self.macros, &self.includes)
+            if let Some(body) = self.macros.get(name).cloned() {
+                let s = if let Some(lit) = single_token_macro_string(&body) {
+                    lit
+                } else {
+                    let parsed = crate::parser::parse_stringexpr_tokens(
+                        &body,
+                        &mut self.macros,
+                        &self.includes,
+                    )
                     .map_err(parse_eval_error)?;
-            return self.eval_stringexpr(&parsed);
+                    self.eval_stringexpr(&parsed)?
+                };
+                return Ok(normalize_color_string(s));
+            }
         }
-        self.eval_stringexpr(se)
+        Ok(normalize_color_string(self.eval_stringexpr(se)?))
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
@@ -2986,10 +2999,7 @@ impl State {
             }
             StringExpr::ColorNum(e) => {
                 let v = self.eval_expr(e)?;
-                if !v.is_finite() || v.round() < 0.0 || v.round() > 0xFFFFFF as f64 {
-                    return err("numeric color out of range 0-0xFFFFFF");
-                }
-                format!("#{:06x}", v.round() as u32)
+                num_to_color(v)?
             }
         })
     }
@@ -4048,6 +4058,28 @@ fn stringexpr_lit(se: &StringExpr) -> String {
         StringExpr::SvgFont(_) => String::new(),
         StringExpr::Rgb(_) | StringExpr::ColorNum(_) => String::new(),
     }
+}
+
+/// A numeric colour (`0xRRGGBB`, pikchr-style) formatted as `#rrggbb`.
+fn num_to_color(v: f64) -> ER<String> {
+    if !v.is_finite() || v.round() < 0.0 || v.round() > 0xFFFFFF as f64 {
+        return err("numeric color out of range 0-0xFFFFFF");
+    }
+    Ok(format!("#{:06x}", v.round() as u32))
+}
+
+/// Normalise a colour *string* so an easy-to-mistype hex form doesn't sail
+/// through to invalid SVG: `0xRRGGBB` / `0xRGB` (the bare literal works, but the
+/// quoted string didn't) becomes `#rrggbb`. Everything else — CSS names,
+/// `#rrggbb`, `rgb(...)` output — is passed through unchanged.
+fn normalize_color_string(s: String) -> String {
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X"))
+        && (hex.len() == 6 || hex.len() == 3)
+        && hex.bytes().all(|b| b.is_ascii_hexdigit())
+    {
+        return format!("#{}", hex.to_ascii_lowercase());
+    }
+    s
 }
 
 fn single_token_macro_string(toks: &[crate::lexer::Spanned]) -> Option<String> {
@@ -6218,6 +6250,61 @@ box wid 0.1 ht 0.1 at B.s"#,
         // 0x literals are plain numbers everywhere, not just colors
         let d = draw("box wid 0x2 ht 0x1");
         assert!((d.bbox.width() - 2.0).abs() < 0.05, "{}", d.bbox.width());
+    }
+
+    #[test]
+    fn color_from_variable_and_expression() {
+        // a colour held in a variable resolves (previously emitted as the raw
+        // name, e.g. `stroke="c"`, which no renderer understands)
+        let d = draw("c = 0x2f855a\nbox shaded c");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#2f855a".into())));
+        // outlined + variable
+        let d = draw("c = 0x123456\nbox outlined c");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.stroke.as_deref(), Some("#123456"));
+        // a parenthesised expression in colour position, incl. arithmetic
+        let d = draw("base = 0xff0000\nbox shaded (base + 0x10)");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#ff0010".into())));
+        // a variable holding an out-of-range value errors like a literal
+        let e = eval(&parse("c = 0x1000000\nbox outlined c").unwrap()).unwrap_err();
+        assert!(e.msg.contains("0-0xFFFFFF"), "{}", e.msg);
+        // a bareword that is NOT a variable stays a literal colour name
+        let d = draw("box outlined red");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.stroke.as_deref(), Some("red"));
+    }
+
+    #[test]
+    fn color_string_hex_is_normalised() {
+        // a quoted 0xRRGGBB string (easy mistake — the bare literal works) is
+        // converted to #rrggbb instead of passing through to invalid SVG
+        let d = draw("box shaded \"0x2f855a\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#2f855a".into())));
+        // short 0xRGB form too
+        let d = draw("box shaded \"0xABC\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#abc".into())));
+        // a genuine CSS colour name is untouched
+        let d = draw("box shaded \"crimson\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("crimson".into())));
     }
 
     #[test]

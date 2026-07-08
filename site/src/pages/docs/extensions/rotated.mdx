@@ -61,3 +61,22 @@ circle outlined 0xb3261e rad 0.35 at last box.e + (0.9,0) "hex" italic
   hexadecimal number literal, usable anywhere a number is.
 - Why not bare `#1b5e20`? In pic, `#` starts a comment — the quoted form
   `shaded "#1b5e20"` has always worked and still does.
+
+A colour can also be **held in a variable or computed**, so a palette defined
+once drives a whole figure (handy for the `for`-loops that plot the
+[easing curves](/docs/extensions/animate#the-curves-drawn-in-rpic)):
+
+<PicExample code={`.PS
+accent = 0x2f855a
+box outlined accent "variable" wid 1
+circle shaded (accent + 0x60) rad 0.35 at last box.e + (0.9,0) "expr" italic
+.PE`} />
+
+- A **bareword that names a variable** resolves to its value as a `0xRRGGBB`
+  colour (`accent = 0x2f855a; … outlined accent`); a bareword that is *not* a
+  variable stays a literal colour name (`outlined crimson`), so existing
+  sources are unaffected.
+- Wrap an **expression** in parentheses for arithmetic in colour position
+  (`shaded (accent + 0x60)`), just like `rgb()` takes expressions.
+- A quoted **`"0xRRGGBB"`** string is normalised to `#rrggbb` (the bare literal
+  already worked; the string form no longer slips through as invalid colour).
