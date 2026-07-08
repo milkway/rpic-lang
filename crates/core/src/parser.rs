@@ -970,6 +970,7 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::Rad => "rad",
         Kw::Diam => "diam",
         Kw::Thick => "thick",
+        Kw::Thin => "thin",
         Kw::Scaled => "scaled",
         Kw::From => "from",
         Kw::To => "to",
@@ -2159,6 +2160,10 @@ impl Parser {
             Token::Kw(Kw::Thick) => {
                 self.bump();
                 Attr::Dim(DimKind::Thick, self.parse_expr()?)
+            }
+            Token::Kw(Kw::Thin) => {
+                self.bump();
+                Attr::Thin
             }
             Token::Kw(Kw::Scaled) => {
                 self.bump();

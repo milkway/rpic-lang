@@ -319,6 +319,10 @@ pub enum Attr {
     Behind(Place),
     /// rpic extension: CSS class hook attached to this object's shape group.
     Class(StringExpr),
+    /// rpic extension (pikchr-flavoured): a lighter stroke — sets the object's
+    /// line thickness to ⅔ of the current `linethick` (no value; the sugar for
+    /// `thick (linethick*2/3)`, mirroring `thick <n>`).
+    Thin,
     /// rpic extension: bold face for the preceding text string.
     Bold,
     /// rpic extension: italic face for the preceding text string.

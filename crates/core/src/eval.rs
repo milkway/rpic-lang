@@ -2629,6 +2629,8 @@ impl State {
                     s.fill_opacity = Some(opacity);
                 }
                 Attr::Dim(DimKind::Thick, e) => s.thick = Some(self.eval_expr(e)?),
+                // pikchr-flavoured `thin`: a lighter stroke, ⅔ of `linethick`.
+                Attr::Thin => s.thick = Some(self.env.get(EnvVar::Linethick) * 2.0 / 3.0),
                 Attr::Arrowhead(_, Some(e)) => {
                     s.arrow_filled = self.eval_expr(e)?.round() as i64 != 0;
                 }
@@ -6305,6 +6307,39 @@ box wid 0.1 ht 0.1 at B.s"#,
             panic!()
         };
         assert_eq!(style.fill, Some(Fill::Color("crimson".into())));
+    }
+
+    #[test]
+    fn thin_sets_a_lighter_stroke() {
+        // `thin` (pikchr-flavoured, no value) = ⅔ of the default linethick (0.8)
+        let d = draw("box thin");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (style.thick.unwrap() - 0.8 * 2.0 / 3.0).abs() < 1e-9,
+            "{:?}",
+            style.thick
+        );
+        // it tracks the current linethick
+        let d = draw("linethick = 3\nline thin");
+        let Shape::Path { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!(
+            (style.thick.unwrap() - 2.0).abs() < 1e-9,
+            "{:?}",
+            style.thick
+        );
+        // explicit `thick <n>` is unaffected
+        let d = draw("box thick 2");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert!((style.thick.unwrap() - 2.0).abs() < 1e-9);
+        // `thin` is still usable as a plain identifier is NOT — it is a keyword
+        // now (like `thick`); assert it parses as the attribute, not a var
+        assert!(parse("box thin").is_ok());
     }
 
     #[test]

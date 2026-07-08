@@ -702,6 +702,7 @@ fn word_keyword(w: &str) -> Token {
         "radius" | "rad" => Kw(self::Kw::Rad),
         "diameter" | "diam" => Kw(self::Kw::Diam),
         "thickness" | "thick" => Kw(self::Kw::Thick),
+        "thin" => Kw(self::Kw::Thin),
         "scaled" => Kw(self::Kw::Scaled),
         "from" => Kw(self::Kw::From),
         "to" => Kw(self::Kw::To),

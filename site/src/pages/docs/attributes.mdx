@@ -28,15 +28,18 @@ circle diam 0.45 "diam"
 <PicExample code={`.PS
 margin = 0.15   # rpic extension: headroom for the labels
 line right 1.1 "solid" above
+line right 1.1 thin "thin" above from last line.start - (0, 0.42)
+line right 1.1 thick 2.4 "thick 2.4" above from last line.start - (0, 0.42)
 line right 1.1 dashed "dashed" above from last line.start - (0, 0.42)
 line right 1.1 dotted "dotted" above from last line.start - (0, 0.42)
-line right 1.1 thick 2.4 "thick 2.4" above from last line.start - (0, 0.42)
 line right 1.1 dashed 0.04 "dashed 0.04" above from last line.start - (0, 0.42)
 .PE`} />
 
 `dashed` and `dotted` accept an optional pitch; `thick` sets the stroke
-width in points. `invis` draws nothing but keeps the geometry — the object
-still occupies space and exposes anchors.
+width in points. `thin` (an rpic convenience, pikchr-flavoured) is a lighter
+stroke with no value — two-thirds of the current `linethick`, so it tracks
+your global line width. `invis` draws nothing but keeps the geometry — the
+object still occupies space and exposes anchors.
 
 ## Colors and fills
 
