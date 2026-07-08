@@ -1,0 +1,36 @@
+---
+// A figure-only example: just the rpic-rendered SVG (no code column), with
+// the same Copy + Open-in-Studio toolbar and an optional caption. Use for
+// reference figures where the drawing is the point and the (often long)
+// source would only distract — pass `src` for a repo file or `code` inline.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { renderPic, renderPicFile } from '../lib/rpic';
+import ExampleToolbar from './ExampleToolbar.astro';
+
+interface Props {
+  /** inline pic source … */
+  code?: string;
+  /** … or a repo-relative .pic path (rendered beside its own dir, `copy` resolves) */
+  src?: string;
+  circuits?: boolean;
+  texlabels?: boolean;
+  caption?: string;
+}
+const { code, src, circuits = false, texlabels = false, caption } = Astro.props;
+const source = src ? readFileSync(resolve(process.cwd(), '..', src), 'utf8') : (code ?? '');
+const svg = src
+  ? renderPicFile(src, { circuits, texlabels })
+  : renderPic(source, { circuits, texlabels });
+---
+
+<figure class="not-prose my-6">
+  <ExampleToolbar code={source} />
+  <div
+    class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white grid place-items-center p-5 [&_svg]:max-w-full [&_svg]:h-auto"
+    set:html={svg}
+  />
+  {caption && (
+    <figcaption class="text-center text-[13px] text-slate-500 dark:text-slate-400 mt-2">{caption}</figcaption>
+  )}
+</figure>

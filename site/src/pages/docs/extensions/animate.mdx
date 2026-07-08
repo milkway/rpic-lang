@@ -5,6 +5,7 @@ description: Declarative GSAP animations on drawing objects — rpic extension.
 ---
 import PicExample from '../../../components/PicExample.astro';
 import AnimatedPic from '../../../components/AnimatedPic.astro';
+import PicFigure from '../../../components/PicFigure.astro';
 import Callout from '../../../components/Callout.astro';
 
 # animate
@@ -223,6 +224,40 @@ Because it's an opaque passthrough, a typo (`"powr2.out"`) sails through rpic
 and only surfaces in the browser, where GSAP falls back to its default ease —
 so copy names from the GSAP page, or use its live [ease
 visualizer](https://gsap.com/docs/v3/Eases) to preview a curve before pasting.
+
+### The curves, drawn in rpic
+
+Words only go so far — here is each family's `.out` curve, plotting input time
+(x, 0 → 1) against eased progress (y, 0 → 1). The dashed diagonal is the linear
+(no-ease) reference; `back`/`elastic`/`bounce` overshoot past the top of the
+cell on purpose. This whole figure is **itself drawn by rpic** — the source
+samples every ease formula in a `for` loop, so it's a working demo of the
+engine's own maths (`sin`/`exp`/`sqrt`/`^`, `if`/`else` for the piecewise
+`bounce`). Copy it and plot the `.in` or `.inOut` variants to compare.
+
+<PicFigure src="examples/ease-gallery.pic" caption="The nine ease families' .out curves, each sampled and plotted by rpic — examples/ease-gallery.pic" />
+
+And the same eases as **motion**: three dots covering an identical track in the
+same time, differing only in `ease`. Linear marches at a constant rate;
+`power2.out` shoots ahead then coasts in; `bounce.out` overshoots the end and
+settles — exactly the curves above, read as movement (hit ▶ replay).
+
+<AnimatedPic code={`.PS
+margin = 0.2
+dy = 0.62
+L0: line from (0,0)      to (3,0)      thick 0.8 colored 0xcbd5e1
+L1: line from (0,-dy)    to (3,-dy)    thick 0.8 colored 0xcbd5e1
+L2: line from (0,-2*dy)  to (3,-2*dy)  thick 0.8 colored 0xcbd5e1
+D0: dot at L0.start rad 0.08 colored 0x2f855a
+D1: dot at L1.start rad 0.08 colored 0x3182ce
+D2: dot at L2.start rad 0.08 colored 0xdd6b20
+"none"       ljust above at L0.start + (0.14,0.03)
+"power2.out" ljust above at L1.start + (0.14,0.03)
+"bounce.out" ljust above at L2.start + (0.14,0.03)
+animate D0 with "move" along L0 for 1.8 ease "none"       repeat -1 yoyo
+animate D1 with "move" along L1 for 1.8 ease "power2.out" repeat -1 yoyo at 0
+animate D2 with "move" along L2 for 1.8 ease "bounce.out" repeat -1 yoyo at 0
+.PE`} />
 
 ## Motion along a path
 
