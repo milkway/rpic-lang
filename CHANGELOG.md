@@ -39,6 +39,15 @@ resolves to the latest version.
 
 ### Fixed
 
+- **`define`s inside `exec` now persist, and the `dpicopt`/`opt*` constants
+  match dpic's.** A macro defined by exec'd text landed in a discarded clone of
+  the macro table, and the backend-option constants were zero-based where dpic's
+  are one-based (`dpic -v` prints `dpicopt=9`, `optMFpic=1` … `optxfig=12`).
+  Together these broke the dpic test suite's `DefineRGBColor(name, r, g, b)`
+  machinery — its `case(dpicopt, …)` exec-dispatch picked the PSTricks branch
+  and the colour macro never registered, so `shaded Custom` emitted a broken
+  `fill="Custom"`. User-defined colours now resolve to the same `rgb(…)` string
+  dpic emits.
 - **Standalone labels (`"text" at P`) no longer clip at the page edge.** Their
   glyph ink is now included in the drawing bounds — matching what attached
   labels already did — so a wide or edge-anchored label is fully visible without

@@ -218,7 +218,7 @@ fn propagate_macro_changes(macros: &mut Macros, before: &Macros, after: &Macros)
 /// frame before normal macro expansion.
 pub(crate) fn parse_exec_source(
     src: &str,
-    macros: &Macros,
+    macros: &mut Macros,
     includes: &IncludeCtx,
     arg_frame: Option<&[Vec<Spanned>]>,
 ) -> Result<Vec<Stmt>, ParseError> {
@@ -226,8 +226,10 @@ pub(crate) fn parse_exec_source(
     if let Some(args) = arg_frame {
         toks = substitute(&toks, args);
     }
-    let mut m = macros.clone();
-    let expanded = expand(&toks, &mut m, 0, includes)?;
+    // Expand against the caller's live macro table: a `define` inside the
+    // exec'd text must persist after it, like dpic's — that's how the dpic
+    // suite's `DefineRGBColor` registers colour macros through `case`/`exec`.
+    let expanded = expand(&toks, macros, 0, includes)?;
     let mut p = Parser::new(expanded);
     p.parse_elementlist(&[])
 }
@@ -1347,19 +1349,21 @@ fn static_number(s: &Spanned) -> Option<f64> {
 }
 
 fn dpic_backend_constant(name: &str) -> Option<f64> {
+    // ONE-based, oracle-checked against dpic (`dpic -v` prints optMFpic=1 …
+    // optSVG=9 … optxfig=12); keep in sync with `install_dpic_compat_vars`.
     match name {
-        "optMFpic" => Some(0.0),
-        "optMpost" => Some(1.0),
-        "optPDF" => Some(2.0),
-        "optPGF" => Some(3.0),
-        "optPict2e" => Some(4.0),
-        "optPS" => Some(5.0),
-        "optPSfrag" => Some(6.0),
-        "optPSTricks" => Some(7.0),
-        "optSVG" | "dpicopt" => Some(8.0),
-        "optTeX" => Some(9.0),
-        "opttTeX" => Some(10.0),
-        "optxfig" => Some(11.0),
+        "optMFpic" => Some(1.0),
+        "optMpost" => Some(2.0),
+        "optPDF" => Some(3.0),
+        "optPGF" => Some(4.0),
+        "optPict2e" => Some(5.0),
+        "optPS" => Some(6.0),
+        "optPSfrag" => Some(7.0),
+        "optPSTricks" => Some(8.0),
+        "optSVG" | "dpicopt" => Some(9.0),
+        "optTeX" => Some(10.0),
+        "opttTeX" => Some(11.0),
+        "optxfig" => Some(12.0),
         _ => None,
     }
 }
