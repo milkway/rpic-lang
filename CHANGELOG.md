@@ -39,6 +39,13 @@ resolves to the latest version.
 
 ### Fixed
 
+- **Hostile input can no longer crash the process.** Two unbounded paths that
+  aborted (uncatchable, unlike every other error) on adversarial `.pic` source —
+  reachable from the CLI and the wasm binding — now fail cleanly: deeply nested
+  parentheses/blocks (`((((…))))`) hit a recursive-descent depth limit and
+  return a "nested too deeply" error instead of overflowing the stack, and a
+  `sprintf` precision like `"%.999999999f"` is clamped (to 512 digits) instead
+  of allocating gigabytes.
 - **Macro-argument splices (`"$n"` inside a string) reproduce the argument's
   source text.** A multi-token argument used to be glued without separators,
   with keywords silently dropped and string quotes stripped — a statically
