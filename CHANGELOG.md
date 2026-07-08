@@ -57,6 +57,12 @@ resolves to the latest version.
   opaque io error instead of the clean policy error `compile_circuits`/
   `compile_with` return; it now forces `Deny` (wasm has no filesystem;
   `copy "circuits"` still works).
+- **JS: complete animation TypeScript types and docs-player parity.** The
+  `Anim` type now declares the optional manifest keys the player actually reads
+  (`repeat`/`yoyo`/`ease`/`path`/`color`/`out`/`from`/`morph`) and `Bundle`
+  gains `scroll?`; the docs-site GSAP player (`AnimatedPic.astro`) gained the
+  unknown-effect fade fallback and the shared `draw`-label timing so it matches
+  the shipped npm player exactly. The npm runtime is unchanged.
 - **A gradient-only fill now honours `opacity`.** `box gradient … opacity 0.3`
   rendered fully opaque, while solid `fill`/`shaded` and `hatch` fills (and
   gradient+hatch) honoured it — the opacity predicate didn't count a gradient as
