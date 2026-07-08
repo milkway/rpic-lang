@@ -2662,10 +2662,31 @@ impl State {
                     .map_err(parse_eval_error)?;
                     self.eval_stringexpr(&parsed)?
                 };
-                return Ok(normalize_color_string(s));
+                return Ok(self.checked_color(normalize_color_string(s)));
             }
         }
-        Ok(normalize_color_string(self.eval_stringexpr(se)?))
+        let color = normalize_color_string(self.eval_stringexpr(se)?);
+        Ok(self.checked_color(color))
+    }
+
+    /// Warn (once) if a resolved colour string isn't a form any SVG renderer
+    /// understands — a typo or mis-cased keyword would otherwise render blank.
+    /// The colour is passed through unchanged either way (dpic-faithful; the
+    /// warning is advisory), so this never blocks or alters rendering.
+    fn checked_color(&mut self, color: String) -> String {
+        if !crate::color::is_valid_color(&color) {
+            let mut warning = Diagnostic::new(
+                "invalid_color",
+                format!("`{color}` is not a known colour name or hex/rgb() value"),
+            )
+            .found(color.clone())
+            .expected("a CSS/xcolor colour name, #hex, or rgb(...)");
+            if let Some(hint) = crate::color::suggest(&color) {
+                warning = warning.hint(format!("did you mean `{hint}`?"));
+            }
+            self.warnings.push(warning);
+        }
+        color
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
@@ -6231,6 +6252,38 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert!(e.msg.contains("0-255"), "{}", e.msg);
         let e = eval(&parse("box shaded 0x1FFFFFF").unwrap()).unwrap_err();
         assert!(e.msg.contains("0-0xFFFFFF"), "{}", e.msg);
+    }
+
+    #[test]
+    fn unknown_colour_name_warns_valid_stays_quiet() {
+        // a typo / unknown colour name is flagged (with a suggestion) …
+        let d = draw("box shaded \"crimsom\"");
+        let w = d
+            .warnings
+            .iter()
+            .find(|w| w.kind == "invalid_color")
+            .expect("expected an invalid_color warning");
+        assert!(w.hint.as_deref().unwrap_or("").contains("crimson"), "{w:?}");
+        // … but the shape still renders with the passed-through colour (advisory)
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("crimsom".into())));
+        // valid CSS, xcolor, hex, rgb() and resolved variables stay quiet
+        for src in [
+            "box shaded \"crimson\"",
+            "box shaded \"Dandelion\"",
+            "box shaded \"#1b5e20\"",
+            "box outlined \"rgb(1,2,3)\"",
+            "c = 0x2f855a\nbox shaded c",
+        ] {
+            let d = draw(src);
+            assert!(
+                !d.warnings.iter().any(|w| w.kind == "invalid_color"),
+                "unexpected invalid_color for `{src}`: {:?}",
+                d.warnings
+            );
+        }
     }
 
     #[test]

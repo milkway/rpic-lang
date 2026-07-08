@@ -8,6 +8,7 @@
 //! expression/geometry tree. It executes no arbitrary code.
 
 pub mod ast;
+pub mod color;
 pub mod diagnostic;
 pub mod eval;
 pub mod geom;
