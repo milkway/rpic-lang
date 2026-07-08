@@ -80,3 +80,12 @@ circle shaded (accent + 0x60) rad 0.35 at last box.e + (0.9,0) "expr" italic
   (`shaded (accent + 0x60)`), just like `rgb()` takes expressions.
 - A quoted **`"0xRRGGBB"`** string is normalised to `#rrggbb` (the bare literal
   already worked; the string form no longer slips through as invalid colour).
+
+Any **unknown colour name** — a typo (`"crimsom"`), a malformed hex
+(`"#12g456"`) — is flagged with an `invalid_color` warning in the `--json`
+bundle (with a "did you mean" suggestion), instead of silently rendering blank.
+The colour is still passed through unchanged, so the warning is advisory and
+never blocks rendering. Valid forms — the [CSS named
+colours](https://developer.mozilla.org/en-US/docs/Web/CSS/named-color), `#hex`,
+`rgb()`/`hsl()`, and the dvips/xcolor names the dpic corpus uses (`Dandelion`,
+`Goldenrod`, …) — stay quiet.

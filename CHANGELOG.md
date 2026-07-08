@@ -16,6 +16,13 @@ resolves to the latest version.
   lighter stroke — `line thin` / `box thin`, no value — set to two-thirds of the
   current `linethick`, so it tracks your global line width. Complements the
   existing valued `thick <n>`.
+- **Unknown colour names are flagged.** A colour string that isn't a CSS named
+  colour, a `#hex` / `rgb()` / `hsl()` value, or a dvips/xcolor name (the ones
+  the dpic corpus uses, like `Dandelion`) now raises an `invalid_color` warning
+  in the `--json` bundle — with a "did you mean" suggestion for near-miss typos
+  (`"crimsom"` → `crimson`) — instead of silently rendering blank. The colour is
+  still passed through unchanged, so the warning is advisory and never blocks or
+  alters rendering (SVG output is byte-for-byte unchanged).
 - **Colours can be held in a variable or computed.** In colour position
   (`outlined`, `shaded`, `color`, `hatchcolor`, `gradient`, `animate … to`), a
   bareword that names a variable now resolves to its value as a `0xRRGGBB`
