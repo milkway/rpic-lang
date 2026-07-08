@@ -112,7 +112,7 @@
       "name": "storage.type.primitive.rpic"
     },
     "attribute": {
-      "match": "\\b(at|with|after|from|to|by|chop|fill|same|invis|invisible|solid|dashed|dotted|thick|up|down|left|right|ljust|rjust|above|below|between|of|the|way|heading|wid|width|ht|height|rad|radius|diam|diameter|shaded|outlined|colored|coloured|color|colour|cw|ccw|dotstart|dotend)\\b",
+      "match": "\\b(at|with|after|from|to|by|chop|fill|same|invis|invisible|solid|dashed|dotted|thick|thin|up|down|left|right|ljust|rjust|above|below|between|of|the|way|heading|wid|width|ht|height|rad|radius|diam|diameter|shaded|outlined|colored|coloured|color|colour|cw|ccw|dotstart|dotend)\\b",
       "name": "keyword.other.attribute.rpic"
     },
     "envvar": {

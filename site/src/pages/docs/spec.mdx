@@ -134,6 +134,7 @@ Attributes read left to right; when two conflict, the later one wins.
 | `dashed` [*expr*] · `dotted` [*expr*] | `dashed 0.05` | Stroke pattern, optional pitch |
 | `invis` | | Draw nothing; geometry and anchors remain |
 | `thick` *expr* | `thick 2.4` | Stroke width in points |
+| `thin` | `thin` | Lighter stroke: ⅔ of `linethick` (rpic, pikchr-flavoured) |
 | `fill` [*expr*] | `fill 0.9` | Gray fill: 0 = black … 1 = white |
 | `outlined` *color* | `outlined "seagreen"` | Stroke color |
 | `shaded` *color* | `shaded "honeydew"` | Fill color |
@@ -265,7 +266,7 @@ attribute   ::= ("wid"|"width"|"ht"|"height"|"rad"|"radius"
               | "->" | "<-" | "<->" | "cw" | "ccw"
               | "at" position | "with" corner "at" position
               | ("dashed"|"dotted") expr? | "invis" | "solid"
-              | "thick" expr | "fill" expr?
+              | "thick" expr | "thin" | "fill" expr?
               | ("outlined"|"shaded"|"colored"|"color") color
               | string | "above" | "below" | "ljust" | "rjust"
               | "fit" | "behind" place | "class" string

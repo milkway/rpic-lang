@@ -12,6 +12,10 @@ resolves to the latest version.
 
 ### Added
 
+- **`thin` line-thickness keyword.** A pikchr-flavoured convenience for a
+  lighter stroke — `line thin` / `box thin`, no value — set to two-thirds of the
+  current `linethick`, so it tracks your global line width. Complements the
+  existing valued `thick <n>`.
 - **Colours can be held in a variable or computed.** In colour position
   (`outlined`, `shaded`, `color`, `hatchcolor`, `gradient`, `animate … to`), a
   bareword that names a variable now resolves to its value as a `0xRRGGBB`

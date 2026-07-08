@@ -101,6 +101,7 @@ pub enum Kw {
     Rad,
     Diam,
     Thick,
+    Thin,
     Scaled,
     From,
     To,
