@@ -1468,11 +1468,40 @@ fn is_assign_op(t: &Token) -> bool {
 struct Parser {
     toks: Vec<Spanned>,
     idx: usize,
+    depth: u32,
 }
+
+/// Recursive-descent nesting limit. The macro expander already caps its own
+/// depth (`expand`, `depth > 64`), but parentheses and `[…]` blocks pass
+/// through it untouched and only recurse in the descent parser — so without
+/// this guard, pathological input like `((((…))))` overflows the stack and
+/// aborts the process instead of returning a normal error (#283). Chosen for a
+/// comfortable margin on wasm's ~1 MB stack (each level costs ~1.7 KB of native
+/// stack across the precedence-climbing chain, more on wasm) while dwarfing any
+/// real figure — the entire committed corpus nests at most 4 deep.
+const MAX_PARSE_DEPTH: u32 = 128;
 
 impl Parser {
     fn new(toks: Vec<Spanned>) -> Self {
-        Parser { toks, idx: 0 }
+        Parser {
+            toks,
+            idx: 0,
+            depth: 0,
+        }
+    }
+
+    /// Run `f` one recursion level deeper, failing cleanly past
+    /// `MAX_PARSE_DEPTH` instead of overflowing the stack. Wrap the mutually
+    /// recursive entry points (expressions, positions, objects/blocks).
+    fn descend<T>(&mut self, f: impl FnOnce(&mut Self) -> PResult<T>) -> PResult<T> {
+        self.depth += 1;
+        if self.depth > MAX_PARSE_DEPTH {
+            self.depth -= 1;
+            return self.err("expression or block nested too deeply".to_string());
+        }
+        let r = f(self);
+        self.depth -= 1;
+        r
     }
 
     // ---- cursor helpers ----------------------------------------------------
@@ -2110,6 +2139,10 @@ impl Parser {
     // ---- objects & attributes ---------------------------------------------
 
     fn parse_object(&mut self) -> PResult<Object> {
+        self.descend(Self::parse_object_inner)
+    }
+
+    fn parse_object_inner(&mut self) -> PResult<Object> {
         let span = Some(self.cur_span());
         let mut attrs = Vec::new();
         // a bare string expression (literal, `$arg`, sprintf, concatenation)
@@ -2581,6 +2614,10 @@ impl Parser {
 
     /// Positions support vector arithmetic; `+`/`-` are the lowest precedence.
     fn parse_position(&mut self) -> PResult<Position> {
+        self.descend(Self::parse_position_inner)
+    }
+
+    fn parse_position_inner(&mut self) -> PResult<Position> {
         let mut left = self.parse_pos_mul()?;
         loop {
             let sign = if self.at(&Token::Plus) {
@@ -2969,7 +3006,7 @@ impl Parser {
     }
 
     fn parse_expr(&mut self) -> PResult<Expr> {
-        self.parse_or()
+        self.descend(Self::parse_or)
     }
 
     fn parse_or(&mut self) -> PResult<Expr> {
@@ -3708,6 +3745,35 @@ box
         // `copy "file"` with no filesystem context reports a clear file error
         let e = parse("copy \"x\"").unwrap_err();
         assert!(e.msg.contains("copy") && e.msg.contains("file"));
+    }
+
+    #[test]
+    fn deeply_nested_input_errors_instead_of_overflowing() {
+        // #283: pathological nesting must return a clean error, not abort the
+        // process by overflowing the stack. Run on a roomy thread stack:
+        // reaching MAX_PARSE_DEPTH costs far more stack in an unoptimized test
+        // build than the harness's default thread provides (release/wasm frames
+        // are much smaller — that's what the limit is tuned for).
+        std::thread::Builder::new()
+            .stack_size(32 * 1024 * 1024)
+            .spawn(|| {
+                let deep_parens = format!("box wid {}1{}", "(".repeat(5000), ")".repeat(5000));
+                let e = parse(&deep_parens).unwrap_err();
+                assert!(e.msg.contains("nested too deeply"), "{}", e.msg);
+                let deep_blocks = format!("{}box{}", "[".repeat(5000), "]".repeat(5000));
+                assert!(
+                    parse(&deep_blocks)
+                        .unwrap_err()
+                        .msg
+                        .contains("nested too deeply")
+                );
+                // a realistic depth (the corpus max is 4) parses fine
+                assert!(parse("[[[[ box ]]]]").is_ok());
+                assert!(parse(&format!("box wid {}1{}", "(".repeat(64), ")".repeat(64))).is_ok());
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 
     #[test]

@@ -4040,12 +4040,18 @@ fn sprintf_fmt(fmt: &str, vals: &[PrintfArg]) -> String {
         }
         let arg = vals.get(ai);
         ai += 1;
+        // Clamp precision: it flows straight into `format!("{:.*}", …)`, so an
+        // enormous value (`"%.999999999f"`) would allocate gigabytes and abort
+        // (#284). 512 fractional digits is far past f64's ~17 significant
+        // figures — no real format needs more.
+        const MAX_PREC: usize = 512;
         let prec = spec.split('.').nth(1).and_then(|p| {
             p.chars()
                 .take_while(|c| c.is_ascii_digit())
                 .collect::<String>()
                 .parse::<usize>()
                 .ok()
+                .map(|n| n.min(MAX_PREC))
         });
         match conv {
             'd' | 'i' => out.push_str(&format!(
@@ -6056,6 +6062,23 @@ box wid 0.1 ht 0.1 at B.s"#,
             panic!()
         };
         assert_eq!(text[0].s, "x");
+    }
+
+    #[test]
+    fn sprintf_precision_is_clamped() {
+        // #284: an enormous precision must not panic/OOM — it clamps to 512
+        // digits and the result is finite
+        let d = draw("box sprintf(\"%.999999999f\", 1)");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s.len(), "1.".len() + 512);
+        // ordinary precision is untouched
+        let d = draw("box sprintf(\"%.2f\", 3.14159)");
+        let Shape::Box { text, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(text[0].s, "3.14");
     }
 
     #[test]
