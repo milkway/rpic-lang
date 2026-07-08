@@ -104,7 +104,7 @@
     },
     "extension": {
       "comment": "rpic-only extensions get their own scope so documentation can visually distinguish them from classic pic/dpic",
-      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin|dotrad)\\b",
+      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin|dotrad|canvas|rotated|aligned|bold|italic|mono|fontsize|font|big|small|along|into|stagger|repeat|yoyo|ease|delay|scroll|out)\\b",
       "name": "keyword.other.extension.rpic"
     },
     "primitive": {
@@ -112,7 +112,7 @@
       "name": "storage.type.primitive.rpic"
     },
     "attribute": {
-      "match": "\\b(at|with|after|from|to|by|chop|fill|same|invis|invisible|solid|dashed|dotted|thick|thin|up|down|left|right|ljust|rjust|above|below|between|of|the|way|heading|wid|width|ht|height|rad|radius|diam|diameter|shaded|outlined|colored|coloured|color|colour|cw|ccw|dotstart|dotend)\\b",
+      "match": "\\b(at|with|after|from|to|by|chop|filled|fill|same|invis|invisible|solid|dashed|dotted|thick|thin|scaled|up|down|left|right|ljust|rjust|above|below|center|centre|between|of|the|way|and|continue|previous|wid|width|ht|height|rad|radius|diam|diameter|shaded|shade|outlined|outline|colored|coloured|color|colour|cw|ccw)\\b",
       "name": "keyword.other.attribute.rpic"
     },
     "envvar": {
@@ -120,7 +120,7 @@
       "name": "support.constant.environment.rpic"
     },
     "builtin": {
-      "match": "\\b(sqrt|sin|cos|atan2|log|exp|int|max|min|rand|srand|sprintf)\\b",
+      "match": "\\b(sqrt|sin|cos|tan|asin|acos|atan2|exp|expe|log|loge|int|floor|abs|sign|max|min|pmod|rand|sprintf)\\b",
       "name": "support.function.builtin.rpic"
     },
     "macrocall": {
