@@ -4093,7 +4093,8 @@ fn num_to_color(v: f64) -> ER<String> {
 
 /// Normalise a colour *string* so an easy-to-mistype hex form doesn't sail
 /// through to invalid SVG: `0xRRGGBB` / `0xRGB` (the bare literal works, but the
-/// quoted string didn't) becomes `#rrggbb`. Everything else — CSS names,
+/// quoted string didn't) becomes `#rrggbb`, and a dvips/xcolor name browsers
+/// can't render (`Dandelion`) becomes its RGB. Everything else — CSS names,
 /// `#rrggbb`, `rgb(...)` output — is passed through unchanged.
 fn normalize_color_string(s: String) -> String {
     if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X"))
@@ -4101,6 +4102,9 @@ fn normalize_color_string(s: String) -> String {
         && hex.bytes().all(|b| b.is_ascii_hexdigit())
     {
         return format!("#{}", hex.to_ascii_lowercase());
+    }
+    if let Some(hex) = crate::color::xcolor_hex(&s) {
+        return hex.to_string();
     }
     s
 }
@@ -6252,6 +6256,24 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert!(e.msg.contains("0-255"), "{}", e.msg);
         let e = eval(&parse("box shaded 0x1FFFFFF").unwrap()).unwrap_err();
         assert!(e.msg.contains("0-0xFFFFFF"), "{}", e.msg);
+    }
+
+    #[test]
+    fn xcolor_names_resolve_to_their_rgb() {
+        // a dvips name browsers can't render maps to its dvipsnam.def RGB …
+        let d = draw("box shaded \"Dandelion\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("#ffb529".into())));
+        assert!(!d.warnings.iter().any(|w| w.kind == "invalid_color"));
+        // … while an xcolor name that is ALSO a CSS keyword stays as written
+        // (browsers already render it; the dvips value differs)
+        let d = draw("box shaded \"Goldenrod\"");
+        let Shape::Box { style, .. } = &d.shapes[0] else {
+            panic!()
+        };
+        assert_eq!(style.fill, Some(Fill::Color("Goldenrod".into())));
     }
 
     #[test]

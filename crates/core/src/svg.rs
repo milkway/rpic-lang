@@ -2091,9 +2091,14 @@ mod tests {
 
     #[test]
     fn root_fill_none_matches_dpic_invalid_color_fallback() {
-        let s = svg("line right then up then left shaded \"Dandelion\"");
+        // an unknown colour still passes through verbatim (warned, not blocked),
+        // and the root <svg> keeps fill="none" so it can't paint the page
+        let s = svg("line right then up then left shaded \"NotAColor\"");
         assert!(s.lines().next().unwrap().contains("fill=\"none\""));
-        assert!(s.contains("fill=\"Dandelion\""), "{s}");
+        assert!(s.contains("fill=\"NotAColor\""), "{s}");
+        // a dvips/xcolor name browsers can't render resolves to its RGB (#275)
+        let s = svg("line right then up then left shaded \"Dandelion\"");
+        assert!(s.contains("fill=\"#ffb529\""), "{s}");
     }
 
     #[test]

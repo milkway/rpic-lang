@@ -16,6 +16,12 @@ resolves to the latest version.
   lighter stroke — `line thin` / `box thin`, no value — set to two-thirds of the
   current `linethick`, so it tracks your global line width. Complements the
   existing valued `thick <n>`.
+- **dvips/xcolor colour names resolve to their RGB.** The 30 dvips names no
+  browser understands (`Dandelion`, `BurntOrange`, `Periwinkle`, …) now emit
+  their `dvipsnam.def` RGB (`Dandelion` → `#ffb529`) instead of passing through
+  as an SVG-invalid keyword that rendered as no paint. dvips names that are
+  *also* CSS keywords (`Goldenrod`, `Plum`, …) stay untouched — browsers already
+  render those, and the dvips values differ.
 - **Unknown colour names are flagged.** A colour string that isn't a CSS named
   colour, a `#hex` / `rgb()` / `hsl()` value, or a dvips/xcolor name (the ones
   the dpic corpus uses, like `Dandelion`) now raises an `invalid_color` warning
