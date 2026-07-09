@@ -3738,7 +3738,9 @@ fn text_bbox(center: Point, lines: &[TextLine]) -> Bbox {
                 let half_h = TEXT_LINE_H * line.height_factor() / 2.0;
                 let (min, max) = (Point::new(min_x, y - half_h), Point::new(max_x, y + half_h));
                 match line.rotate {
-                    Some(deg) => bb.add_rect_rotated(min, max, deg),
+                    // the SVG backend rotates about the text anchor `(x, y)`
+                    // (the halign edge), not the rect centre — match it (#audit)
+                    Some(deg) => bb.add_rect_rotated_about(min, max, Point::new(x, y), deg),
                     None => {
                         bb.add(min);
                         bb.add(max);
