@@ -80,6 +80,13 @@ resolves to the latest version.
   (`"a"+"a"+…`), and a trailing member/corner chain (`A.B.B…`) — now hit the
   same depth/chain-length limits rather than overflowing on parser recursion or
   on the drop/evaluation of an unbounded left-deep AST. (#318)
+- **The C ABI no longer aborts the host on a Rust panic.** Every `extern "C"`
+  entry point now runs its body inside `catch_unwind`, returning the crate's
+  null-pointer failure convention instead of letting a panic unwind across the
+  FFI boundary and abort the C/C++/R host process. (A stack overflow is a hard
+  abort `catch_unwind` cannot intercept — that is guarded separately by bounding
+  recursion in the core; this covers ordinary panics.) The Python binding was
+  already panic-safe via PyO3; wasm traps cleanly. (#319)
 - **wasm `compile()` denies filesystem includes like its siblings.** It
   delegated to the Unrestricted-default core entry, so a `copy "file"` gave an
   opaque io error instead of the clean policy error `compile_circuits`/

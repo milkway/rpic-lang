@@ -102,25 +102,42 @@ fn to_c_bytes(bytes: Vec<u8>, out_len: *mut usize) -> *mut u8 {
     p
 }
 
-// ---- internal implementations (shared by the plain and `_ex` entry points) --
-
-fn render_svg_impl(src: *const c_char, o: &rpic_core::CompileOptions) -> *mut c_char {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    match rpic_core::render_svg_with_options(s, o) {
-        Ok(svg) => to_c_string(svg),
+/// Run a pointer-returning body, converting a Rust panic into the crate's
+/// null-pointer failure convention instead of letting it unwind across the
+/// `extern "C"` boundary (which aborts the C/R host process). Note: a stack
+/// overflow is a hard abort that `catch_unwind` cannot intercept — bounding
+/// recursion (in rpic-core) is what guards against that; this covers ordinary
+/// panics (a stray `unwrap`, a debug overflow, an internal invariant break).
+fn guard_ptr<T>(f: impl FnOnce() -> *mut T) -> *mut T {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(p) => p,
         Err(_) => ptr::null_mut(),
     }
 }
 
+// ---- internal implementations (shared by the plain and `_ex` entry points) --
+
+fn render_svg_impl(src: *const c_char, o: &rpic_core::CompileOptions) -> *mut c_char {
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        match rpic_core::render_svg_with_options(s, o) {
+            Ok(svg) => to_c_string(svg),
+            Err(_) => ptr::null_mut(),
+        }
+    })
+}
+
 fn compile_json_impl(src: *const c_char, o: &rpic_core::CompileOptions) -> *mut c_char {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    to_c_string(rpic_core::compile_json_with_options(s, o))
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        to_c_string(rpic_core::compile_json_with_options(s, o))
+    })
 }
 
 fn render_png_impl(
@@ -129,18 +146,20 @@ fn render_png_impl(
     o: &rpic_core::CompileOptions,
     out_len: *mut usize,
 ) -> *mut u8 {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    let svg = match rpic_core::render_svg_with_options(s, o) {
-        Ok(v) => v,
-        Err(_) => return ptr::null_mut(),
-    };
-    match rpic_render::to_png(&svg, scale as f32) {
-        Ok(bytes) => to_c_bytes(bytes, out_len),
-        Err(_) => ptr::null_mut(),
-    }
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        let svg = match rpic_core::render_svg_with_options(s, o) {
+            Ok(v) => v,
+            Err(_) => return ptr::null_mut(),
+        };
+        match rpic_render::to_png(&svg, scale as f32) {
+            Ok(bytes) => to_c_bytes(bytes, out_len),
+            Err(_) => ptr::null_mut(),
+        }
+    })
 }
 
 fn render_pdf_impl(
@@ -148,18 +167,20 @@ fn render_pdf_impl(
     o: &rpic_core::CompileOptions,
     out_len: *mut usize,
 ) -> *mut u8 {
-    let Some(s) = (unsafe { as_str(src) }) else {
-        return ptr::null_mut();
-    };
-    ensure_math_renderer();
-    let svg = match rpic_core::render_svg_with_options(s, o) {
-        Ok(v) => v,
-        Err(_) => return ptr::null_mut(),
-    };
-    match rpic_render::to_pdf(&svg) {
-        Ok(bytes) => to_c_bytes(bytes, out_len),
-        Err(_) => ptr::null_mut(),
-    }
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        let svg = match rpic_core::render_svg_with_options(s, o) {
+            Ok(v) => v,
+            Err(_) => return ptr::null_mut(),
+        };
+        match rpic_render::to_pdf(&svg) {
+            Ok(bytes) => to_c_bytes(bytes, out_len),
+            Err(_) => ptr::null_mut(),
+        }
+    })
 }
 
 // ---- circuits-only entry points (unchanged ABI) ----------------------------
@@ -297,6 +318,24 @@ mod tests {
         let s = unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned();
         unsafe { rpic_free_string(p) };
         s
+    }
+
+    #[test]
+    fn guard_ptr_converts_panic_to_null() {
+        // #319: a Rust panic inside an entry point must become the null-pointer
+        // failure sentinel, not unwind across the `extern "C"` boundary and
+        // abort the C/R host. Silence the panic hook so the expected panic
+        // doesn't spam the test log.
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
+        let p: *mut c_char = guard_ptr(|| panic!("boom"));
+        std::panic::set_hook(prev);
+        assert!(p.is_null(), "panic should yield a null pointer");
+
+        // the happy path still returns its value
+        let q: *mut c_char = guard_ptr(|| to_c_string("ok".into()));
+        assert!(!q.is_null());
+        unsafe { rpic_free_string(q) };
     }
 
     #[test]
