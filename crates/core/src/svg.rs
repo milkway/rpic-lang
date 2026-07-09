@@ -840,7 +840,7 @@ impl Svg {
             // styled — unstyled lines stay byte-identical to classic output
             let mut style_attrs = String::new();
             if let Some(f) = &line.family {
-                style_attrs.push_str(&format!(" font-family=\"{}\"", escape(f)));
+                style_attrs.push_str(&format!(" font-family=\"{}\"", attr(f)));
             }
             if line.bold {
                 style_attrs.push_str(" font-weight=\"bold\"");
@@ -1965,6 +1965,24 @@ mod tests {
         for needle in ["font-weight", "font-style", "font-family=\"monospace"] {
             assert!(!s.contains(needle), "unexpected {needle} in {s}");
         }
+    }
+
+    #[test]
+    fn font_family_is_xml_attribute_escaped() {
+        // A `"` in the family value must become &quot;, never break the
+        // attribute — otherwise the SVG is malformed and an attacker can
+        // inject stray attributes onto the <text> element (#317).
+        let s = svg("box \"hi\" font \"A\\\"B\"");
+        assert!(
+            s.contains("font-family=\"A\\&quot;B\""),
+            "font family quote not escaped: {s}"
+        );
+        // the escape()-only output (raw quote) must not survive — it would
+        // close the attribute early and break XML well-formedness
+        assert!(
+            !s.contains("font-family=\"A\\\"B\""),
+            "raw quote broke the attribute: {s}"
+        );
     }
 
     #[test]

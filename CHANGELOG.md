@@ -43,6 +43,17 @@ resolves to the latest version.
   can drive a whole figure. A bareword that is *not* a variable still stays a
   literal colour name, so existing sources are byte-for-byte unaffected.
 
+### Security
+
+- **`font "…"` family names are now XML-attribute-escaped.** A double quote in a
+  per-string font family was emitted into the `font-family="…"` attribute
+  unescaped (it used the text-content escaper, not the attribute one), which
+  closed the attribute early — producing malformed SVG and letting crafted input
+  inject stray attributes (e.g. an event handler) onto the `<text>` element, an
+  XSS vector when the SVG is embedded inline in HTML. The value now escapes `"`
+  to `&quot;` like every other attribute. Byte-for-byte unchanged for any figure
+  without a quote in a font name (the whole corpus). (#317)
+
 ### Fixed
 
 - **A rotated, justified label no longer vanishes.** A `"…" ljust rotated 90`
