@@ -79,21 +79,31 @@ impl Default for Bbox {
 }
 
 impl Bbox {
-    /// Add a `min`–`max` rectangle rotated `deg` degrees (used for `rotated`
-    /// text bounds — an axis-aligned cover of the rotated line box). The
-    /// cover rotates about the rect center plus a pad bounding the offset
-    /// between that center and the SVG rotation anchor (the text baseline,
-    /// at most half the line height away), so anchor-rotated glyphs stay
-    /// inside regardless of justification.
-    pub(crate) fn add_rect_rotated(&mut self, min: Point, max: Point, deg: f64) {
-        let c = Point::new((min.x + max.x) / 2.0, (min.y + max.y) / 2.0);
-        let (w, h) = (max.x - min.x, max.y - min.y);
+    /// Add the cover of an axis-aligned rect after rotating it `deg` (CCW,
+    /// model space) about `pivot`. The pivot must match where the renderer
+    /// actually rotates the ink — for a label that is the text anchor, not the
+    /// rect centre (a justified label's anchor is its left/right edge), so the
+    /// four corners are rotated exactly rather than assuming a centred spin.
+    pub(crate) fn add_rect_rotated_about(
+        &mut self,
+        min: Point,
+        max: Point,
+        pivot: Point,
+        deg: f64,
+    ) {
         let (sin, cos) = deg.to_radians().sin_cos();
-        let pad = h * (deg.to_radians() / 2.0).sin().abs();
-        let half_w = (w * cos).abs() / 2.0 + (h * sin).abs() / 2.0 + pad;
-        let half_h = (w * sin).abs() / 2.0 + (h * cos).abs() / 2.0 + pad;
-        self.add(Point::new(c.x - half_w, c.y - half_h));
-        self.add(Point::new(c.x + half_w, c.y + half_h));
+        for (cx, cy) in [
+            (min.x, min.y),
+            (max.x, min.y),
+            (min.x, max.y),
+            (max.x, max.y),
+        ] {
+            let (dx, dy) = (cx - pivot.x, cy - pivot.y);
+            self.add(Point::new(
+                pivot.x + dx * cos - dy * sin,
+                pivot.y + dx * sin + dy * cos,
+            ));
+        }
     }
 
     pub fn new() -> Self {

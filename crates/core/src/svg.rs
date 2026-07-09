@@ -1120,7 +1120,8 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
         };
         let (min, max) = (Point::new(min_x, y), Point::new(max_x, y + xheight));
         match line.rotate {
-            Some(deg) => bb.add_rect_rotated(min, max, deg),
+            // rotate about the text anchor `(x, y)`, matching the emitter
+            Some(deg) => bb.add_rect_rotated_about(min, max, Point::new(x, y), deg),
             None => {
                 bb.add(min);
                 bb.add(max);
@@ -1180,7 +1181,8 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
         let half_h = line_h * line.height_factor() / 2.0;
         let (min, max) = (Point::new(min_x, y - half_h), Point::new(max_x, y + half_h));
         match line.rotate {
-            Some(deg) => bb.add_rect_rotated(min, max, deg),
+            // rotate about the text anchor `(x, y)`, matching the emitter
+            Some(deg) => bb.add_rect_rotated_about(min, max, Point::new(x, y), deg),
             None => {
                 bb.add(min);
                 bb.add(max);
@@ -1997,6 +1999,49 @@ mod tests {
             !s.contains("<text") || !s.contains("transform=\"rotate"),
             "{s}"
         );
+    }
+
+    #[test]
+    fn rotated_justified_label_stays_inside_viewbox() {
+        // a justified label rotates about its anchor (left/right edge), not
+        // the rect centre — the bbox must cover the ink there, or the whole
+        // label lands outside the viewBox and vanishes (audit finding)
+        for just in ["ljust", "rjust", ""] {
+            let s = svg(&format!("\"MMMMMMMMMMMM\" {just} rotated 90 at (1,1)"));
+            let vb = s.split("viewBox=\"").nth(1).unwrap();
+            let vb: Vec<f64> = vb
+                .split('"')
+                .next()
+                .unwrap()
+                .split_whitespace()
+                .map(|n| n.parse().unwrap())
+                .collect();
+            let (w, h) = (vb[2], vb[3]);
+            let t = s.lines().find(|l| l.contains("<text")).unwrap();
+            let tx: f64 = t
+                .split("x=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap()
+                .parse()
+                .unwrap();
+            let ty: f64 = t
+                .split("y=\"")
+                .nth(1)
+                .unwrap()
+                .split('"')
+                .next()
+                .unwrap()
+                .parse()
+                .unwrap();
+            // the anchor point must sit inside the frame for `just={just}`
+            assert!(
+                (0.0..=w).contains(&tx) && (0.0..=h).contains(&ty),
+                "anchor ({tx},{ty}) outside viewBox {w}x{h} for just='{just}'"
+            );
+        }
     }
 
     #[test]
