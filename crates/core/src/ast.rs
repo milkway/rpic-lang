@@ -168,6 +168,15 @@ pub enum PrintItem {
     Expr(Expr),
 }
 
+/// Granularity of the `type` effect's staggered reveal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TypeUnit {
+    /// One tspan per character (default).
+    Char,
+    /// One tspan per whitespace-separated word.
+    Word,
+}
+
 /// `animate <target> with "<effect>" [along <path>] [to <colour>] [for <dur>]
 ///   [at <t> | after <ref>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]`.
 #[derive(Debug, Clone, PartialEq)]
@@ -200,6 +209,9 @@ pub struct Animate {
     pub slide_from: Option<Dir>,
     /// Target object the `morph` effect morphs into (`into B`).
     pub morph_into: Option<Place>,
+    /// Split granularity for the `type` effect (`by word` / `by char`); `None`
+    /// defaults to `Char`.
+    pub type_unit: Option<TypeUnit>,
 }
 
 /// When an animation starts.

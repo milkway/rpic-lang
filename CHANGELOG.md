@@ -10,6 +10,18 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- **`animate … with "type"` — typewriter text reveal.** A label appears one
+  character at a time (or `by word`), staggered over the effect's duration — the
+  way a caption "speaks" a step. The split is native: the SVG backend wraps each
+  unit of a `type` target in a `<tspan class="rpic-ch">` (GSAP's SplitText
+  doesn't support SVG `<text>`), and the browser player staggers their opacity —
+  no plugin to install. The tspans carry no positioning, so the static render is
+  identical and any drawing without a `type` animation is byte-for-byte
+  unchanged. `out` reverses it into a staggered erase; `by` on a non-`type`
+  effect warns `by_without_type`. (#328)
+
 ## [0.9.0] — 2026-07-09
 
 ### Added

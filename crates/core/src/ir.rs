@@ -97,6 +97,10 @@ pub struct Anim {
     /// For the `morph` effect: index of the shape whose geometry to morph into.
     /// The SVG backend gives it the id `s{morph}`, the MorphSVG target.
     pub morph: Option<usize>,
+    /// For the `type` effect: split the label by whole words (`by word`) rather
+    /// than by character. The SVG backend wraps each unit in a `.rpic-ch` tspan
+    /// the player staggers.
+    pub type_word: bool,
 }
 
 /// Line dash style.

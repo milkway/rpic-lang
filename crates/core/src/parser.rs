@@ -1946,6 +1946,7 @@ impl Parser {
         let mut out = false;
         let mut slide_from = None;
         let mut morph_into = None;
+        let mut type_unit = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1973,6 +1974,8 @@ impl Parser {
                 slide_from = Some(self.parse_dir()?);
             } else if self.eat_kw(Kw::Into) {
                 morph_into = Some(self.parse_place()?);
+            } else if self.eat_kw(Kw::By) {
+                type_unit = Some(self.parse_type_unit()?);
             } else {
                 break;
             }
@@ -1993,7 +1996,23 @@ impl Parser {
             out,
             slide_from,
             morph_into,
+            type_unit,
         })
+    }
+
+    /// Consume the `type` effect's split unit after `by`: `word` or `char`.
+    fn parse_type_unit(&mut self) -> PResult<TypeUnit> {
+        match self.cur() {
+            Token::Name(n) if n == "word" => {
+                self.bump();
+                Ok(TypeUnit::Word)
+            }
+            Token::Name(n) if n == "char" => {
+                self.bump();
+                Ok(TypeUnit::Char)
+            }
+            _ => self.err("expected `word` or `char` after `by`"),
+        }
     }
 
     /// Consume a bare compass direction token (`up`/`down`/`left`/`right`).

@@ -45,6 +45,18 @@ const { svg, animations } = renderPicBundle(code, { circuits });
 
   // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars —
   // `ease` replaces the effect's default easing; repeat/yoyo loop the tween.
+  // The `type` effect: reveal a label a glyph (or word) at a time — a
+  // typewriter. The emitter split the label into `.rpic-ch` tspans; stagger
+  // their opacity so the reveal spans the effect's duration. Mirrors the npm
+  // player (bindings/js/index.js).
+  function typeReveal(el: Element, a: any, tl: gsap.core.Timeline) {
+    const units = el.querySelectorAll('.rpic-ch');
+    if (!units.length) return;
+    const step = a.duration / units.length;
+    const vars = withOverrides({ opacity: 0, duration: step, stagger: step, ease: 'none' }, a);
+    return a.out ? tl.to(units, vars, a.start) : tl.from(units, vars, a.start);
+  }
+
   function withOverrides(vars: any, a: any) {
     if (a.repeat) vars.repeat = a.repeat;
     if (a.yoyo) vars.yoyo = true;
@@ -278,6 +290,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
           break;
         case 'highlight':
           highlightWith(el, a, tl);
+          break;
+        case 'type':
+          typeReveal(el, a, tl);
           break;
         default:
           // unknown effect: fade it in, mirroring the npm player

@@ -1162,18 +1162,29 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        let is_type = effect == "type";
+        if a.type_unit.is_some() && !is_type {
+            let mut warning = Diagnostic::new(
+                "by_without_type",
+                "`by word`/`by char` only applies to the `type` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
         if !matches!(
             effect.as_str(),
-            "draw" | "fade" | "pop" | "move" | "highlight" | "slide" | "morph"
+            "draw" | "fade" | "pop" | "move" | "highlight" | "slide" | "morph" | "type"
         ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, and `morph`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, `morph`, and `type`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, move, highlight, slide, or morph");
+            .expected("draw, fade, pop, move, highlight, slide, morph, or type");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -1183,6 +1194,7 @@ impl State {
         let color = if is_highlight { color } else { None };
         let from = if is_slide { from } else { None };
         let morph = if is_morph { morph } else { None };
+        let type_word = is_type && matches!(a.type_unit, Some(TypeUnit::Word));
         let make = |shape: usize, start: f64| Anim {
             shape,
             effect: effect.clone(),
@@ -1196,6 +1208,7 @@ impl State {
             out: a.out,
             from: from.clone(),
             morph,
+            type_word,
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,

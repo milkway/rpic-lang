@@ -66,6 +66,11 @@ assert.equal(moveAnim.animations[0].path, 's0');
 const hlAnim = compile('box\nanimate last box with "highlight" to rgb(255,140,0)');
 assert.equal(hlAnim.animations[0].effect, 'highlight');
 assert.equal(hlAnim.animations[0].color, '#ff8c00');
+// the type effect splits the label into `.rpic-ch` tspans; `by word` rides the unit
+const typeAnim = compile('box "hi there"\nanimate last with "type" by word');
+assert.equal(typeAnim.animations[0].effect, 'type');
+assert.equal(typeAnim.animations[0].unit, 'word');
+assert.ok(typeAnim.svg.includes('<tspan class="rpic-ch">hi</tspan>'), 'type splits label');
 // stagger fans across a block's children into one entry each
 const stAnim = compile('B: [ box; box; box ]\nanimate B with "fade" for 0.3 stagger 0.15');
 assert.equal(stAnim.animations.length, 3);
