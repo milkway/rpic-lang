@@ -19,12 +19,12 @@ interface Row {
 // Medians (robust to cold-start outliers) + the 120-node IQR as "jitter".
 // Apple M2 Pro · hyperfine · see tools/bench.
 const rows: Row[] = [
-  { tool: 'pikchr', lang: 'C', kind: 'pic', ms: [1.2, 2.9, 3.4], jitter: 0.9 },
-  { tool: 'dpic', lang: 'C', kind: 'pic', ms: [1.7, 3.3, 4.0], jitter: 0.4 },
-  { tool: 'rpic', lang: 'Rust', kind: 'pic', ms: [3.9, 5.5, 5.9], jitter: 0.5, self: true },
-  { tool: 'graphviz dot', lang: 'C', kind: 'auto', ms: [91, 89, 97], jitter: 13.6 },
-  { tool: 'd2', lang: 'Go', kind: 'auto', ms: [71, 168, 573], jitter: 5.1 },
-  { tool: 'mermaid', lang: 'mmdc · Chromium', kind: 'auto', ms: [664, 659, 1081], jitter: 114.7 },
+  { tool: 'pikchr', lang: 'C', kind: 'pic', ms: [1.7, 1.9, 3.0], jitter: 0.6 },
+  { tool: 'dpic', lang: 'C', kind: 'pic', ms: [2.5, 2.8, 3.7], jitter: 0.6 },
+  { tool: 'rpic', lang: 'Rust', kind: 'pic', ms: [4.3, 4.2, 5.3], jitter: 0.8, self: true },
+  { tool: 'graphviz dot', lang: 'C', kind: 'auto', ms: [85, 83, 84], jitter: 2.9 },
+  { tool: 'd2', lang: 'Go', kind: 'auto', ms: [62, 134, 449], jitter: 9.3 },
+  { tool: 'mermaid', lang: 'mmdc · Chromium', kind: 'auto', ms: [537, 582, 713], jitter: 22.6 },
 ];
 
 const max = Math.max(...rows.map((r) => r.ms[2]));
@@ -94,7 +94,7 @@ const bmax = Math.max(...batch.map((b) => b.s));
   </div>
 
   <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800/60 text-[11px] leading-5 text-slate-400 dark:text-slate-500">
-    Apple M2 Pro · <code class="font-mono">hyperfine</code>, warmup, median of 10–347 runs · <strong class="font-medium">jitter</strong> is the
+    Apple M2 Pro · <code class="font-mono">hyperfine</code>, warmup, median of 10–454 runs · <strong class="font-medium">jitter</strong> is the
     120-node interquartile range (lower = more deterministic) · bars are linear in the 120-node time —
     the near-invisible pic-family bars are the honest picture · outputs verified complete ·
     reproduce with <a href="https://github.com/milkway/rpic-lang/tree/main/tools/bench" class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-800 dark:hover:text-emerald-300">tools/bench</a>
