@@ -21,7 +21,7 @@ pub mod token;
 
 pub use ast::{IncludeCtx, IncludePolicy};
 pub use diagnostic::{CompileError, Diagnostic, Span};
-pub use eval::{EvalError, eval};
+pub use eval::{EvalError, EvalLimits, eval, eval_with_limits};
 pub use ir::Drawing;
 pub use lexer::{LexError, lex};
 pub use math::{MathSpan, set_math_renderer};
@@ -186,6 +186,14 @@ pub struct CompileOptions {
     /// (`Unrestricted`, the CLI behavior) for local use; embedders compiling
     /// untrusted source should pick `SandboxedToBase` or `Deny`.
     pub includes: IncludePolicy,
+    /// Host ceiling for animation times in seconds. `None` uses the library
+    /// default; the source-level `maxanimseconds` variable may lower this, but
+    /// cannot raise it.
+    pub max_animation_seconds: Option<f64>,
+    /// Host ceiling for finite GSAP repeat counts. `None` uses the library
+    /// default; `repeat -1` remains the explicit infinite-repeat sentinel. The
+    /// source-level `maxanimrepeat` variable may lower this, but cannot raise it.
+    pub max_animation_repeat: Option<i64>,
 }
 
 /// Compile pic source with [`CompileOptions`] into a [`Drawing`].
@@ -201,7 +209,7 @@ pub fn compile_with_diagnostics(src: &str, opts: &CompileOptions) -> Result<Draw
         message: e.to_string(),
         info: Box::new(e.diagnostic()),
     })?;
-    eval(&picture).map_err(|e| {
+    eval::eval_with_limits(&picture, opts.eval_limits()).map_err(|e| {
         // Eval errors carry their own diagnostic when the failure site had
         // one (deferred-parse errors, unknown labels, ordinals — with spans
         // straight from the failing reference's tokens, includes included).
@@ -228,6 +236,19 @@ fn parse_options(src: &str, opts: &CompileOptions) -> Result<ast::Picture, Parse
         opts.circuits,
         opts.texlabels,
     )
+}
+
+impl CompileOptions {
+    fn eval_limits(&self) -> EvalLimits {
+        EvalLimits {
+            max_animation_seconds: self
+                .max_animation_seconds
+                .unwrap_or(eval::DEFAULT_MAX_ANIMATION_SECONDS),
+            max_animation_repeat: self
+                .max_animation_repeat
+                .unwrap_or(eval::DEFAULT_MAX_ANIMATION_REPEAT),
+        }
+    }
 }
 
 /// Compile to a single JSON object `{ "svg": "...", "animations": [...],
@@ -562,6 +583,68 @@ mod tests {
         };
         let j = compile_json_with_options("texlabels = 0\nbox \"$x$\"\n", &opts);
         assert!(!j.contains("no math renderer"), "{j}");
+    }
+
+    #[test]
+    fn options_cap_animation_limits() {
+        let repeat_opts = CompileOptions {
+            max_animation_repeat: Some(2),
+            ..Default::default()
+        };
+        let err =
+            compile_with_options("box\nanimate last box with \"fade\" repeat 3", &repeat_opts)
+                .unwrap_err();
+        assert!(err.contains("animation repeat must be at most 2"), "{err}");
+
+        let err = compile_with_options(
+            "maxanimrepeat = 3\nbox\nanimate last box with \"fade\" repeat 2",
+            &repeat_opts,
+        )
+        .unwrap_err();
+        assert!(err.contains("maxanimrepeat must be at most 2"), "{err}");
+
+        assert!(
+            compile_with_options(
+                "maxanimrepeat = 1\nbox\nanimate last box with \"fade\" repeat 1",
+                &repeat_opts,
+            )
+            .is_ok()
+        );
+
+        let seconds_opts = CompileOptions {
+            max_animation_seconds: Some(0.5),
+            ..Default::default()
+        };
+        let err =
+            compile_with_options("box\nanimate last box with \"fade\"", &seconds_opts).unwrap_err();
+        assert!(
+            err.contains("animation duration must be at most 0.5"),
+            "{err}"
+        );
+        assert!(
+            compile_with_options(
+                "maxanimseconds = 0.2\nbox\nanimate last box with \"fade\" for 0.2",
+                &seconds_opts,
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn options_reject_invalid_animation_limits() {
+        let repeat_opts = CompileOptions {
+            max_animation_repeat: Some(-1),
+            ..Default::default()
+        };
+        let err = compile_with_options("box", &repeat_opts).unwrap_err();
+        assert!(err.contains("max_animation_repeat option must be non-negative"));
+
+        let seconds_opts = CompileOptions {
+            max_animation_seconds: Some(f64::INFINITY),
+            ..Default::default()
+        };
+        let err = compile_with_options("box", &seconds_opts).unwrap_err();
+        assert!(err.contains("max_animation_seconds option must be finite"));
     }
 
     #[test]

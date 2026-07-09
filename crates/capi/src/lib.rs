@@ -80,6 +80,7 @@ unsafe fn opts_ex(ex: *const RpicOptions) -> rpic_core::CompileOptions {
         texlabels: o.texlabels != 0,
         base: unsafe { as_str(o.base) }.map(std::path::PathBuf::from),
         includes,
+        ..Default::default()
     }
 }
 

@@ -44,6 +44,7 @@ fn opts(
         texlabels,
         base,
         includes,
+        ..Default::default()
     })
 }
 
