@@ -113,7 +113,13 @@ fn finite(v: f64, context: &str) -> ER<f64> {
 
 /// Evaluate a parsed picture into a [`Drawing`].
 pub fn eval(pic: &Picture) -> ER<Drawing> {
-    let mut st = State::new();
+    eval_with_limits(pic, EvalLimits::default())
+}
+
+/// Evaluate a parsed picture with host-provided resource limits.
+pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
+    let limits = limits.validate()?;
+    let mut st = State::with_limits(limits);
     st.macros = pic.macros.clone();
     st.includes = pic.includes.clone();
     st.eval_stmts(&pic.stmts)?;
@@ -247,6 +253,39 @@ const SCALED_VARS: [EnvVar; 23] = [
 
 // ---- environment variables -------------------------------------------------
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EvalLimits {
+    pub max_animation_seconds: f64,
+    pub max_animation_repeat: i64,
+}
+
+pub const DEFAULT_MAX_ANIMATION_SECONDS: f64 = 1_000_000.0;
+pub const DEFAULT_MAX_ANIMATION_REPEAT: i64 = 1_000_000;
+
+impl Default for EvalLimits {
+    fn default() -> Self {
+        Self {
+            max_animation_seconds: DEFAULT_MAX_ANIMATION_SECONDS,
+            max_animation_repeat: DEFAULT_MAX_ANIMATION_REPEAT,
+        }
+    }
+}
+
+impl EvalLimits {
+    fn validate(self) -> ER<Self> {
+        if !self.max_animation_seconds.is_finite() {
+            return err("max_animation_seconds option must be finite");
+        }
+        if self.max_animation_seconds < 0.0 {
+            return err("max_animation_seconds option must be non-negative");
+        }
+        if self.max_animation_repeat < 0 {
+            return err("max_animation_repeat option must be non-negative");
+        }
+        Ok(self)
+    }
+}
+
 #[derive(Clone)]
 struct EnvVars {
     v: HashMap<u8, f64>,
@@ -257,7 +296,7 @@ fn ev_key(e: EnvVar) -> u8 {
 }
 
 impl EnvVars {
-    fn new() -> Self {
+    fn new(limits: EvalLimits) -> Self {
         use EnvVar::*;
         let defaults = [
             (Arcrad, 0.25),
@@ -290,6 +329,8 @@ impl EnvVars {
             (Leftmargin, 0.0),
             (Texlabels, 0.0),
             (Dotrad, 0.035),
+            (Maxanimrepeat, limits.max_animation_repeat as f64),
+            (Maxanimseconds, limits.max_animation_seconds),
         ];
         let mut v = HashMap::new();
         for (e, d) in defaults {
@@ -598,29 +639,39 @@ struct State {
     warnings: Vec<Diagnostic>,
     anim_cursor: f64,
     anim_end: HashMap<usize, f64>,
+    limits: EvalLimits,
     rng: GlibcRand,
 }
 
 const DEFAULT_ANIM_DUR: f64 = 0.6;
-const MAX_ANIM_SECONDS: f64 = 1_000_000.0;
-const MAX_ANIM_REPEAT: i64 = 1_000_000;
 
-fn checked_anim_time(name: &str, value: f64) -> ER<f64> {
+fn checked_anim_time(name: &str, value: f64, max: f64) -> ER<f64> {
     if !value.is_finite() {
         return err(format!("animation {name} must be finite"));
     }
     if value < 0.0 {
         return err(format!("animation {name} must be non-negative"));
     }
-    if value > MAX_ANIM_SECONDS {
-        return err(format!(
-            "animation {name} must be at most {MAX_ANIM_SECONDS} seconds"
-        ));
+    if value > max {
+        return err(format!("animation {name} must be at most {max} seconds"));
     }
     Ok(value)
 }
 
-fn checked_anim_repeat(value: f64) -> ER<i64> {
+fn checked_anim_seconds_limit(value: f64, host_max: f64) -> ER<f64> {
+    if !value.is_finite() {
+        return err("maxanimseconds must be finite");
+    }
+    if value < 0.0 {
+        return err("maxanimseconds must be non-negative");
+    }
+    if value > host_max {
+        return err(format!("maxanimseconds must be at most {host_max}"));
+    }
+    Ok(value)
+}
+
+fn checked_anim_repeat(value: f64, max: i64) -> ER<i64> {
     if !value.is_finite() {
         return err("animation repeat must be finite");
     }
@@ -629,12 +680,25 @@ fn checked_anim_repeat(value: f64) -> ER<i64> {
     }
 
     let repeat = value.round();
-    if repeat > MAX_ANIM_REPEAT as f64 {
-        return err(format!(
-            "animation repeat must be at most {MAX_ANIM_REPEAT}"
-        ));
+    if repeat > max as f64 {
+        return err(format!("animation repeat must be at most {max}"));
     }
     Ok(repeat as i64)
+}
+
+fn checked_anim_repeat_limit(value: f64, host_max: i64) -> ER<i64> {
+    if !value.is_finite() {
+        return err("maxanimrepeat must be finite");
+    }
+    if value < 0.0 {
+        return err("maxanimrepeat must be non-negative");
+    }
+
+    let max = value.round();
+    if max > host_max as f64 {
+        return err(format!("maxanimrepeat must be at most {host_max}"));
+    }
+    Ok(max as i64)
 }
 
 fn dir_unit(d: Dir) -> Point {
@@ -650,7 +714,12 @@ fn horizontal(d: Dir) -> bool {
 }
 
 impl State {
+    #[cfg(test)]
     fn new() -> Self {
+        Self::with_limits(EvalLimits::default())
+    }
+
+    fn with_limits(limits: EvalLimits) -> Self {
         let mut vars = HashMap::new();
         install_dpic_compat_vars(&mut vars);
         State {
@@ -659,7 +728,7 @@ impl State {
             vars,
             inherited_vars: HashSet::new(),
             export_vars: HashSet::new(),
-            env: EnvVars::new(),
+            env: EnvVars::new(limits),
             macros: HashMap::new(),
             includes: IncludeCtx::default(),
             outer_labels: HashMap::new(),
@@ -679,6 +748,7 @@ impl State {
             warnings: Vec::new(),
             anim_cursor: 0.0,
             anim_end: HashMap::new(),
+            limits,
             rng: GlibcRand::new(1),
         }
     }
@@ -688,6 +758,32 @@ impl State {
             self.eval_stmt(s)?;
         }
         Ok(())
+    }
+
+    fn checked_env_value(&self, e: EnvVar, value: f64) -> ER<f64> {
+        match e {
+            EnvVar::Maxanimrepeat => {
+                Ok(checked_anim_repeat_limit(value, self.limits.max_animation_repeat)? as f64)
+            }
+            EnvVar::Maxanimseconds => {
+                checked_anim_seconds_limit(value, self.limits.max_animation_seconds)
+            }
+            _ => Ok(value),
+        }
+    }
+
+    fn max_anim_seconds(&self) -> ER<f64> {
+        checked_anim_seconds_limit(
+            self.env.get(EnvVar::Maxanimseconds),
+            self.limits.max_animation_seconds,
+        )
+    }
+
+    fn max_anim_repeat(&self) -> ER<i64> {
+        checked_anim_repeat_limit(
+            self.env.get(EnvVar::Maxanimrepeat),
+            self.limits.max_animation_repeat,
+        )
     }
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
@@ -852,9 +948,9 @@ impl State {
             }
             Stmt::Reset(list) => {
                 if list.is_empty() {
-                    self.env = EnvVars::new();
+                    self.env = EnvVars::new(self.limits);
                 } else {
-                    let d = EnvVars::new();
+                    let d = EnvVars::new(self.limits);
                     for e in list {
                         self.env.set(*e, d.get(*e));
                     }
@@ -870,9 +966,10 @@ impl State {
             msg: "cannot animate a point (no drawn shape)".into(),
             info: None,
         })?;
+        let max_seconds = self.max_anim_seconds()?;
         let dur = match &a.duration {
-            Some(e) => checked_anim_time("duration", self.eval_expr(e)?)?,
-            None => DEFAULT_ANIM_DUR,
+            Some(e) => checked_anim_time("duration", self.eval_expr(e)?, max_seconds)?,
+            None => checked_anim_time("duration", DEFAULT_ANIM_DUR, max_seconds)?,
         };
         let mut start = match &a.timing {
             Timing::Sequential => self.anim_cursor,
@@ -886,17 +983,18 @@ impl State {
                 *self.anim_end.get(&sh).unwrap_or(&0.0)
             }
         };
-        start = checked_anim_time("start time", start)?;
+        start = checked_anim_time("start time", start, max_seconds)?;
         if let Some(d) = &a.delay {
-            let delay = checked_anim_time("delay", self.eval_expr(d)?)?;
-            start = checked_anim_time("start time", start + delay)?;
+            let delay = checked_anim_time("delay", self.eval_expr(d)?, max_seconds)?;
+            start = checked_anim_time("start time", start + delay, max_seconds)?;
         }
         // Sequential/`after` timing tracks the *first* iteration's end, not the
         // repeated total — an ambient `repeat` loop (or an infinite one) must
         // not stall everything declared after it.
-        let end = checked_anim_time("end time", start + dur)?;
+        let end = checked_anim_time("end time", start + dur, max_seconds)?;
+        let max_repeat = self.max_anim_repeat()?;
         let repeat = match &a.repeat {
-            Some(e) => checked_anim_repeat(self.eval_expr(e)?)?,
+            Some(e) => checked_anim_repeat(self.eval_expr(e)?, max_repeat)?,
             None => 0,
         };
         self.anim_cursor = end;
@@ -1052,7 +1150,7 @@ impl State {
         // children (skipping `move`/invis spines), offset by d seconds each,
         // in source order — one manifest entry per child.
         if let Some(se) = &a.stagger {
-            let step = checked_anim_time("stagger", self.eval_expr(se)?)?;
+            let step = checked_anim_time("stagger", self.eval_expr(se)?, max_seconds)?;
             let children: Vec<usize> = self.placed[idx]
                 .block_shapes
                 .map(|(lo, hi)| (lo..hi).filter(|&i| self.shapes[i].is_visible()).collect())
@@ -1060,11 +1158,12 @@ impl State {
             if !children.is_empty() {
                 let mut last_start = start;
                 for (k, &child) in children.iter().enumerate() {
-                    let child_start = checked_anim_time("start time", start + k as f64 * step)?;
+                    let child_start =
+                        checked_anim_time("start time", start + k as f64 * step, max_seconds)?;
                     last_start = child_start;
                     self.anims.push(make(child, child_start));
                 }
-                let last_end = checked_anim_time("end time", last_start + dur)?;
+                let last_end = checked_anim_time("end time", last_start + dur, max_seconds)?;
                 self.anim_cursor = last_end;
                 // `after <block>` resolves to the block's own shape index, so
                 // record the whole-stagger end there (line 863 seeded it with a
@@ -1194,7 +1293,7 @@ impl State {
             }
             AssignTarget::Env(e) => {
                 let cur = self.env.get(*e);
-                let val = apply_op(a.op, cur, rhs)?;
+                let val = self.checked_env_value(*e, apply_op(a.op, cur, rhs)?)?;
                 if matches!(e, EnvVar::Scale) {
                     if val.abs() < 1e-12 {
                         return err("scale must be non-zero");
@@ -2170,7 +2269,7 @@ impl State {
         // Evaluate the block in a local scope at its own origin. Labels from
         // the containing scope are visible for references such as `$1.start`
         // inside macro-generated blocks, but are not captured as new members.
-        let mut sub = State::new();
+        let mut sub = State::with_limits(self.limits);
         sub.env = self.env.clone();
         sub.vars = self.vars.clone();
         sub.inherited_vars = self.vars.keys().cloned().collect();
@@ -4867,6 +4966,42 @@ mod tests {
     }
 
     #[test]
+    fn animate_source_limits_can_only_lower_defaults() {
+        let err =
+            eval(&parse("maxrepeats = 2\nbox\nanimate last box with \"fade\" repeat 3").unwrap())
+                .unwrap_err();
+        assert!(err.msg.contains("animation repeat must be at most 2"));
+
+        let err =
+            eval(&parse("maxanimseconds = 0.5\nbox\nanimate last box with \"fade\"").unwrap())
+                .unwrap_err();
+        assert!(err.msg.contains("animation duration must be at most 0.5"));
+    }
+
+    #[test]
+    fn animate_source_limits_reset_to_host_defaults() {
+        let d = draw(
+            "maxanimrepeat = 2\nreset maxanimrepeat\nbox\nanimate last box with \"fade\" repeat 3",
+        );
+        assert_eq!(d.anims[0].repeat, 3);
+
+        let d =
+            draw("maxanimseconds = 0.5\nreset maxanimseconds\nbox\nanimate last box with \"fade\"");
+        assert_eq!(d.anims[0].duration, DEFAULT_ANIM_DUR);
+    }
+
+    #[test]
+    fn animate_rejects_invalid_source_limits() {
+        for (src, want) in [
+            ("maxanimrepeat = -1", "maxanimrepeat must be non-negative"),
+            ("maxanimseconds = -1", "maxanimseconds must be non-negative"),
+        ] {
+            let err = eval(&parse(src).unwrap()).unwrap_err();
+            assert!(err.msg.contains(want), "{src}: {err}");
+        }
+    }
+
+    #[test]
     fn animate_move_records_the_path_shape() {
         // The dot (shape 1) travels along the line (shape 0).
         let d = draw("L: line right 3\nD: dot at L.start\nanimate D with \"move\" along L for 2");
@@ -6301,6 +6436,14 @@ box wid 0.1 ht 0.1 at B.s"#,
         assert_eq!(scalar("rightmargin").unwrap(), 0.0);
         assert_eq!(scalar("bottommargin").unwrap(), 0.0);
         assert_eq!(scalar("leftmargin").unwrap(), 0.0);
+        assert_eq!(
+            scalar("maxanimrepeat").unwrap(),
+            DEFAULT_MAX_ANIMATION_REPEAT as f64
+        );
+        assert_eq!(
+            scalar("maxanimseconds").unwrap(),
+            DEFAULT_MAX_ANIMATION_SECONDS
+        );
     }
 
     #[test]

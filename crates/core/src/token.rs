@@ -296,4 +296,6 @@ pub enum EnvVar {
     Leftmargin,
     Texlabels,
     Dotrad,
+    Maxanimrepeat,
+    Maxanimseconds,
 }

@@ -99,6 +99,7 @@ fn main() -> ExitCode {
             .map(|p| p.to_path_buf()),
         // the CLI keeps full filesystem access for includes
         includes: rpic_core::IncludePolicy::Unrestricted,
+        ..Default::default()
     };
     let result = run(&src, &mode, scale, &opts);
     match result {

@@ -825,6 +825,9 @@ fn word_keyword(w: &str) -> Token {
         "scale" => EnvVar(self::EnvVar::Scale),
         "texlabels" => EnvVar(self::EnvVar::Texlabels),
         "dotrad" => EnvVar(self::EnvVar::Dotrad),
+        "maxanimrepeat" => EnvVar(self::EnvVar::Maxanimrepeat),
+        "maxrepeats" => EnvVar(self::EnvVar::Maxanimrepeat),
+        "maxanimseconds" => EnvVar(self::EnvVar::Maxanimseconds),
         // identifier / label
         _ => {
             if w.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
