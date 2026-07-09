@@ -28,6 +28,13 @@ struct Svg {
     pad: f64,
     margin: CanvasMargin,
     next_pattern: usize,
+    /// Shapes that are `type`-effect animation targets → split by word (`true`)
+    /// or by char (`false`). Derived from the manifest, so a drawing with no
+    /// `type` animation emits byte-identical text.
+    type_targets: std::collections::HashMap<usize, bool>,
+    /// Split granularity for the shape currently being emitted, if it is a
+    /// `type` target (set per shape in the render loop).
+    cur_type: Option<bool>,
 }
 
 impl Svg {
@@ -39,6 +46,12 @@ impl Svg {
         } else {
             (raw.min.x, raw.max.y)
         };
+        let type_targets = d
+            .anims
+            .iter()
+            .filter(|a| a.effect == "type")
+            .map(|a| (a.shape, a.type_word))
+            .collect();
         Svg {
             out: String::new(),
             west,
@@ -46,6 +59,8 @@ impl Svg {
             pad: d.prelude_thick.max(0.0) / 144.0,
             margin: d.canvas_margin,
             next_pattern: 0,
+            type_targets,
+            cur_type: None,
         }
     }
 
@@ -93,6 +108,7 @@ impl Svg {
                 )),
                 None => self.out.push_str(&format!("<g id=\"s{i}\">\n")),
             }
+            self.cur_type = self.type_targets.get(&i).copied();
             self.shape(s);
             self.out.push_str("</g>\n");
         }
@@ -858,6 +874,10 @@ impl Svg {
                     num(p.y)
                 ));
             }
+            let content = match self.cur_type {
+                Some(by_word) => split_type_units(&line.s, by_word),
+                None => escape_text(&line.s),
+            };
             self.out.push_str(&format!(
                 "<text font-size=\"{}pt\"{} {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
                 num(line.size_pt.unwrap_or(font_pt)),
@@ -866,7 +886,7 @@ impl Svg {
                 num(p.x),
                 num(p.y),
                 anchor,
-                escape_text(&line.s)
+                content
             ));
             y -= lineskip;
         }
@@ -1730,6 +1750,46 @@ fn escape_attr(s: &str) -> String {
     escape_text(s).replace('"', "&quot;")
 }
 
+/// Wrap each unit of a `type`-effect label in a `<tspan class="rpic-ch">` the
+/// browser player staggers into view. In `by_word` mode whole words are the
+/// units and whitespace stays outside the tspans (so only words reveal); by
+/// character every glyph, spaces included, gets its own tspan — a typewriter.
+/// The tspans carry no positioning, so they flow exactly like the plain text
+/// and the pre-animation render is visually identical.
+fn split_type_units(s: &str, by_word: bool) -> String {
+    let mut out = String::new();
+    let wrap = |out: &mut String, unit: &str| {
+        out.push_str("<tspan class=\"rpic-ch\">");
+        out.push_str(&escape_text(unit));
+        out.push_str("</tspan>");
+    };
+    if by_word {
+        let mut chars = s.chars().peekable();
+        while let Some(&c) = chars.peek() {
+            let ws = c.is_whitespace();
+            let mut run = String::new();
+            while let Some(&c) = chars.peek() {
+                if c.is_whitespace() != ws {
+                    break;
+                }
+                run.push(c);
+                chars.next();
+            }
+            if ws {
+                out.push_str(&escape_text(&run)); // whitespace: plain, not staggered
+            } else {
+                wrap(&mut out, &run);
+            }
+        }
+    } else {
+        let mut buf = [0u8; 4];
+        for c in s.chars() {
+            wrap(&mut out, c.encode_utf8(&mut buf));
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1737,6 +1797,31 @@ mod tests {
 
     fn svg(src: &str) -> String {
         to_svg(&eval(&parse(src).unwrap()).unwrap())
+    }
+
+    #[test]
+    fn type_effect_splits_label_into_addressable_tspans() {
+        // #328: a `type` target's glyphs become `.rpic-ch` tspans the player
+        // staggers; a label that isn't a `type` target is untouched.
+        let s = svg("box \"Hi!\"\nanimate last with \"type\"");
+        assert!(
+            s.contains(
+                "<tspan class=\"rpic-ch\">H</tspan><tspan class=\"rpic-ch\">i</tspan><tspan class=\"rpic-ch\">!</tspan>"
+            ),
+            "{s}"
+        );
+
+        // by word: whole words are units, whitespace stays plain
+        let s = svg("box \"one two\"\nanimate last with \"type\" by word");
+        assert!(
+            s.contains("<tspan class=\"rpic-ch\">one</tspan> <tspan class=\"rpic-ch\">two</tspan>"),
+            "{s}"
+        );
+
+        // no animation → no split
+        let s = svg("box \"Hi!\"");
+        assert!(!s.contains("rpic-ch"), "{s}");
+        assert!(s.contains(">Hi!</text>"), "{s}");
     }
 
     fn text_y(svg: &str, text: &str) -> f64 {

@@ -96,6 +96,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(morph) = a.morph {
             s.push_str(&format!(",\"morph\":\"s{morph}\""));
         }
+        if a.type_word {
+            s.push_str(",\"unit\":\"word\"");
+        }
         s.push('}');
     }
     s.push(']');

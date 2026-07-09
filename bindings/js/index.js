@@ -138,6 +138,9 @@ export function animate(root, animations, gsap) {
       case 'highlight':
         highlightWith(el, a, tl);
         break;
+      case 'type':
+        typeReveal(el, a, tl);
+        break;
       default:
         enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
     }
@@ -167,6 +170,19 @@ function slideIn(tl, el, a) {
     down: { y: bb.height * 1.5 || 40 },
   }[a.from || 'left'];
   enterExit(tl, el, withOverrides({ ...off, opacity: 0, duration: a.duration, ease: 'power2.out' }, a), a);
+}
+
+// The `type` effect: reveal a label a glyph (or word) at a time — a
+// typewriter. The emitter split the label into `.rpic-ch` tspans; stagger
+// their opacity so the whole reveal spans the effect's duration (each unit
+// fades over one stagger step, the last finishing at `duration`). `out`
+// reverses it into a staggered fade-out.
+function typeReveal(el, a, tl) {
+  const units = el.querySelectorAll('.rpic-ch');
+  if (!units.length) return;
+  const step = a.duration / units.length;
+  const vars = withOverrides({ opacity: 0, duration: step, stagger: step, ease: 'none' }, a);
+  return a.out ? tl.to(units, vars, a.start) : tl.from(units, vars, a.start);
 }
 
 // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars.

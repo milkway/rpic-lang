@@ -2,7 +2,7 @@
 
 export interface Anim {
   id: string;
-  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" */
+  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" | "type" */
   effect: string;
   /** absolute start time in seconds */
   start: number;
@@ -23,6 +23,8 @@ export interface Anim {
   from?: string;
   /** id of the shape a `morph` tweens into. Present only for `morph`. */
   morph?: string;
+  /** `type` reveal granularity: "word" splits by word, absent means by char. */
+  unit?: string;
 }
 
 export interface Diagnostic {

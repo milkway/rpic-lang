@@ -50,6 +50,7 @@ may appear in any order.
 | `into` *place* | `into B` | shape to morph into — required by `morph`, ignored elsewhere |
 | `to` *colour* | `to "crimson"` | target colour for `highlight`; any rpic colour form, ignored elsewhere |
 | `from` *dir* | `from left` | entry direction (`up`/`down`/`left`/`right`) — required by `slide`, ignored elsewhere |
+| `by` *word*\|*char* | `by word` | `type` reveal granularity (default `char`), ignored elsewhere |
 | `out` | `out` | play the effect as an **exit** (reverse) instead of an entrance |
 | `stagger` *expr* | `stagger 0.12` | on a block target, fan the effect across its children, `d`s apart |
 | `for` *expr* | `for 0.4` | duration in seconds (default `0.6`) |
@@ -75,6 +76,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 | `highlight` | recolour + thicken the outline with a scale pulse (`to <colour>`), or a colour-free pulse | `power1.inOut` |
 | `slide` | translate in from a compass direction (needs `from <dir>`) | `power2.out` |
 | `morph` | tween the outline into another shape's geometry (needs `into <shape>`) | `power1.inOut` |
+| `type` | reveal a label one character (or `by word`) at a time — a typewriter | `none` |
 
 Any other effect string is accepted by the parser but flagged with an
 `unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
@@ -100,8 +102,8 @@ Any other effect string is accepted by the parser but flagged with an
   gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin);
   ```
 
-  The other effects (`fade`, `pop`, `draw`, `slide`, `highlight`) use only the
-  GSAP core and need no plugins. `animate scroll` additionally wants
+  The other effects (`fade`, `pop`, `draw`, `slide`, `highlight`, `type`) use
+  only the GSAP core and need no plugins. `animate scroll` additionally wants
   [`ScrollTrigger`](https://gsap.com/docs/v3/Plugins/ScrollTrigger/) — see
   [Scroll-scrubbing](#scroll-scrubbing) below.
 </Callout>
@@ -337,6 +339,28 @@ animate B with "highlight" to "crimson" for 0.6 repeat -1 yoyo
 The target colour rides the manifest entry as a `color` key
 (`"color":"crimson"` above; `rgb()`/`0xRRGGBB` resolve to `#rrggbb`). `to` on any
 non-`highlight` effect is ignored with a `to_without_highlight` warning.
+
+## Typewriter text
+
+`type` reveals a label one piece at a time — the way a caption "speaks" a step.
+By default each **character** appears in turn; add `by word` to reveal whole
+words instead. The whole reveal spans the effect's `for` duration.
+
+<AnimatedPic code={`.PS
+margin = 0.15
+"Describe the picture." at (0,0)
+animate last with "type" for 1.6
+"rpic draws it." at (0,-0.4)
+animate last with "type" by word for 0.9 after 2nd last
+.PE`} />
+
+Unlike GSAP's SplitText (which does not support SVG `<text>`), the split is
+native: the SVG backend wraps each unit of a `type` target in a
+`<tspan class="rpic-ch">`, and the player staggers their opacity — no plugin,
+nothing to install. The tspans carry no positioning, so the pre-animation
+render is visually identical to a plain label, and a drawing with no `type`
+animation emits byte-identical text. `by` on any non-`type` effect is ignored
+with a `by_without_type` warning; `out` reverses it into a staggered erase.
 
 ## Staggering a group
 

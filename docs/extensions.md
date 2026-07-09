@@ -195,7 +195,7 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>]
+animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char]
         [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
@@ -217,8 +217,10 @@ animate B2 with "fade" after 1st arrow delay 0.2
 - **Effects**: `fade` (opacity), `pop` (scale, overshoots), `draw` (strokes
   trace themselves), `move` (travel along another object's path — see below),
   `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`),
-  `morph` (morph into another shape — see below). Any other string is accepted
-  but flagged with an `unknown_animation_effect` warning and renders nothing.
+  `morph` (morph into another shape — see below), `type` (reveal a label one
+  character, or `by word`, at a time — a typewriter; see below). Any other
+  string is accepted but flagged with an `unknown_animation_effect` warning and
+  renders nothing.
 - **Direction / exit**: `slide` enters from a compass direction (`from
   up`/`down`/`left`/`right` — required; `from` elsewhere warns
   `from_without_slide`). The `out` modifier reverses **any** effect into an exit
@@ -233,6 +235,14 @@ animate B2 with "fade" after 1st arrow delay 0.2
   object whose geometry the target morphs into (GSAP MorphSVGPlugin); the
   manifest gains a `morph` key (`"morph":"s0"`). `morph` without `into` is an
   error; `into` on any other effect warns `into_without_morph`.
+- **Typewriter text** (`type`): reveal a label one unit at a time — `by char`
+  (default) or `by word`. The SVG backend wraps each unit of a `type` target in
+  a `<tspan class="rpic-ch">` (natively — GSAP's SplitText doesn't support SVG
+  `<text>`), and the player staggers their opacity over the `for` duration; no
+  plugin needed. The tspans are unpositioned, so the static render is identical
+  and a drawing with no `type` animation is byte-for-byte unchanged. `by word`
+  rides the manifest as `"unit":"word"` (char is the default, so no key); `by`
+  on any other effect warns `by_without_type`.
 - **Emphasis** (`highlight`): `to <colour>` (any rpic colour form) tweens the
   object's outline to that colour; without a colour it's a colour-free scale
   pulse. One-directional — add `repeat 1 yoyo` for a flash-and-return or

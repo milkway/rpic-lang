@@ -412,6 +412,28 @@ fn animate_defaults_leave_repeat_fields_inert() {
 }
 
 #[test]
+fn animate_type_effect_records_unit() {
+    // #328: `type` reveals a label unit-by-unit; default is by character.
+    let d = draw("box \"hi\"\nanimate last with \"type\"");
+    assert_eq!(d.anims[0].effect, "type");
+    assert!(!d.anims[0].type_word);
+
+    let d = draw("box \"one two\"\nanimate last with \"type\" by word");
+    assert!(d.anims[0].type_word);
+
+    // explicit `by char` is the default
+    let d = draw("box \"hi\"\nanimate last with \"type\" by char");
+    assert!(!d.anims[0].type_word);
+}
+
+#[test]
+fn animate_by_without_type_warns_and_is_inert() {
+    let d = draw("box \"hi\"\nanimate last with \"fade\" by word");
+    assert!(!d.anims[0].type_word);
+    assert!(d.warnings.iter().any(|w| w.kind == "by_without_type"));
+}
+
+#[test]
 fn animate_rejects_invalid_timing_values() {
     for (src, want) in [
         (
