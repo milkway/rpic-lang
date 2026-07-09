@@ -195,7 +195,7 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
 ```
-animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char]
+animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char|"chars"]
         [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
@@ -218,9 +218,9 @@ animate B2 with "fade" after 1st arrow delay 0.2
   trace themselves), `move` (travel along another object's path — see below),
   `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`),
   `morph` (morph into another shape — see below), `type` (reveal a label one
-  character, or `by word`, at a time — a typewriter; see below). Any other
-  string is accepted but flagged with an `unknown_animation_effect` warning and
-  renders nothing.
+  character, or `by word`, at a time — a typewriter; see below), `scramble`
+  (decode-style reveal; see below). Any other string is accepted but flagged
+  with an `unknown_animation_effect` warning and renders nothing.
 - **Direction / exit**: `slide` enters from a compass direction (`from
   up`/`down`/`left`/`right` — required; `from` elsewhere warns
   `from_without_slide`). The `out` modifier reverses **any** effect into an exit
@@ -243,6 +243,12 @@ animate B2 with "fade" after 1st arrow delay 0.2
   and a drawing with no `type` animation is byte-for-byte unchanged. `by word`
   rides the manifest as `"unit":"word"` (char is the default, so no key); `by`
   on any other effect warns `by_without_type`.
+- **Scramble reveal** (`scramble`): glyphs cycle through random characters and
+  resolve to the real text (GSAP ScrambleTextPlugin, which drives `<text>`
+  content directly — no split, zero SVG cost). A custom charset comes from
+  `by "<chars>"` (default `upperCase`) and rides the manifest as `"chars":"…"`
+  only when given; `by "…"` on any other effect warns `by_without_scramble`.
+  `out` scrambles the label away.
 - **Emphasis** (`highlight`): `to <colour>` (any rpic colour form) tweens the
   object's outline to that colour; without a colour it's a colour-free scale
   pulse. One-directional — add `repeat 1 yoyo` for a flash-and-return or

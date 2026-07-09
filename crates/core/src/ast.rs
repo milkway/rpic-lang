@@ -212,6 +212,9 @@ pub struct Animate {
     /// Split granularity for the `type` effect (`by word` / `by char`); `None`
     /// defaults to `Char`.
     pub type_unit: Option<TypeUnit>,
+    /// Custom scramble charset for the `scramble` effect (`by "01"`); `None`
+    /// defaults to the plugin's `upperCase`.
+    pub scramble_chars: Option<StringExpr>,
 }
 
 /// When an animation starts.

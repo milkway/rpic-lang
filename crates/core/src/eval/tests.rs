@@ -434,6 +434,22 @@ fn animate_by_without_type_warns_and_is_inert() {
 }
 
 #[test]
+fn animate_scramble_effect_records_charset() {
+    // #329: `scramble` decodes a label; `by "…"` is an optional custom charset.
+    let d = draw("box \"SECRET\"\nanimate last with \"scramble\"");
+    assert_eq!(d.anims[0].effect, "scramble");
+    assert_eq!(d.anims[0].scramble_chars, None);
+
+    let d = draw("box \"SECRET\"\nanimate last with \"scramble\" by \"01\"");
+    assert_eq!(d.anims[0].scramble_chars.as_deref(), Some("01"));
+
+    // `by "…"` on a non-scramble effect warns and stays inert
+    let d = draw("box \"x\"\nanimate last with \"fade\" by \"01\"");
+    assert_eq!(d.anims[0].scramble_chars, None);
+    assert!(d.warnings.iter().any(|w| w.kind == "by_without_scramble"));
+}
+
+#[test]
 fn animate_rejects_invalid_timing_values() {
     for (src, want) in [
         (

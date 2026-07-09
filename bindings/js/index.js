@@ -141,6 +141,9 @@ export function animate(root, animations, gsap) {
       case 'type':
         typeReveal(el, a, tl);
         break;
+      case 'scramble':
+        scrambleReveal(el, a, tl);
+        break;
       default:
         enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
     }
@@ -183,6 +186,22 @@ function typeReveal(el, a, tl) {
   const step = a.duration / units.length;
   const vars = withOverrides({ opacity: 0, duration: step, stagger: step, ease: 'none' }, a);
   return a.out ? tl.to(units, vars, a.start) : tl.from(units, vars, a.start);
+}
+
+// The `scramble` effect: the label's glyphs cycle through random characters and
+// resolve to the real text — a decode reveal. Needs GSAP's ScrambleTextPlugin
+// registered. `{original}` tells the plugin to scramble the element's existing
+// text, so no capture is needed; `out` scrambles it away to nothing.
+function scrambleReveal(el, a, tl) {
+  const text = el.querySelector('text');
+  if (!text) return;
+  const chars = a.chars || 'upperCase';
+  const target = a.out ? '' : '{original}';
+  const vars = withOverrides(
+    { duration: a.duration, scrambleText: { text: target, chars, speed: 1 }, ease: 'none' },
+    a
+  );
+  return tl.to(text, vars, a.start);
 }
 
 // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars.

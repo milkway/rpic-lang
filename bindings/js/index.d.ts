@@ -2,7 +2,7 @@
 
 export interface Anim {
   id: string;
-  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" | "type" */
+  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" | "type" | "scramble" */
   effect: string;
   /** absolute start time in seconds */
   start: number;
@@ -25,6 +25,8 @@ export interface Anim {
   morph?: string;
   /** `type` reveal granularity: "word" splits by word, absent means by char. */
   unit?: string;
+  /** custom scramble charset for `scramble` (`by "…"`). Present only when set. */
+  chars?: string;
 }
 
 export interface Diagnostic {
