@@ -23,12 +23,12 @@ interface Box {
 
 // Apple M2 Pro · hyperfine · 120-node chain · times in ms (see tools/bench).
 const boxes: Box[] = [
-  { tool: 'pikchr', lang: 'C', n: 325, min: 2.72, q1: 3.29, med: 3.43, q3: 4.19, whiskLo: 2.72, whiskHi: 5.5, max: 10.74 },
-  { tool: 'dpic', lang: 'C', n: 347, min: 3.35, q1: 3.85, med: 4.01, q3: 4.29, whiskLo: 3.35, whiskHi: 4.93, max: 10.76 },
-  { tool: 'rpic', lang: 'Rust', self: true, n: 283, min: 5.18, q1: 5.75, med: 5.94, q3: 6.27, whiskLo: 5.18, whiskHi: 7.04, max: 20.28 },
-  { tool: 'graphviz dot', lang: 'C', n: 31, min: 89.31, q1: 92.78, med: 96.93, q3: 106.36, whiskLo: 89.31, whiskHi: 118.83, max: 147.73 },
-  { tool: 'd2', lang: 'Go', n: 10, min: 561.83, q1: 571.26, med: 573.25, q3: 576.34, whiskLo: 568.02, whiskHi: 577.93, max: 591.02 },
-  { tool: 'mermaid', lang: 'mmdc', n: 10, min: 1037.82, q1: 1065.74, med: 1080.65, q3: 1180.44, whiskLo: 1037.82, whiskHi: 1316.0, max: 1316.0 },
+  { tool: 'pikchr', lang: 'C', n: 454, min: 1.75, q1: 2.67, med: 2.97, q3: 3.27, whiskLo: 1.75, whiskHi: 4.19, max: 6.52 },
+  { tool: 'dpic', lang: 'C', n: 420, min: 2.35, q1: 3.45, med: 3.74, q3: 4.08, whiskLo: 2.5, whiskHi: 5.03, max: 6.43 },
+  { tool: 'rpic', lang: 'Rust', self: true, n: 334, min: 4.21, q1: 4.98, med: 5.33, q3: 5.75, whiskLo: 4.21, whiskHi: 6.9, max: 6.91 },
+  { tool: 'graphviz dot', lang: 'C', n: 35, min: 78.25, q1: 82.47, med: 84.27, q3: 85.37, whiskLo: 78.25, whiskHi: 88.71, max: 88.71 },
+  { tool: 'd2', lang: 'Go', n: 10, min: 432.4, q1: 442.57, med: 448.77, q3: 451.85, whiskLo: 432.4, whiskHi: 455.82, max: 455.82 },
+  { tool: 'mermaid', lang: 'mmdc', n: 10, min: 699.77, q1: 707.08, med: 713.38, q3: 729.66, whiskLo: 699.77, whiskHi: 732.34, max: 732.34 },
 ];
 
 // ---- geometry (SVG user units; the viewBox scales to the container) --------
@@ -71,7 +71,7 @@ const BOX_MIN = 3; // floor so a sub-pixel IQR still reads as a mark
 
   <div class="overflow-x-auto px-2 py-3">
     <svg viewBox={`0 0 ${W} ${H}`} class="w-full min-w-[560px]" role="img"
-      aria-label="Box plot of render time at 120 nodes on a logarithmic axis: pikchr median 3.4 ms, dpic 4.0 ms, rpic 5.9 ms, graphviz dot 97 ms, d2 573 ms, mermaid 1.08 s.">
+      aria-label="Box plot of render time at 120 nodes on a logarithmic axis: pikchr median 3.0 ms, dpic 3.7 ms, rpic 5.3 ms, graphviz dot 84 ms, d2 449 ms, mermaid 713 ms.">
       <!-- decade gridlines -->
       {decades.map((d) => (
         <g>
@@ -130,8 +130,8 @@ const BOX_MIN = 3; // floor so a sub-pixel IQR still reads as a mark
 
   <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800/60 text-[11px] leading-5 text-slate-400 dark:text-slate-500">
     Box = interquartile range (middle 50%), tick = median, whiskers = 1.5×IQR ·
-    log time axis · Apple M2 Pro, <code class="font-mono">hyperfine</code>, 10–347 runs/tool.{' '}
-    <span class="text-slate-500 dark:text-slate-400">rpic's IQR is 0.5 ms</span> — the pic family
-    renders in a deterministic hairline; mermaid's box alone spans 115 ms.
+    log time axis · Apple M2 Pro, <code class="font-mono">hyperfine</code>, 10–454 runs/tool.{' '}
+    <span class="text-slate-500 dark:text-slate-400">rpic's IQR is 0.8 ms</span> — the pic family
+    renders in a deterministic hairline; mermaid's box spans ~23 ms.
   </div>
 </figure>

@@ -48,7 +48,7 @@ to the modern web era:
 - **SVG / PNG / PDF**, all **pure-Rust** — no troff, no LaTeX, no ImageMagick,
   no system libraries.
 - **Fast**: single-digit-millisecond cold renders, flat with diagram size —
-  ~85× faster than mermaid-cli in a docs pipeline
+  ~140× faster than mermaid-cli in a docs pipeline
   ([benchmark](https://rpic.dev/docs/performance/), reproducible via
   [`tools/bench`](tools/bench)).
 - A **declarative animation** layer (`animate …`) that plays in the browser
@@ -64,6 +64,12 @@ to the modern web era:
   did-you-mean hints, per-object geometry in the `--json` output (`objects`:
   kind, bbox, source span), and a fixed-canvas mode for a stable viewBox —
   a base visual editors can build on without DOM heuristics.
+- **Safe on untrusted input**: the parser and evaluator are hardened against
+  malformed or adversarial source — bounded recursion and expression depth,
+  configurable loop/shape budgets, and XML-escaped output — so an app can
+  compile pasted or shared `.pic` without crashing, hanging, or emitting
+  unsafe SVG. Every binding, down to the C ABI, turns a fault into an error
+  rather than aborting the host.
 - One core, **many targets**: a native CLI, WebAssembly, and bindings for
   **Python**, **R**, **JavaScript/TypeScript**, and **C**.
 

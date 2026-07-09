@@ -17,7 +17,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 <DocsLayout title="rpic — pic pictures, reimagined in Rust">
   <div class="max-w-3xl">
-    <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-3">v0.8.1 — a complete animation subsystem</p>
+    <p class="text-sm font-semibold text-emerald-800 dark:text-emerald-300 mb-3">v0.9.0 — hardened for untrusted input, richer colour</p>
     <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4">
       Describe the picture.<br />rpic draws it.
     </h1>
@@ -25,9 +25,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       rpic is Brian Kernighan's <b>pic</b> picture-drawing language reimplemented in Rust —
       native SVG/PNG/PDF output, a 79-element circuit library, KaTeX-grade TeX math in labels,
       real typography (bold/italic/mono, any font &amp; size), gradients, hatch fills,
-      <code class="text-base font-mono">rgb()</code>/hex colours, rotated labels, CSS hooks, a
-      GSAP animation layer (enter/exit, motion, morph, stagger), structured diagnostics and
-      per-object geometry for visual editors. Classic pic stays classic; every extension is opt-in.
+      <code class="text-base font-mono">rgb()</code>/hex colours (held in variables or computed), rotated
+      labels, CSS hooks, a GSAP animation layer (enter/exit, motion, morph, stagger), structured
+      diagnostics and per-object geometry for visual editors. Classic pic stays classic; every
+      extension is opt-in — and the engine is hardened to never crash or hang on malformed or
+      untrusted source.
     </p>
     <div class="flex flex-wrap items-center gap-3 mb-12">
       <a href={`${base}/docs/installation`}
