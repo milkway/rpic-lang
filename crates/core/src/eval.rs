@@ -1027,7 +1027,11 @@ impl State {
                 }
                 let last_end = start + (children.len() - 1) as f64 * step + dur;
                 self.anim_cursor = last_end;
-                self.anim_end.insert(children[0], last_end);
+                // `after <block>` resolves to the block's own shape index, so
+                // record the whole-stagger end there (line 863 seeded it with a
+                // single-iteration end); recording under `children[0]` missed it
+                // whenever the block leads with an invisible spine (audit).
+                self.anim_end.insert(shape, last_end);
                 return Ok(());
             }
             let mut warning = Diagnostic::new(
@@ -4882,6 +4886,22 @@ mod tests {
         // children at 0.0 and 0.1 (dur 0.2) → last ends at 0.1+0.2 = 0.3.
         assert!((d.anims[2].start - 0.3).abs() < 1e-9);
         assert_eq!(d.anims[2].effect, "fade");
+    }
+
+    #[test]
+    fn animate_after_a_staggered_block_with_invisible_spine() {
+        // `after <block>` resolves to the block's own shape index; the stagger
+        // path must record the whole-stagger end there, even when the block
+        // leads with an invisible spine (a `move`) so the first *visible* child
+        // isn't the block's shape (audit).
+        let d = draw(
+            "B: [ move right 0.1; box; box ]\ncircle\n\
+             animate B with \"pop\" for 0.2 stagger 0.1\n\
+             animate last circle with \"fade\" after B",
+        );
+        let c = d.anims.iter().find(|a| a.effect == "fade").unwrap();
+        // last staggered child ends at 0.1 + 0.2 = 0.3, not the first child's 0.2
+        assert!((c.start - 0.3).abs() < 1e-9, "{}", c.start);
     }
 
     #[test]
