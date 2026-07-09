@@ -1483,6 +1483,9 @@ struct Parser {
 /// stack across the precedence-climbing chain, more on wasm) while dwarfing any
 /// real figure — the entire committed corpus nests at most 4 deep.
 const MAX_PARSE_DEPTH: u32 = 128;
+/// Flat operator chains build left-deep ASTs without going through
+/// `descend`, so cap them explicitly as well (#306).
+const MAX_EXPR_CHAIN_OPS: u32 = MAX_PARSE_DEPTH;
 
 impl Parser {
     fn new(toks: Vec<Spanned>) -> Self {
@@ -1505,6 +1508,15 @@ impl Parser {
         let r = f(self);
         self.depth -= 1;
         r
+    }
+
+    fn check_expr_chain(&self, ops: u32) -> PResult<()> {
+        if ops > MAX_EXPR_CHAIN_OPS {
+            return self.err(format!(
+                "expression has too many chained operators (maximum {MAX_EXPR_CHAIN_OPS})"
+            ));
+        }
+        Ok(())
     }
 
     // ---- cursor helpers ----------------------------------------------------
@@ -3014,7 +3026,10 @@ impl Parser {
 
     fn parse_or(&mut self) -> PResult<Expr> {
         let mut e = self.parse_and()?;
+        let mut ops = 0;
         while self.eat(&Token::OrOr) {
+            ops += 1;
+            self.check_expr_chain(ops)?;
             let r = self.parse_and()?;
             e = Expr::Bin(BinOp::Or, Box::new(e), Box::new(r));
         }
@@ -3023,7 +3038,10 @@ impl Parser {
 
     fn parse_and(&mut self) -> PResult<Expr> {
         let mut e = self.parse_cmp()?;
+        let mut ops = 0;
         while self.eat(&Token::AndAnd) {
+            ops += 1;
+            self.check_expr_chain(ops)?;
             let r = self.parse_cmp()?;
             e = Expr::Bin(BinOp::And, Box::new(e), Box::new(r));
         }
@@ -3032,6 +3050,7 @@ impl Parser {
 
     fn parse_cmp(&mut self) -> PResult<Expr> {
         let mut e = self.parse_add()?;
+        let mut ops = 0;
         loop {
             let op = match self.cur() {
                 Token::EqEq => BinOp::Eq,
@@ -3043,6 +3062,8 @@ impl Parser {
                 _ => break,
             };
             self.bump();
+            ops += 1;
+            self.check_expr_chain(ops)?;
             let r = self.parse_add()?;
             e = Expr::Bin(op, Box::new(e), Box::new(r));
         }
@@ -3051,6 +3072,7 @@ impl Parser {
 
     fn parse_add(&mut self) -> PResult<Expr> {
         let mut e = self.parse_mul()?;
+        let mut ops = 0;
         loop {
             let op = match self.cur() {
                 Token::Plus => BinOp::Add,
@@ -3058,6 +3080,8 @@ impl Parser {
                 _ => break,
             };
             self.bump();
+            ops += 1;
+            self.check_expr_chain(ops)?;
             let r = self.parse_mul()?;
             e = Expr::Bin(op, Box::new(e), Box::new(r));
         }
@@ -3066,6 +3090,7 @@ impl Parser {
 
     fn parse_mul(&mut self) -> PResult<Expr> {
         let mut e = self.parse_unary()?;
+        let mut ops = 0;
         loop {
             let op = match self.cur() {
                 Token::Mult => BinOp::Mul,
@@ -3074,6 +3099,8 @@ impl Parser {
                 _ => break,
             };
             self.bump();
+            ops += 1;
+            self.check_expr_chain(ops)?;
             let r = self.parse_unary()?;
             e = Expr::Bin(op, Box::new(e), Box::new(r));
         }
@@ -3081,25 +3108,32 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> PResult<Expr> {
-        let op = match self.cur() {
-            Token::Minus => Some(UnOp::Neg),
-            Token::Plus => Some(UnOp::Pos),
-            Token::Not => Some(UnOp::Not),
-            _ => None,
-        };
-        if let Some(op) = op {
+        let mut ops = Vec::new();
+        loop {
+            let op = match self.cur() {
+                Token::Minus => Some(UnOp::Neg),
+                Token::Plus => Some(UnOp::Pos),
+                Token::Not => Some(UnOp::Not),
+                _ => None,
+            };
+            let Some(op) = op else {
+                break;
+            };
             self.bump();
-            let e = self.parse_unary()?;
-            Ok(Expr::Unary(op, Box::new(e)))
-        } else {
-            self.parse_pow()
+            ops.push(op);
+            self.check_expr_chain(ops.len() as u32)?;
         }
+        let mut e = self.parse_pow()?;
+        for op in ops.into_iter().rev() {
+            e = Expr::Unary(op, Box::new(e));
+        }
+        Ok(e)
     }
 
     fn parse_pow(&mut self) -> PResult<Expr> {
         let base = self.parse_primary()?;
         if self.eat(&Token::Caret) {
-            let exp = self.parse_unary()?; // right-associative
+            let exp = self.descend(Self::parse_unary)?; // right-associative
             Ok(Expr::Bin(BinOp::Pow, Box::new(base), Box::new(exp)))
         } else {
             Ok(base)
@@ -3777,6 +3811,15 @@ box
             .unwrap()
             .join()
             .unwrap();
+    }
+
+    #[test]
+    fn flat_binary_expression_chain_errors_instead_of_overflowing() {
+        // #306: flat chains used to bypass `descend` and later overflow the
+        // evaluator stack. They now fail at parse time with a normal error.
+        let expr = (0..2000).map(|_| "1").collect::<Vec<_>>().join("+");
+        let e = parse(&format!("x = {expr}")).unwrap_err();
+        assert!(e.msg.contains("too many chained operators"), "{}", e.msg);
     }
 
     #[test]
