@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-07-09
+
 ### Added
 
 - **C ABI: full compile options via `*_ex` entry points.** A new `RpicOptions`
