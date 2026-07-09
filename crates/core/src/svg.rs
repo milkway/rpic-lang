@@ -87,9 +87,10 @@ impl Svg {
             // The stable `s<N>` id is the GSAP/animation target; a `class`
             // extension hook rides alongside it without changing the id.
             match d.shape_classes.get(i).and_then(|c| c.as_deref()) {
-                Some(class) => self
-                    .out
-                    .push_str(&format!("<g id=\"s{i}\" class=\"{}\">\n", attr(class))),
+                Some(class) => self.out.push_str(&format!(
+                    "<g id=\"s{i}\" class=\"{}\">\n",
+                    escape_attr(class)
+                )),
                 None => self.out.push_str(&format!("<g id=\"s{i}\">\n")),
             }
             self.shape(s);
@@ -346,7 +347,7 @@ impl Svg {
                 if !style.invis {
                     let mut start = start0;
                     let mut end = end0;
-                    let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
+                    let color = escape_attr(style.stroke.as_deref().unwrap_or("black"));
                     let mut head_paths = String::new();
                     if *r > 1e-9 && matches!(arrows, Arrowheads::Start | Arrowheads::Both) {
                         let head =
@@ -455,7 +456,7 @@ impl Svg {
     }
 
     fn stroke(&self, style: &Style) -> String {
-        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
+        let color = escape_attr(style.stroke.as_deref().unwrap_or("black"));
         let mut s = format!(
             "stroke=\"{}\" stroke-width=\"{}\"",
             color,
@@ -528,8 +529,8 @@ impl Svg {
             num(y1),
             num(x2),
             num(y2),
-            attr(&g.from),
-            attr(&g.to)
+            escape_attr(&g.from),
+            escape_attr(&g.to)
         ));
         id
     }
@@ -541,7 +542,7 @@ impl Svg {
                 let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
                 format!("rgb({v},{v},{v})")
             }
-            Some(Fill::Color(c)) => attr(c),
+            Some(Fill::Color(c)) => escape_attr(c),
         }
     }
 
@@ -550,7 +551,7 @@ impl Svg {
         self.next_pattern += 1;
         let sep = positive_extent(hatch.sep * PPI).max(1.0);
         let width = (hatch.width.max(0.0) * PPI / 72.0).max(0.0);
-        let color = attr(&hatch.color);
+        let color = escape_attr(&hatch.color);
         // A gradient background is painted by an underlay element (see
         // `underlay_fill`), never inside the tile; a solid fill is uniform, so
         // per-tile is indistinguishable from per-object and stays here.
@@ -594,7 +595,7 @@ impl Svg {
         if pts.len() < 2 {
             return;
         }
-        let color = attr(&style.stroke.clone().unwrap_or_else(|| "black".into()));
+        let color = escape_attr(style.stroke.as_deref().unwrap_or("black"));
         let head = |tip: Point, from: Point, out: &mut String| {
             let t = self.p(tip);
             let f = self.p(from);
@@ -840,7 +841,7 @@ impl Svg {
             // styled — unstyled lines stay byte-identical to classic output
             let mut style_attrs = String::new();
             if let Some(f) = &line.family {
-                style_attrs.push_str(&format!(" font-family=\"{}\"", attr(f)));
+                style_attrs.push_str(&format!(" font-family=\"{}\"", escape_attr(f)));
             }
             if line.bold {
                 style_attrs.push_str(" font-weight=\"bold\"");
@@ -865,7 +866,7 @@ impl Svg {
                 num(p.x),
                 num(p.y),
                 anchor,
-                escape(&line.s)
+                escape_text(&line.s)
             ));
             y -= lineskip;
         }
@@ -1709,16 +1710,24 @@ fn num(x: f64) -> String {
     s
 }
 
-/// Escape text content (`&`, `<`, `>`).
-fn escape(s: &str) -> String {
+/// Escape a string for use as SVG element **text content** (`&`, `<`, `>`). A
+/// raw `"` is legal between tags and is left untouched. Do **not** use this for
+/// an attribute value — a `"` there would close the attribute; use
+/// [`escape_attr`], whose name says the context. Keeping the two escapers named
+/// by context is what stops the #317 slip (a text escaper used for an attribute)
+/// from silently recurring.
+fn escape_text(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
 }
 
-/// Escape a string for embedding inside a double-quoted SVG attribute.
-fn attr(s: &str) -> String {
-    escape(s).replace('"', "&quot;")
+/// Escape a string for embedding inside a double-quoted SVG **attribute** value
+/// — `escape_text` plus `"` → `&quot;`. This is the only correct escaper for
+/// anything placed inside `="…"`, including user-controlled colours, class
+/// names, gradient stops, and font families.
+fn escape_attr(s: &str) -> String {
+    escape_text(s).replace('"', "&quot;")
 }
 
 #[cfg(test)]
@@ -2544,6 +2553,35 @@ mod tests {
 
     #[test]
     fn attr_escapes_quotes_and_markup() {
-        assert_eq!(attr("a\"<b&"), "a&quot;&lt;b&amp;");
+        assert_eq!(escape_attr("a\"<b&"), "a&quot;&lt;b&amp;");
+        // text content leaves a bare `"` alone (legal between tags) but still
+        // neutralises markup
+        assert_eq!(escape_text("a\"<b&"), "a\"&lt;b&amp;");
+    }
+
+    #[test]
+    fn user_text_in_every_attribute_kind_stays_well_formed_xml() {
+        // #324: any user-controlled attribute (colour, hatch colour, font
+        // family) built from hostile text must escape `"` so it can never break
+        // the attribute or inject markup. The bare quote (which would close the
+        // attribute) must not survive; `<`/`>` are neutralised too. (`class` is
+        // separately validated to a safe charset, so it can't reach here.)
+        let hostile = "h\"/><g onload=evil";
+        let sources = [
+            "box color \"h\\\"/><g onload=evil\"",
+            "box \"t\" font \"h\\\"/><g onload=evil\"",
+            "box hatchcolor \"h\\\"/><g onload=evil\" hatch",
+        ];
+        for src in sources {
+            let s = svg(src);
+            assert!(
+                !s.contains(hostile),
+                "raw hostile text survived in `{src}`: {s}"
+            );
+            assert!(
+                s.contains("&quot;") && !s.contains("evil\">") && !s.contains("<g onload"),
+                "attribute not neutralised in `{src}`: {s}"
+            );
+        }
     }
 }

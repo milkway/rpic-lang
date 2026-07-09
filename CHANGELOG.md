@@ -54,6 +54,18 @@ resolves to the latest version.
   to `&quot;` like every other attribute. Byte-for-byte unchanged for any figure
   without a quote in a font name (the whole corpus). (#317)
 
+### Changed
+
+- **SVG escapers are named by context, closing the #317 class of bug.** The two
+  near-identical helpers are now `escape_text` (element content) and
+  `escape_attr` (attribute values, escaping `"`), so a text escaper used for an
+  attribute reads wrong at the call site instead of silently emitting malformed
+  markup. Every user-controlled attribute (colour, class, gradient stop, hatch
+  colour, font family) routes through `escape_attr`, guarded by a test that
+  feeds hostile text through each and asserts the quote can't break out. Also
+  drops three needless `stroke` clones (`as_deref().unwrap_or("black")`).
+  Output is byte-for-byte unchanged. (#324)
+
 ### Fixed
 
 - **A rotated, justified label no longer vanishes.** A `"…" ljust rotated 90`
