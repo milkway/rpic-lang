@@ -78,6 +78,14 @@ def test_compile_error_is_a_value_error():
         rpic.render_svg("bxo")
 
 
+def test_eval_budgets_are_configurable():
+    with pytest.raises(rpic.CompileError, match="for loop exceeded 2 iterations"):
+        rpic.render_svg("for i = 1 to 3 do { bxo }", max_loop_iterations=2)
+
+    with pytest.raises(rpic.CompileError, match="drawing exceeded 1 shapes"):
+        rpic.compile("box\nbox", max_shapes=1)
+
+
 def test_base_dir_resolves_copy(tmp_path):
     (tmp_path / "inc.pic").write_text("box wid 0.5 ht 0.5\n")
     svg = rpic.render_svg('copy "inc.pic"\ncircle', base=tmp_path)

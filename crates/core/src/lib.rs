@@ -194,6 +194,12 @@ pub struct CompileOptions {
     /// default; `repeat -1` remains the explicit infinite-repeat sentinel. The
     /// source-level `maxanimrepeat` variable may lower this, but cannot raise it.
     pub max_animation_repeat: Option<i64>,
+    /// Host ceiling for evaluated `for` loop iterations. `None` uses the
+    /// library default. Set this lower for untrusted source.
+    pub max_loop_iterations: Option<u64>,
+    /// Host ceiling for emitted drawing shapes. `None` uses the library
+    /// default. Set this lower for untrusted source.
+    pub max_shapes: Option<usize>,
 }
 
 /// Compile pic source with [`CompileOptions`] into a [`Drawing`].
@@ -247,6 +253,10 @@ impl CompileOptions {
             max_animation_repeat: self
                 .max_animation_repeat
                 .unwrap_or(eval::DEFAULT_MAX_ANIMATION_REPEAT),
+            max_loop_iterations: self
+                .max_loop_iterations
+                .unwrap_or(eval::DEFAULT_MAX_LOOP_ITERATIONS),
+            max_shapes: self.max_shapes.unwrap_or(eval::DEFAULT_MAX_SHAPES),
         }
     }
 }
@@ -628,6 +638,23 @@ mod tests {
             )
             .is_ok()
         );
+    }
+
+    #[test]
+    fn options_cap_eval_budgets() {
+        let loop_opts = CompileOptions {
+            max_loop_iterations: Some(2),
+            ..Default::default()
+        };
+        let err = compile_with_options("for i = 1 to 3 do { bxo }", &loop_opts).unwrap_err();
+        assert!(err.contains("for loop exceeded 2 iterations"), "{err}");
+
+        let shape_opts = CompileOptions {
+            max_shapes: Some(1),
+            ..Default::default()
+        };
+        let err = compile_with_options("box\nbox", &shape_opts).unwrap_err();
+        assert!(err.contains("drawing exceeded 1 shapes"), "{err}");
     }
 
     #[test]

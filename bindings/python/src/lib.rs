@@ -28,6 +28,8 @@ fn opts(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<rpic_core::CompileOptions> {
     let includes = match include_policy.unwrap_or("unrestricted") {
         "unrestricted" => rpic_core::IncludePolicy::Unrestricted,
@@ -44,6 +46,8 @@ fn opts(
         texlabels,
         base,
         includes,
+        max_loop_iterations,
+        max_shapes,
         ..Default::default()
     })
 }
@@ -74,6 +78,7 @@ fn err(py: Python<'_>, e: rpic_core::CompileError) -> PyErr {
     exc
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile_drawing(
     py: Python<'_>,
     src: &str,
@@ -81,14 +86,24 @@ fn compile_drawing(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<rpic_core::Drawing> {
-    let opts = opts(circuits, texlabels, base, include_policy)?;
+    let opts = opts(
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+        max_loop_iterations,
+        max_shapes,
+    )?;
     rpic_core::compile_with_diagnostics(src, &opts).map_err(|e| err(py, e))
 }
 
 /// Render pic source to an SVG string.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[allow(clippy::too_many_arguments)]
 fn render_svg(
     py: Python<'_>,
     src: &str,
@@ -96,6 +111,8 @@ fn render_svg(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<String> {
     Ok(rpic_core::to_svg(&compile_drawing(
         py,
@@ -104,12 +121,15 @@ fn render_svg(
         texlabels,
         base,
         include_policy,
+        max_loop_iterations,
+        max_shapes,
     )?))
 }
 
 /// Render pic source to PNG bytes (scale 1.0 = 96 dpi).
 #[pyfunction]
-#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None, include_policy = None))]
+#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[allow(clippy::too_many_arguments)]
 fn render_png<'py>(
     py: Python<'py>,
     src: &str,
@@ -118,6 +138,8 @@ fn render_png<'py>(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<Bound<'py, PyBytes>> {
     if !scale.is_finite() || scale <= 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
@@ -131,6 +153,8 @@ fn render_png<'py>(
         texlabels,
         base,
         include_policy,
+        max_loop_iterations,
+        max_shapes,
     )?);
     let png = rpic_render::to_png(&svg, scale).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &png))
@@ -138,7 +162,8 @@ fn render_png<'py>(
 
 /// Render pic source to PDF bytes.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[allow(clippy::too_many_arguments)]
 fn render_pdf<'py>(
     py: Python<'py>,
     src: &str,
@@ -146,6 +171,8 @@ fn render_pdf<'py>(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<Bound<'py, PyBytes>> {
     let svg = rpic_core::to_svg(&compile_drawing(
         py,
@@ -154,6 +181,8 @@ fn render_pdf<'py>(
         texlabels,
         base,
         include_policy,
+        max_loop_iterations,
+        max_shapes,
     )?);
     let pdf = rpic_render::to_pdf(&svg).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &pdf))
@@ -163,7 +192,8 @@ fn render_pdf<'py>(
 /// "diagnostics": [str], "warnings": [dict]}`. Raises `CompileError` (with
 /// the structured diagnostic on `exc.info`) on a pic error.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[allow(clippy::too_many_arguments)]
 fn compile<'py>(
     py: Python<'py>,
     src: &str,
@@ -171,8 +201,19 @@ fn compile<'py>(
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<Bound<'py, PyDict>> {
-    let d = compile_drawing(py, src, circuits, texlabels, base, include_policy)?;
+    let d = compile_drawing(
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+        max_loop_iterations,
+        max_shapes,
+    )?;
     let out = PyDict::new(py);
     out.set_item("svg", rpic_core::to_svg(&d))?;
     let anims = PyList::empty(py);
@@ -255,15 +296,24 @@ fn compile<'py>(
 /// (or `{ "error": ..., "error_info": {...} }`). Parse with `json.loads`;
 /// prefer `compile` for an already-parsed dict.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
 fn compile_json(
     src: &str,
     circuits: bool,
     texlabels: bool,
     base: Option<PathBuf>,
     include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
 ) -> PyResult<String> {
-    let opts = opts(circuits, texlabels, base, include_policy)?;
+    let opts = opts(
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+        max_loop_iterations,
+        max_shapes,
+    )?;
     Ok(rpic_core::compile_json_with_options(src, &opts))
 }
 

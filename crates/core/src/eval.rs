@@ -257,16 +257,22 @@ const SCALED_VARS: [EnvVar; 23] = [
 pub struct EvalLimits {
     pub max_animation_seconds: f64,
     pub max_animation_repeat: i64,
+    pub max_loop_iterations: u64,
+    pub max_shapes: usize,
 }
 
 pub const DEFAULT_MAX_ANIMATION_SECONDS: f64 = 1_000_000.0;
 pub const DEFAULT_MAX_ANIMATION_REPEAT: i64 = 1_000_000;
+pub const DEFAULT_MAX_LOOP_ITERATIONS: u64 = 1_000_000;
+pub const DEFAULT_MAX_SHAPES: usize = 1_000_000;
 
 impl Default for EvalLimits {
     fn default() -> Self {
         Self {
             max_animation_seconds: DEFAULT_MAX_ANIMATION_SECONDS,
             max_animation_repeat: DEFAULT_MAX_ANIMATION_REPEAT,
+            max_loop_iterations: DEFAULT_MAX_LOOP_ITERATIONS,
+            max_shapes: DEFAULT_MAX_SHAPES,
         }
     }
 }
@@ -701,6 +707,39 @@ fn checked_anim_repeat_limit(value: f64, host_max: i64) -> ER<i64> {
     Ok(max as i64)
 }
 
+fn additive_loop_iterations(from: f64, to: f64, by: f64) -> Option<u64> {
+    const EPS: f64 = 1e-9;
+
+    if !from.is_finite() || !to.is_finite() || !by.is_finite() {
+        return None;
+    }
+
+    let cont = if by >= 0.0 {
+        from <= to + EPS
+    } else {
+        from >= to - EPS
+    };
+    if !cont {
+        return Some(0);
+    }
+    if by.abs() < f64::EPSILON {
+        return Some(1);
+    }
+
+    let span = if by > 0.0 {
+        to + EPS - from
+    } else {
+        from - (to - EPS)
+    };
+    let step = by.abs();
+    let iterations = (span / step).floor() + 1.0;
+    if !iterations.is_finite() || iterations >= u64::MAX as f64 {
+        return Some(u64::MAX);
+    }
+
+    Some(iterations.max(0.0) as u64)
+}
+
 fn dir_unit(d: Dir) -> Point {
     match d {
         Dir::Right => Point::new(1.0, 0.0),
@@ -888,6 +927,15 @@ impl State {
                 let by = self.eval_expr(by)?;
                 let mut v = from;
                 let mut iters = 0u64;
+                if !*mult
+                    && let Some(total) = additive_loop_iterations(from, to, by)
+                    && total > self.limits.max_loop_iterations
+                {
+                    return err(format!(
+                        "for loop exceeded {} iterations",
+                        self.limits.max_loop_iterations
+                    ));
+                }
                 // Parsed lazily on the first iteration that actually runs, so
                 // a zero-iteration loop never parses (or macro-expands) its
                 // body — same deferred rule as dead `if` branches (#196).
@@ -908,6 +956,13 @@ impl State {
                     if !cont {
                         break;
                     }
+                    if iters >= self.limits.max_loop_iterations {
+                        return err(format!(
+                            "for loop exceeded {} iterations",
+                            self.limits.max_loop_iterations
+                        ));
+                    }
+                    iters += 1;
                     let key = self.indexed_name(var, subscript.as_ref())?;
                     self.vars.insert(key, v);
                     if parsed.is_none() {
@@ -918,10 +973,6 @@ impl State {
                     v = if *mult { v * by } else { v + by };
                     if (v - prev).abs() < f64::EPSILON {
                         break; // no progress (by 0, or *1) — avoid infinite loop
-                    }
-                    iters += 1;
-                    if iters > 1_000_000 {
-                        return err("for loop exceeded 1,000,000 iterations");
                     }
                 }
             }
@@ -1644,7 +1695,7 @@ impl State {
             },
         };
         let layer = self.layer_of(obj, 0)?;
-        self.push_shape(shape, layer);
+        self.push_shape(shape, layer)?;
 
         let half = dir_unit(dir) * (extent / 2.0);
         let start = center - half;
@@ -1708,7 +1759,7 @@ impl State {
             text,
         };
         let layer = self.layer_of(obj, 0)?;
-        self.push_shape(shape, layer);
+        self.push_shape(shape, layer)?;
 
         self.pos = end;
         self.dir = last_dir;
@@ -2035,7 +2086,7 @@ impl State {
             }
         };
         let layer = self.layer_of(obj, 0)?;
-        self.push_shape(shape, layer);
+        self.push_shape(shape, layer)?;
 
         self.pos = end;
         self.dir = last_dir;
@@ -2161,7 +2212,7 @@ impl State {
                 text,
             },
             layer,
-        );
+        )?;
 
         // new heading is the tangent at the end point
         let tang = if a1 >= a0 {
@@ -2246,7 +2297,7 @@ impl State {
                 standalone: true,
             },
             layer,
-        );
+        )?;
         let half = dir_unit(dir) * (extent / 2.0);
         let start = at - half;
         let end = at + half;
@@ -2336,7 +2387,7 @@ impl State {
             if let Some(opacity) = block_fill_opacity {
                 multiply_shape_fill_opacity(&mut sh, opacity);
             }
-            self.push_shape(sh, layer + layer_shift);
+            self.push_shape(sh, layer + layer_shift)?;
             *self.shape_classes.last_mut().unwrap() = class;
             // inner objects carry their own statement spans through the merge
             *self.shape_spans.last_mut().unwrap() = span;
@@ -2382,7 +2433,7 @@ impl State {
                     standalone: false,
                 },
                 layer,
-            );
+            )?;
         }
 
         let half = dir_unit(dir) * (extent / 2.0);
@@ -2433,11 +2484,18 @@ impl State {
         idx
     }
 
-    fn push_shape(&mut self, shape: Shape, layer: i32) {
+    fn push_shape(&mut self, shape: Shape, layer: i32) -> ER<()> {
+        if self.shapes.len() >= self.limits.max_shapes {
+            return err(format!(
+                "drawing exceeded {} shapes",
+                self.limits.max_shapes
+            ));
+        }
         self.shapes.push(shape);
         self.shape_layers.push(layer);
         self.shape_classes.push(None);
         self.shape_spans.push(self.current_span.clone());
+        Ok(())
     }
 
     fn layer_of(&mut self, obj: &Object, current: i32) -> ER<i32> {
@@ -4822,6 +4880,38 @@ mod tests {
     fn for_loop_repeats() {
         let d = draw("for i = 1 to 3 do { box }");
         assert_eq!(d.shapes.len(), 3);
+    }
+
+    #[test]
+    fn for_loop_budget_preflights_before_body_parse() {
+        let pic = parse("for i = 1 to 3 do { bxo }").unwrap();
+        let err = eval_with_limits(
+            &pic,
+            EvalLimits {
+                max_loop_iterations: 2,
+                ..Default::default()
+            },
+        )
+        .unwrap_err();
+
+        assert!(err.msg.contains("for loop exceeded 2 iterations"), "{err}");
+        assert!(!err.msg.contains("expected an object"), "{err}");
+    }
+
+    #[test]
+    fn shape_budget_caps_loop_expansion() {
+        let pic = parse("for i = 1 to 3 do { box }").unwrap();
+        let err = eval_with_limits(
+            &pic,
+            EvalLimits {
+                max_loop_iterations: 10,
+                max_shapes: 2,
+                ..Default::default()
+            },
+        )
+        .unwrap_err();
+
+        assert!(err.msg.contains("drawing exceeded 2 shapes"), "{err}");
     }
 
     #[test]

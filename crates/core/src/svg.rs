@@ -935,14 +935,7 @@ fn positive_extent(v: f64) -> f64 {
 fn shape_svg_bounds(sh: &Shape) -> Bbox {
     let mut out = Bbox::new();
     match sh {
-        Shape::Box {
-            c,
-            w,
-            h,
-            style,
-            text: _,
-            ..
-        } => {
+        Shape::Box { c, w, h, style, .. } => {
             if closed_shape_is_visible(style) {
                 out.add(*c - Point::new(*w / 2.0, *h / 2.0));
                 out.add(*c + Point::new(*w / 2.0, *h / 2.0));
@@ -972,18 +965,10 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             }
         }
         Shape::Path {
-            pts,
-            arrows,
-            style,
-            text: _,
-            ..
+            pts, arrows, style, ..
         }
         | Shape::Spline {
-            pts,
-            arrows,
-            style,
-            text: _,
-            ..
+            pts, arrows, style, ..
         } => {
             if !style.invis {
                 for p in path_stroke_points_model(pts, *arrows, style) {
@@ -1004,7 +989,6 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
             a1,
             arrows,
             style,
-            text: _,
             ..
         } => {
             if !style.invis || open_fill_is_visible(style) {
