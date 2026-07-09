@@ -36,6 +36,9 @@ svg = rpic.render_svg('copy "shim.pic"\nbox', base="path/to/dir")
 # ("sandboxed" = only files inside `base`; "deny" = none at all;
 #  the embedded `copy "circuits"` library always works):
 svg = rpic.render_svg(user_source, base="jobs/42", include_policy="sandboxed")
+
+# you can also cap evaluator work for pasted/shared documents:
+svg = rpic.render_svg(user_source, max_loop_iterations=10_000, max_shapes=50_000)
 ```
 
 Compile errors raise `rpic.CompileError` (a `ValueError` subclass, so old
