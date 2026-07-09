@@ -57,13 +57,18 @@ resolves to the latest version.
 - **Macro-argument splices space by source position, not rendered length**, so
   a normalized float or escaped string in a spliced arg (`lbl((1.50,2.50))`) no
   longer gains stray spaces (`(1.5 ,2.5 )`).
-- **Hostile input can no longer crash the process.** Two unbounded paths that
-  aborted (uncatchable, unlike every other error) on adversarial `.pic` source —
-  reachable from the CLI and the wasm binding — now fail cleanly: deeply nested
-  parentheses/blocks (`((((…))))`) hit a recursive-descent depth limit and
-  return a "nested too deeply" error instead of overflowing the stack, and a
-  `sprintf` precision like `"%.999999999f"` is clamped (to 512 digits) instead
-  of allocating gigabytes.
+- **Hostile input can no longer crash the process.** Several unbounded paths
+  that aborted (uncatchable, unlike every other error) on adversarial `.pic`
+  source — reachable from the CLI and the wasm binding — now fail cleanly:
+  deeply nested parentheses/blocks (`((((…))))`) hit a recursive-descent depth
+  limit and return a "nested too deeply" error instead of overflowing the stack;
+  flat operator chains (`1+1+…`) are capped; a `sprintf` precision like
+  `"%.999999999f"` is clamped (to 512 digits) instead of allocating gigabytes;
+  and four constructs the earlier passes missed — brace-group nesting
+  (`{{{…}}}`), a leading corner chain (`.n.n…`), string concatenation
+  (`"a"+"a"+…`), and a trailing member/corner chain (`A.B.B…`) — now hit the
+  same depth/chain-length limits rather than overflowing on parser recursion or
+  on the drop/evaluation of an unbounded left-deep AST. (#318)
 - **wasm `compile()` denies filesystem includes like its siblings.** It
   delegated to the Unrestricted-default core entry, so a `copy "file"` gave an
   opaque io error instead of the clean policy error `compile_circuits`/
