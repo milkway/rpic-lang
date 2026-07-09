@@ -602,6 +602,40 @@ struct State {
 }
 
 const DEFAULT_ANIM_DUR: f64 = 0.6;
+const MAX_ANIM_SECONDS: f64 = 1_000_000.0;
+const MAX_ANIM_REPEAT: i64 = 1_000_000;
+
+fn checked_anim_time(name: &str, value: f64) -> ER<f64> {
+    if !value.is_finite() {
+        return err(format!("animation {name} must be finite"));
+    }
+    if value < 0.0 {
+        return err(format!("animation {name} must be non-negative"));
+    }
+    if value > MAX_ANIM_SECONDS {
+        return err(format!(
+            "animation {name} must be at most {MAX_ANIM_SECONDS} seconds"
+        ));
+    }
+    Ok(value)
+}
+
+fn checked_anim_repeat(value: f64) -> ER<i64> {
+    if !value.is_finite() {
+        return err("animation repeat must be finite");
+    }
+    if value < 0.0 && (value + 1.0).abs() > f64::EPSILON {
+        return err("animation repeat must be -1 or non-negative");
+    }
+
+    let repeat = value.round();
+    if repeat > MAX_ANIM_REPEAT as f64 {
+        return err(format!(
+            "animation repeat must be at most {MAX_ANIM_REPEAT}"
+        ));
+    }
+    Ok(repeat as i64)
+}
 
 fn dir_unit(d: Dir) -> Point {
     match d {
@@ -837,7 +871,7 @@ impl State {
             info: None,
         })?;
         let dur = match &a.duration {
-            Some(e) => self.eval_expr(e)?,
+            Some(e) => checked_anim_time("duration", self.eval_expr(e)?)?,
             None => DEFAULT_ANIM_DUR,
         };
         let mut start = match &a.timing {
@@ -852,19 +886,21 @@ impl State {
                 *self.anim_end.get(&sh).unwrap_or(&0.0)
             }
         };
+        start = checked_anim_time("start time", start)?;
         if let Some(d) = &a.delay {
-            start += self.eval_expr(d)?;
+            let delay = checked_anim_time("delay", self.eval_expr(d)?)?;
+            start = checked_anim_time("start time", start + delay)?;
         }
         // Sequential/`after` timing tracks the *first* iteration's end, not the
         // repeated total — an ambient `repeat` loop (or an infinite one) must
         // not stall everything declared after it.
-        let end = start + dur;
-        self.anim_cursor = end;
-        self.anim_end.insert(shape, end);
+        let end = checked_anim_time("end time", start + dur)?;
         let repeat = match &a.repeat {
-            Some(e) => self.eval_expr(e)?.round() as i64,
+            Some(e) => checked_anim_repeat(self.eval_expr(e)?)?,
             None => 0,
         };
+        self.anim_cursor = end;
+        self.anim_end.insert(shape, end);
         if a.yoyo && repeat == 0 {
             let mut warning = Diagnostic::new(
                 "yoyo_without_repeat",
@@ -1016,16 +1052,19 @@ impl State {
         // children (skipping `move`/invis spines), offset by d seconds each,
         // in source order — one manifest entry per child.
         if let Some(se) = &a.stagger {
-            let step = self.eval_expr(se)?;
+            let step = checked_anim_time("stagger", self.eval_expr(se)?)?;
             let children: Vec<usize> = self.placed[idx]
                 .block_shapes
                 .map(|(lo, hi)| (lo..hi).filter(|&i| self.shapes[i].is_visible()).collect())
                 .unwrap_or_default();
             if !children.is_empty() {
+                let mut last_start = start;
                 for (k, &child) in children.iter().enumerate() {
-                    self.anims.push(make(child, start + k as f64 * step));
+                    let child_start = checked_anim_time("start time", start + k as f64 * step)?;
+                    last_start = child_start;
+                    self.anims.push(make(child, child_start));
                 }
-                let last_end = start + (children.len() - 1) as f64 * step + dur;
+                let last_end = checked_anim_time("end time", last_start + dur)?;
                 self.anim_cursor = last_end;
                 // `after <block>` resolves to the block's own shape index, so
                 // record the whole-stagger end there (line 863 seeded it with a
@@ -4788,6 +4827,43 @@ mod tests {
         assert!(!a.yoyo);
         assert_eq!(a.ease, None);
         assert_eq!(a.path, None);
+    }
+
+    #[test]
+    fn animate_rejects_invalid_timing_values() {
+        for (src, want) in [
+            (
+                "box\nanimate last box with \"fade\" for -1",
+                "animation duration must be non-negative",
+            ),
+            (
+                "box\nanimate last box with \"fade\" at -0.1",
+                "animation start time must be non-negative",
+            ),
+            (
+                "box\nanimate last box with \"fade\" delay -0.1",
+                "animation delay must be non-negative",
+            ),
+            (
+                "B: [ box; box ]\nanimate B with \"fade\" stagger -0.1",
+                "animation stagger must be non-negative",
+            ),
+            (
+                "box\nanimate last box with \"fade\" for 1e100",
+                "animation duration must be at most",
+            ),
+            (
+                "box\nanimate last box with \"fade\" repeat 1e100",
+                "animation repeat must be at most",
+            ),
+            (
+                "box\nanimate last box with \"fade\" repeat -2",
+                "animation repeat must be -1 or non-negative",
+            ),
+        ] {
+            let err = eval(&parse(src).unwrap()).unwrap_err();
+            assert!(err.msg.contains(want), "{src}: {err}");
+        }
     }
 
     #[test]
