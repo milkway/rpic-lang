@@ -3225,43 +3225,7 @@ impl State {
                     UnOp::Not => bool_f(x == 0.0),
                 }
             }
-            Expr::Bin(op, a, b) => {
-                // string equality: pic compares string operands with `==`/`!=`
-                if matches!(op, BinOp::Eq | BinOp::Ne)
-                    && (matches!(a.as_ref(), Expr::Str(_)) || matches!(b.as_ref(), Expr::Str(_)))
-                {
-                    let sa = self.expr_str(a)?;
-                    let sb = self.expr_str(b)?;
-                    return Ok(bool_f(if matches!(op, BinOp::Eq) {
-                        sa == sb
-                    } else {
-                        sa != sb
-                    }));
-                }
-                let x = self.eval_expr(a)?;
-                let y = self.eval_expr(b)?;
-                match op {
-                    BinOp::Add => x + y,
-                    BinOp::Sub => x - y,
-                    BinOp::Mul => x * y,
-                    BinOp::Div => {
-                        if y == 0.0 {
-                            return err("division by zero");
-                        }
-                        x / y
-                    }
-                    BinOp::Mod => dpic_mod(x, y, "modulo by zero")?,
-                    BinOp::Pow => dpic_pow(x, y)?,
-                    BinOp::Eq => bool_f(x == y),
-                    BinOp::Ne => bool_f(x != y),
-                    BinOp::Lt => bool_f(x < y),
-                    BinOp::Le => bool_f(x <= y),
-                    BinOp::Gt => bool_f(x > y),
-                    BinOp::Ge => bool_f(x >= y),
-                    BinOp::And => bool_f(x != 0.0 && y != 0.0),
-                    BinOp::Or => bool_f(x != 0.0 || y != 0.0),
-                }
-            }
+            Expr::Bin(..) => self.eval_bin_expr(e)?,
             Expr::Func1(f, a) => {
                 let x = self.eval_expr(a)?;
                 match f {
@@ -3331,6 +3295,44 @@ impl State {
             }
         };
         finite(value, "numeric expression")
+    }
+
+    fn eval_bin_expr(&mut self, e: &Expr) -> ER<f64> {
+        let mut chain = Vec::new();
+        let mut left = e;
+        while let Expr::Bin(op, a, b) = left {
+            chain.push((*op, b.as_ref()));
+            left = a.as_ref();
+        }
+
+        let mut left_expr = Some(left);
+        let mut acc = 0.0;
+        for (op, right) in chain.into_iter().rev() {
+            let current_left = left_expr.take();
+            let string_cmp = matches!(op, BinOp::Eq | BinOp::Ne)
+                && (matches!(current_left, Some(Expr::Str(_))) || matches!(right, Expr::Str(_)));
+            acc = if string_cmp {
+                let sa = match current_left {
+                    Some(left) => self.expr_str(left)?,
+                    None => fmt_num(acc),
+                };
+                let sb = self.expr_str(right)?;
+                bool_f(if matches!(op, BinOp::Eq) {
+                    sa == sb
+                } else {
+                    sa != sb
+                })
+            } else {
+                let x = match current_left {
+                    Some(left) => self.eval_expr(left)?,
+                    None => acc,
+                };
+                let y = self.eval_expr(right)?;
+                eval_numeric_bin(op, x, y)?
+            };
+            acc = finite(acc, "numeric expression")?;
+        }
+        Ok(acc)
     }
 
     fn rand(&mut self, seed: Option<f64>) -> f64 {
@@ -3418,6 +3420,30 @@ impl GlibcRand {
 
 fn bool_f(b: bool) -> f64 {
     if b { 1.0 } else { 0.0 }
+}
+
+fn eval_numeric_bin(op: BinOp, x: f64, y: f64) -> ER<f64> {
+    Ok(match op {
+        BinOp::Add => x + y,
+        BinOp::Sub => x - y,
+        BinOp::Mul => x * y,
+        BinOp::Div => {
+            if y == 0.0 {
+                return err("division by zero");
+            }
+            x / y
+        }
+        BinOp::Mod => dpic_mod(x, y, "modulo by zero")?,
+        BinOp::Pow => dpic_pow(x, y)?,
+        BinOp::Eq => bool_f(x == y),
+        BinOp::Ne => bool_f(x != y),
+        BinOp::Lt => bool_f(x < y),
+        BinOp::Le => bool_f(x <= y),
+        BinOp::Gt => bool_f(x > y),
+        BinOp::Ge => bool_f(x >= y),
+        BinOp::And => bool_f(x != 0.0 && y != 0.0),
+        BinOp::Or => bool_f(x != 0.0 || y != 0.0),
+    })
 }
 
 fn dpic_round(x: f64) -> i64 {
@@ -5634,6 +5660,22 @@ mod tests {
         assert_eq!(scalar("0^0").unwrap(), 1.0);
         assert!(scalar("(-2)^0.5").is_err());
         assert!(scalar("0^-1").is_err());
+    }
+
+    #[test]
+    fn long_allowed_binary_chain_evaluates_left_to_right() {
+        let expr = (0..120).map(|_| "1").collect::<Vec<_>>().join("+");
+        assert_eq!(scalar(&expr).unwrap(), 120.0);
+
+        let mut st = State::new();
+        st.eval_stmts(
+            &parse("x = 0\ny = (x = x + 1) + (x = x + 10) + (x = x + 100)")
+                .unwrap()
+                .stmts,
+        )
+        .unwrap();
+        assert_eq!(st.vars["x"], 111.0);
+        assert_eq!(st.vars["y"], 123.0);
     }
 
     #[test]
