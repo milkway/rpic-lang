@@ -99,6 +99,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if a.type_word {
             s.push_str(",\"unit\":\"word\"");
         }
+        if let Some(chars) = &a.scramble_chars {
+            s.push_str(&format!(",\"chars\":\"{}\"", json_str(chars)));
+        }
         s.push('}');
     }
     s.push(']');

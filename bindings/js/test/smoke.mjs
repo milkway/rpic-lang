@@ -71,6 +71,11 @@ const typeAnim = compile('box "hi there"\nanimate last with "type" by word');
 assert.equal(typeAnim.animations[0].effect, 'type');
 assert.equal(typeAnim.animations[0].unit, 'word');
 assert.ok(typeAnim.svg.includes('<tspan class="rpic-ch">hi</tspan>'), 'type splits label');
+// the scramble effect rides a custom charset and leaves the text intact
+const scrAnim = compile('box "SECRET"\nanimate last with "scramble" by "01"');
+assert.equal(scrAnim.animations[0].effect, 'scramble');
+assert.equal(scrAnim.animations[0].chars, '01');
+assert.ok(scrAnim.svg.includes('>SECRET</text>'), 'scramble does not split the label');
 // stagger fans across a block's children into one entry each
 const stAnim = compile('B: [ box; box; box ]\nanimate B with "fade" for 0.3 stagger 0.15');
 assert.equal(stAnim.animations.length, 3);

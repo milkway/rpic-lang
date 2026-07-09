@@ -1163,6 +1163,7 @@ impl State {
             self.warnings.push(warning);
         }
         let is_type = effect == "type";
+        let is_scramble = effect == "scramble";
         if a.type_unit.is_some() && !is_type {
             let mut warning = Diagnostic::new(
                 "by_without_type",
@@ -1173,18 +1174,36 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        if a.scramble_chars.is_some() && !is_scramble {
+            let mut warning = Diagnostic::new(
+                "by_without_scramble",
+                "`by \"<chars>\"` only applies to the `scramble` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
         if !matches!(
             effect.as_str(),
-            "draw" | "fade" | "pop" | "move" | "highlight" | "slide" | "morph" | "type"
+            "draw"
+                | "fade"
+                | "pop"
+                | "move"
+                | "highlight"
+                | "slide"
+                | "morph"
+                | "type"
+                | "scramble"
         ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, `morph`, and `type`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, `morph`, `type`, and `scramble`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, move, highlight, slide, morph, or type");
+            .expected("draw, fade, pop, move, highlight, slide, morph, type, or scramble");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -1195,6 +1214,11 @@ impl State {
         let from = if is_slide { from } else { None };
         let morph = if is_morph { morph } else { None };
         let type_word = is_type && matches!(a.type_unit, Some(TypeUnit::Word));
+        let scramble_chars = if is_scramble {
+            a.scramble_chars.as_ref().map(stringexpr_lit)
+        } else {
+            None
+        };
         let make = |shape: usize, start: f64| Anim {
             shape,
             effect: effect.clone(),
@@ -1209,6 +1233,7 @@ impl State {
             from: from.clone(),
             morph,
             type_word,
+            scramble_chars: scramble_chars.clone(),
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,

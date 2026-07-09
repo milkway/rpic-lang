@@ -12,6 +12,16 @@ resolves to the latest version.
 
 ### Added
 
+- **`animate … with "scramble"` — decode-style text reveal.** A label's glyphs
+  cycle through random characters and resolve into the real text. It drives the
+  `<text>` element directly through GSAP's `ScrambleTextPlugin` (which, unlike
+  SplitText, works on SVG `<text>`), so there is **zero** cost on the SVG side —
+  the static render and the whole corpus are byte-for-byte unchanged. A custom
+  charset comes from `by "<chars>"` (e.g. `by "01"` for a binary look; default
+  `upperCase`) and rides the manifest as `"chars":"…"` only when set; `out`
+  scrambles the label away; `by "…"` on a non-`scramble` effect warns
+  `by_without_scramble`. Needs `ScrambleTextPlugin` registered (free since
+  GSAP 3.13). (#329)
 - **`animate … with "type"` — typewriter text reveal.** A label appears one
   character at a time (or `by word`), staggered over the effect's duration — the
   way a caption "speaks" a step. The split is native: the SVG backend wraps each

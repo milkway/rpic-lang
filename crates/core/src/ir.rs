@@ -101,6 +101,9 @@ pub struct Anim {
     /// than by character. The SVG backend wraps each unit in a `.rpic-ch` tspan
     /// the player staggers.
     pub type_word: bool,
+    /// For the `scramble` effect: a custom scramble charset (`by "01"`); `None`
+    /// uses the plugin's `upperCase`. Present in the manifest only when set.
+    pub scramble_chars: Option<String>,
 }
 
 /// Line dash style.

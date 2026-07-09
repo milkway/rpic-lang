@@ -1947,6 +1947,7 @@ impl Parser {
         let mut slide_from = None;
         let mut morph_into = None;
         let mut type_unit = None;
+        let mut scramble_chars = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1975,7 +1976,13 @@ impl Parser {
             } else if self.eat_kw(Kw::Into) {
                 morph_into = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::By) {
-                type_unit = Some(self.parse_type_unit()?);
+                // `by "…"` is the scramble charset; `by word`/`by char` is the
+                // type unit — a quoted string vs. a bareword disambiguates.
+                if self.at_string_start() {
+                    scramble_chars = Some(self.parse_stringexpr()?);
+                } else {
+                    type_unit = Some(self.parse_type_unit()?);
+                }
             } else {
                 break;
             }
@@ -1997,6 +2004,7 @@ impl Parser {
             slide_from,
             morph_into,
             type_unit,
+            scramble_chars,
         })
     }
 

@@ -40,8 +40,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
   import { gsap } from 'gsap';
   import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
   import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+  import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 
-  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin);
+  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin, ScrambleTextPlugin);
 
   // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars —
   // `ease` replaces the effect's default easing; repeat/yoyo loop the tween.
@@ -55,6 +56,22 @@ const { svg, animations } = renderPicBundle(code, { circuits });
     const step = a.duration / units.length;
     const vars = withOverrides({ opacity: 0, duration: step, stagger: step, ease: 'none' }, a);
     return a.out ? tl.to(units, vars, a.start) : tl.from(units, vars, a.start);
+  }
+
+  // The `scramble` effect: glyphs cycle through random characters and resolve
+  // to the real text — a decode reveal. Needs GSAP's ScrambleTextPlugin.
+  // `{original}` scrambles the element's existing text; `out` scrambles away.
+  // Mirrors the npm player (bindings/js/index.js).
+  function scrambleReveal(el: Element, a: any, tl: gsap.core.Timeline) {
+    const text = el.querySelector('text');
+    if (!text) return;
+    const chars = a.chars || 'upperCase';
+    const target = a.out ? '' : '{original}';
+    const vars = withOverrides(
+      { duration: a.duration, scrambleText: { text: target, chars, speed: 1 }, ease: 'none' },
+      a
+    );
+    return tl.to(text, vars, a.start);
   }
 
   function withOverrides(vars: any, a: any) {
@@ -293,6 +310,9 @@ const { svg, animations } = renderPicBundle(code, { circuits });
           break;
         case 'type':
           typeReveal(el, a, tl);
+          break;
+        case 'scramble':
+          scrambleReveal(el, a, tl);
           break;
         default:
           // unknown effect: fade it in, mirroring the npm player
