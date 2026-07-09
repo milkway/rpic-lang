@@ -2819,18 +2819,20 @@ impl State {
                     .map_err(parse_eval_error)?;
                     self.eval_stringexpr(&parsed)?
                 };
-                return Ok(self.checked_color(normalize_color_string(s)));
+                return self.checked_color(normalize_color_string(s));
             }
         }
         let color = normalize_color_string(self.eval_stringexpr(se)?);
-        Ok(self.checked_color(color))
+        self.checked_color(color)
     }
 
-    /// Warn (once) if a resolved colour string isn't a form any SVG renderer
-    /// understands — a typo or mis-cased keyword would otherwise render blank.
-    /// The colour is passed through unchanged either way (dpic-faithful; the
-    /// warning is advisory), so this never blocks or alters rendering.
-    fn checked_color(&mut self, color: String) -> String {
+    /// Reject active CSS/SVG paint forms, then warn (once) if a resolved colour
+    /// string isn't a form any SVG renderer understands. Plain unknown names
+    /// still pass through unchanged for dpic compatibility.
+    fn checked_color(&mut self, color: String) -> ER<String> {
+        if let Some(reason) = unsafe_svg_colour_reason(&color) {
+            return err(reason);
+        }
         if !crate::color::is_valid_color(&color) {
             let mut warning = Diagnostic::new(
                 "invalid_color",
@@ -2843,7 +2845,7 @@ impl State {
             }
             self.warnings.push(warning);
         }
-        color
+        Ok(color)
     }
 
     fn text_of(&mut self, obj: &Object) -> ER<Vec<TextLine>> {
@@ -4270,6 +4272,66 @@ fn normalize_color_string(s: String) -> String {
         return hex.to_string();
     }
     s
+}
+
+fn unsafe_svg_colour_reason(color: &str) -> Option<&'static str> {
+    let lower = color.to_ascii_lowercase();
+    if has_css_function_named(&lower, "url") {
+        return Some("colour values must not use url(...) paint servers");
+    }
+    if has_css_function_named(&lower, "var") {
+        return Some("colour values must not use CSS variables");
+    }
+    if crate::color::is_valid_color(color) {
+        return None;
+    }
+    leading_css_function_name(color)
+        .is_some()
+        .then_some("unsupported CSS colour function in colour value")
+}
+
+fn has_css_function_named(s: &str, name: &str) -> bool {
+    let bytes = s.as_bytes();
+    let name = name.as_bytes();
+    let mut i = 0;
+    while i + name.len() <= bytes.len() {
+        if bytes[i..].starts_with(name) && (i == 0 || !is_css_ident_byte(bytes[i - 1])) && {
+            let mut j = i + name.len();
+            while j < bytes.len() && bytes[j].is_ascii_whitespace() {
+                j += 1;
+            }
+            j < bytes.len() && bytes[j] == b'('
+        } {
+            return true;
+        }
+        i += 1;
+    }
+    false
+}
+
+fn leading_css_function_name(s: &str) -> Option<&str> {
+    let s = s.trim_start();
+    let mut end = 0;
+    let mut has_alpha = false;
+    for (idx, ch) in s.char_indices() {
+        if idx == 0 && !(ch.is_ascii_alphabetic() || ch == '-') {
+            return None;
+        }
+        if ch.is_ascii_alphabetic() || ch == '-' {
+            has_alpha |= ch.is_ascii_alphabetic();
+            end = idx + ch.len_utf8();
+        } else {
+            break;
+        }
+    }
+    if end == 0 || !has_alpha {
+        return None;
+    }
+    s[end..].trim_start().starts_with('(').then_some(&s[..end])
+}
+
+fn is_css_ident_byte(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_')
 }
 
 fn single_token_macro_string(toks: &[crate::lexer::Spanned]) -> Option<String> {
@@ -6674,6 +6736,28 @@ box wid 0.1 ht 0.1 at B.s"#,
                 "unexpected invalid_color for `{src}`: {:?}",
                 d.warnings
             );
+        }
+    }
+
+    #[test]
+    fn color_attributes_reject_svg_paint_urls_and_css_functions() {
+        for (src, want) in [
+            ("box shaded \"url(https://example.invalid/p.svg#x)\"", "url"),
+            ("box outlined \"url (#stroke)\"", "url"),
+            ("box hatch hatchcolor \"url(#hatch)\"", "url"),
+            ("box gradient \"white\" \"url(#grad)\"", "url"),
+            ("box shaded \"var(--pic-fill)\"", "CSS variables"),
+            (
+                "box shaded \"linear-gradient(red, blue)\"",
+                "unsupported CSS colour function",
+            ),
+            (
+                "box shaded \"-webkit-linear-gradient(red, blue)\"",
+                "unsupported CSS colour function",
+            ),
+        ] {
+            let err = eval(&parse(src).unwrap()).unwrap_err();
+            assert!(err.msg.contains(want), "{src}: {}", err.msg);
         }
     }
 
