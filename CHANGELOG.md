@@ -45,6 +45,18 @@ resolves to the latest version.
 
 ### Fixed
 
+- **A rotated, justified label no longer vanishes.** A `"…" ljust rotated 90`
+  (or `rjust`) label is rotated about its text anchor, but its bounds were
+  computed about the rect centre — offset by half the width — so a long one
+  landed entirely outside the viewBox and rendered blank. The bounds now rotate
+  about the same anchor the renderer uses.
+- **`after <block>` waits for a whole staggered block** even when the block
+  leads with an invisible spine (a `move`): the stagger's end time was recorded
+  on the first visible child, not the block, so `after` a stagger could start
+  mid-way through it.
+- **Macro-argument splices space by source position, not rendered length**, so
+  a normalized float or escaped string in a spliced arg (`lbl((1.50,2.50))`) no
+  longer gains stray spaces (`(1.5 ,2.5 )`).
 - **Hostile input can no longer crash the process.** Two unbounded paths that
   aborted (uncatchable, unlike every other error) on adversarial `.pic` source —
   reachable from the CLI and the wasm binding — now fail cleanly: deeply nested
