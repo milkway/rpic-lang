@@ -104,6 +104,9 @@ pub struct Anim {
     /// For the `scramble` effect: a custom scramble charset (`by "01"`); `None`
     /// uses the plugin's `upperCase`. Present in the manifest only when set.
     pub scramble_chars: Option<String>,
+    /// For the `wiggle` effect: the oscillation count (`wiggles <n>`); `None`
+    /// lets the player default it. Present in the manifest only when set.
+    pub wiggles: Option<i64>,
 }
 
 /// Line dash style.

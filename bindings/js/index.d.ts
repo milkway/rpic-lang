@@ -2,7 +2,7 @@
 
 export interface Anim {
   id: string;
-  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" | "type" | "scramble" */
+  /** "fade" | "pop" | "draw" | "slide" | "move" | "highlight" | "morph" | "type" | "scramble" | "wiggle" */
   effect: string;
   /** absolute start time in seconds */
   start: number;
@@ -27,6 +27,8 @@ export interface Anim {
   unit?: string;
   /** custom scramble charset for `scramble` (`by "…"`). Present only when set. */
   chars?: string;
+  /** oscillation count for `wiggle` (`wiggles <n>`). Present only when set. */
+  wiggles?: number;
 }
 
 export interface Diagnostic {

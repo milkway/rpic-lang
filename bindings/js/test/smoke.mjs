@@ -76,6 +76,10 @@ const scrAnim = compile('box "SECRET"\nanimate last with "scramble" by "01"');
 assert.equal(scrAnim.animations[0].effect, 'scramble');
 assert.equal(scrAnim.animations[0].chars, '01');
 assert.ok(scrAnim.svg.includes('>SECRET</text>'), 'scramble does not split the label');
+// the wiggle effect rides an oscillation count
+const wigAnim = compile('box\nanimate last with "wiggle" wiggles 8');
+assert.equal(wigAnim.animations[0].effect, 'wiggle');
+assert.equal(wigAnim.animations[0].wiggles, 8);
 // stagger fans across a block's children into one entry each
 const stAnim = compile('B: [ box; box; box ]\nanimate B with "fade" for 0.3 stagger 0.15');
 assert.equal(stAnim.animations.length, 3);

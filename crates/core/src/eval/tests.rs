@@ -450,6 +450,27 @@ fn animate_scramble_effect_records_charset() {
 }
 
 #[test]
+fn animate_wiggle_effect_records_count() {
+    // #330: `wiggle` shakes an object; `wiggles <n>` sets the oscillation count.
+    let d = draw("box\nanimate last with \"wiggle\"");
+    assert_eq!(d.anims[0].effect, "wiggle");
+    assert_eq!(d.anims[0].wiggles, None);
+
+    let d = draw("box\nanimate last with \"wiggle\" wiggles 6");
+    assert_eq!(d.anims[0].wiggles, Some(6));
+
+    // `wiggles` on a non-wiggle effect warns and stays inert; `wiggles` remains
+    // a usable variable name outside an animate clause
+    let d = draw("wiggles = 3\nbox\nanimate last with \"fade\" wiggles 4");
+    assert_eq!(d.anims[0].wiggles, None);
+    assert!(
+        d.warnings
+            .iter()
+            .any(|w| w.kind == "wiggles_without_wiggle")
+    );
+}
+
+#[test]
 fn animate_rejects_invalid_timing_values() {
     for (src, want) in [
         (
