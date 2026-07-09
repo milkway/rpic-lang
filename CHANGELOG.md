@@ -65,6 +65,14 @@ resolves to the latest version.
   feeds hostile text through each and asserts the quote can't break out. Also
   drops three needless `stroke` clones (`as_deref().unwrap_or("black")`).
   Output is byte-for-byte unchanged. (#324)
+- **The evaluator is split into an `eval/` module.** `eval.rs` had grown to
+  7.6k lines — by far the largest file in the crate. It is now `eval.rs` (the
+  `State` type, entry points, statement/animation dispatch) plus `eval/build.rs`
+  (primitive construction), `eval/resolve.rs` (position/place resolution and
+  expression evaluation), `eval/helpers.rs` (pure free functions) and
+  `eval/tests.rs`, each comfortably under 2k lines. Pure reorganization: no
+  public-API change and SVG output is byte-for-byte identical (corpus 124/124).
+  (#323)
 
 ### Fixed
 
