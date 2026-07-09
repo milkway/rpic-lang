@@ -1751,9 +1751,11 @@ impl Parser {
             }
         }
 
-        // `{ … }` grouping
+        // `{ … }` grouping. Nesting recurses parse_element → parse_elementlist
+        // → parse_element, so bound it through `descend` like the other block
+        // forms (a deeply nested `{{{…}}}` would otherwise overflow the stack).
         if self.eat(&Token::LeftBrace) {
-            let stmts = self.parse_elementlist(&[Token::RightBrace])?;
+            let stmts = self.descend(|p| p.parse_elementlist(&[Token::RightBrace]))?;
             self.expect(&Token::RightBrace)?;
             return Ok(Stmt::Group(stmts));
         }
@@ -2550,10 +2552,15 @@ impl Parser {
     /// Continue a string expression with trailing `+ string` parts.
     fn continue_string(&mut self, first: StringExpr) -> PResult<StringExpr> {
         let mut e = first;
+        // Iterative parse, but a left-deep `StringExpr::Concat` recurses on Drop
+        // and evaluation — cap the chain length like numeric operator chains.
+        let mut ops = 0u32;
         while self.at(&Token::Plus) && self.string_after_plus() {
             self.bump();
             let rhs = self.parse_string_atom()?;
             e = StringExpr::Concat(Box::new(e), Box::new(rhs));
+            ops += 1;
+            self.check_expr_chain(ops)?;
         }
         Ok(e)
     }
@@ -2778,18 +2785,22 @@ impl Parser {
     }
 
     fn parse_place(&mut self) -> PResult<Place> {
-        // `corner [of] placename`
+        // `corner [of] placename` — recurses on a leading corner chain
+        // (`.n.n.n…`), so bound it through `descend` to avoid a stack overflow.
         if let Token::Corner(c) = self.cur() {
             let c = *c;
             self.bump();
             self.eat_kw(Kw::Of);
-            let inner = self.parse_place()?;
+            let inner = self.descend(Self::parse_place)?;
             return Ok(Place::CornerOf(c, Box::new(inner)));
         }
 
         let mut place = self.parse_place_base()?;
 
-        // trailing `.corner`, `.label`, `.nth primobj`
+        // trailing `.corner`, `.label`, `.nth primobj`. The loop parses
+        // iteratively but builds a left-deep `Place::Corner`/`Place::Member`
+        // AST whose Drop and evaluation recurse, so cap the chain length.
+        let mut accessors = 0u32;
         loop {
             if let Token::Corner(c) = self.cur() {
                 let c = *c;
@@ -2802,6 +2813,8 @@ impl Parser {
             } else {
                 break;
             }
+            accessors += 1;
+            self.check_expr_chain(accessors)?;
         }
         Ok(place)
     }
@@ -3820,6 +3833,60 @@ box
         let expr = (0..2000).map(|_| "1").collect::<Vec<_>>().join("+");
         let e = parse(&format!("x = {expr}")).unwrap_err();
         assert!(e.msg.contains("too many chained operators"), "{}", e.msg);
+    }
+
+    #[test]
+    fn recursion_and_ast_depth_vectors_error_instead_of_overflowing() {
+        // #318: four constructs that #306/#314 left uncovered used to abort by
+        // overflowing the stack (parser recursion) or dropping/evaluating an
+        // unbounded left-deep AST. Each must now return a clean parse error.
+        // Roomy stack for the unoptimized test build (see the #283 test).
+        std::thread::Builder::new()
+            .stack_size(32 * 1024 * 1024)
+            .spawn(|| {
+                // brace-group nesting (parser recursion)
+                let braces = format!("{}box{}", "{".repeat(5000), "}".repeat(5000));
+                assert!(
+                    parse(&braces)
+                        .unwrap_err()
+                        .msg
+                        .contains("nested too deeply"),
+                    "brace group"
+                );
+                // leading corner chain (parser recursion)
+                let corners = format!("line to {}Here", ".n".repeat(5000));
+                assert!(
+                    parse(&corners)
+                        .unwrap_err()
+                        .msg
+                        .contains("nested too deeply"),
+                    "corner chain"
+                );
+                // string concatenation (left-deep StringExpr::Concat)
+                let concat = vec!["\"a\""; 2000].join("+");
+                assert!(
+                    parse(&format!("print {concat}"))
+                        .unwrap_err()
+                        .msg
+                        .contains("too many chained operators"),
+                    "string concat"
+                );
+                // trailing member/corner chain in place context (left-deep AST)
+                let members = format!("line to A{}.sw", ".B".repeat(2000));
+                assert!(
+                    parse(&format!("box\n{members}"))
+                        .unwrap_err()
+                        .msg
+                        .contains("too many chained operators"),
+                    "member chain"
+                );
+                // realistic depths still parse
+                assert!(parse("{{{{ box }}}}").is_ok());
+                assert!(parse("box\nline to A.n.sw").is_ok());
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 
     #[test]
