@@ -51,6 +51,7 @@ may appear in any order.
 | `to` *colour* | `to "crimson"` | target colour for `highlight`; any rpic colour form, ignored elsewhere |
 | `from` *dir* | `from left` | entry direction (`up`/`down`/`left`/`right`) — required by `slide`, ignored elsewhere |
 | `by` *word*\|*char*\|*"chars"* | `by word`, `by "01"` | `type` reveal granularity (default `char`), or a `scramble` charset; ignored on other effects |
+| `wiggles` *n* | `wiggles 6` | oscillation count for `wiggle` (default 6), ignored elsewhere |
 | `out` | `out` | play the effect as an **exit** (reverse) instead of an entrance |
 | `stagger` *expr* | `stagger 0.12` | on a block target, fan the effect across its children, `d`s apart |
 | `for` *expr* | `for 0.4` | duration in seconds (default `0.6`) |
@@ -78,6 +79,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 | `morph` | tween the outline into another shape's geometry (needs `into <shape>`) | `power1.inOut` |
 | `type` | reveal a label one character (or `by word`) at a time — a typewriter | `none` |
 | `scramble` | glyphs cycle through random characters and resolve to the text (custom set with `by "…"`) | `none` |
+| `wiggle` | a quick oscillating shake that returns to rest — "look here" emphasis (`wiggles <n>`) | CustomWiggle |
 
 Any other effect string is accepted by the parser but flagged with an
 `unknown_animation_effect` warning in the `--json` bundle — it renders nothing.
@@ -90,6 +92,7 @@ Any other effect string is accepted by the parser but flagged with an
   - **`move`** (motion along a path) → [`MotionPathPlugin`](https://gsap.com/docs/v3/Plugins/MotionPathPlugin/)
   - **`morph`** (shape-into-shape) → [`MorphSVGPlugin`](https://gsap.com/docs/v3/Plugins/MorphSVGPlugin/)
   - **`scramble`** (decode text) → [`ScrambleTextPlugin`](https://gsap.com/docs/v3/Plugins/ScrambleTextPlugin/)
+  - **`wiggle`** (shake emphasis) → [`CustomWiggle`](https://gsap.com/docs/v3/Eases/CustomWiggle/) (which registers [`CustomEase`](https://gsap.com/docs/v3/Eases/CustomEase/) too)
 
   Use **GSAP ≥ 3.13**. Since [3.13](https://gsap.com/blog/3-13/) (May 2025,
   after Webflow's acquisition) the *entire* toolset — `MorphSVGPlugin` and
@@ -102,7 +105,9 @@ Any other effect string is accepted by the parser but flagged with an
   import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
   import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
   import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
-  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin, ScrambleTextPlugin);
+  import { CustomEase } from 'gsap/CustomEase';
+  import { CustomWiggle } from 'gsap/CustomWiggle';
+  gsap.registerPlugin(MotionPathPlugin, MorphSVGPlugin, ScrambleTextPlugin, CustomEase, CustomWiggle);
   ```
 
   The other effects (`fade`, `pop`, `draw`, `slide`, `highlight`, `type`) use
@@ -342,6 +347,37 @@ animate B with "highlight" to "crimson" for 0.6 repeat -1 yoyo
 The target colour rides the manifest entry as a `color` key
 (`"color":"crimson"` above; `rgb()`/`0xRRGGBB` resolve to `#rrggbb`). `to` on any
 non-`highlight` effect is ignored with a `to_without_highlight` warning.
+
+## Attention wiggle
+
+`wiggle` gives an object a quick oscillating shake that returns to rest — the
+"look here" nudge, without moving the object from its place. Set the number of
+oscillations with `wiggles <n>` (default 6). It's built on GSAP's
+[CustomWiggle](https://gsap.com/docs/v3/Eases/CustomWiggle/) ease, so register
+that (and `CustomEase`) — see the callout above.
+
+<AnimatedPic code={`.PS
+margin = 0.15
+A: box "start" fit
+arrow
+B: box "look!" fit
+arrow
+C: box "end" fit
+animate B with "wiggle" wiggles 8 for 0.8 repeat -1 delay 1
+.PE`} />
+
+The count rides the manifest as `"wiggles":8`; absent, the player uses 6.
+`wiggles` on any non-`wiggle` effect is ignored with a `wiggles_without_wiggle`
+warning.
+
+<Callout type="note" title="Bouncy easing">
+  Any GSAP ease name passes straight through `ease "<name>"`, so a springy
+  landing is already one word away — `ease "bounce.out"`, `ease "elastic.out"`,
+  `ease "back.out(1.7)"`. For a *tunable* bounce (strength, squash-and-stretch),
+  register [`CustomBounce`](https://gsap.com/docs/v3/Eases/CustomBounce/),
+  `CustomBounce.create("myBounce", { strength: 0.6, squash: 3 })`, and reference
+  it by name: `ease "myBounce"`.
+</Callout>
 
 ## Typewriter text
 

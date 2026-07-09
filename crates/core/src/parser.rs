@@ -1948,6 +1948,7 @@ impl Parser {
         let mut morph_into = None;
         let mut type_unit = None;
         let mut scramble_chars = None;
+        let mut wiggles = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1983,6 +1984,11 @@ impl Parser {
                 } else {
                     type_unit = Some(self.parse_type_unit()?);
                 }
+            } else if matches!(self.cur(), Token::Name(n) if n == "wiggles") {
+                // contextual keyword (like `class`/`animate`): stays a usable
+                // variable name outside an animate clause
+                self.bump();
+                wiggles = Some(self.parse_expr()?);
             } else {
                 break;
             }
@@ -2005,6 +2011,7 @@ impl Parser {
             morph_into,
             type_unit,
             scramble_chars,
+            wiggles,
         })
     }
 

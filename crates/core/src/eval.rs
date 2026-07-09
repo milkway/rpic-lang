@@ -1184,6 +1184,17 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        let is_wiggle = effect == "wiggle";
+        if a.wiggles.is_some() && !is_wiggle {
+            let mut warning = Diagnostic::new(
+                "wiggles_without_wiggle",
+                "`wiggles <n>` only applies to the `wiggle` effect and is ignored here",
+            );
+            if let Some(span) = &a.effect_span {
+                warning = warning.at(span.clone());
+            }
+            self.warnings.push(warning);
+        }
         if !matches!(
             effect.as_str(),
             "draw"
@@ -1195,15 +1206,16 @@ impl State {
                 | "morph"
                 | "type"
                 | "scramble"
+                | "wiggle"
         ) {
             let mut warning = Diagnostic::new(
                 "unknown_animation_effect",
                 format!(
-                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, `morph`, `type`, and `scramble`"
+                    "unknown animation effect `{effect}`; supported effects are `draw`, `fade`, `pop`, `move`, `highlight`, `slide`, `morph`, `type`, `scramble`, and `wiggle`"
                 ),
             )
             .found(effect.clone())
-            .expected("draw, fade, pop, move, highlight, slide, morph, type, or scramble");
+            .expected("draw, fade, pop, move, highlight, slide, morph, type, scramble, or wiggle");
             if let Some(span) = &a.effect_span {
                 warning = warning.at(span.clone());
             }
@@ -1218,6 +1230,10 @@ impl State {
             a.scramble_chars.as_ref().map(stringexpr_lit)
         } else {
             None
+        };
+        let wiggles = match (is_wiggle, &a.wiggles) {
+            (true, Some(e)) => Some(self.eval_expr(e)?.round() as i64),
+            _ => None,
         };
         let make = |shape: usize, start: f64| Anim {
             shape,
@@ -1234,6 +1250,7 @@ impl State {
             morph,
             type_word,
             scramble_chars: scramble_chars.clone(),
+            wiggles,
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,

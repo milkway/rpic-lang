@@ -215,6 +215,9 @@ pub struct Animate {
     /// Custom scramble charset for the `scramble` effect (`by "01"`); `None`
     /// defaults to the plugin's `upperCase`.
     pub scramble_chars: Option<StringExpr>,
+    /// Oscillation count for the `wiggle` effect (`wiggles <n>`); `None`
+    /// defaults to a few.
+    pub wiggles: Option<Expr>,
 }
 
 /// When an animation starts.

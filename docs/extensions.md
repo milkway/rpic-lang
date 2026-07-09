@@ -196,7 +196,7 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 
 ```
 animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char|"chars"]
-        [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+        [wiggles <n>] [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 ```pic
@@ -219,8 +219,9 @@ animate B2 with "fade" after 1st arrow delay 0.2
   `highlight` (emphasis — see below), `slide` (translate in from `from <dir>`),
   `morph` (morph into another shape — see below), `type` (reveal a label one
   character, or `by word`, at a time — a typewriter; see below), `scramble`
-  (decode-style reveal; see below). Any other string is accepted but flagged
-  with an `unknown_animation_effect` warning and renders nothing.
+  (decode-style reveal; see below), `wiggle` (attention shake; see below). Any
+  other string is accepted but flagged with an `unknown_animation_effect`
+  warning and renders nothing.
 - **Direction / exit**: `slide` enters from a compass direction (`from
   up`/`down`/`left`/`right` — required; `from` elsewhere warns
   `from_without_slide`). The `out` modifier reverses **any** effect into an exit
@@ -249,6 +250,13 @@ animate B2 with "fade" after 1st arrow delay 0.2
   `by "<chars>"` (default `upperCase`) and rides the manifest as `"chars":"…"`
   only when given; `by "…"` on any other effect warns `by_without_scramble`.
   `out` scrambles the label away.
+- **Attention wiggle** (`wiggle`): a quick oscillating shake that returns to
+  rest, to draw the eye without displacing the object. `wiggles <n>` sets the
+  oscillation count (default 6) and rides the manifest as `"wiggles":n` only
+  when given; `wiggles` on any other effect warns `wiggles_without_wiggle`.
+  Built on GSAP's CustomWiggle ease. (Any GSAP ease still passes through
+  `ease "<name>"` — `ease "bounce.out"`, `ease "elastic.out"`, or a
+  consumer-registered CustomBounce by name — no engine change needed.)
 - **Emphasis** (`highlight`): `to <colour>` (any rpic colour form) tweens the
   object's outline to that colour; without a colour it's a colour-free scale
   pulse. One-directional — add `repeat 1 yoyo` for a flash-and-return or

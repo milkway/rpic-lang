@@ -12,6 +12,14 @@ resolves to the latest version.
 
 ### Added
 
+- **`animate … with "wiggle"` — attention shake.** A quick oscillating shake
+  that returns to rest — the "look here" nudge that draws the eye without moving
+  the object. `wiggles <n>` sets the oscillation count (default 6) and rides the
+  manifest as `"wiggles":n` only when set; `wiggles` on a non-`wiggle` effect
+  warns `wiggles_without_wiggle`. Built on GSAP's CustomWiggle ease (register
+  `CustomWiggle`/`CustomEase`). Byte-inert on the SVG side. Any GSAP ease still
+  passes straight through `ease "<name>"` (`ease "bounce.out"`,
+  `ease "elastic.out"`, or a consumer-registered `CustomBounce` by name). (#330)
 - **`animate … with "scramble"` — decode-style text reveal.** A label's glyphs
   cycle through random characters and resolve into the real text. It drives the
   `<text>` element directly through GSAP's `ScrambleTextPlugin` (which, unlike

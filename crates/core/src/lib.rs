@@ -102,6 +102,9 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(chars) = &a.scramble_chars {
             s.push_str(&format!(",\"chars\":\"{}\"", json_str(chars)));
         }
+        if let Some(wiggles) = a.wiggles {
+            s.push_str(&format!(",\"wiggles\":{wiggles}"));
+        }
         s.push('}');
     }
     s.push(']');

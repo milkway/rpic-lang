@@ -144,6 +144,9 @@ export function animate(root, animations, gsap) {
       case 'scramble':
         scrambleReveal(el, a, tl);
         break;
+      case 'wiggle':
+        wiggleShake(el, a, tl);
+        break;
       default:
         enterExit(tl, el, withOverrides({ opacity: 0, duration: a.duration }, a), a);
     }
@@ -202,6 +205,20 @@ function scrambleReveal(el, a, tl) {
     a
   );
   return tl.to(text, vars, a.start);
+}
+
+// The `wiggle` effect: a quick oscillating shake that returns to rest, to draw
+// the eye to an object without moving it. Uses GSAP's CustomWiggle ease via its
+// string syntax `wiggle(n)` (register CustomWiggle first); the tween rotates
+// about the element's own centre and the ease settles it back to 0. An explicit
+// `ease` overrides the wiggle.
+function wiggleShake(el, a, tl) {
+  const n = a.wiggles || 6;
+  const vars = withOverrides(
+    { rotation: 8, transformOrigin: '50% 50%', duration: a.duration, ease: `wiggle(${n})` },
+    a
+  );
+  return tl.fromTo(el, { rotation: 0 }, vars, a.start);
 }
 
 // Fold the optional GSAP overrides (repeat/yoyo/ease) into a tween's vars.
