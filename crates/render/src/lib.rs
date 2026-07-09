@@ -41,6 +41,45 @@ const EMBEDDED_MONO_FAMILY: &str = "Go Mono";
 #[cfg(feature = "math")]
 pub mod math;
 
+/// Default maximum PNG raster dimension, in pixels, for either axis.
+#[cfg(feature = "raster")]
+pub const DEFAULT_MAX_RASTER_DIMENSION: u32 = 32_768;
+
+/// Default maximum PNG raster area, in pixels.
+#[cfg(feature = "raster")]
+pub const DEFAULT_MAX_RASTER_PIXELS: u64 = 64_000_000;
+
+/// Limits applied before allocating a PNG raster surface.
+#[cfg(feature = "raster")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RasterLimits {
+    pub max_width: u32,
+    pub max_height: u32,
+    pub max_pixels: u64,
+}
+
+#[cfg(feature = "raster")]
+impl RasterLimits {
+    pub const fn new(max_width: u32, max_height: u32, max_pixels: u64) -> Self {
+        Self {
+            max_width,
+            max_height,
+            max_pixels,
+        }
+    }
+}
+
+#[cfg(feature = "raster")]
+impl Default for RasterLimits {
+    fn default() -> Self {
+        Self {
+            max_width: DEFAULT_MAX_RASTER_DIMENSION,
+            max_height: DEFAULT_MAX_RASTER_DIMENSION,
+            max_pixels: DEFAULT_MAX_RASTER_PIXELS,
+        }
+    }
+}
+
 /// Rasterize an SVG string to PNG bytes at the given scale (1.0 = 96 dpi, the
 /// SVG's native resolution).
 #[cfg(feature = "raster")]
@@ -64,6 +103,12 @@ fn load_embedded_fonts(db: &mut resvg::usvg::fontdb::Database) {
 
 #[cfg(feature = "raster")]
 pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
+    to_png_with_limits(svg, scale, RasterLimits::default())
+}
+
+/// Rasterize an SVG string to PNG bytes with explicit raster allocation limits.
+#[cfg(feature = "raster")]
+pub fn to_png_with_limits(svg: &str, scale: f32, limits: RasterLimits) -> Result<Vec<u8>, String> {
     use resvg::{tiny_skia, usvg};
 
     if !scale.is_finite() || scale <= 0.0 {
@@ -75,8 +120,7 @@ pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
     let tree = usvg::Tree::from_str(svg, &opt).map_err(|e| e.to_string())?;
 
     let size = tree.size();
-    let w = ((size.width() * scale).ceil() as u32).max(1);
-    let h = ((size.height() * scale).ceil() as u32).max(1);
+    let (w, h) = checked_raster_size(size.width(), size.height(), scale, limits)?;
     let mut pixmap = tiny_skia::Pixmap::new(w, h).ok_or("failed to allocate pixmap")?;
     resvg::render(
         &tree,
@@ -84,6 +128,44 @@ pub fn to_png(svg: &str, scale: f32) -> Result<Vec<u8>, String> {
         &mut pixmap.as_mut(),
     );
     pixmap.encode_png().map_err(|e| e.to_string())
+}
+
+#[cfg(feature = "raster")]
+fn checked_raster_size(
+    svg_width: f32,
+    svg_height: f32,
+    scale: f32,
+    limits: RasterLimits,
+) -> Result<(u32, u32), String> {
+    let width = checked_scaled_dimension(svg_width, scale, "width")?;
+    let height = checked_scaled_dimension(svg_height, scale, "height")?;
+    let pixels = u64::from(width) * u64::from(height);
+
+    if width > limits.max_width || height > limits.max_height || pixels > limits.max_pixels {
+        return Err(format!(
+            "raster output exceeds configured pixel limit: {width}x{height} ({pixels} pixels) exceeds max {}x{} or {} pixels",
+            limits.max_width, limits.max_height, limits.max_pixels
+        ));
+    }
+
+    Ok((width, height))
+}
+
+#[cfg(feature = "raster")]
+fn checked_scaled_dimension(value: f32, scale: f32, axis: &str) -> Result<u32, String> {
+    let scaled = f64::from(value) * f64::from(scale);
+    if !scaled.is_finite() {
+        return Err(format!("raster {axis} is not finite"));
+    }
+
+    let pixels = scaled.ceil().max(1.0);
+    if pixels > f64::from(u32::MAX) {
+        return Err(format!(
+            "raster output exceeds configured pixel limit: scaled {axis} {pixels:e} exceeds u32::MAX"
+        ));
+    }
+
+    Ok(pixels as u32)
 }
 
 /// Convert an SVG string to PDF bytes.
@@ -126,6 +208,23 @@ mod tests {
     fn png_rejects_invalid_scale() {
         assert!(to_png(SVG, 0.0).is_err());
         assert!(to_png(SVG, f32::NAN).is_err());
+    }
+
+    #[cfg(feature = "raster")]
+    #[test]
+    fn png_rejects_huge_scale_before_allocation() {
+        let err = to_png(SVG, 100_000.0).unwrap_err();
+        assert!(err.contains("raster output exceeds configured pixel limit"));
+    }
+
+    #[cfg(feature = "raster")]
+    #[test]
+    fn png_respects_custom_raster_limits() {
+        let err = to_png_with_limits(SVG, 1.0, RasterLimits::new(100, 100, 100)).unwrap_err();
+        assert!(err.contains("40x20 (800 pixels)"), "{err}");
+
+        let png = to_png_with_limits(SVG, 1.0, RasterLimits::new(100, 100, 1_000)).unwrap();
+        assert_eq!(&png[..4], &[0x89, 0x50, 0x4E, 0x47]);
     }
 
     #[cfg(feature = "raster")]
