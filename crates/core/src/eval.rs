@@ -4312,17 +4312,19 @@ fn has_css_function_named(s: &str, name: &str) -> bool {
 fn leading_css_function_name(s: &str) -> Option<&str> {
     let s = s.trim_start();
     let mut end = 0;
+    let mut has_alpha = false;
     for (idx, ch) in s.char_indices() {
-        if idx == 0 && !ch.is_ascii_alphabetic() {
+        if idx == 0 && !(ch.is_ascii_alphabetic() || ch == '-') {
             return None;
         }
         if ch.is_ascii_alphabetic() || ch == '-' {
+            has_alpha |= ch.is_ascii_alphabetic();
             end = idx + ch.len_utf8();
         } else {
             break;
         }
     }
-    if end == 0 {
+    if end == 0 || !has_alpha {
         return None;
     }
     s[end..].trim_start().starts_with('(').then_some(&s[..end])
@@ -6747,6 +6749,10 @@ box wid 0.1 ht 0.1 at B.s"#,
             ("box shaded \"var(--pic-fill)\"", "CSS variables"),
             (
                 "box shaded \"linear-gradient(red, blue)\"",
+                "unsupported CSS colour function",
+            ),
+            (
+                "box shaded \"-webkit-linear-gradient(red, blue)\"",
                 "unsupported CSS colour function",
             ),
         ] {
