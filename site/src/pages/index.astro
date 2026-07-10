@@ -4,6 +4,7 @@
 import DocsLayout from '../layouts/DocsLayout.astro';
 import { Code } from 'astro:components';
 import AnimatedPic from '../components/AnimatedPic.astro';
+import DrawValuesPic from '../components/DrawValuesPic.astro';
 import heroPic from '../assets/hero.pic?raw';
 import { renderPic } from '../lib/rpic';
 import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
@@ -105,6 +106,23 @@ animate P with "highlight" to "crimson" for 0.6 after Out delay 0.3 repeat -1 yo
     <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0">
       Full palette on the{' '}
       <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href={`${base}/docs/extensions/animate`}>animate reference</a>.
+    </p>
+  </div>
+
+  <div class="mt-16 max-w-4xl border-t border-slate-200 dark:border-slate-800 pt-8">
+    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1 mt-0">Draw any segment</h2>
+    <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-5">
+      The wave below is a single spline drawn by rpic. <code class="font-mono text-[13px]">animate … with "draw"</code>
+      traces it — and <code class="font-mono text-[13px]">from&nbsp;<i>p</i></code>/<code class="font-mono text-[13px]">to&nbsp;<i>p</i></code>
+      reveal only a slice of it, as a fraction of the stroke. Hit <b>Next value</b> to sweep the window.
+    </p>
+    <DrawValuesPic />
+    <p class="text-sm text-slate-600 dark:text-slate-400 leading-6 mb-0 mt-4">
+      A nod to GreenSock's{' '}
+      <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href="https://gsap.com/docs/v3/Plugins/DrawSVGPlugin/">DrawSVGPlugin</a>{' '}
+      values demo, rebuilt on rpic's{' '}
+      <a class="underline decoration-slate-300 dark:decoration-slate-600 hover:text-emerald-700 dark:hover:text-emerald-300" href={`${base}/docs/extensions/animate#partial-draw--reveal-a-stroke-segment`}>partial draw</a>{' '}
+      — stroke fractions, no plugin.
     </p>
   </div>
 

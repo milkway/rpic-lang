@@ -1,0 +1,95 @@
+---
+// A homage to GSAP's "DrawSVGPlugin values" demo (codepen bNdLyR), rebuilt on
+// rpic's partial `draw`: the wave is a spline drawn by rpic, and "Next" cycles
+// through reveal windows — the same `stroke-dasharray` sweep rpic's
+// `animate … with "draw" from <p> to <p>` emits, tweened here between values.
+import { renderPic } from '../lib/rpic';
+
+// A smooth flowing wave: a dense sine sampled into one spline, so it renders as
+// a single continuous <path> the reveal window can slide along.
+const N = 48;
+let pic = '.PS\nmargin = 0.15\nS: spline from ';
+for (let i = 0; i <= N; i++) {
+  const x = (i / N) * 6.8;
+  const y = 0.62 * Math.sin(x * 1.15) + 0.05 * Math.sin(x * 2.7);
+  pic += `${i === 0 ? '' : 'then to '}(${x.toFixed(3)},${y.toFixed(3)}) `;
+}
+pic += 'thick 2.6 colored "0x2f855a"\n.PE\n';
+const svg = renderPic(pic);
+
+// The CodePen's value list, expressed the rpic way — a stroke *fraction*
+// window (`from <p> to <p>`) rather than DrawSVGPlugin's absolute pixel range.
+const VALUES = [
+  { label: 'draw', a: 0, b: 1 },
+  { label: 'draw from 40% to 60%', a: 0.4, b: 0.6 },
+  { label: 'draw from 5% to 68%', a: 0.05, b: 0.68 },
+  { label: 'draw from 50% to 50%', a: 0.5, b: 0.5 },
+  { label: 'draw to 10%', a: 0, b: 0.1 },
+];
+---
+
+<div
+  class="draw-values not-prose rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-5"
+  data-values={JSON.stringify(VALUES)}
+>
+  <div class="dv-stage grid place-items-center mb-4 [&_svg]:max-w-2xl [&_svg]:w-full [&_svg]:h-auto [&_svg]:overflow-visible" set:html={svg} />
+  <div class="flex flex-wrap items-center gap-3">
+    <button
+      class="dv-next inline-flex items-center h-9 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm px-4"
+      type="button">Next value →</button>
+    <code class="dv-label text-[13px] font-mono text-emerald-800 dark:text-emerald-300"></code>
+  </div>
+</div>
+
+<script>
+  import { gsap } from 'gsap';
+
+  function build(root: HTMLElement) {
+    const values = JSON.parse(root.dataset.values || '[]');
+    const stage = root.querySelector('.dv-stage') as HTMLElement;
+    const label = root.querySelector('.dv-label') as HTMLElement;
+    const nextBtn = root.querySelector('.dv-next') as HTMLButtonElement;
+    const path = stage.querySelector('path') as SVGPathElement | null;
+    if (!path || !values.length) return;
+
+    let len = 0;
+    try {
+      len = path.getTotalLength();
+    } catch {
+      len = 0;
+    }
+    if (!len) return;
+
+    // Reveal only [a,b] of the stroke via a dash window: leading gap a·len,
+    // then a visible dash of (b−a)·len, then a gap covering the rest — exactly
+    // what rpic's `draw from/to` player builds.
+    const win = { a: 0, b: 1 };
+    const paint = () =>
+      path.setAttribute(
+        'stroke-dasharray',
+        `0 ${win.a * len} ${Math.max(0, (win.b - win.a) * len)} ${len}`
+      );
+
+    let i = 0;
+    let tween: gsap.core.Tween | null = null;
+    function show(v: any, animate: boolean) {
+      label.textContent = v.label;
+      tween?.kill();
+      if (animate) {
+        tween = gsap.to(win, { a: v.a, b: v.b, duration: 0.9, ease: 'power1.inOut', onUpdate: paint });
+      } else {
+        win.a = v.a;
+        win.b = v.b;
+        paint();
+      }
+    }
+
+    show(values[0], false);
+    nextBtn.addEventListener('click', () => {
+      i = (i + 1) % values.length;
+      show(values[i], true);
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.draw-values').forEach(build);
+</script>
