@@ -33,6 +33,24 @@ animate C with "fade" for 0.8
 (hit ▶ replay). The `draw` effect traces paths; `pop` overshoots, which is
 why the source reserves headroom with `margin`.
 
+Beyond entrances, the palette tells a story — a label that **types** itself in,
+steps that pop in sequence, and a **wiggle** to point at the one that matters:
+
+<AnimatedPic code={`.PS
+margin = 0.15
+T: "rpic animates" at (1.4,1.2)
+A: box "parse" fit
+arrow
+B: box "eval" fit
+arrow
+C: box "draw" fit
+animate T with "type" for 1.0
+animate A with "pop" after T
+animate B with "pop" after A
+animate C with "pop" after B
+animate B with "wiggle" wiggles 6 after C
+.PE`} />
+
 ## Syntax
 
 ```
@@ -556,10 +574,18 @@ draggable N x               # lock to one axis (x or y)
 
 <AnimatedPic code={`.PS
 margin = 0.2
-B: box wid 3.5 ht 2 dashed
-N: circle rad 0.35 "drag" at B.c
-draggable N inertia bounds B
+F: box wid 4 ht 2.2 dashed
+A: circle "A" rad 0.3 at F.c + (-1,0)
+B: circle "B" rad 0.3 at F.c + (1,0)
+line from A to B
+draggable A inertia bounds F
+draggable B inertia bounds F
 .PE`} />
+
+Drag either node — each throws with momentum (`inertia`) and stays inside the
+frame (`bounds F`). The connecting line does not follow (rpic emits static
+geometry); live graph editing is the host application's job, for which the
+`interactions` metadata is the starting point.
 
 The compiled bundle gains a top-level **`interactions`** array
 (`[{id, kind:"drag", inertia?, bounds?, axis?}, …]`) alongside `animations` —

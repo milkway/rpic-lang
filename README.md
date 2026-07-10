@@ -148,17 +148,35 @@ animate 1st arrow with "draw"
 animate 2nd box   with "fade"  after 1st arrow delay 0.2
 ```
 
-The full effect palette: **`fade`**, **`pop`**, **`draw`** (stroke-on),
-**`slide`** (from a compass direction), **`move`** (travel along another
-object's path), **`highlight`** (recolour the outline), and **`morph`** (tween
-into another shape). Any effect can play as an exit with **`out`**, loop with
-**`repeat`/`yoyo`**, take a custom **`ease`**, or fan across a block's children
-with **`stagger`**; **`animate scroll`** hints the host to scrub the timeline on
-scroll. Timing is sequential by default, or absolute (`at`) / relative
-(`after`), with an optional `delay`.
+The full effect palette:
+
+| Effect | What it does |
+|--------|--------------|
+| `fade` / `pop` / `draw` | opacity / scale-in / stroke-on entrances |
+| `slide` | translate in from a compass direction (`from left`) |
+| `move` | travel along another object's path (`along L`) |
+| `highlight` | recolour + pulse the outline (`to "crimson"`) |
+| `morph` | tween the outline into another shape (`into B`) |
+| `type` | reveal a label a character (or `by word`) at a time — a typewriter |
+| `scramble` | glyphs cycle through random characters and resolve — a decode reveal |
+| `wiggle` | a quick oscillating shake that returns to rest — "look here" (`wiggles 6`) |
+
+```pic
+"Describe the picture." at (0,0);   animate last with "type" for 1.4
+box "SECRET" fit at (0,-0.6);       animate last with "scramble" for 1.2
+```
+
+Any effect can play as an exit with **`out`**, loop with **`repeat`/`yoyo`**,
+take a custom **`ease`**, or fan across a block's children with **`stagger`**;
+**`animate scroll`** hints the host to scrub the timeline on scroll. Timing is
+sequential by default, or absolute (`at`) / relative (`after`), with an optional
+`delay`. Separately, **`draggable <obj> [inertia] [bounds B] [x|y]`** makes an
+object grabbable in the browser (GSAP Draggable) — interaction rather than a
+timeline, so it's its own directive.
 
 This compiles to an SVG plus a flat JSON manifest (`{id, effect, start,
-duration, …}`); the browser layer turns it into a GSAP timeline. Full reference:
+duration, …}`, and `interactions` for `draggable`); the browser layer turns it
+into a GSAP timeline. Full reference:
 [rpic.dev/docs/extensions/animate](https://rpic.dev/docs/extensions/animate).
 Try it in the **playground**:
 
