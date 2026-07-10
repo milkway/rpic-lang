@@ -2482,7 +2482,8 @@ impl Parser {
                 self.bump();
                 // a colour may be a quoted string, a bareword name (`shaded
                 // Custom`, `outlined red`), `rgb(r,g,b)` or a 0x hex literal.
-                Attr::Color(c, self.parse_color_like()?)
+                let span = Some(self.cur_span());
+                Attr::Color(c, self.parse_color_like()?, span)
             }
             Token::Name(n) if allow_fit && n == "fit" => {
                 self.bump();
@@ -2510,13 +2511,16 @@ impl Parser {
             }
             Token::Name(n) if allow_hatch && n == "hatchcolor" => {
                 self.bump();
-                Attr::HatchColor(self.parse_color_like()?)
+                let span = Some(self.cur_span());
+                Attr::HatchColor(self.parse_color_like()?, span)
             }
             Token::Name(n) if allow_hatch && n == "gradient" => {
                 self.bump();
+                let from_span = Some(self.cur_span());
                 let from = self.parse_color_like()?;
+                let to_span = Some(self.cur_span());
                 let to = self.parse_color_like()?;
-                Attr::Gradient(from, to)
+                Attr::Gradient(from, from_span, to, to_span)
             }
             Token::Name(n) if allow_hatch && n == "gradientangle" => {
                 self.bump();
@@ -3510,7 +3514,7 @@ ellipse "typesetter"
             object
                 .attrs
                 .iter()
-                .any(|a| matches!(a, Attr::HatchColor(_)))
+                .any(|a| matches!(a, Attr::HatchColor(..)))
         );
 
         let p = pic("hatch = 2\nbox wid hatch");

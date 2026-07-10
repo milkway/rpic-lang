@@ -2232,6 +2232,11 @@ fn unknown_colour_name_warns_valid_stays_quiet() {
         .find(|w| w.kind == "invalid_color")
         .expect("expected an invalid_color warning");
     assert!(w.hint.as_deref().unwrap_or("").contains("crimson"), "{w:?}");
+    // #333: the warning carries the colour token's span so editors can jump to
+    // and underline it — `"crimsom"` sits at cols 12..21 of `box shaded "…"`.
+    assert_eq!(w.line, Some(1), "{w:?}");
+    assert_eq!(w.col, Some(12), "{w:?}");
+    assert_eq!(w.end_col, Some(21), "{w:?}");
     // … but the shape still renders with the passed-through colour (advisory)
     let Shape::Box { style, .. } = &d.shapes[0] else {
         panic!()

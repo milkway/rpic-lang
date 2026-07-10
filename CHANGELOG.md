@@ -51,6 +51,15 @@ resolves to the latest version.
   unchanged. `out` reverses it into a staggered erase; `by` on a non-`type`
   effect warns `by_without_type`. (#328)
 
+### Fixed
+
+- **The `invalid_color` warning now carries a source span.** A colour typo
+  (`box outlined "crimsom"`) still warns with a "did you mean" hint, but the
+  warning now reports the offending token's `line`/`col`/`end_col` — so an editor
+  can jump to and underline it, like every other diagnostic. The colour
+  attributes (`outlined`/`shaded`/`color`, `hatchcolor`, `gradient`) thread the
+  token span through to the check. (#333)
+
 ## [0.9.0] — 2026-07-09
 
 ### Added

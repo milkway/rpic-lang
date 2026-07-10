@@ -1103,9 +1103,11 @@ impl State {
             }
             None => None,
         };
-        // Resolve the `to` colour (any rpic colour form) to a CSS string.
+        // Resolve the `to` colour (any rpic colour form) to a CSS string. No
+        // per-colour span is threaded through the animate directive, so this
+        // warning stays position-less (the object-attribute colours carry one).
         let color = match &a.color {
-            Some(se) => Some(self.eval_color_expr(se)?),
+            Some(se) => Some(self.eval_color_expr(se, None)?),
             None => None,
         };
         if is_move && path.is_none() {
@@ -1801,8 +1803,8 @@ impl State {
                     s.fill = Some(Fill::Gray(g));
                     s.fill_open = true;
                 }
-                Attr::Color(kind, se) => {
-                    let name = self.eval_color_expr(se)?;
+                Attr::Color(kind, se, span) => {
+                    let name = self.eval_color_expr(se, span.as_ref())?;
                     match kind {
                         token::Color::Outlined => s.stroke = Some(name),
                         token::Color::Colored => {
@@ -1837,14 +1839,14 @@ impl State {
                     ensure_hatch(&mut s).width = width;
                     s.fill_open = true;
                 }
-                Attr::HatchColor(se) => {
-                    let name = self.eval_color_expr(se)?;
+                Attr::HatchColor(se, span) => {
+                    let name = self.eval_color_expr(se, span.as_ref())?;
                     ensure_hatch(&mut s).color = name;
                     s.fill_open = true;
                 }
-                Attr::Gradient(a, b) => {
-                    let from = self.eval_color_expr(a)?;
-                    let to = self.eval_color_expr(b)?;
+                Attr::Gradient(a, a_span, b, b_span) => {
+                    let from = self.eval_color_expr(a, a_span.as_ref())?;
+                    let to = self.eval_color_expr(b, b_span.as_ref())?;
                     let g = ensure_gradient(&mut s);
                     g.from = from;
                     g.to = to;
@@ -1873,7 +1875,7 @@ impl State {
         Ok(s)
     }
 
-    fn eval_color_expr(&mut self, se: &StringExpr) -> ER<String> {
+    fn eval_color_expr(&mut self, se: &StringExpr, span: Option<&Span>) -> ER<String> {
         if let StringExpr::Lit(name) = se {
             // A bareword in colour position that names a variable resolves to
             // its value as a numeric colour (`c = 0xRRGGBB; … colored c`), so
@@ -1895,17 +1897,17 @@ impl State {
                     .map_err(parse_eval_error)?;
                     self.eval_stringexpr(&parsed)?
                 };
-                return self.checked_color(normalize_color_string(s));
+                return self.checked_color(normalize_color_string(s), span);
             }
         }
         let color = normalize_color_string(self.eval_stringexpr(se)?);
-        self.checked_color(color)
+        self.checked_color(color, span)
     }
 
     /// Reject active CSS/SVG paint forms, then warn (once) if a resolved colour
     /// string isn't a form any SVG renderer understands. Plain unknown names
     /// still pass through unchanged for dpic compatibility.
-    fn checked_color(&mut self, color: String) -> ER<String> {
+    fn checked_color(&mut self, color: String, span: Option<&Span>) -> ER<String> {
         if let Some(reason) = unsafe_svg_colour_reason(&color) {
             return err(reason);
         }
@@ -1918,6 +1920,9 @@ impl State {
             .expected("a CSS/xcolor colour name, #hex, or rgb(...)");
             if let Some(hint) = crate::color::suggest(&color) {
                 warning = warning.hint(format!("did you mean `{hint}`?"));
+            }
+            if let Some(span) = span {
+                warning = warning.at(span.clone());
             }
             self.warnings.push(warning);
         }
