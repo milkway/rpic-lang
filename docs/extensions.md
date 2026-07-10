@@ -287,6 +287,18 @@ animate B2 with "fade" after 1st arrow delay 0.2
   whole-timeline decision, surfaced as a top-level `scroll: true` in the compile
   bundle (only when present); the host wires GSAP ScrollTrigger.
 
+**Dragging** (`draggable <place> [inertia] [bounds <place>] [x|y]`) is a
+separate axis — interaction, not a timeline — so it is its own directive, not an
+`animate … with` effect. It makes an object grabbable in the browser (GSAP
+Draggable + InertiaPlugin), optionally with momentum (`inertia`), constrained to
+another object's box (`bounds`), or locked to one axis (`x`/`y`). It rides a
+top-level **`interactions`** array in the compile bundle
+(`[{id, kind:"drag", inertia?, bounds?, axis?}]`), absent when unused so plain
+bundles stay byte-identical. The static SVG/geometry is untouched — dragging is
+a runtime affordance — so PNG/PDF are unaffected. The npm `interactive(root,
+interactions, Draggable)` helper wires it. `draggable` is contextual, so it
+stays usable as a variable name.
+
 Pop/draw overshoot can escape the canvas; reserve room with
 [`margin`](#canvas-margins). See also [Class Hooks](#class-hooks) — both share
 the `s<N>` id contract, so one shape can carry both a CSS hook and an animation.

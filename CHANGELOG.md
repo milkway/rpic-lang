@@ -12,6 +12,17 @@ resolves to the latest version.
 
 ### Added
 
+- **`draggable <place>` — make objects interactively draggable.** A new
+  directive (not an `animate` effect, because dragging is interaction, not a
+  play-on-load timeline) that marks an object grabbable in the browser via GSAP
+  Draggable — optionally with momentum (`inertia`, InertiaPlugin), constrained
+  to another object's box (`bounds <place>`), or axis-locked (`x`/`y`). It rides
+  a new top-level `interactions` array in the `--json` bundle
+  (`[{id, kind:"drag", inertia?, bounds?, axis?}]`), absent when unused so plain
+  bundles are byte-identical. The static SVG/geometry is untouched (dragging is a
+  runtime affordance), so PNG/PDF are unaffected. The npm binding gains an
+  `interactive(root, interactions, Draggable)` helper; `draggable` is contextual,
+  so it stays usable as a variable name. (#331)
 - **`animate … with "wiggle"` — attention shake.** A quick oscillating shake
   that returns to rest — the "look here" nudge that draws the eye without moving
   the object. `wiggles <n>` sets the oscillation count (default 6) and rides the

@@ -540,6 +540,52 @@ if (scroll) {
 }
 ```
 
+## Making objects draggable
+
+`draggable <place>` is a different axis from the timeline: it makes an object
+**grabbable in the browser** (GSAP [Draggable](https://gsap.com/docs/v3/Plugins/Draggable/)).
+Because dragging is interaction, not an authored, play-on-load effect, it is its
+own directive rather than an `animate … with` effect.
+
+```pic
+draggable N                 # N can be dragged
+draggable N inertia         # …and thrown, with momentum
+draggable N bounds B        # constrain to another object's box
+draggable N x               # lock to one axis (x or y)
+```
+
+<AnimatedPic code={`.PS
+margin = 0.2
+B: box wid 3.5 ht 2 dashed
+N: circle rad 0.35 "drag" at B.c
+draggable N inertia bounds B
+.PE`} />
+
+The compiled bundle gains a top-level **`interactions`** array
+(`[{id, kind:"drag", inertia?, bounds?, axis?}, …]`) alongside `animations` —
+absent when nothing is draggable, so plain bundles are byte-identical. The
+static SVG and geometry are untouched: dragging is a runtime affordance, so
+PNG/PDF and non-interactive consumers see exactly the same picture.
+
+<Callout type="warn" title="draggable needs GSAP Draggable registered">
+  Register [`Draggable`](https://gsap.com/docs/v3/Plugins/Draggable/) (and
+  [`InertiaPlugin`](https://gsap.com/docs/v3/Plugins/InertiaPlugin/) for
+  `inertia`, both free since GSAP 3.13), then wire the objects with the
+  `interactive` helper:
+
+  ```js
+  import { ready, compile, animate, interactive } from '@strategicprojects/rpic';
+  import { Draggable } from 'gsap/Draggable';
+  import { InertiaPlugin } from 'gsap/InertiaPlugin';
+  gsap.registerPlugin(Draggable, InertiaPlugin);
+  await ready();
+  const { svg, animations, interactions } = compile(src);
+  stage.innerHTML = svg;
+  animate(stage, animations, gsap);
+  interactive(stage, interactions, Draggable);
+  ```
+</Callout>
+
 ## Rules
 
 - Metadata only — PNG/PDF and plain SVG consumers are unaffected.

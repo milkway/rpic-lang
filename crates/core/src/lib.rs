@@ -308,15 +308,47 @@ fn drawing_json(d: &Drawing) -> String {
     } else {
         ""
     };
+    // `draggable` objects ride a top-level `interactions` array; omitted when
+    // there are none so plain bundles stay byte-identical.
+    let interactions = if d.interactions.is_empty() {
+        String::new()
+    } else {
+        format!(",\"interactions\":{}", interactions_json(d))
+    };
     format!(
-        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}}}",
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}{}}}",
         json_str(&to_svg(d)),
         animations_json(d),
         diagnostics_json(d),
         diagnostics_json_structured(&d.warnings),
         objects_json(d),
+        interactions,
         scroll
     )
+}
+
+/// Build the JSON `interactions` array (`[{id,kind:"drag",inertia?,bounds?,
+/// axis?},…]`) for the `draggable` directives — the GSAP Draggable targets.
+pub fn interactions_json(d: &Drawing) -> String {
+    let mut s = String::from("[");
+    for (i, x) in d.interactions.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!("{{\"id\":\"s{}\",\"kind\":\"drag\"", x.shape));
+        if x.inertia {
+            s.push_str(",\"inertia\":true");
+        }
+        if let Some(b) = x.bounds {
+            s.push_str(&format!(",\"bounds\":\"s{b}\""));
+        }
+        if let Some(axis) = x.axis {
+            s.push_str(&format!(",\"axis\":\"{axis}\""));
+        }
+        s.push('}');
+    }
+    s.push(']');
+    s
 }
 
 fn error_json(message: &str, diagnostic: &Diagnostic) -> String {

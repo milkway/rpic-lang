@@ -450,6 +450,30 @@ fn animate_scramble_effect_records_charset() {
 }
 
 #[test]
+fn draggable_records_interactions() {
+    // #331: `draggable` marks an object for the host to make grabbable; it is
+    // interaction metadata, not a timeline effect, and leaves the SVG untouched.
+    let d = draw("box \"drag me\"\ndraggable last");
+    assert_eq!(d.interactions.len(), 1);
+    assert_eq!(d.interactions[0].shape, 0);
+    assert!(!d.interactions[0].inertia);
+    assert_eq!(d.interactions[0].bounds, None);
+    assert_eq!(d.interactions[0].axis, None);
+    assert!(d.anims.is_empty());
+
+    let d = draw("B: box wid 3 ht 2\nN: circle at B.c\ndraggable N inertia bounds B x");
+    let x = &d.interactions[0];
+    assert_eq!(x.shape, 1);
+    assert!(x.inertia);
+    assert_eq!(x.bounds, Some(0));
+    assert_eq!(x.axis, Some("x"));
+
+    // `draggable` stays a usable variable name outside the directive position
+    let d = draw("draggable = 3\nbox wid draggable ht 1");
+    assert!(d.interactions.is_empty());
+}
+
+#[test]
 fn animate_wiggle_effect_records_count() {
     // #330: `wiggle` shakes an object; `wiggles <n>` sets the oscillation count.
     let d = draw("box\nanimate last with \"wiggle\"");

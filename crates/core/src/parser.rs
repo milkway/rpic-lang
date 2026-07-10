@@ -1703,6 +1703,16 @@ impl Parser {
             return Ok(Stmt::Class { target, class });
         }
 
+        // rpic `draggable <place> [inertia] [bounds <place>] [x|y]` statement
+        // (extension). Contextual like `class`: `draggable = 1` stays an
+        // assignment and `draggable` remains usable as a variable.
+        if matches!(self.cur(), Token::Name(n) if n == "draggable")
+            && !is_assign_op(self.peek(1))
+            && !matches!(self.peek(1), Token::LeftBrack)
+        {
+            return Ok(Stmt::Draggable(self.parse_draggable()?));
+        }
+
         // rpic `canvas from <pos> to <pos>` statement (extension). Contextual
         // and stricter than `class`: only the exact `canvas from …` spelling
         // triggers, so `canvas = 2`, a `canvas(…)` macro and a plain variable
@@ -2028,6 +2038,42 @@ impl Parser {
             }
             _ => self.err("expected `word` or `char` after `by`"),
         }
+    }
+
+    /// `draggable <place> [inertia] [bounds <place>] [x|y]`.
+    fn parse_draggable(&mut self) -> PResult<Draggable> {
+        self.bump(); // `draggable`
+        let target = self.parse_place()?;
+        let mut inertia = false;
+        let mut bounds = None;
+        let mut axis = None;
+        loop {
+            match self.cur() {
+                Token::Name(n) if n == "inertia" => {
+                    self.bump();
+                    inertia = true;
+                }
+                Token::Name(n) if n == "bounds" => {
+                    self.bump();
+                    bounds = Some(self.parse_place()?);
+                }
+                Token::Name(n) if n == "x" => {
+                    self.bump();
+                    axis = Some(DragAxis::X);
+                }
+                Token::Name(n) if n == "y" => {
+                    self.bump();
+                    axis = Some(DragAxis::Y);
+                }
+                _ => break,
+            }
+        }
+        Ok(Draggable {
+            target,
+            inertia,
+            bounds,
+            axis,
+        })
     }
 
     /// Consume a bare compass direction token (`up`/`down`/`left`/`right`).

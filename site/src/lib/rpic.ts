@@ -49,21 +49,33 @@ export interface Anim {
   out?: boolean;
   from?: string;
   morph?: string;
+  unit?: string;
+  chars?: string;
+  wiggles?: number;
+}
+
+export interface Interaction {
+  id: string;
+  kind: string;
+  inertia?: boolean;
+  bounds?: string;
+  axis?: string;
 }
 
 export interface Bundle {
   svg: string;
   animations: Anim[];
+  interactions: Interaction[];
 }
 
-/** Render pic source to {svg, animations} via `rpic --json` (cached). */
+/** Render pic source to {svg, animations, interactions} via `rpic --json`. */
 export function renderPicBundle(code: string, opts: RenderOptions = {}): Bundle {
   const raw = run(code, opts, true);
   const out = JSON.parse(raw);
   if (out.error) {
     throw new Error(`rpic failed for a docs example (${out.error}).\n--- source ---\n${code}`);
   }
-  return { svg: out.svg, animations: out.animations ?? [] };
+  return { svg: out.svg, animations: out.animations ?? [], interactions: out.interactions ?? [] };
 }
 
 /** Render pic source to an SVG string (cached by content+options hash). */

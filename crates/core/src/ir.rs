@@ -33,6 +33,10 @@ pub struct Drawing {
     /// content bounds; content outside is clipped by the viewBox.
     pub canvas: Option<Bbox>,
     pub anims: Vec<Anim>,
+    /// rpic extension (`draggable`): objects the host should make interactively
+    /// draggable (GSAP Draggable). Surfaced in the compile bundle as top-level
+    /// `interactions`; empty for the vast majority of drawings.
+    pub interactions: Vec<Interaction>,
     /// rpic extension (`animate scroll`): a timeline-level hint that the host
     /// should scrub the animation on scroll rather than autoplay. Surfaced in
     /// the compile bundle as top-level `scroll`; the host wires ScrollTrigger.
@@ -107,6 +111,20 @@ pub struct Anim {
     /// For the `wiggle` effect: the oscillation count (`wiggles <n>`); `None`
     /// lets the player default it. Present in the manifest only when set.
     pub wiggles: Option<i64>,
+}
+
+/// A `draggable` interaction (rpic extension): the host makes shape `s{shape}`
+/// grabbable via GSAP Draggable. Interaction, not a timeline effect, so it
+/// rides its own `interactions` manifest, not `animations`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Interaction {
+    pub shape: usize,
+    /// Throw with momentum (GSAP InertiaPlugin).
+    pub inertia: bool,
+    /// Constrain dragging to another shape's box (`s{bounds}`).
+    pub bounds: Option<usize>,
+    /// Axis lock: `"x"` or `"y"`; `None` drags freely.
+    pub axis: Option<&'static str>,
 }
 
 /// Line dash style.

@@ -127,6 +127,10 @@ pub enum Stmt {
     /// rpic extension: `animate scroll` — a timeline-level hint that the host
     /// should scrub the animation on scroll instead of autoplaying.
     AnimateScroll,
+    /// rpic extension: `draggable <place> [inertia] [bounds <place>] [x|y]` —
+    /// mark an object grabbable in the browser (GSAP Draggable). Interaction,
+    /// not a timeline effect, so it is its own directive.
+    Draggable(Draggable),
     /// rpic extension: `class <place> "name"` — append a CSS class to an
     /// already-drawn object's shape group (labels and ordinals both work).
     Class { target: Place, class: StringExpr },
@@ -166,6 +170,25 @@ pub enum Stmt {
 pub enum PrintItem {
     Str(StringExpr),
     Expr(Expr),
+}
+
+/// A `draggable` interaction directive (rpic extension).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Draggable {
+    pub target: Place,
+    /// `inertia` — throw with momentum (GSAP InertiaPlugin).
+    pub inertia: bool,
+    /// `bounds <place>` — constrain dragging to another object's box.
+    pub bounds: Option<Place>,
+    /// `x` / `y` — lock dragging to one axis (`None` = free).
+    pub axis: Option<DragAxis>,
+}
+
+/// Axis lock for a `draggable` directive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DragAxis {
+    X,
+    Y,
 }
 
 /// Granularity of the `type` effect's staggered reveal.
