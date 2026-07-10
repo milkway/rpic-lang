@@ -265,26 +265,42 @@ engine's own maths (`sin`/`exp`/`sqrt`/`^`, `if`/`else` for the piecewise
 
 <PicFigure src="examples/ease-gallery.pic" caption="The nine ease families' .out curves, each sampled and plotted by rpic — examples/ease-gallery.pic" />
 
-And the same eases as **motion**: three dots covering an identical track in the
-same time, differing only in `ease`. Linear marches at a constant rate;
-`power2.out` shoots ahead then coasts in; `bounce.out` overshoots the end and
-settles — exactly the curves above, read as movement (hit ▶ replay).
+And the same eases as **motion** — a live "ease visualiser" like
+[GSAP's](https://gsap.com/docs/v3/Eases/), read as movement instead of a graph.
+Six dots cover an identical track in the same time, differing only in `ease`, so
+you compare them side by side (hit ▶ replay): `none` marches at a constant rate,
+`power2.out`/`expo.out` shoot ahead then coast in, `back`/`elastic` overshoot and
+spring back, `bounce.out` overshoots the end and settles — exactly the curves
+above, in motion. Each dot rides `move` along its track with `repeat -1 yoyo`,
+so they loop forever.
 
 <AnimatedPic code={`.PS
 margin = 0.2
-dy = 0.62
-L0: line from (0,0)      to (3,0)      thick 0.8 colored 0xcbd5e1
-L1: line from (0,-dy)    to (3,-dy)    thick 0.8 colored 0xcbd5e1
-L2: line from (0,-2*dy)  to (3,-2*dy)  thick 0.8 colored 0xcbd5e1
+dy = 0.5
+L0: line from (0,0)     to (3,0)     thick 0.8 colored 0xcbd5e1
+L1: line from (0,-dy)   to (3,-dy)   thick 0.8 colored 0xcbd5e1
+L2: line from (0,-2*dy) to (3,-2*dy) thick 0.8 colored 0xcbd5e1
+L3: line from (0,-3*dy) to (3,-3*dy) thick 0.8 colored 0xcbd5e1
+L4: line from (0,-4*dy) to (3,-4*dy) thick 0.8 colored 0xcbd5e1
+L5: line from (0,-5*dy) to (3,-5*dy) thick 0.8 colored 0xcbd5e1
 D0: dot at L0.start rad 0.08 colored 0x2f855a
 D1: dot at L1.start rad 0.08 colored 0x3182ce
-D2: dot at L2.start rad 0.08 colored 0xdd6b20
-"none"       ljust above at L0.start + (0.14,0.03)
-"power2.out" ljust above at L1.start + (0.14,0.03)
-"bounce.out" ljust above at L2.start + (0.14,0.03)
-animate D0 with "move" along L0 for 1.8 ease "none"       repeat -1 yoyo
-animate D1 with "move" along L1 for 1.8 ease "power2.out" repeat -1 yoyo at 0
-animate D2 with "move" along L2 for 1.8 ease "bounce.out" repeat -1 yoyo at 0
+D2: dot at L2.start rad 0.08 colored 0x805ad5
+D3: dot at L3.start rad 0.08 colored 0xdd6b20
+D4: dot at L4.start rad 0.08 colored 0xe53e3e
+D5: dot at L5.start rad 0.08 colored 0x319795
+"none"               ljust above at L0.start + (0.12,0.04)
+"power2.out"         ljust above at L1.start + (0.12,0.04)
+"expo.out"           ljust above at L2.start + (0.12,0.04)
+"back.out(1.7)"      ljust above at L3.start + (0.12,0.04)
+"elastic.out(1,0.3)" ljust above at L4.start + (0.12,0.04)
+"bounce.out"         ljust above at L5.start + (0.12,0.04)
+animate D0 with "move" along L0 for 2 ease "none"               repeat -1 yoyo at 0
+animate D1 with "move" along L1 for 2 ease "power2.out"         repeat -1 yoyo at 0
+animate D2 with "move" along L2 for 2 ease "expo.out"           repeat -1 yoyo at 0
+animate D3 with "move" along L3 for 2 ease "back.out(1.7)"      repeat -1 yoyo at 0
+animate D4 with "move" along L4 for 2 ease "elastic.out(1,0.3)" repeat -1 yoyo at 0
+animate D5 with "move" along L5 for 2 ease "bounce.out"         repeat -1 yoyo at 0
 .PE`} />
 
 ## Motion along a path
