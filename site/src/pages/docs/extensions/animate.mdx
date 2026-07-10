@@ -7,6 +7,7 @@ import PicExample from '../../../components/PicExample.astro';
 import AnimatedPic from '../../../components/AnimatedPic.astro';
 import PicFigure from '../../../components/PicFigure.astro';
 import Callout from '../../../components/Callout.astro';
+import EaseVisualizer from '../../../components/EaseVisualizer.astro';
 
 # animate
 
@@ -252,6 +253,18 @@ Because it's an opaque passthrough, a typo (`"powr2.out"`) sails through rpic
 and only surfaces in the browser, where GSAP falls back to its default ease —
 so copy names from the GSAP page, or use its live [ease
 visualizer](https://gsap.com/docs/v3/Eases) to preview a curve before pasting.
+
+### Explore every ease
+
+Pick any ease name (and `in`/`out`/`inOut`) to see its curve and preview it as
+motion — the value marker climbs the graph exactly as the animation would, with
+a live progress/value readout. Whatever string you land on is what you pass to
+`ease "…"`. This explorer is **GSAP-powered** (it samples the real ease function
+in the browser), so it also covers the plugin eases — `rough`, `slow`,
+`expoScale` (EasePack) and `CustomEase`/`CustomBounce`/`CustomWiggle` — which you
+must `registerPlugin` to use at runtime.
+
+<EaseVisualizer />
 
 ### The curves, drawn in rpic
 
