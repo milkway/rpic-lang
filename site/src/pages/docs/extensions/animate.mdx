@@ -265,6 +265,33 @@ engine's own maths (`sin`/`exp`/`sqrt`/`^`, `if`/`else` for the piecewise
 
 <PicFigure src="examples/ease-gallery.pic" caption="The nine ease families' .out curves, each sampled and plotted by rpic — examples/ease-gallery.pic" />
 
+The static grid above becomes the **graph view** of GSAP's visualiser once you
+animate it: the curve **draws itself** (its segments are a block, revealed by
+`draw` + `stagger`), while a value marker rides `move` up the axis on the right
+with the *same* ease — so the marker's height traces the curve's value as it's
+drawn (hit ▶ replay). The only piece pic can't do is GSAP's live numeric
+`value:` readout — there's no animated counter.
+
+<AnimatedPic code={`.PS
+margin = 0.25
+u = 2.4
+n = 28
+box wid u ht u thick 0.7 outlined 0xcbd5e1 with .sw at (0,0)
+line from (0,0) to (u,u) dashed thick 0.6 colored 0xcbd5e1
+Curve: [
+  for i=0 to n-1 do {
+    t=i/n; s=(i+1)/n
+    a=1-(1-t)^3; b=1-(1-s)^3
+    line from (u*t,u*a) to (u*s,u*b) thick 2.4 colored 0x2f855a
+  }
+] with .sw at (0,0)
+VT: line from (u+0.45,0) to (u+0.45,u) thick 0.9 colored 0xcbd5e1
+VD: dot at VT.start rad 0.09 colored 0x0ae448
+"power2.out" at (u/2, -0.28)
+animate Curve with "draw" for 0.05 stagger 0.06
+animate VD with "move" along VT ease "power2.out" for 1.7 repeat -1 yoyo at 0
+.PE`} />
+
 And the same eases as **motion** — a live "ease visualiser" like
 [GSAP's](https://gsap.com/docs/v3/Eases/), read as movement instead of a graph.
 Six dots cover an identical track in the same time, differing only in `ease`, so
