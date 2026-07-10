@@ -241,6 +241,12 @@ pub struct Animate {
     /// Oscillation count for the `wiggle` effect (`wiggles <n>`); `None`
     /// defaults to a few.
     pub wiggles: Option<Expr>,
+    /// Start of the revealed segment for the `draw` effect, as a fraction of the
+    /// stroke (`from 40%` → `0.4`); `None` starts at the beginning.
+    pub draw_from: Option<Expr>,
+    /// End of the revealed segment for the `draw` effect, as a fraction of the
+    /// stroke (`to 60%` → `0.6`); `None` reaches the end.
+    pub draw_to: Option<Expr>,
 }
 
 /// When an animation starts.

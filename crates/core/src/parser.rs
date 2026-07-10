@@ -1944,6 +1944,11 @@ impl Parser {
         self.expect_kw(Kw::With)?;
         let effect_span = Some(self.cur_span());
         let effect = self.parse_stringexpr()?;
+        // `to`/`from` are overloaded: `to <colour>` for `highlight`, `from <dir>`
+        // for `slide`, but a *reveal fraction* for `draw` (`draw from 40% to 60%`).
+        // A literal `"draw"` effect switches those two clauses over; a dynamic
+        // effect string keeps the colour/direction reading.
+        let is_draw = matches!(&effect, StringExpr::Lit(s) if s == "draw");
         let mut duration = None;
         let mut timing = Timing::Sequential;
         let mut delay = None;
@@ -1959,6 +1964,8 @@ impl Parser {
         let mut type_unit = None;
         let mut scramble_chars = None;
         let mut wiggles = None;
+        let mut draw_from = None;
+        let mut draw_to = None;
         loop {
             if self.eat_kw(Kw::For) {
                 duration = Some(self.parse_expr()?);
@@ -1977,13 +1984,21 @@ impl Parser {
             } else if self.eat_kw(Kw::Along) {
                 along = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::To) {
-                color = Some(self.parse_color_like()?);
+                if is_draw {
+                    draw_to = Some(self.parse_draw_amount()?);
+                } else {
+                    color = Some(self.parse_color_like()?);
+                }
             } else if self.eat_kw(Kw::Stagger) {
                 stagger = Some(self.parse_expr()?);
             } else if self.eat_kw(Kw::Out) {
                 out = true;
             } else if self.eat_kw(Kw::From) {
-                slide_from = Some(self.parse_dir()?);
+                if is_draw {
+                    draw_from = Some(self.parse_draw_amount()?);
+                } else {
+                    slide_from = Some(self.parse_dir()?);
+                }
             } else if self.eat_kw(Kw::Into) {
                 morph_into = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::By) {
@@ -2022,7 +2037,31 @@ impl Parser {
             type_unit,
             scramble_chars,
             wiggles,
+            draw_from,
+            draw_to,
         })
+    }
+
+    /// A `draw` reveal fraction: a multiplicative term (no bare `%`, which is
+    /// reserved as the percent suffix here) with an optional trailing `%` that
+    /// divides by 100 — so `60%` and `0.6` both mean 0.6 of the stroke.
+    fn parse_draw_amount(&mut self) -> PResult<Expr> {
+        let mut e = self.parse_unary()?;
+        loop {
+            let op = match self.cur() {
+                Token::Mult => BinOp::Mul,
+                Token::Div => BinOp::Div,
+                _ => break,
+            };
+            self.bump();
+            let r = self.parse_unary()?;
+            e = Expr::Bin(op, Box::new(e), Box::new(r));
+        }
+        if matches!(self.cur(), Token::Percent) {
+            self.bump();
+            e = Expr::Bin(BinOp::Div, Box::new(e), Box::new(Expr::Num(100.0)));
+        }
+        Ok(e)
     }
 
     /// Consume the `type` effect's split unit after `by`: `word` or `char`.

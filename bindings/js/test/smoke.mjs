@@ -80,6 +80,15 @@ assert.ok(scrAnim.svg.includes('>SECRET</text>'), 'scramble does not split the l
 const wigAnim = compile('box\nanimate last with "wiggle" wiggles 8');
 assert.equal(wigAnim.animations[0].effect, 'wiggle');
 assert.equal(wigAnim.animations[0].wiggles, 8);
+// the draw effect rides an optional reveal window as stroke fractions
+const drawRange = compile('line right 2\nanimate last with "draw" from 40% to 60%');
+assert.equal(drawRange.animations[0].effect, 'draw');
+assert.equal(drawRange.animations[0].drawFrom, 0.4);
+assert.equal(drawRange.animations[0].drawTo, 0.6);
+// a plain draw stays compact — no range keys
+const plainDraw = compile('line right 2\nanimate last with "draw"');
+assert.equal(plainDraw.animations[0].drawFrom, undefined);
+assert.equal(plainDraw.animations[0].drawTo, undefined);
 // the draggable directive rides a separate `interactions` array
 const dragBundle = compile('B: box wid 3 ht 2\nN: circle at B.c\ndraggable N inertia bounds B x');
 assert.ok(Array.isArray(dragBundle.interactions), 'interactions present');

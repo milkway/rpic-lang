@@ -105,6 +105,12 @@ pub fn animations_json(d: &Drawing) -> String {
         if let Some(wiggles) = a.wiggles {
             s.push_str(&format!(",\"wiggles\":{wiggles}"));
         }
+        if let Some(from) = a.draw_from {
+            s.push_str(&format!(",\"drawFrom\":{}", json_num(from)));
+        }
+        if let Some(to) = a.draw_to {
+            s.push_str(&format!(",\"drawTo\":{}", json_num(to)));
+        }
         s.push('}');
     }
     s.push(']');
@@ -442,6 +448,27 @@ mod tests {
             ),
             "{j}"
         );
+    }
+
+    #[test]
+    fn json_emits_draw_range_only_when_set() {
+        // A plain draw carries no range keys (byte-inert).
+        let j = compile_json("line right 2\nanimate last with \"draw\" for 1");
+        assert!(
+            j.contains("\"effect\":\"draw\",\"start\":0,\"duration\":1}"),
+            "{j}"
+        );
+        // A window rides `drawFrom`/`drawTo` as fractions.
+        let j = compile_json("line right 2\nanimate last with \"draw\" from 40% to 60% for 1");
+        assert!(
+            j.contains(
+                "\"effect\":\"draw\",\"start\":0,\"duration\":1,\"drawFrom\":0.4,\"drawTo\":0.6}"
+            ),
+            "{j}"
+        );
+        // `to`-only leaves the start at the beginning.
+        let j = compile_json("line right 2\nanimate last with \"draw\" to 60% for 1");
+        assert!(j.contains("\"duration\":1,\"drawTo\":0.6}"), "{j}");
     }
 
     #[test]

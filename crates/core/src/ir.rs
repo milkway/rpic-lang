@@ -111,6 +111,11 @@ pub struct Anim {
     /// For the `wiggle` effect: the oscillation count (`wiggles <n>`); `None`
     /// lets the player default it. Present in the manifest only when set.
     pub wiggles: Option<i64>,
+    /// For the `draw` effect: reveal only the `[from,to]` sub-segment of the
+    /// stroke, as fractions in `[0,1]` (`draw from 40% to 60%`). Each rides the
+    /// manifest only when set; absent means the segment's natural endpoint.
+    pub draw_from: Option<f64>,
+    pub draw_to: Option<f64>,
 }
 
 /// A `draggable` interaction (rpic extension): the host makes shape `s{shape}`

@@ -29,6 +29,10 @@ export interface Anim {
   chars?: string;
   /** oscillation count for `wiggle` (`wiggles <n>`). Present only when set. */
   wiggles?: number;
+  /** `draw` reveal start as a stroke fraction (`from 40%` → 0.4). Present only when set. */
+  drawFrom?: number;
+  /** `draw` reveal end as a stroke fraction (`to 60%` → 0.6). Present only when set. */
+  drawTo?: number;
 }
 
 export interface Diagnostic {
