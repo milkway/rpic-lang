@@ -25,10 +25,13 @@ jobs:
           tool: wasm-pack
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          # Node 24 bundles npm 11.13+, which supports OIDC Trusted Publishing
+          # and provenance out of the box. Do NOT `npm install -g npm@latest`
+          # here: the in-place self-upgrade drops npm's bundled `sigstore`
+          # module, so `--provenance` then dies with `Cannot find module
+          # 'sigstore'`. Use the bundled npm instead — it has sigstore intact.
+          node-version: 24
           registry-url: https://registry.npmjs.org
-      - name: Ensure npm supports OIDC trusted publishing
-        run: npm install -g npm@latest
       - name: Publish (wasm built by prepack; auth via OIDC, no token)
         working-directory: bindings/js
         run: npm publish --access public --provenance
