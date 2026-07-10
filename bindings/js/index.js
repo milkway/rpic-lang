@@ -399,12 +399,19 @@ function moveAlong(root, el, a, tl) {
 }
 
 function drawOn(group, a, tl) {
+  // `draw from 40% to 60%` reveals only a sub-segment; absent ends default to
+  // 0 and 1. A range switches the trace to a dash-window animation (no plugin).
+  const rangeStart = a.drawFrom != null ? a.drawFrom : 0;
+  const rangeEnd = a.drawTo != null ? a.drawTo : 1;
+  const hasRange = a.drawFrom != null || a.drawTo != null;
   const els = group.querySelectorAll('path, polyline, line, rect, circle, ellipse, polygon');
   els.forEach((el) => {
     // Filled, unstroked elements (arrowheads) can't be dash-traced — pop
-    // them in as the shaft reaches the tip instead.
+    // them in as the shaft reaches the tip instead. A partial draw that stops
+    // short of the end never reaches the tip, so leave the arrowhead hidden.
     const fill = el.getAttribute('fill');
     if (el.getAttribute('stroke-width') === '0' || (fill && fill !== 'none' && !el.getAttribute('stroke'))) {
+      if (hasRange && rangeEnd < 1) return;
       tl.from(
         el,
         { opacity: 0, scale: 0, transformOrigin: '50% 50%', duration: Math.min(0.2, a.duration * 0.4), ease: 'back.out(1.7)' },
@@ -418,7 +425,22 @@ function drawOn(group, a, tl) {
     } catch {
       len = 0;
     }
-    if (len > 0) {
+    if (len > 0 && hasRange) {
+      // Reveal only [p0,p1] of the stroke by growing a dash window: a leading
+      // gap of p0, then a dash that stretches from 0 to (p1-p0). `out` retracts
+      // it back to nothing. dasharray `[0, p0, w, len]` shows exactly [p0,p0+w].
+      const p0 = rangeStart * len;
+      const p1 = rangeEnd * len;
+      const [w0, w1] = a.out ? [p1 - p0, 0] : [0, p1 - p0];
+      const set = (w) => el.setAttribute('stroke-dasharray', `0 ${p0} ${Math.max(0, w)} ${len}`);
+      set(w0);
+      const proxy = { w: w0 };
+      tl.to(
+        proxy,
+        withOverrides({ w: w1, duration: a.duration, ease: 'none', onUpdate: () => set(proxy.w) }, a),
+        a.start
+      );
+    } else if (len > 0) {
       // `out` reverses the trace: the stroke retracts (dashoffset 0 → len).
       const [begin, end] = a.out ? [0, len] : [len, 0];
       tl.fromTo(

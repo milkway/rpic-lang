@@ -91,7 +91,7 @@ drawn shape; animating a bare point (a name with no geometry) is an error.
 |---|---|---|
 | `fade` | opacity 0 → 1 | `power1.out` |
 | `pop` | scale 0 → 1 | `back.out(1.7)` (overshoots) |
-| `draw` | strokes trace themselves; arrowheads and text pop/fade in as the shaft reaches them | `none` for the trace |
+| `draw` | strokes trace themselves; arrowheads and text pop/fade in as the shaft reaches them. Narrow to a sub-segment with `from <p>`/`to <p>` | `none` for the trace |
 | `move` | travel along another object's path (needs `along`) | `none` |
 | `highlight` | recolour + thicken the outline with a scale pulse (`to <colour>`), or a colour-free pulse | `power1.inOut` |
 | `slide` | translate in from a compass direction (needs `from <dir>`) | `power2.out` |
@@ -378,6 +378,42 @@ The dot travels once and rests at the path's end. `move` without an `along`
 path is an error; an `along` on any other effect is ignored with an
 `along_without_move` warning. Add `repeat -1` for a continuous flow, or
 `repeat -1 yoyo` for a there-and-back shuttle.
+
+## Partial draw — reveal a stroke segment
+
+By default `draw` traces the whole stroke, `0 → 100%`. Two optional clauses —
+`from <p>` and `to <p>` — narrow it to any **sub-segment**, given as a fraction
+of the stroke (`60%`, or the bare fraction `0.6`):
+
+```pic
+animate P with "draw"                 # unchanged: 0% → 100%
+animate P with "draw" to 60%          # trace only the first 60%
+animate P with "draw" from 40% to 60% # reveal just the 40%–60% window
+```
+
+Reach for it to sweep a highlight along one leg of a wire, reveal a mid-section,
+or animate a moving window down a path. `out` retracts the window instead of
+growing it. The example below draws only the middle third of the arc:
+
+<AnimatedPic code={`.PS
+margin = 0.2
+A: arc from (0,0) to (3,0) rad 2 thick 1.4 colored "0x2f855a"
+animate A with "draw" from 33% to 66% for 1.4
+.PE`} />
+
+Each end rides the manifest only when set (`"drawFrom":0.4,"drawTo":0.6`, as
+fractions), so a plain `draw` stays byte-identical. Out-of-range values clamp to
+`[0,1]`. The player realises the window with a pure `stroke-dasharray` sweep — no
+extra GSAP plugin. `from`/`to` here are the reveal fraction only for the `draw`
+effect; on `slide`/`highlight` those same words keep their direction/colour
+meaning.
+
+<Callout type="note" title="Fractions, not pixel ranges">
+  rpic's window is a **fraction of the stroke** (`40%`), not GSAP
+  DrawSVGPlugin's absolute pixel range (`"20 350"`). Fractions are resolution-
+  independent and need no plugin; if you need exact pixel offsets, drive
+  DrawSVGPlugin yourself against the emitted `s<N>` element.
+</Callout>
 
 ## Morphing shapes
 

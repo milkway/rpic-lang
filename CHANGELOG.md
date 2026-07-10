@@ -12,6 +12,17 @@ resolves to the latest version.
 
 ### Added
 
+- **`animate … with "draw" from <p> to <p>` — reveal a stroke sub-segment.** The
+  `draw` effect gains two optional clauses that narrow the trace to any window of
+  the stroke, given as a fraction (`60%` or the bare `0.6`); absent ends default
+  to 0 and 1. Each rides the manifest only when set (`"drawFrom":0.4,
+  "drawTo":0.6`, clamped to `[0,1]`), so a plain `draw` stays byte-identical.
+  Both players (npm `index.js`, site `AnimatedPic.astro`) realise the window with
+  a pure `stroke-dasharray` sweep — no extra GSAP plugin. `out` retracts the
+  window. For `draw`, `from`/`to` mean the reveal fraction; on `slide`/`highlight`
+  those words keep their direction/colour meaning. Fractions rather than
+  DrawSVGPlugin's absolute pixel range (resolution-independent, plugin-free).
+  (#343)
 - **`draggable <place>` — make objects interactively draggable.** A new
   directive (not an `animate` effect, because dragging is interaction, not a
   play-on-load timeline) that marks an object grabbable in the browser via GSAP

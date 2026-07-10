@@ -495,6 +495,33 @@ fn animate_wiggle_effect_records_count() {
 }
 
 #[test]
+fn animate_draw_range_records_fractions() {
+    // #343: `draw` gains an optional reveal window. A plain draw stays byte-inert
+    // (no fractions recorded); `%` and bare fractions both land in [0,1].
+    let d = draw("line right 2\nanimate last with \"draw\"");
+    assert_eq!(d.anims[0].effect, "draw");
+    assert_eq!(d.anims[0].draw_from, None);
+    assert_eq!(d.anims[0].draw_to, None);
+
+    let d = draw("line right 2\nanimate last with \"draw\" to 60%");
+    assert_eq!(d.anims[0].draw_from, None);
+    assert_eq!(d.anims[0].draw_to, Some(0.6));
+
+    let d = draw("line right 2\nanimate last with \"draw\" from 40% to 60%");
+    assert_eq!(d.anims[0].draw_from, Some(0.4));
+    assert_eq!(d.anims[0].draw_to, Some(0.6));
+
+    // a bare fraction means the same as the percent form
+    let d = draw("line right 2\nanimate last with \"draw\" to 0.5");
+    assert_eq!(d.anims[0].draw_to, Some(0.5));
+
+    // out-of-range values clamp to [0,1]
+    let d = draw("line right 2\nanimate last with \"draw\" from -10% to 250%");
+    assert_eq!(d.anims[0].draw_from, Some(0.0));
+    assert_eq!(d.anims[0].draw_to, Some(1.0));
+}
+
+#[test]
 fn animate_rejects_invalid_timing_values() {
     for (src, want) in [
         (

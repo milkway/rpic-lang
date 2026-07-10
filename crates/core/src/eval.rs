@@ -1070,6 +1070,7 @@ impl State {
         let is_highlight = effect == "highlight";
         let is_slide = effect == "slide";
         let is_morph = effect == "morph";
+        let is_draw = effect == "draw";
         let from = a.slide_from.map(|d| {
             match d {
                 Dir::Up => "up",
@@ -1201,6 +1202,25 @@ impl State {
             }
             self.warnings.push(warning);
         }
+        // `draw from <a> to <b>` reveals only the [a,b] fraction of the stroke.
+        // The `from`/`to` clauses are only parsed as fractions for a literal
+        // `"draw"` effect (elsewhere they read a direction/colour), so a range on
+        // the wrong effect can't be expressed — no wrong-effect guard is needed.
+        // Resolve to fractions and clamp to [0,1]; each rides the manifest only
+        // when given, so a plain `draw` stays byte-identical.
+        let (draw_from, draw_to) = if is_draw {
+            let f = match &a.draw_from {
+                Some(e) => Some(self.eval_expr(e)?.clamp(0.0, 1.0)),
+                None => None,
+            };
+            let t = match &a.draw_to {
+                Some(e) => Some(self.eval_expr(e)?.clamp(0.0, 1.0)),
+                None => None,
+            };
+            (f, t)
+        } else {
+            (None, None)
+        };
         if !matches!(
             effect.as_str(),
             "draw"
@@ -1257,6 +1277,8 @@ impl State {
             type_word,
             scramble_chars: scramble_chars.clone(),
             wiggles,
+            draw_from,
+            draw_to,
         };
         // `stagger <d>` on a block fans the effect across its *visible*
         // children (skipping `move`/invis spines), offset by d seconds each,

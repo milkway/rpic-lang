@@ -196,7 +196,7 @@ those ids; the `compile_json` bundle carries the timeline as a separate
 
 ```
 animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char|"chars"]
-        [wiggles <n>] [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
+        [from <p>] [to <p>] [wiggles <n>] [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
 ```
 
 ```pic
@@ -227,6 +227,13 @@ animate B2 with "fade" after 1st arrow delay 0.2
   `from_without_slide`). The `out` modifier reverses **any** effect into an exit
   (fade away, pop out, retract a `draw`, slide off), for two-beat build-up /
   tear-down. Both ride the manifest (`"out":true`, `"from":"left"`) only when set.
+- **Partial draw** (`draw`): `from <p>` / `to <p>` narrow the trace to a
+  sub-segment of the stroke, given as a fraction (`60%` or the bare `0.6`);
+  absent ends default to 0 and 1. Each rides the manifest only when set
+  (`"drawFrom":0.4,"drawTo":0.6`, clamped to `[0,1]`), so a plain `draw` stays
+  byte-identical; the player realises the window with a `stroke-dasharray` sweep,
+  no plugin. For `draw`, `from`/`to` mean the reveal fraction rather than a
+  direction/colour.
 - **Motion along a path** (`move`): `along <path>` names a drawn `line`/`arrow`/
   `spline` whose geometry the target follows (GSAP MotionPathPlugin); the target
   is typically a `dot` at the path's start. The manifest entry gains a `path`
