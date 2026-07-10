@@ -5,18 +5,38 @@
 // bundles and re-run the animation — no client-side compiler.
 import { renderPicBundle } from '../lib/rpic';
 import { easePic, easeName, FAMILIES, VARIANT_FAMILIES, VARIANTS } from '../lib/ease-pic';
+import { createHighlighter } from 'shiki';
+import grammar from '../../../tools/highlight/rpic.tmLanguage.json';
+import forestLight from '../../../tools/highlight/themes/rpic-forest-light.json';
+import forestDark from '../../../tools/highlight/themes/rpic-forest-dark.json';
 
-type Bundle = { svg: string; animations: any[]; src: string };
+// Highlight the pic with the same Shiki grammar + rpic-forest themes the rest
+// of the site uses; reuse the site's `.astro-code` styling (padding, border,
+// dark-mode CSS-var switch) by renaming Shiki's `shiki` class to it.
+const hl = await createHighlighter({
+  langs: [grammar as any],
+  themes: [forestLight as any, forestDark as any],
+});
+const highlight = (src: string) =>
+  hl
+    .codeToHtml(src, {
+      lang: 'rpic',
+      themes: { light: 'rpic-forest-light', dark: 'rpic-forest-dark' },
+    })
+    .replace('class="shiki', 'class="astro-code shiki');
+
+type Bundle = { svg: string; animations: any[]; src: string; code: string };
 const bundles: Record<string, Bundle> = {};
 for (const family of FAMILIES) {
   const variants = family === 'none' ? (['out'] as const) : VARIANTS;
   for (const v of variants) {
-    const src = easePic(family, v);
+    const src = easePic(family, v).trim();
     const b = renderPicBundle(src);
     bundles[family === 'none' ? 'none' : easeName(family, v)] = {
       svg: b.svg,
       animations: b.animations,
-      src: src.trim(),
+      src,
+      code: highlight(src),
     };
   }
 }
@@ -54,14 +74,12 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
       type="button">▶ Replay</button>
     <code class="ez-name ml-auto text-[13px] font-mono text-emerald-800 dark:text-emerald-300"></code>
   </div>
-  <div class="grid gap-4 md:grid-cols-2 items-start">
-    <div class="ez-stage grid place-items-center p-2 [&_svg]:max-w-sm [&_svg]:w-full [&_svg]:h-auto [&_svg]:overflow-visible"></div>
-    <div class="relative min-w-0">
-      <button
-        class="ez-copy absolute top-2 right-2 z-10 text-[11px] font-semibold rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 px-2 py-1 hover:text-emerald-800 dark:hover:text-emerald-300"
-        type="button">Copy</button>
-      <pre class="ez-code overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-[12px] leading-5 text-slate-800 dark:text-slate-200"><code></code></pre>
-    </div>
+  <div class="ez-stage grid place-items-center p-2 mb-4 [&_svg]:max-w-sm [&_svg]:w-full [&_svg]:h-auto [&_svg]:overflow-visible"></div>
+  <div class="relative min-w-0 [&_pre]:mb-0">
+    <button
+      class="ez-copy absolute top-2 right-2 z-10 text-[11px] font-semibold rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 px-2 py-1 hover:text-emerald-800 dark:hover:text-emerald-300"
+      type="button">Copy</button>
+    <div class="ez-code"></div>
   </div>
 </div>
 
@@ -75,9 +93,10 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
     const variantSel = root.querySelector('.ez-variant') as HTMLSelectElement;
     const nameEl = root.querySelector('.ez-name') as HTMLElement;
     const stage = root.querySelector('.ez-stage') as HTMLElement;
-    const codeEl = root.querySelector('.ez-code code') as HTMLElement;
+    const codeEl = root.querySelector('.ez-code') as HTMLElement;
     const copyBtn = root.querySelector('.ez-copy') as HTMLButtonElement;
     let tween: gsap.core.Tween | null = null;
+    let currentSrc = '';
 
     function key(): string {
       return familySel.value === 'none' ? 'none' : `${familySel.value}.${variantSel.value}`;
@@ -89,7 +108,8 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
       if (!bundle) return;
       tween?.kill();
       stage.innerHTML = bundle.svg;
-      codeEl.textContent = bundle.src; // the pic that produced this panel
+      codeEl.innerHTML = bundle.code; // the highlighted pic that produced this panel
+      currentSrc = bundle.src;
       // rpic marks the value marker as the `move` animation's target (`id`) and
       // the axis it climbs as its `path`; ride the pic-supplied ease up it.
       const a = bundle.animations.find((x: any) => x.effect === 'move');
@@ -115,7 +135,7 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
     variantSel.addEventListener('change', show);
     (root.querySelector('.ez-play') as HTMLButtonElement).addEventListener('click', show);
     copyBtn.addEventListener('click', () => {
-      navigator.clipboard?.writeText(codeEl.textContent || '').then(() => {
+      navigator.clipboard?.writeText(currentSrc).then(() => {
         const prev = copyBtn.textContent;
         copyBtn.textContent = 'Copied';
         setTimeout(() => (copyBtn.textContent = prev), 1200);
