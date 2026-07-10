@@ -89,10 +89,12 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
       if (!dot || !track) return;
       const y1 = parseFloat(track.getAttribute('y1') || '0');
       const y2 = parseFloat(track.getAttribute('y2') || '0');
+      // The marker climbs the axis once with the ease, tracing the curve's
+      // value, and settles at the top (value 1) — ▶ Replay runs it again.
       tween = gsap.fromTo(
         dot,
         { attr: { cy: y1 } },
-        { attr: { cy: y2 }, duration: a.duration || 1.6, ease: a.ease || 'none', repeat: -1, yoyo: true }
+        { attr: { cy: y2 }, duration: a.duration || 1.6, ease: a.ease || 'none' }
       );
     }
 
