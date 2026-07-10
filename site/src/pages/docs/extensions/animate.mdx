@@ -7,7 +7,7 @@ import PicExample from '../../../components/PicExample.astro';
 import AnimatedPic from '../../../components/AnimatedPic.astro';
 import PicFigure from '../../../components/PicFigure.astro';
 import Callout from '../../../components/Callout.astro';
-import EaseVisualizer from '../../../components/EaseVisualizer.astro';
+import EaseVisualizerPic from '../../../components/EaseVisualizerPic.astro';
 
 # animate
 
@@ -256,15 +256,17 @@ visualizer](https://gsap.com/docs/v3/Eases) to preview a curve before pasting.
 
 ### Explore every ease
 
-Pick any ease name (and `in`/`out`/`inOut`) to see its curve and preview it as
-motion — the value marker climbs the graph exactly as the animation would, with
-a live progress/value readout. Whatever string you land on is what you pass to
-`ease "…"`. This explorer is **GSAP-powered** (it samples the real ease function
-in the browser), so it also covers the plugin eases — `rough`, `slow`,
-`expoScale` (EasePack) and `CustomEase`/`CustomBounce`/`CustomWiggle` — which you
-must `registerPlugin` to use at runtime.
+Pick a family and `in`/`out`/`inOut` to see its curve and the motion side by
+side — the marker climbs the axis with that ease. Every panel here is **drawn by
+rpic itself**: each curve is plotted from the ease's own formula (the `in` and
+`inOut` shapes are derived from `out`), and the marker rides `move` with
+`ease "<family>.<variant>"` — the exact string you'd pass in your own source.
+The plugin eases (`rough`/`slow`/`expoScale`, and `CustomEase`/`CustomBounce`/
+`CustomWiggle`) have no closed-form formula for rpic to plot, so they're not in
+this explorer — but their *motion* works the same once you `registerPlugin` and
+pass the name to `ease`.
 
-<EaseVisualizer />
+<EaseVisualizerPic />
 
 ### The curves, drawn in rpic
 
