@@ -98,7 +98,7 @@ export function easePic(family: string, variant: Variant): string {
     'VT: line from (u+0.45,0) to (u+0.45,u) thick 0.9 colored 0xcbd5e1\n' +
     'VD: dot at VT.start rad 0.09 colored 0x0ae448\n' +
     `"${name}" at (u/2,-0.28)\n` +
-    `animate VD with "move" along VT ease "${name}" for 1.6 repeat -1 yoyo\n` +
+    `animate VD with "move" along VT ease "${name}" for 1.6\n` +
     '.PE\n'
   );
 }

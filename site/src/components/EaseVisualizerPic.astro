@@ -30,7 +30,7 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
     <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
       Ease
       <select
-        class="ez-family mt-1 block rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1.5"
+        class="ez-family mt-1 block h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2"
       >
         {FAMILIES.map((f) => (
           <option value={f} selected={f === 'elastic'}>{f}</option>
@@ -40,7 +40,7 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
     <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
       Variant
       <select
-        class="ez-variant mt-1 block rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1.5"
+        class="ez-variant mt-1 block h-9 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2"
       >
         {VARIANTS.map((v) => (
           <option value={v} selected={v === 'out'}>{v}</option>
@@ -48,7 +48,7 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
       </select>
     </label>
     <button
-      class="ez-play rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm px-4 py-2"
+      class="ez-play inline-flex items-center h-9 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm px-4"
       type="button">▶ Replay</button>
     <code class="ez-name ml-auto text-[13px] font-mono text-emerald-800 dark:text-emerald-300"></code>
   </div>
@@ -89,10 +89,12 @@ const variantFamilies = new Set(VARIANT_FAMILIES);
       if (!dot || !track) return;
       const y1 = parseFloat(track.getAttribute('y1') || '0');
       const y2 = parseFloat(track.getAttribute('y2') || '0');
+      // The marker climbs the axis once with the ease, tracing the curve's
+      // value, and settles at the top (value 1) — ▶ Replay runs it again.
       tween = gsap.fromTo(
         dot,
         { attr: { cy: y1 } },
-        { attr: { cy: y2 }, duration: a.duration || 1.6, ease: a.ease || 'none', repeat: -1, yoyo: true }
+        { attr: { cy: y2 }, duration: a.duration || 1.6, ease: a.ease || 'none' }
       );
     }
 
