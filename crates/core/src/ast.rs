@@ -336,12 +336,13 @@ pub enum Attr {
     HatchSep(Expr),
     /// rpic extension: hatch line width in points.
     HatchWidth(Expr),
-    /// rpic extension: hatch line color.
-    HatchColor(StringExpr),
+    /// rpic extension: hatch line color (with its source span for diagnostics).
+    HatchColor(StringExpr, Option<Span>),
     /// rpic extension: fill opacity, 0 = transparent and 1 = opaque.
     Opacity(Expr),
-    /// rpic extension: two-stop linear gradient fill (`from`, `to` colors).
-    Gradient(StringExpr, StringExpr),
+    /// rpic extension: two-stop linear gradient fill (`from`, `to` colors,
+    /// each with its source span for diagnostics).
+    Gradient(StringExpr, Option<Span>, StringExpr, Option<Span>),
     /// rpic extension: gradient angle in degrees, pic coordinates.
     GradientAngle(Expr),
     /// rpic extension: close a `line` path into a polygon.
@@ -355,7 +356,8 @@ pub enum Attr {
         anchor: WithAnchor,
         at: Position,
     },
-    Color(Color, StringExpr),
+    /// A colour attribute (`outlined`/`shaded`/`color`) with its source span.
+    Color(Color, StringExpr, Option<Span>),
     /// rpic extension: draw this object below another already-placed object.
     Behind(Place),
     /// rpic extension: CSS class hook attached to this object's shape group.
