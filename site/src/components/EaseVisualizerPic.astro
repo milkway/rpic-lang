@@ -1,0 +1,106 @@
+---
+// Pic-driven ease explorer. Every (family, variant) is compiled at build time
+// by rpic itself (curve plotted from the ease's formula; a value marker rides
+// `move` with the GSAP ease). The selectors just swap between the pre-rendered
+// bundles and re-run the animation — no client-side compiler.
+import { renderPicBundle } from '../lib/rpic';
+import { easePic, easeName, FAMILIES, VARIANT_FAMILIES, VARIANTS } from '../lib/ease-pic';
+
+type Bundle = { svg: string; animations: any[] };
+const bundles: Record<string, Bundle> = {};
+for (const family of FAMILIES) {
+  if (family === 'none') {
+    bundles['none'] = renderPicBundle(easePic('none', 'out'));
+  } else {
+    for (const v of VARIANTS) {
+      const b = renderPicBundle(easePic(family, v));
+      bundles[easeName(family, v)] = { svg: b.svg, animations: b.animations };
+    }
+  }
+}
+const variantFamilies = new Set(VARIANT_FAMILIES);
+---
+
+<div
+  class="ease-viz not-prose mb-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 p-4"
+  data-bundles={JSON.stringify(bundles)}
+  data-variant-families={JSON.stringify([...variantFamilies])}
+>
+  <div class="flex flex-wrap items-end gap-3 mb-4">
+    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+      Ease
+      <select
+        class="ez-family mt-1 block rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1.5"
+      >
+        {FAMILIES.map((f) => (
+          <option value={f} selected={f === 'elastic'}>{f}</option>
+        ))}
+      </select>
+    </label>
+    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">
+      Variant
+      <select
+        class="ez-variant mt-1 block rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm px-2 py-1.5"
+      >
+        {VARIANTS.map((v) => (
+          <option value={v} selected={v === 'out'}>{v}</option>
+        ))}
+      </select>
+    </label>
+    <button
+      class="ez-play rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-sm px-4 py-2"
+      type="button">▶ Replay</button>
+    <code class="ez-name ml-auto text-[13px] font-mono text-emerald-800 dark:text-emerald-300"></code>
+  </div>
+  <div class="ez-stage grid place-items-center p-2 [&_svg]:max-w-sm [&_svg]:w-full [&_svg]:h-auto [&_svg]:overflow-visible"></div>
+</div>
+
+<script>
+  import { gsap } from 'gsap';
+
+  function build(root: HTMLElement) {
+    const bundles = JSON.parse(root.dataset.bundles || '{}');
+    const variantFamilies = new Set(JSON.parse(root.dataset.variantFamilies || '[]'));
+    const familySel = root.querySelector('.ez-family') as HTMLSelectElement;
+    const variantSel = root.querySelector('.ez-variant') as HTMLSelectElement;
+    const nameEl = root.querySelector('.ez-name') as HTMLElement;
+    const stage = root.querySelector('.ez-stage') as HTMLElement;
+    let tween: gsap.core.Tween | null = null;
+
+    function key(): string {
+      return familySel.value === 'none' ? 'none' : `${familySel.value}.${variantSel.value}`;
+    }
+
+    function show() {
+      variantSel.disabled = !variantFamilies.has(familySel.value);
+      const bundle = bundles[key()];
+      if (!bundle) return;
+      tween?.kill();
+      stage.innerHTML = bundle.svg;
+      // rpic marks the value marker as the `move` animation's target (`id`) and
+      // the axis it climbs as its `path`; ride the pic-supplied ease up it.
+      const a = bundle.animations.find((x: any) => x.effect === 'move');
+      nameEl.textContent = a ? `ease "${a.ease}"` : '';
+      if (!a) return;
+      // `a.id`/`a.path` are the `<g id="sN">` groups; the marker and axis are
+      // the `<circle>`/`<line>` inside them.
+      const dot = stage.querySelector(`[id="${a.id}"] circle`) as SVGCircleElement | null;
+      const track = stage.querySelector(`[id="${a.path}"] line`) as SVGLineElement | null;
+      if (!dot || !track) return;
+      const y1 = parseFloat(track.getAttribute('y1') || '0');
+      const y2 = parseFloat(track.getAttribute('y2') || '0');
+      tween = gsap.fromTo(
+        dot,
+        { attr: { cy: y1 } },
+        { attr: { cy: y2 }, duration: a.duration || 1.6, ease: a.ease || 'none', repeat: -1, yoyo: true }
+      );
+    }
+
+    familySel.addEventListener('change', show);
+    variantSel.addEventListener('change', show);
+    (root.querySelector('.ez-play') as HTMLButtonElement).addEventListener('click', show);
+    show();
+  }
+
+  document.querySelectorAll<HTMLElement>('.ease-viz').forEach(build);
+</script>
