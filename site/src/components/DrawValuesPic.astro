@@ -6,15 +6,21 @@
 import { renderPic } from '../lib/rpic';
 
 // A smooth flowing wave: a dense sine sampled into one spline, so it renders as
-// a single continuous <path> the reveal window can slide along.
+// a single continuous <path> the reveal window can slide along. Drawn twice —
+// a faint full "ghost" track, then the live stroke on top that the window
+// reveals (like the DrawSVG demo's template + path pair).
 const N = 48;
-let pic = '.PS\nmargin = 0.15\nS: spline from ';
+let pts = 'from ';
 for (let i = 0; i <= N; i++) {
   const x = (i / N) * 6.8;
   const y = 0.62 * Math.sin(x * 1.15) + 0.05 * Math.sin(x * 2.7);
-  pic += `${i === 0 ? '' : 'then to '}(${x.toFixed(3)},${y.toFixed(3)}) `;
+  pts += `${i === 0 ? '' : 'then to '}(${x.toFixed(3)},${y.toFixed(3)}) `;
 }
-pic += 'thick 2.6 colored "0x2f855a"\n.PE\n';
+const pic =
+  '.PS\nmargin = 0.15\n' +
+  `Track: spline ${pts} thick 3 colored "0xcbd5e1"\n` +
+  `Live:  spline ${pts} thick 3 colored "0x10b981"\n` +
+  '.PE\n';
 const svg = renderPic(pic);
 
 // The CodePen's value list, expressed the rpic way — a stroke *fraction*
@@ -49,7 +55,10 @@ const VALUES = [
     const stage = root.querySelector('.dv-stage') as HTMLElement;
     const label = root.querySelector('.dv-label') as HTMLElement;
     const nextBtn = root.querySelector('.dv-next') as HTMLButtonElement;
-    const path = stage.querySelector('path') as SVGPathElement | null;
+    // The live stroke is the second spline (drawn on top of the ghost track);
+    // the window applies only to it, so the full path always shows behind.
+    const paths = stage.querySelectorAll('path');
+    const path = paths[paths.length - 1] as SVGPathElement | undefined;
     if (!path || !values.length) return;
 
     let len = 0;
