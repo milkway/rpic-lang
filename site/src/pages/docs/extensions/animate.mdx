@@ -393,11 +393,15 @@ animate P with "draw" from 40% to 60% # reveal just the 40%–60% window
 
 Reach for it to sweep a highlight along one leg of a wire, reveal a mid-section,
 or animate a moving window down a path. `out` retracts the window instead of
-growing it. The example below draws only the middle third of the arc:
+growing it. The example below reveals only the middle third of the arc — drawn a
+second time in grey behind it as a **track**, a common idiom so the whole path
+stays visible while the window highlights a slice (as on the
+[home page](/)):
 
 <AnimatedPic code={`.PS
 margin = 0.2
-A: arc from (0,0) to (3,0) rad 2 thick 1.4 colored "0x2f855a"
+arc from (0,1.1) to (3.4,1.1) rad 2 thick 2.4 colored "0xcbd5e1"
+A: arc from (0,1.1) to (3.4,1.1) rad 2 thick 2.4 colored "0x2f855a"
 animate A with "draw" from 33% to 66% for 1.4
 .PE`} />
 
