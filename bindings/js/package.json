@@ -1,6 +1,6 @@
 {
   "name": "@strategicprojects/rpic",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "The pic graphics language compiled to SVG with animation manifests, via WebAssembly. Browser + Node.",
   "type": "module",
   "main": "./index.js",

@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-07-10
+
 ### Added
 
 - **`animate … with "draw" from <p> to <p>` — reveal a stroke sub-segment.** The
@@ -320,7 +322,9 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.10.0
+[0.9.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.9.0
 [0.8.1]: https://github.com/milkway/rpic-lang/releases/tag/v0.8.1
 [0.8.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.8.0
 [0.7.1]: https://github.com/milkway/rpic-lang/releases/tag/v0.7.1
