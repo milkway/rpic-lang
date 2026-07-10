@@ -38,12 +38,12 @@ steps that pop in sequence, and a **wiggle** to point at the one that matters:
 
 <AnimatedPic code={`.PS
 margin = 0.15
-T: "rpic animates" at (1.4,1.2)
 A: box "parse" fit
 arrow
 B: box "eval" fit
 arrow
 C: box "draw" fit
+T: "rpic animates" at B.n + (0, 0.55)
 animate T with "type" for 1.0
 animate A with "pop" after T
 animate B with "pop" after A
