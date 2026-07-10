@@ -143,6 +143,7 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
         canvas_margin,
         canvas: st.canvas,
         anims: st.anims,
+        interactions: st.interactions,
         anim_scroll: st.anim_scroll,
         diagnostics: st.diagnostics,
         warnings: st.warnings,
@@ -640,6 +641,7 @@ struct State {
     layout_bbox: Bbox,
     // animation state
     anims: Vec<Anim>,
+    interactions: Vec<Interaction>,
     anim_scroll: bool,
     diagnostics: Vec<String>,
     warnings: Vec<Diagnostic>,
@@ -782,6 +784,7 @@ impl State {
             bbox: Bbox::new(),
             layout_bbox: Bbox::new(),
             anims: Vec::new(),
+            interactions: Vec::new(),
             anim_scroll: false,
             diagnostics: Vec::new(),
             warnings: Vec::new(),
@@ -882,6 +885,7 @@ impl State {
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
             Stmt::AnimateScroll => self.anim_scroll = true,
+            Stmt::Draggable(d) => self.eval_draggable(d)?,
             Stmt::Class { target, class } => {
                 let idx = self.place_index(target)?;
                 let name = self.eval_stringexpr(class)?;
@@ -1288,6 +1292,38 @@ impl State {
             self.warnings.push(warning);
         }
         self.anims.push(make(shape, start));
+        Ok(())
+    }
+
+    /// Record a `draggable` interaction: resolve the target (and optional
+    /// `bounds`) to shape indices for the host to wire GSAP Draggable.
+    fn eval_draggable(&mut self, d: &Draggable) -> ER<()> {
+        let idx = self.place_index(&d.target)?;
+        let shape = self.placed[idx].shape.ok_or_else(|| EvalError {
+            msg: "cannot make a point draggable (no drawn shape)".into(),
+            info: None,
+        })?;
+        let bounds = match &d.bounds {
+            Some(p) => {
+                let i = self.place_index(p)?;
+                let sh = self.placed[i].shape.ok_or_else(|| EvalError {
+                    msg: "`bounds` target has no drawn shape".into(),
+                    info: None,
+                })?;
+                Some(sh)
+            }
+            None => None,
+        };
+        let axis = d.axis.map(|a| match a {
+            DragAxis::X => "x",
+            DragAxis::Y => "y",
+        });
+        self.interactions.push(Interaction {
+            shape,
+            inertia: d.inertia,
+            bounds,
+            axis,
+        });
         Ok(())
     }
 

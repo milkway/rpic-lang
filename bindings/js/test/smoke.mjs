@@ -80,6 +80,13 @@ assert.ok(scrAnim.svg.includes('>SECRET</text>'), 'scramble does not split the l
 const wigAnim = compile('box\nanimate last with "wiggle" wiggles 8');
 assert.equal(wigAnim.animations[0].effect, 'wiggle');
 assert.equal(wigAnim.animations[0].wiggles, 8);
+// the draggable directive rides a separate `interactions` array
+const dragBundle = compile('B: box wid 3 ht 2\nN: circle at B.c\ndraggable N inertia bounds B x');
+assert.ok(Array.isArray(dragBundle.interactions), 'interactions present');
+assert.deepEqual(dragBundle.interactions[0], { id: 's1', kind: 'drag', inertia: true, bounds: 's0', axis: 'x' });
+// a plain drawing has no interactions
+const plainBundle = compile('box');
+assert.ok(!plainBundle.interactions || plainBundle.interactions.length === 0, 'no interactions');
 // stagger fans across a block's children into one entry each
 const stAnim = compile('B: [ box; box; box ]\nanimate B with "fade" for 0.3 stagger 0.15');
 assert.equal(stAnim.animations.length, 3);

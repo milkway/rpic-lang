@@ -104,7 +104,7 @@
     },
     "extension": {
       "comment": "rpic-only extensions get their own scope so documentation can visually distinguish them from classic pic/dpic",
-      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin|dotrad|canvas|rotated|aligned|bold|italic|mono|fontsize|font|big|small|along|into|stagger|repeat|yoyo|ease|delay|scroll|out)\\b",
+      "match": "\\b(fit|behind|close|crosshatch|hatchangle|hatchsep|hatchwidth|hatchwid|hatchcolor|hatch|opacity|gradientangle|gradient|class|texlabels|bracepos|labeloffset|topmargin|rightmargin|bottommargin|leftmargin|margin|dotrad|canvas|rotated|aligned|bold|italic|mono|fontsize|font|big|small|along|into|stagger|repeat|yoyo|ease|delay|scroll|out|draggable|inertia|bounds|wiggles)\\b",
       "name": "keyword.other.extension.rpic"
     },
     "primitive": {

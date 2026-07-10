@@ -154,6 +154,36 @@ export function animate(root, animations, gsap) {
   return tl;
 }
 
+/**
+ * Make objects draggable from the compile bundle's `interactions` array (the
+ * `draggable` directive). Pass GSAP's `Draggable` class (import it and
+ * `registerPlugin(Draggable)` — and `InertiaPlugin` if any interaction uses
+ * `inertia`). Returns the created Draggable instances.
+ * @param {Element} root
+ * @param {Array<{id:string,kind:string,inertia?:boolean,bounds?:string,axis?:string}>} interactions
+ * @param {*} Draggable
+ * @returns {Array}
+ */
+export function interactive(root, interactions, Draggable) {
+  if (!Draggable || !interactions || !interactions.length) return [];
+  const pick = (id) =>
+    root.querySelector(
+      typeof CSS !== 'undefined' && CSS.escape ? '#' + CSS.escape(id) : `[id="${id}"]`
+    );
+  const out = [];
+  for (const it of interactions) {
+    const el = pick(it.id);
+    if (!el) continue;
+    const vars = { type: it.axis || 'x,y', inertia: !!it.inertia };
+    if (it.bounds) {
+      const b = pick(it.bounds);
+      if (b) vars.bounds = b;
+    }
+    out.push(...Draggable.create(el, vars));
+  }
+  return out;
+}
+
 // Entrances tween FROM the hidden `vars` to the natural state; `out` reverses
 // it into an exit (TO the hidden state). Shared by fade/pop/slide.
 function enterExit(tl, el, vars, a) {

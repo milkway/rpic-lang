@@ -65,9 +65,23 @@ export interface ObjectGeometry {
   file?: string;
 }
 
+export interface Interaction {
+  id: string;
+  /** currently always "drag" */
+  kind: string;
+  /** throw with momentum (needs InertiaPlugin). Present only when set. */
+  inertia?: boolean;
+  /** id of the shape whose box constrains dragging. Present only when set. */
+  bounds?: string;
+  /** axis lock: "x" | "y". Present only when set (absent = free drag). */
+  axis?: string;
+}
+
 export interface Bundle {
   svg: string;
   animations: Anim[];
+  /** `draggable` targets for the host to wire GSAP Draggable. Present only when non-empty. */
+  interactions?: Interaction[];
   /** lines emitted by pic `print` statements */
   diagnostics: string[];
   /** non-fatal compiler warnings for accepted but suspicious input */
@@ -132,3 +146,11 @@ export function renderSvg(src: string, opts?: CompileOptions): string;
  * `root`. Browser-only.
  */
 export function animate(root: Element, animations: Anim[], gsap: unknown): unknown;
+
+/**
+ * Make objects draggable from the `interactions` manifest (the `draggable`
+ * directive). Pass GSAP's `Draggable` class (register it — and `InertiaPlugin`
+ * if any interaction uses `inertia`). Returns the created Draggable instances.
+ * Browser-only.
+ */
+export function interactive(root: Element, interactions: Interaction[], Draggable: unknown): unknown[];
