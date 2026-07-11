@@ -185,6 +185,48 @@ declares motion itself (rpic's `animate`), reserve room in the source with the
 [canvas margin extension](#canvas-margins), e.g. `margin = 0.15`. rpic never
 adds space automatically.
 
+## Hyperlinked Objects
+
+`link` is an rpic-only extension that makes an object a hyperlink: its SVG
+shape group is wrapped in `<a href="…">`, so clicking the shape (label
+included) navigates to the URL. Like `class`, it has two forms that write to
+the same hook:
+
+```pic
+.PS
+box "docs" link "https://rpic.dev"      # inline, at creation
+
+A: circle "issue"
+line right from A.e
+link A "https://github.com/milkway/rpic-lang/issues"   # statement: by label
+link last line "#wiring"                # statement: by ordinal (fragments work)
+.PE
+```
+
+Rules:
+
+- **SVG-only.** PNG and PDF render the identical picture but carry no link
+  (the raster pipeline flattens `<a>` to a plain group). Links work wherever
+  the SVG is a real document — inline-embedded, `<img>`, or opened directly.
+- **Validated, not raw.** The URL must be non-empty, free of whitespace and
+  control characters (percent-encode them), and must not use a
+  script-executing scheme (`javascript:`, `vbscript:`, `data:`) — hosts that
+  render untrusted pictures inline must not gain an XSS surface. Relative
+  URLs, `#fragments` and `mailto:` all pass.
+- Reapplying replaces: the last `link` wins (unlike `class`, URLs don't
+  compose).
+- The anchor wraps *outside* the `<g id="sN">` group, so the stable ids and
+  the GSAP/animation contract are untouched; `class` and `link` compose on
+  the same shape.
+- The compile bundle's `objects` entries gain a `"link"` key when set, so
+  editors can surface it.
+- `link` is contextual: `link = 2` is still an assignment and `box wid link`
+  still reads the variable.
+- Blocks are not supported yet — link the inner objects instead. Attaching a
+  link to a point label is an error (there is no drawn shape).
+- Classic input stays byte-identical when `link` is not used — no `<a>` is
+  emitted at all.
+
 ## Declarative Animation
 
 `animate` is an rpic-only extension that declares how objects enter the drawing.

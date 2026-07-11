@@ -60,6 +60,8 @@ export interface ObjectGeometry {
   kind: string;
   /** bounds in SVG user units (the viewBox space); `null` for invisible shapes */
   bbox: { x: number; y: number; w: number; h: number } | null;
+  /** hyperlink URL from the `link` extension. Present only when set. */
+  link?: string;
   /** 1-based source position of the statement that drew it, when known */
   line?: number;
   col?: number;

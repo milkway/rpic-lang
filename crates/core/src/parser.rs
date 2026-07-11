@@ -1703,6 +1703,19 @@ impl Parser {
             return Ok(Stmt::Class { target, class });
         }
 
+        // rpic `link <place> "<url>"` statement (extension). Contextual like
+        // `class`: `link = 2` stays an assignment and `link` remains usable
+        // as a variable.
+        if matches!(self.cur(), Token::Name(n) if n == "link")
+            && !is_assign_op(self.peek(1))
+            && !matches!(self.peek(1), Token::LeftBrack)
+        {
+            self.bump();
+            let target = self.parse_place()?;
+            let url = self.parse_stringexpr()?;
+            return Ok(Stmt::Link { target, url });
+        }
+
         // rpic `draggable <place> [inertia] [bounds <place>] [x|y]` statement
         // (extension). Contextual like `class`: `draggable = 1` stays an
         // assignment and `draggable` remains usable as a variable.
@@ -2634,6 +2647,10 @@ impl Parser {
                 self.bump();
                 Attr::Class(self.parse_stringexpr()?)
             }
+            Token::Name(n) if n == "link" => {
+                self.bump();
+                Attr::Link(self.parse_stringexpr()?)
+            }
             // a bare expression distance with no direction word, e.g. `move 1`,
             // `move -0.1`, `spline x` (length in the prevailing direction)
             Token::Float(_)
@@ -3135,6 +3152,7 @@ impl Parser {
                     || (allow_brace && matches!(n.as_str(), "bracepos" | "labeloffset"))
                     || n == "behind"
                     || n == "class"
+                    || n == "link"
                     || (allow_close && n == "close")
         )
     }
@@ -3636,6 +3654,27 @@ ellipse "typesetter"
 
         // contextual fallbacks: assignment and expression use survive
         let p = pic("class = 2\nbox wid class");
+        assert!(matches!(p.stmts[0], Stmt::Assign(_)));
+        let Stmt::Object { object, .. } = &p.stmts[1] else {
+            panic!()
+        };
+        assert!(matches!(object.attrs[0], Attr::Dim(DimKind::Wid, _)));
+    }
+
+    #[test]
+    fn link_parses_inline_and_statement_forms() {
+        let p = pic("box link \"https://rpic.dev\"");
+        let Stmt::Object { object, .. } = &p.stmts[0] else {
+            panic!()
+        };
+        assert!(object.attrs.iter().any(|a| matches!(a, Attr::Link(_))));
+
+        let p = pic("A: box\nlink A \"https://rpic.dev\"\nlink last box \"#top\"");
+        assert!(matches!(p.stmts[1], Stmt::Link { .. }));
+        assert!(matches!(p.stmts[2], Stmt::Link { .. }));
+
+        // contextual fallbacks: assignment and expression use survive
+        let p = pic("link = 2\nbox wid link");
         assert!(matches!(p.stmts[0], Stmt::Assign(_)));
         let Stmt::Object { object, .. } = &p.stmts[1] else {
             panic!()

@@ -44,6 +44,7 @@ export const nav: NavSection[] = [
       { title: 'opacity', href: '/docs/extensions/opacity' },
       { title: 'gradient', href: '/docs/extensions/gradient' },
       { title: 'class', href: '/docs/extensions/class' },
+      { title: 'link', href: '/docs/extensions/link' },
       { title: 'texlabels', href: '/docs/extensions/texlabels' },
       { title: 'animate', href: '/docs/extensions/animate' },
     ],

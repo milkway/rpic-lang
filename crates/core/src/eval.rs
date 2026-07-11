@@ -137,6 +137,7 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
         shapes: st.shapes,
         shape_layers: st.shape_layers,
         shape_classes: st.shape_classes,
+        shape_links: st.shape_links,
         shape_spans: st.shape_spans,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
@@ -626,6 +627,7 @@ struct State {
     shapes: Vec<Shape>,
     shape_layers: Vec<i32>,
     shape_classes: Vec<Option<String>>,
+    shape_links: Vec<Option<String>>,
     shape_spans: Vec<Option<Span>>,
     /// Span of the object statement currently being evaluated (attached to
     /// every shape it pushes).
@@ -776,6 +778,7 @@ impl State {
             shapes: Vec::new(),
             shape_layers: Vec::new(),
             shape_classes: Vec::new(),
+            shape_links: Vec::new(),
             shape_spans: Vec::new(),
             current_span: None,
             canvas: None,
@@ -890,6 +893,11 @@ impl State {
                 let idx = self.place_index(target)?;
                 let name = self.eval_stringexpr(class)?;
                 self.append_class_at(idx, &name)?;
+            }
+            Stmt::Link { target, url } => {
+                let idx = self.place_index(target)?;
+                let url = self.eval_stringexpr(url)?;
+                self.set_link_at(idx, &url)?;
             }
             Stmt::Canvas { from, to } => {
                 let a = self.eval_pos(from)?;
@@ -1373,6 +1381,22 @@ impl State {
         Ok(())
     }
 
+    /// Set the hyperlink on the shape behind `placed_idx` (rpic `link`
+    /// extension). Reapplying replaces the URL — last one wins.
+    fn set_link_at(&mut self, placed_idx: usize, url: &str) -> ER<()> {
+        let url = url.trim();
+        validate_link(url)?;
+        let pl = &self.placed[placed_idx];
+        if matches!(pl.kind, PKind::Block) {
+            return err("`link` on a block is not supported yet; link its inner objects");
+        }
+        let Some(sh) = pl.shape else {
+            return err("cannot attach a link to a point (no drawn shape)");
+        };
+        self.shape_links[sh] = Some(url.to_string());
+        Ok(())
+    }
+
     /// rpic `texlabels` extension: typeset a fully `$…$`-delimited label as
     /// math via the registered renderer. Any failure — extension off, no
     /// renderer in this build, not fully delimited, or a TeX parse error —
@@ -1514,6 +1538,10 @@ impl State {
             if let Attr::Class(se) = a {
                 let name = self.eval_stringexpr(se)?;
                 self.append_class_at(idx, &name)?;
+            }
+            if let Attr::Link(se) = a {
+                let url = self.eval_stringexpr(se)?;
+                self.set_link_at(idx, &url)?;
             }
         }
         Ok(idx)

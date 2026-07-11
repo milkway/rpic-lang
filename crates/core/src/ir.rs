@@ -16,6 +16,11 @@ pub struct Drawing {
     /// `<g id="sN">` group. Inert unless the host document styles it; `None`
     /// keeps the group byte-identical to classic output.
     pub shape_classes: Vec<Option<String>>,
+    /// rpic extension: hyperlink per shape. When set, the shape's
+    /// `<g id="sN">` group is wrapped in `<a href="…">` in the SVG output;
+    /// raster/PDF backends ignore it (usvg flattens `<a>` to a group). `None`
+    /// keeps the output byte-identical to classic pic.
+    pub shape_links: Vec<Option<String>>,
     /// Source span of the statement that produced each shape (`None` for
     /// shapes without one). Drives the per-object geometry export; never
     /// affects rendering.

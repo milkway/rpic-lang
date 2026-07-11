@@ -119,10 +119,10 @@ pub fn animations_json(d: &Drawing) -> String {
 
 /// Build the JSON per-object geometry array: one entry per emitted
 /// `<g id="sN">` group, with the shape kind, its bbox in SVG user units
-/// (`null` for invisible shapes), and — when known — the source span of the
-/// statement that produced it (`file` follows the same convention as
-/// diagnostics: absent = user input, `"circuits"` = the `-c` library, else
-/// the `copy` include name).
+/// (`null` for invisible shapes), the object's `link` URL when one was set,
+/// and — when known — the source span of the statement that produced it
+/// (`file` follows the same convention as diagnostics: absent = user input,
+/// `"circuits"` = the `-c` library, else the `copy` include name).
 pub fn objects_json(d: &Drawing) -> String {
     let geoms = svg::object_geometries(d);
     let mut s = String::from("[");
@@ -140,6 +140,9 @@ pub fn objects_json(d: &Drawing) -> String {
                 json_num(h)
             )),
             None => s.push_str(",\"bbox\":null"),
+        }
+        if let Some(link) = d.shape_links.get(i).and_then(|l| l.as_deref()) {
+            s.push_str(&format!(",\"link\":\"{}\"", json_str(link)));
         }
         if let Some(span) = d.shape_spans.get(i).and_then(|s| s.as_ref()) {
             s.push_str(&format!(
@@ -503,6 +506,28 @@ mod tests {
             ),
             "{j}"
         );
+    }
+
+    #[test]
+    fn json_objects_carry_link_only_when_set() {
+        let j = compile_json("box link \"https://rpic.dev\"\ncircle");
+        assert!(
+            j.contains("\"id\":\"s0\",\"kind\":\"box\",\"bbox\"")
+                && j.contains("\"link\":\"https://rpic.dev\""),
+            "{j}"
+        );
+        // the SVG side carries the anchor wrapper, JSON-escaped
+        assert!(j.contains("<a href=\\\"https://rpic.dev\\\">"), "{j}");
+        // the unlinked circle has no link key
+        let circle_entry = &j[j.find("\"id\":\"s1\"").unwrap()..];
+        assert!(
+            !circle_entry[..circle_entry.find('}').unwrap()].contains("link"),
+            "{j}"
+        );
+        // plain bundles stay byte-inert: no link key, no anchor
+        let plain = compile_json("box\ncircle");
+        assert!(!plain.contains("link"), "{plain}");
+        assert!(!plain.contains("<a "), "{plain}");
     }
 
     #[test]

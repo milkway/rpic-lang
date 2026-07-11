@@ -201,6 +201,32 @@ pub(super) fn validate_class(name: &str) -> ER<()> {
     Ok(())
 }
 
+/// Validate a `link` extension URL: non-empty, no embedded whitespace or
+/// control characters (percent-encode them), and no script-executing scheme
+/// (`javascript:`/`vbscript:`/`data:`) — the SVG may be embedded inline by
+/// hosts that render untrusted pictures, so the hook must not become an XSS
+/// surface. Relative URLs, `#fragments` and `mailto:` pass.
+pub(super) fn validate_link(url: &str) -> ER<()> {
+    if url.is_empty() {
+        return err("link URL must not be empty");
+    }
+    if url.chars().any(|c| c.is_whitespace() || c.is_control()) {
+        return err(
+            "link URL must not contain whitespace or control characters (percent-encode them)",
+        );
+    }
+    let lower = url.to_ascii_lowercase();
+    for scheme in ["javascript:", "vbscript:", "data:"] {
+        if lower.starts_with(scheme) {
+            return err(format!(
+                "link URL scheme `{}` is not allowed",
+                &scheme[..scheme.len() - 1]
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn ensure_gradient(style: &mut Style) -> &mut Gradient {
     style.gradient.get_or_insert_with(|| Gradient {
         from: "black".into(),
