@@ -10,6 +10,18 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Corpus: 36 stale committed `.svg` renders regenerated + a CI drift
+  guard.** Intentional byte-moving changes (#274 standalone-label ink, #278
+  xcolor→hex) had regenerated only part of the corpus; 36 committed renders
+  (1 `dpic/doc`, 12 `dpic/manual`, 23 `figuras`) no longer matched what the
+  binary emits — mostly labels that were clipped at the canvas edge and now
+  show in full. All 36 regenerated (`-c --svg`) and QA'd on old-vs-new
+  contact sheets. A new integration test (`crates/cli/tests/corpus.rs`)
+  renders every sibling pair on every CI run and fails on drift, so
+  committed renders can't rot silently again. (#364)
+
 ### Added
 
 - **npm: standalone player module (`@strategicprojects/rpic/player`).** The

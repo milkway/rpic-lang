@@ -1,75 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="675.2" height="84.88" viewBox="0 0 675.2 84.88" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="721.6" height="84.88" viewBox="0 0 721.6 84.88" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<line x1="49.066667" y1="48.533333" x2="2.621587" y2="2.088254" stroke="black" stroke-width="1.066667"/>
-<polygon stroke-width="0" points="6.157835,9.018615 1.066667,0.533333 9.551948,5.624502" fill="black"/>
+<line x1="95.466667" y1="48.533333" x2="49.021587" y2="2.088254" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="52.557835,9.018615 47.466667,0.533333 55.951948,5.624502" fill="black"/>
 </g>
 <g id="s1">
-<rect x="1.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="47.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s2">
 </g>
 <g id="s3">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="25.066667" y="82.213333" text-anchor="middle">\bf line up left</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="71.466667" y="82.213333" text-anchor="middle">\bf line up left</text>
 </g>
 <g id="s4">
 </g>
 <g id="s5">
-<line x1="193.066667" y1="48.533333" x2="99.033503" y2="1.516751" stroke="black" stroke-width="1.066667"/>
-<polygon stroke-width="0" points="104.579855,6.973209 97.066667,0.533333 106.72648,2.679959" fill="black"/>
+<line x1="239.466667" y1="48.533333" x2="145.433503" y2="1.516751" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="150.979855,6.973209 143.466667,0.533333 153.12648,2.679959" fill="black"/>
 </g>
 <g id="s6">
-<rect x="97.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="143.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s7">
-<rect x="145.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="191.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s8">
 </g>
 <g id="s9">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="145.066667" y="82.213333" text-anchor="middle">\bf arrow up left 1</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="191.466667" y="82.213333" text-anchor="middle">\bf arrow up left 1</text>
 </g>
 <g id="s10">
 </g>
 <g id="s11">
-<line x1="385.066667" y1="48.533333" x2="243.152811" y2="1.228715" stroke="black" stroke-width="1.066667"/>
-<polygon stroke-width="0" points="249.41508,5.84596 241.066667,0.533333 250.932973,1.29228" fill="black"/>
+<line x1="431.466667" y1="48.533333" x2="289.552811" y2="1.228715" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="295.81508,5.84596 287.466667,0.533333 297.332973,1.29228" fill="black"/>
 </g>
 <g id="s12">
-<rect x="241.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="287.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s13">
-<rect x="289.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="335.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s14">
-<rect x="337.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="383.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s15">
 </g>
 <g id="s16">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="313.066667" y="82.213333" text-anchor="middle">\bf arrow up left 1.5</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="359.466667" y="82.213333" text-anchor="middle">\bf arrow up left 1.5</text>
 </g>
 <g id="s17">
 </g>
 <g id="s18">
-<line x1="625.066667" y1="48.533333" x2="435.2" y2="1.066667" stroke="black" stroke-width="1.066667"/>
-<polygon stroke-width="0" points="441.797949,5.190017 433.066667,0.533333 442.96212,0.533333" fill="black"/>
+<line x1="671.466667" y1="48.533333" x2="481.6" y2="1.066667" stroke="black" stroke-width="1.066667"/>
+<polygon stroke-width="0" points="488.197949,5.190017 479.466667,0.533333 489.36212,0.533333" fill="black"/>
 </g>
 <g id="s19">
-<rect x="433.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="479.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s20">
-<rect x="481.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="527.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s21">
-<rect x="529.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="575.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s22">
-<rect x="577.066667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
+<rect x="623.466667" y="0.533333" width="48" height="48" fill="none" stroke="black" stroke-width="1.066667" stroke-dasharray="0.5,5.333333" stroke-linecap="round"/>
 </g>
 <g id="s23">
 </g>
 <g id="s24">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="529.066667" y="82.213333" text-anchor="middle">\bf arrow up left 2</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="575.466667" y="82.213333" text-anchor="middle">\bf arrow up left 2</text>
 </g>
 <g id="s25">
 </g>
