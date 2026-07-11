@@ -99,6 +99,15 @@ impl Svg {
         order.sort_by_key(|&i| (d.shape_layers.get(i).copied().unwrap_or(0), i));
         for i in order {
             let s = &d.shapes[i];
+            // A `link` extension wraps the group in `<a>` — outside it, so
+            // the stable `s<N>` id (the GSAP/animation target) is untouched.
+            // Raster/PDF backends flatten `<a>` to a group (usvg), so the
+            // picture is identical there, just without the link.
+            let link = d.shape_links.get(i).and_then(|l| l.as_deref());
+            if let Some(url) = link {
+                self.out
+                    .push_str(&format!("<a href=\"{}\">\n", escape_attr(url)));
+            }
             // The stable `s<N>` id is the GSAP/animation target; a `class`
             // extension hook rides alongside it without changing the id.
             match d.shape_classes.get(i).and_then(|c| c.as_deref()) {
@@ -111,6 +120,9 @@ impl Svg {
             self.cur_type = self.type_targets.get(&i).copied();
             self.shape(s);
             self.out.push_str("</g>\n");
+            if link.is_some() {
+                self.out.push_str("</a>\n");
+            }
         }
     }
 
@@ -2392,6 +2404,7 @@ mod tests {
             }],
             shape_layers: vec![0],
             shape_classes: vec![None],
+            shape_links: vec![None],
             shape_spans: vec![None],
             bbox: Bbox::new(),
             canvas: None,
@@ -2487,6 +2500,46 @@ mod tests {
         let s = svg("A: box class \"front\"\nbox class \"back\" behind A at A");
         let back = s.find("<g id=\"s1\" class=\"back\">").unwrap();
         let front = s.find("<g id=\"s0\" class=\"front\">").unwrap();
+        assert!(back < front, "{s}");
+    }
+
+    #[test]
+    fn link_wraps_shape_group_in_anchor_and_keeps_ids() {
+        let s = svg("box link \"https://rpic.dev\"\ncircle");
+        assert!(
+            s.contains("<a href=\"https://rpic.dev\">\n<g id=\"s0\">"),
+            "{s}"
+        );
+        assert!(s.contains("</g>\n</a>\n"), "{s}");
+        // the unlinked shape keeps its plain group
+        assert!(s.contains("<g id=\"s1\">\n<circle"), "{s}");
+
+        // the URL goes through the attribute escaper
+        let s = svg("box link \"https://a.dev/?x=1&y=2\"");
+        assert!(s.contains("<a href=\"https://a.dev/?x=1&amp;y=2\">"), "{s}");
+
+        // class and link compose: anchor outside, class on the group
+        let s = svg("box class \"hot\" link \"https://rpic.dev\"");
+        assert!(
+            s.contains("<a href=\"https://rpic.dev\">\n<g id=\"s0\" class=\"hot\">"),
+            "{s}"
+        );
+
+        // classic output stays byte-identical: no anchor anywhere
+        let plain = svg("box\ncircle");
+        assert!(!plain.contains("<a "), "{plain}");
+    }
+
+    #[test]
+    fn link_follows_its_shape_through_behind_reordering() {
+        let s =
+            svg("A: box link \"https://front.dev\"\nbox link \"https://back.dev\" behind A at A");
+        let back = s
+            .find("<a href=\"https://back.dev\">\n<g id=\"s1\">")
+            .unwrap();
+        let front = s
+            .find("<a href=\"https://front.dev\">\n<g id=\"s0\">")
+            .unwrap();
         assert!(back < front, "{s}");
     }
 

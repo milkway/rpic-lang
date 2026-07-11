@@ -134,6 +134,9 @@ pub enum Stmt {
     /// rpic extension: `class <place> "name"` — append a CSS class to an
     /// already-drawn object's shape group (labels and ordinals both work).
     Class { target: Place, class: StringExpr },
+    /// rpic extension: `link <place> "<url>"` — make an already-drawn object a
+    /// hyperlink (its SVG shape group is wrapped in `<a href>`).
+    Link { target: Place, url: StringExpr },
     /// rpic extension: `canvas from <pos> to <pos>` — fix the output page to
     /// the rectangle spanned by the two corners, independent of content, so
     /// the viewBox stays stable while objects move (visual editors).
@@ -368,6 +371,9 @@ pub enum Attr {
     Behind(Place),
     /// rpic extension: CSS class hook attached to this object's shape group.
     Class(StringExpr),
+    /// rpic extension: hyperlink — the object's SVG shape group is wrapped in
+    /// `<a href>` so clicking it navigates to the URL.
+    Link(StringExpr),
     /// rpic extension (pikchr-flavoured): a lighter stroke — sets the object's
     /// line thickness to ⅔ of the current `linethick` (no value; the sugar for
     /// `thick (linethick*2/3)`, mirroring `thick <n>`).

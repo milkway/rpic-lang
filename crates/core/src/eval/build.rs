@@ -939,11 +939,12 @@ impl State {
         }
         let layer_shift =
             self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
-        for (((mut sh, layer), class), span) in sub
+        for ((((mut sh, layer), class), link), span) in sub
             .shapes
             .into_iter()
             .zip(sub.shape_layers)
             .zip(sub.shape_classes)
+            .zip(sub.shape_links)
             .zip(sub.shape_spans)
         {
             translate_shape(&mut sh, shift);
@@ -952,6 +953,7 @@ impl State {
             }
             self.push_shape(sh, layer + layer_shift)?;
             *self.shape_classes.last_mut().unwrap() = class;
+            *self.shape_links.last_mut().unwrap() = link;
             // inner objects carry their own statement spans through the merge
             *self.shape_spans.last_mut().unwrap() = span;
         }
@@ -1057,6 +1059,7 @@ impl State {
         self.shapes.push(shape);
         self.shape_layers.push(layer);
         self.shape_classes.push(None);
+        self.shape_links.push(None);
         self.shape_spans.push(self.current_span.clone());
         Ok(())
     }

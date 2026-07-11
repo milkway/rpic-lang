@@ -2698,6 +2698,61 @@ fn class_inside_block_survives_flattening() {
 }
 
 #[test]
+fn link_attribute_and_statement_set_shape_links() {
+    // inline attribute; reapplying replaces (last one wins)
+    let d = draw("box link \"https://rpic.dev\" link \"https://rpic.dev/docs\"");
+    assert_eq!(d.shape_links[0].as_deref(), Some("https://rpic.dev/docs"));
+
+    // statement form by label, by ordinal, and reaching macro-drawn shapes
+    let d = draw(
+        "define wire { line right 0.5 }\nA: box\nwire()\nlink A \"https://a.dev\"\nlink last line \"#sec\"",
+    );
+    assert_eq!(d.shape_links[0].as_deref(), Some("https://a.dev"));
+    assert_eq!(d.shape_links[1].as_deref(), Some("#sec"));
+
+    // `link` stays usable as a plain variable
+    let d = draw("link = 2\nbox wid link ht 1");
+    let Shape::Box { w, .. } = &d.shapes[0] else {
+        panic!()
+    };
+    assert!((w - 2.0).abs() < 1e-9);
+
+    // class and link compose on the same shape
+    let d = draw("box class \"hot\" link \"https://rpic.dev\"");
+    assert_eq!(d.shape_classes[0].as_deref(), Some("hot"));
+    assert_eq!(d.shape_links[0].as_deref(), Some("https://rpic.dev"));
+}
+
+#[test]
+fn link_validates_urls_and_targets() {
+    let e = eval(&parse("box link \"\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("must not be empty"), "{e}");
+
+    let e = eval(&parse("box link \"has space\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("whitespace"), "{e}");
+
+    let e = eval(&parse("box link \"javascript:alert(1)\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("not allowed"), "{e}");
+    let e = eval(&parse("box link \"JavaScript:alert(1)\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("not allowed"), "{e}");
+    let e = eval(&parse("box link \"data:text/html,x\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("not allowed"), "{e}");
+
+    let e = eval(&parse("A: (0,0)\nlink A \"https://a.dev\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("no drawn shape"), "{e}");
+}
+
+#[test]
+fn link_inside_block_survives_flattening() {
+    let d = draw("[ box link \"https://in.dev\"; circle ]");
+    assert_eq!(d.shape_links[0].as_deref(), Some("https://in.dev"));
+    assert_eq!(d.shape_links[1], None);
+
+    let e = eval(&parse("[ box ] link \"https://x.dev\"").unwrap()).unwrap_err();
+    assert!(e.msg.contains("block"), "{e}");
+}
+
+#[test]
 fn open_object_width_height_attrs_are_arrowhead_dimensions() {
     let d = draw("arrowwid = 0.2; arrowht = 0.3\nA: line right 2\nbox wid (A.wid) ht (A.ht)");
     assert_box_size(&d.shapes[1], 0.2, 0.3);

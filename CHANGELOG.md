@@ -10,6 +10,22 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- **`link "<url>"` — clickable hyperlinks on objects.** A new contextual
+  extension with the same two forms as `class`: an inline attribute
+  (`box "docs" link "https://rpic.dev"`) and a statement reaching labels,
+  ordinals and macro-drawn shapes (`link A "https://…"`). The SVG backend
+  wraps the object's `<g id="sN">` group in `<a href="…">` — label included,
+  stable ids untouched, so `class`/`animate` compose on the same shape.
+  Re-applying replaces (last one wins). URLs are validated (non-empty, no
+  whitespace/control characters, no `javascript:`/`vbscript:`/`data:`
+  schemes) so hosts rendering untrusted pictures gain no XSS surface. The
+  compile bundle's `objects` entries carry a `"link"` key when set. SVG-only:
+  PNG/PDF render the identical picture without the link (usvg flattens the
+  anchor; verified pixel-identical). Unused, every output is byte-identical —
+  corpus 124/124 for both `--svg` and `--json`. (#358)
+
 ## [0.10.0] — 2026-07-10
 
 ### Added

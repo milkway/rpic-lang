@@ -1,0 +1,70 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: link
+description: Clickable hyperlinks on objects — rpic extension wrapping shapes in SVG anchors.
+---
+import PicExample from '../../../components/PicExample.astro';
+import Callout from '../../../components/Callout.astro';
+
+# link
+
+**rpic extension.** `link` makes an object a hyperlink: its SVG shape group
+is wrapped in `<a href="…">`, so clicking the shape — label included —
+navigates to the URL. No JavaScript, no host wiring: it's native SVG, and it
+works wherever the SVG is a real document (inline-embedded, `<img src>`, or
+opened directly).
+
+Two forms write to the same hook — and since **this page is a host
+document**, these are live links (click them!):
+
+<PicExample code={`.PS
+box "rpic.dev" fit link "https://rpic.dev"     # inline, at creation
+
+A: circle "GitHub" rad 0.42 at last box + (1.6, 0)
+arrow from last box.e to A.w
+link A "https://github.com/milkway/rpic-lang"  # statement: by label
+.PE`} />
+
+The statement form uses pic's native references — labels and ordinals — so
+it also reaches shapes drawn **inside macros** (circuit elements!), and lets
+link lines cluster at the end of a picture.
+
+## Rules
+
+- **SVG-only.** PNG and PDF render the *identical* picture, just without
+  the link (the raster pipeline flattens the anchor to a plain group).
+- **Validated, not raw.** The URL must be non-empty, free of whitespace and
+  control characters (percent-encode them), and must not use a
+  script-executing scheme (`javascript:`, `vbscript:`, `data:`) — a host
+  that renders untrusted pictures inline must not gain an XSS surface.
+  Relative URLs, `#fragments` and `mailto:` all pass.
+- Reapplying **replaces** — the last `link` wins. (Unlike
+  [`class`](/docs/extensions/class), URLs don't compose.)
+- The anchor wraps *outside* the `<g id="sN">` group: the stable ids and the
+  [`animate`](/docs/extensions/animate)/GSAP contract are untouched, and
+  `class` + `link` compose on the same shape.
+- The compile bundle's `objects` entries carry a `"link"` key when set, so
+  editors and players can surface it.
+- `link` is contextual: `link = 2` is still an assignment and `box wid link`
+  still reads the variable. Unused, the output is byte-for-byte classic.
+- Blocks are not supported yet — link the inner objects instead. A point
+  label has no drawn shape, so linking it is an error.
+
+<Callout type="tip" title="Thin strokes are small click targets">
+  An open object (a line or arc) is only as clickable as its stroke is
+  wide. For a generous hit area, link a filled shape near it, or thicken
+  the stroke (`thick 1.6`).
+</Callout>
+
+## Cross-linking a diagram
+
+Fragments (`#…`) and relative URLs pass validation, so a picture can link
+into its own page — a table of contents that is also the system diagram:
+
+<PicExample code={`.PS
+B1: box "Rules" fit link "#rules"
+arrow
+B2: box "Cross-linking" fit link "#cross-linking-a-diagram"
+.PE`} />
+
+Design notes: [docs/extensions.md](https://github.com/milkway/rpic-lang/blob/main/docs/extensions.md).

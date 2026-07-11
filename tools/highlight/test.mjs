@@ -65,7 +65,7 @@ expectScope('arrow ->', '->', 'keyword.operator.arrowhead');
 expectScope('box "plain label"', '"plain label"', 'string.quoted.double');
 expectScope('box "$\\beta$"', '\\beta', 'support.function.tex');
 // rpic extensions (distinct scope)
-for (const kw of ['fit', 'behind', 'close', 'hatch', 'crosshatch', 'opacity', 'gradient', 'class', 'texlabels', 'margin']) {
+for (const kw of ['fit', 'behind', 'close', 'hatch', 'crosshatch', 'opacity', 'gradient', 'class', 'link', 'texlabels', 'margin']) {
   expectScope(`box ${kw} 1`, kw, 'keyword.other.extension');
 }
 expectScope('animate B1 with "pop"', 'animate', 'keyword.control');
