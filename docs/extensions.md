@@ -218,6 +218,10 @@ Rules:
 - The anchor wraps *outside* the `<g id="sN">` group, so the stable ids and
   the GSAP/animation contract are untouched; `class` and `link` compose on
   the same shape.
+- The anchor carries `class="rpic-link"`. That opts it out of the common
+  `a:not([class])` host prose pattern — an embedding page's link CSS
+  (underline, colour) must not restyle the picture's labels — and gives the
+  host an explicit styling hook when it *does* want one.
 - The compile bundle's `objects` entries gain a `"link"` key when set, so
   editors can surface it.
 - `link` is contextual: `link = 2` is still an assignment and `box wid link`

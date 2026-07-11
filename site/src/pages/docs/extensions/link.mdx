@@ -43,6 +43,10 @@ link lines cluster at the end of a picture.
 - The anchor wraps *outside* the `<g id="sN">` group: the stable ids and the
   [`animate`](/docs/extensions/animate)/GSAP contract are untouched, and
   `class` + `link` compose on the same shape.
+- The anchor carries `class="rpic-link"`, so the common `a:not([class])`
+  prose pattern in host pages (underline, link colour) never restyles the
+  picture's labels — and `.rpic-link` is your styling hook when you *do*
+  want a hover affordance.
 - The compile bundle's `objects` entries carry a `"link"` key when set, so
   editors and players can surface it.
 - `link` is contextual: `link = 2` is still an assignment and `box wid link`
