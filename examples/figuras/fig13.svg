@@ -1,34 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48.266667" height="41.226667" viewBox="0 0 48.266667 41.226667" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="211.066667" height="41.226667" viewBox="0 0 211.066667 41.226667" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="37.226667" text-anchor="end">${\scriptsize 0}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="151.2" y="37.226667" text-anchor="end">${\scriptsize 0}$</text>
 </g>
 <g id="s1">
-<line x1="1.866667" y1="24.88" x2="41.768182" y2="24.88" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="35.466667,22.48 45.066667,24.88 35.466667,27.28" fill="black"/>
+<line x1="151.466667" y1="24.88" x2="191.368182" y2="24.88" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="185.066667,22.48 194.666667,24.88 185.066667,27.28" fill="black"/>
 </g>
 <g id="s2">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="45.066667" y="37.226667" text-anchor="middle">$t$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="194.666667" y="37.226667" text-anchor="middle">$t$</text>
 </g>
 <g id="s3">
-<line x1="4.266667" y1="34.48" x2="4.266667" y2="13.778485" stroke="black" stroke-width="1.6"/>
-<polygon stroke-width="0" points="1.866667,20.08 4.266667,10.48 6.666667,20.08" fill="black"/>
+<line x1="153.866667" y1="34.48" x2="153.866667" y2="13.778485" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="151.466667,20.08 153.866667,10.48 156.266667,20.08" fill="black"/>
 </g>
 <g id="s4">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.6" y="10.48" text-anchor="end">$f_2(t)$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="151.2" y="10.48" text-anchor="end">$f_2(t)$</text>
 </g>
 <g id="s5">
-<polyline points="4.266667,32.08 13.866667,32.08 13.866667,17.68 18.666667,17.68 18.666667,32.08 23.466667,32.08 23.466667,17.68 37.866667,17.68 37.866667,24.88" fill="none" stroke="black" stroke-width="1.6"/>
+<polyline points="153.866667,32.08 163.466667,32.08 163.466667,17.68 168.266667,17.68 168.266667,32.08 173.066667,32.08 173.066667,17.68 187.466667,17.68 187.466667,24.88" fill="none" stroke="black" stroke-width="1.6"/>
 </g>
 <g id="s6">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="16" y="37.226667" text-anchor="end">${\scriptsize 3}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="165.6" y="37.226667" text-anchor="end">${\scriptsize 3}$</text>
 </g>
 <g id="s7">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="20.8" y="37.226667" text-anchor="end">${\scriptsize 4}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="170.4" y="37.226667" text-anchor="end">${\scriptsize 4}$</text>
 </g>
 <g id="s8">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="11.2" y="37.226667" text-anchor="end">${\scriptsize 2}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="160.8" y="37.226667" text-anchor="end">${\scriptsize 2}$</text>
 </g>
 <g id="s9">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="35.2" y="37.226667" text-anchor="end">${\scriptsize 7}$</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="184.8" y="37.226667" text-anchor="end">${\scriptsize 7}$</text>
 </g>
 </svg>
