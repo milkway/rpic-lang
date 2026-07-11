@@ -52,6 +52,66 @@ animate C with "pop" after B
 animate B with "wiggle" wiggles 6 after C
 .PE`} />
 
+## Quick start — plain HTML, no build step
+
+Everything on this page runs from two CDN files: [GSAP](https://gsap.com) and
+the rpic package (which ships the player). No bundler required.
+
+**Compile in the browser.** The wasm build compiles pic source on the page and
+plays the manifest in one go:
+
+```html
+<div id="stage"></div>
+<script type="module">
+  import { ready, compile, animate } from
+    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+  import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.13.0/+esm';
+
+  await ready();                      // the .wasm is fetched from the CDN
+  const { svg, animations } = compile(`box "A"; arrow; box "B"
+animate 1st box with "pop"
+animate last arrow with "draw"
+animate last box with "fade"`);
+  const stage = document.querySelector('#stage');
+  stage.innerHTML = svg;
+  animate(stage, animations, gsap);
+</script>
+```
+
+**Or pre-render with the CLI.** `rpic --json fig.pic` gives you `{ svg,
+animations, … }`; paste both into a static page and import only the player —
+`animate()` never touches the wasm, so nothing is compiled at runtime. This is
+the classic GSAP header pattern:
+
+```html
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"
+          integrity="sha384-HOvlOYPIs/zjoIkWUGXkVmXsjr8GuZLV+Q+rcPwmJOVZVpvTSXQChiN4t9Euv9Vc"
+          crossorigin="anonymous"></script>
+  <!-- only if the source uses move / morph / scramble / wiggle: -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/MotionPathPlugin.min.js"
+          integrity="sha384-ZdcNM4JVCcTz+LG7hy3tkzchm/ljdYJcwthjW8G4vqAXApMm4ve+3ByX+RfrAlFt"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="stage"><!-- paste the `svg` string here --></div>
+  <script type="module">
+    import { animate } from
+      'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+    gsap.registerPlugin(MotionPathPlugin); // only with the plugin above
+    const animations = [/* paste the `animations` array here */];
+    animate(document.querySelector('#stage'), animations, gsap);
+  </script>
+</body>
+```
+
+The same pattern loads `dist/MorphSVGPlugin.min.js`, `dist/ScrambleTextPlugin.min.js`
+and `dist/CustomEase.min.js` + `dist/CustomWiggle.min.js` when those effects are
+in play — see the [plugin note](#effects) below. Pin the versions you tested
+(jsdelivr also accepts ranges like `@0.10`). If you have a bundler, skip the
+CDN and `npm install @strategicprojects/rpic gsap` — see
+[Consuming the manifest](#consuming-the-manifest).
+
 ## Syntax
 
 ```
