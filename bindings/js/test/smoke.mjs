@@ -149,3 +149,18 @@ assert.ok(
   texlabels.diagnostics.some((d) => d.includes('no math renderer')),
   'lean build must diagnose the fallback'
 );
+
+// #356: the player is a standalone, zero-import module — importable without
+// the wasm glue, and the root re-export is the same function.
+{
+  const player = await import('../player.js');
+  assert.equal(typeof player.animate, 'function');
+  assert.equal(typeof player.interactive, 'function');
+  const root = await import('../index.js');
+  assert.equal(root.animate, player.animate, 'index.js must re-export the player');
+  assert.equal(root.interactive, player.interactive);
+  // regression guard: player.js must never grow an import (that is the point)
+  const src = readFileSync(new URL('../player.js', import.meta.url), 'utf8');
+  assert.ok(!/^\s*import\b/m.test(src), 'player.js must have zero imports');
+  assert.ok(!/from\s+['"]\.\/pkg\//.test(src), 'player.js must not touch the wasm glue');
+}
