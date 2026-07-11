@@ -103,10 +103,15 @@ impl Svg {
             // the stable `s<N>` id (the GSAP/animation target) is untouched.
             // Raster/PDF backends flatten `<a>` to a group (usvg), so the
             // picture is identical there, just without the link.
+            // `class="rpic-link"` opts the anchor out of the common
+            // `a:not([class])` host prose pattern (the picture styles itself)
+            // and doubles as a styling hook (#362).
             let link = d.shape_links.get(i).and_then(|l| l.as_deref());
             if let Some(url) = link {
-                self.out
-                    .push_str(&format!("<a href=\"{}\">\n", escape_attr(url)));
+                self.out.push_str(&format!(
+                    "<a href=\"{}\" class=\"rpic-link\">\n",
+                    escape_attr(url)
+                ));
             }
             // The stable `s<N>` id is the GSAP/animation target; a `class`
             // extension hook rides alongside it without changing the id.
@@ -2506,8 +2511,9 @@ mod tests {
     #[test]
     fn link_wraps_shape_group_in_anchor_and_keeps_ids() {
         let s = svg("box link \"https://rpic.dev\"\ncircle");
+        // class="rpic-link" opts out of `a:not([class])` host prose rules (#362)
         assert!(
-            s.contains("<a href=\"https://rpic.dev\">\n<g id=\"s0\">"),
+            s.contains("<a href=\"https://rpic.dev\" class=\"rpic-link\">\n<g id=\"s0\">"),
             "{s}"
         );
         assert!(s.contains("</g>\n</a>\n"), "{s}");
@@ -2516,12 +2522,17 @@ mod tests {
 
         // the URL goes through the attribute escaper
         let s = svg("box link \"https://a.dev/?x=1&y=2\"");
-        assert!(s.contains("<a href=\"https://a.dev/?x=1&amp;y=2\">"), "{s}");
+        assert!(
+            s.contains("<a href=\"https://a.dev/?x=1&amp;y=2\" class=\"rpic-link\">"),
+            "{s}"
+        );
 
         // class and link compose: anchor outside, class on the group
         let s = svg("box class \"hot\" link \"https://rpic.dev\"");
         assert!(
-            s.contains("<a href=\"https://rpic.dev\">\n<g id=\"s0\" class=\"hot\">"),
+            s.contains(
+                "<a href=\"https://rpic.dev\" class=\"rpic-link\">\n<g id=\"s0\" class=\"hot\">"
+            ),
             "{s}"
         );
 
@@ -2535,10 +2546,10 @@ mod tests {
         let s =
             svg("A: box link \"https://front.dev\"\nbox link \"https://back.dev\" behind A at A");
         let back = s
-            .find("<a href=\"https://back.dev\">\n<g id=\"s1\">")
+            .find("<a href=\"https://back.dev\" class=\"rpic-link\">\n<g id=\"s1\">")
             .unwrap();
         let front = s
-            .find("<a href=\"https://front.dev\">\n<g id=\"s0\">")
+            .find("<a href=\"https://front.dev\" class=\"rpic-link\">\n<g id=\"s0\">")
             .unwrap();
         assert!(back < front, "{s}");
     }

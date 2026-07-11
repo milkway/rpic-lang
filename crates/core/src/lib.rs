@@ -517,7 +517,10 @@ mod tests {
             "{j}"
         );
         // the SVG side carries the anchor wrapper, JSON-escaped
-        assert!(j.contains("<a href=\\\"https://rpic.dev\\\">"), "{j}");
+        assert!(
+            j.contains("<a href=\\\"https://rpic.dev\\\" class=\\\"rpic-link\\\">"),
+            "{j}"
+        );
         // the unlinked circle has no link key
         let circle_entry = &j[j.find("\"id\":\"s1\"").unwrap()..];
         assert!(

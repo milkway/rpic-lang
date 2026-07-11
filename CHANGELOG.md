@@ -31,7 +31,10 @@ resolves to the latest version.
   Re-applying replaces (last one wins). URLs are validated (non-empty, no
   whitespace/control characters, no `javascript:`/`vbscript:`/`data:`
   schemes) so hosts rendering untrusted pictures gain no XSS surface. The
-  compile bundle's `objects` entries carry a `"link"` key when set. SVG-only:
+  compile bundle's `objects` entries carry a `"link"` key when set. The anchor
+  carries `class="rpic-link"`, opting out of `a:not([class])` host prose CSS
+  (no underline/colour leaking into labels) and doubling as a styling hook
+  (#362). SVG-only:
   PNG/PDF render the identical picture without the link (usvg flattens the
   anchor; verified pixel-identical). Unused, every output is byte-identical —
   corpus 124/124 for both `--svg` and `--json`. (#358)
