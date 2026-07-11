@@ -20,6 +20,31 @@ rpic.animate(document.querySelector('#stage'), animations, gsap);
 rpic.renderSvg('A:(0,0); B:(2,0)\nresistor(A,B)', { circuits: true });
 ```
 
+### No bundler? Plain HTML via CDN
+
+The package works straight from a CDN — compile in the page, or pre-render
+with the CLI (`rpic --json fig.pic`) and import only the player (`animate()`
+never touches the wasm):
+
+```html
+<div id="stage"></div>
+<script type="module">
+  import { ready, compile, animate } from
+    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+  import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.13.0/+esm';
+  await ready();                    // the .wasm is fetched from the CDN
+  const { svg, animations } = compile('box "A"; arrow; box "B"\nanimate last box with "pop"');
+  const stage = document.querySelector('#stage');
+  stage.innerHTML = svg;
+  animate(stage, animations, gsap);
+</script>
+```
+
+The [animate docs](https://rpic.dev/docs/extensions/animate#quick-start--plain-html-no-build-step)
+carry the full recipe, including the pre-rendered variant with classic
+`<script>` tags (with SRI hashes) and the plugin files `move`/`morph`/
+`scramble`/`wiggle` need.
+
 ### Node
 
 ```js
