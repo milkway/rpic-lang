@@ -12,6 +12,16 @@ resolves to the latest version.
 
 ### Added
 
+- **npm: standalone player module (`@strategicprojects/rpic/player`).** The
+  GSAP player (`animate`/`interactive` + helpers) moved to `player.js`, a
+  **zero-import** module — it never touches the wasm compiler, so a page with
+  a pre-rendered SVG (`rpic --json` on the CLI) can import just the player
+  (bundler subpath `…/player`, or `…/player.js` straight from a CDN) and
+  fetch nothing wasm-related. `index.js` re-exports it, so the existing
+  `import { animate } from '@strategicprojects/rpic'` is unchanged; types
+  split likewise (`player.d.ts`, re-exported by `index.d.ts`). A smoke-test
+  guard asserts the module stays import-free. (#356)
+
 - **`link "<url>"` — clickable hyperlinks on objects.** A new contextual
   extension with the same two forms as `class`: an inline attribute
   (`box "docs" link "https://rpic.dev"`) and a statement reaching labels,

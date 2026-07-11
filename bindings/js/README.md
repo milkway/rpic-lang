@@ -16,6 +16,10 @@ document.querySelector('#stage').innerHTML = svg;
 import { gsap } from 'gsap';
 rpic.animate(document.querySelector('#stage'), animations, gsap);
 
+// pre-rendered SVG (e.g. from `rpic --json` on the CLI)? Import just the
+// player — a zero-import module that never touches the wasm compiler:
+// import { animate } from '@strategicprojects/rpic/player';
+
 // circuit library:
 rpic.renderSvg('A:(0,0); B:(2,0)\nresistor(A,B)', { circuits: true });
 ```

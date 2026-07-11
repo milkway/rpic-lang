@@ -11,12 +11,18 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
+    "./player": {
+      "types": "./player.d.ts",
+      "default": "./player.js"
+    },
     "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm",
     "./pkg/rpic_wasm_math_bg.wasm": "./pkg/rpic_wasm_math_bg.wasm"
   },
   "files": [
     "index.js",
     "index.d.ts",
+    "player.js",
+    "player.d.ts",
     "pkg/rpic_wasm.js",
     "pkg/rpic_wasm.d.ts",
     "pkg/rpic_wasm_bg.wasm",

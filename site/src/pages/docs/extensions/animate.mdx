@@ -105,6 +105,11 @@ the classic GSAP header pattern:
 </body>
 ```
 
+On package versions **after 0.10.0** the player is also its own zero-import
+module: swap the import for `…/rpic@<version>/player.js` and the page fetches
+nothing wasm-related at all (`index.js` statically imports the wasm glue JS —
+harmless but ~10 KB you don't need with a pre-rendered SVG).
+
 The same pattern loads `dist/MorphSVGPlugin.min.js`, `dist/ScrambleTextPlugin.min.js`
 and `dist/CustomEase.min.js` + `dist/CustomWiggle.min.js` when those effects are
 in play — see the [plugin note](#effects) below. Pin the versions you tested
