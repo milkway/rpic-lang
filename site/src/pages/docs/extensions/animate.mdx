@@ -77,7 +77,7 @@ plays the manifest in one go:
 <div id="stage"></div>
 <script type="module">
   import { ready, compile, animate } from
-    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.11.0/index.js';
   import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.13.0/+esm';
 
   await ready();                      // the .wasm is fetched from the CDN
@@ -110,7 +110,7 @@ the classic GSAP header pattern:
   <div id="stage"><!-- paste the `svg` string here --></div>
   <script type="module">
     import { animate } from
-      'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+      'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.11.0/player.js';
     gsap.registerPlugin(MotionPathPlugin); // only with the plugin above
     const animations = [/* paste the `animations` array here */];
     animate(document.querySelector('#stage'), animations, gsap);
@@ -118,10 +118,10 @@ the classic GSAP header pattern:
 </body>
 ```
 
-On package versions **after 0.10.0** the player is also its own zero-import
-module: swap the import for `…/rpic@<version>/player.js` and the page fetches
-nothing wasm-related at all (`index.js` statically imports the wasm glue JS —
-harmless but ~10 KB you don't need with a pre-rendered SVG).
+`player.js` is the player as its own zero-import module, so the page fetches
+nothing wasm-related at all — importing `index.js` also works but statically
+pulls the wasm glue JS (harmless, just ~10 KB you don't need with a
+pre-rendered SVG).
 
 The same pattern loads `dist/MorphSVGPlugin.min.js`, `dist/ScrambleTextPlugin.min.js`
 and `dist/CustomEase.min.js` + `dist/CustomWiggle.min.js` when those effects are

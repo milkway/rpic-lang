@@ -34,7 +34,7 @@ never touches the wasm):
 <div id="stage"></div>
 <script type="module">
   import { ready, compile, animate } from
-    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.10.0/index.js';
+    'https://cdn.jsdelivr.net/npm/@strategicprojects/rpic@0.11.0/index.js';
   import { gsap } from 'https://cdn.jsdelivr.net/npm/gsap@3.13.0/+esm';
   await ready();                    // the .wasm is fetched from the CDN
   const { svg, animations } = compile('box "A"; arrow; box "B"\nanimate last box with "pop"');
