@@ -927,11 +927,11 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.10.0"
+version = "0.11.0"
 
 [[package]]
 name = "rpic-python"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "pyo3",
  "rpic-core",
@@ -940,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-render"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "ratex-layout",
  "ratex-parser",
