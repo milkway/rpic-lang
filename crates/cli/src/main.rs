@@ -6,6 +6,8 @@
 use std::io::Write;
 use std::process::ExitCode;
 
+mod html;
+
 enum Mode {
     Svg,
     Png,
@@ -13,6 +15,7 @@ enum Mode {
     Ast,
     Tokens,
     Json,
+    Html,
 }
 
 fn main() -> ExitCode {
@@ -38,6 +41,7 @@ fn main() -> ExitCode {
             "--ast" => mode = Mode::Ast,
             "--tokens" => mode = Mode::Tokens,
             "--json" => mode = Mode::Json,
+            "--html" => mode = Mode::Html,
             "-o" | "--output" => {
                 i += 1;
                 match args.get(i) {
@@ -101,7 +105,12 @@ fn main() -> ExitCode {
         includes: rpic_core::IncludePolicy::Unrestricted,
         ..Default::default()
     };
-    let result = run(&src, &mode, scale, &opts);
+    // the page title for `--html`: the input file's stem
+    let title = std::path::Path::new(&path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "rpic".to_string());
+    let result = run(&src, &mode, scale, &opts, &title);
     match result {
         Ok(Output::Text(s)) => {
             if let Some(o) = out {
@@ -153,6 +162,7 @@ fn run(
     mode: &Mode,
     scale: f32,
     opts: &rpic_core::CompileOptions,
+    title: &str,
 ) -> Result<Output, String> {
     match mode {
         Mode::Tokens => {
@@ -183,6 +193,11 @@ fn run(
         Mode::Json => Ok(Output::Text(rpic_core::compile_json_with_options(
             src, opts,
         ))),
+        Mode::Html => {
+            let d = rpic_core::compile_with_options(src, opts)?;
+            emit_diagnostics(&d);
+            Ok(Output::Text(html::to_html(&d, title)))
+        }
         Mode::Png => {
             let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
@@ -214,7 +229,8 @@ fn print_help() {
          --pdf       render to PDF\n    \
          --ast       dump the syntax tree\n    \
          --tokens    dump the token stream\n    \
-    --json      emit compile JSON (svg, animations, diagnostics, warnings, objects)\n\n\
+    --json      emit compile JSON (svg, animations, diagnostics, warnings, objects)\n    \
+         --html      self-contained animated page (SVG + GSAP player inline; plugins from CDN)\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \

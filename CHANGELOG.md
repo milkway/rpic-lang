@@ -24,6 +24,16 @@ resolves to the latest version.
 
 ### Added
 
+- **`rpic --html` — a self-contained animated page from one command.** The
+  new CLI mode writes a single HTML file with the SVG, the animation +
+  interaction manifests and the GSAP player inlined (the `player.js` module,
+  embedded at compile time and guarded byte-identical to the npm copy by a
+  test), plus pinned `gsap@3.13.0` CDN `<script>` tags with SRI integrity
+  hashes — and **only** the plugins the used effects require (`move` →
+  MotionPathPlugin, `morph` → MorphSVG, `scramble` → ScrambleText, `wiggle`
+  → CustomEase+CustomWiggle, `draggable` → Draggable (+Inertia), `animate
+  scroll` → ScrollTrigger, wired to scrub with scroll room). A drawing with
+  no animations becomes a plain static page with no scripts at all. (#357)
 - **npm: standalone player module (`@strategicprojects/rpic/player`).** The
   GSAP player (`animate`/`interactive` + helpers) moved to `player.js`, a
   **zero-import** module — it never touches the wasm compiler, so a page with

@@ -54,8 +54,21 @@ animate B with "wiggle" wiggles 6 after C
 
 ## Quick start — plain HTML, no build step
 
-Everything on this page runs from two CDN files: [GSAP](https://gsap.com) and
-the rpic package (which ships the player). No bundler required.
+The zero-effort path is the CLI writing the whole page for you:
+
+```sh
+rpic --html -o fig.html fig.pic
+```
+
+That's a single self-contained file — SVG, manifest and the GSAP player
+inlined, and GSAP itself (plus only the plugins your effects need) pulled
+from a pinned, integrity-checked CDN tag. Open it and the timeline plays;
+`animate scroll` sources get scroll-scrubbing wired, `draggable` objects
+respond. A drawing with no animations becomes a plain static page.
+
+Prefer to own the page? Everything here runs from two CDN files:
+[GSAP](https://gsap.com) and the rpic package (which ships the player). No
+bundler required.
 
 **Compile in the browser.** The wasm build compiles pic source on the page and
 plays the manifest in one go:
