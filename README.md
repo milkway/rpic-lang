@@ -118,7 +118,15 @@ rpic --pdf -o out.pdf diagram.pic
 rpic -c circuit.pic                    # load the circuit-element library
 rpic -t paper.pic                      # typeset $…$ labels as TeX math
 rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects}
+rpic --html -o page.html animated.pic  # self-contained page: SVG + GSAP player inline
 ```
+
+`--html` writes a single page that plays the drawing's
+[`animate`](docs/extensions.md#declarative-animation) timeline on open: the
+SVG, the manifest and the player are inlined, and GSAP (plus **only** the
+plugins the used effects need) is pulled from a pinned, integrity-checked CDN
+tag. A drawing with no animations becomes a plain static page with no
+scripts at all.
 
 ## Examples
 
