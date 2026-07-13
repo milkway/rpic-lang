@@ -735,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "ratex-types"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43de9e079b1056b08fd89143cb905e47bcb459510141c5dd702b290e18447054"
+checksum = "30f353419bafeab3d0cd9cfbd3d991293df28a3ea1923e717dfb9ff1bcb28f4a"
 dependencies = [
  "serde",
 ]
