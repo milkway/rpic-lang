@@ -647,9 +647,9 @@ checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
 name = "ratex-font"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03059293a2a4cdeab32f348fbf2eb649e696a6a8c88b8142de7d016ab84f0013"
+checksum = "4488ca88b7c08ba266b30431718330b19b5714a7af5f7eb2ddaab1d801daae2b"
 dependencies = [
  "phf",
  "ratex-types",
@@ -691,9 +691,9 @@ dependencies = [
 
 [[package]]
 name = "ratex-lexer"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6af24235c2700f21a80620885bb3de96efe884726ac89937abb8c27e4683ff28"
+checksum = "73da647195c345fe25d1815b67ae365950f0b80640a555f07f65c6b4d79dc509"
 dependencies = [
  "ratex-types",
  "serde",
@@ -702,9 +702,9 @@ dependencies = [
 
 [[package]]
 name = "ratex-parser"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c897f4653b44a87fa257b1602dc1962c3d738fd1fad01aa0ea0f44ef6af1f202"
+checksum = "b632e1438b4a273dd856036765405a4bbc223b6bfc67234285888580545b9fd2"
 dependencies = [
  "fancy-regex",
  "ratex-font",
@@ -735,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "ratex-types"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43de9e079b1056b08fd89143cb905e47bcb459510141c5dd702b290e18447054"
+checksum = "30f353419bafeab3d0cd9cfbd3d991293df28a3ea1923e717dfb9ff1bcb28f4a"
 dependencies = [
  "serde",
 ]
