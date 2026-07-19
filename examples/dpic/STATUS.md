@@ -1,8 +1,10 @@
 # Parity Status
 
 This directory is the checked-in, curated dpic example corpus used by rpic's
-local parity checks. It currently contains **56** `.pic` files: manual
-reproductions, source diagnostics, 3-D projection examples, and shape demos.
+local parity checks. It currently contains **56** `.pic` files: **55 figures**
+(manual reproductions, source diagnostics, 3-D projection examples, and shape
+demos) plus `3d/libdp3D.pic`, the 3-D support library that `EscherCube.pic`
+copies.
 
 Current compile/render status:
 
@@ -60,8 +62,17 @@ under rpic and dpic. For presentation-oriented rpic documents outside this
 oracle corpus, prefer the documented canvas margin extension or an explicit
 geometry margin when extra framing is desired.
 
-In this checkout, `dpic -v` itself fails on `3d/EscherCube.pic` and
-`manual/man31.pic`; those remain covered by the rpic render pass above.
+Two files sit outside the dpic-eligible set in the table above, for different
+reasons. `manual/man31.pic` genuinely fails under `dpic -v`: its
+`svg_font(...)` guard errors at parse time. `3d/EscherCube.pic` is not a dpic
+failure at all: dpic resolves `copy "libdp3D.pic"` relative to the working
+directory, not the source file, so it compiles cleanly when dpic is invoked
+from `3d/` — and, run that way, it matches rpic on the parity metric
+(element counts and `stroke-dasharray`: 11 polylines + 45 lines, no dashes,
+both sides; checked against dpic 2025.08.01). The parity harness runs from
+the repository root, which is why the table counts 54; running the oracle
+per-directory would make it 55. Both files remain covered by the rpic render
+pass above.
 
 Credits: the language and original examples trace back to **Brian W.
 Kernighan**'s pic; the reference implementation and this corpus come from
