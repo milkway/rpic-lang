@@ -654,6 +654,9 @@ fn trim_edge_newlines(toks: &[Spanned]) -> Vec<Spanned> {
 
 /// Replace `$k` argument tokens in a macro body with the k-th argument's tokens.
 fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
+    // One shared frame per substitution: tagging every token with its own
+    // deep copy of `args` is exponential under recursive macros (#373).
+    let frame = std::sync::Arc::new(args.to_vec());
     let mut out = Vec::new();
     let mut i = 0;
     while i < body.len() {
@@ -666,7 +669,7 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
         }
 
         if let Some((pasted, next)) = paste_adjacent_args(body, args, i) {
-            out.push(pasted.with_arg_frame(args));
+            out.push(pasted.with_arg_frame(&frame));
             i = next;
             continue;
         }
@@ -675,22 +678,22 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
         match &s.tok {
             Token::Arg(k) => {
                 if let Some(a) = args.get((*k as usize).wrapping_sub(1)) {
-                    out.extend(a.iter().cloned().map(|s| s.with_arg_frame(args)));
+                    out.extend(a.iter().cloned().map(|s| s.with_arg_frame(&frame)));
                 }
             }
             // `$+` is the number of arguments passed to this macro
             Token::ArgCount => out.push(
-                Spanned::new(Token::Float(args.len() as f64), s.line, s.col).with_arg_frame(args),
+                Spanned::new(Token::Float(args.len() as f64), s.line, s.col).with_arg_frame(&frame),
             ),
             // `$n` is also substituted inside string literals (the `"$1"==""`
             // default-argument idiom, sprintf templates like `"$2%g"`, …).
             Token::Str(text) if text.contains('$') => {
                 out.push(
                     Spanned::new(Token::Str(subst_in_string(text, args)), s.line, s.col)
-                        .with_arg_frame(args),
+                        .with_arg_frame(&frame),
                 );
             }
-            _ => out.push(s.clone().with_arg_frame(args)),
+            _ => out.push(s.clone().with_arg_frame(&frame)),
         }
         i += 1;
     }
