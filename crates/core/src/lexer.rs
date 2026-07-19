@@ -24,7 +24,7 @@ pub struct Spanned {
     pub file: Option<Arc<str>>,
     /// Macro arguments that were in scope when this token was produced by
     /// macro substitution. Used by eval-time `exec` expansion.
-    pub arg_frame: Option<Vec<Vec<Spanned>>>,
+    pub arg_frame: Option<Arc<Vec<Vec<Spanned>>>>,
     /// Macro definitions that were in scope when a deferred `if`/`for` body was
     /// copied. Used when that body is parsed later by the evaluator.
     pub macro_frame: Option<Arc<HashMap<String, Vec<Spanned>>>>,
@@ -57,8 +57,8 @@ impl Spanned {
         Span::new(self.line, self.col, self.end_col).in_file(self.file.clone())
     }
 
-    pub fn with_arg_frame(mut self, args: &[Vec<Spanned>]) -> Self {
-        self.arg_frame = Some(args.to_vec());
+    pub fn with_arg_frame(mut self, args: &Arc<Vec<Vec<Spanned>>>) -> Self {
+        self.arg_frame = Some(Arc::clone(args));
         self
     }
 

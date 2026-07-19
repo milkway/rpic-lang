@@ -39,6 +39,31 @@ fn zero_iteration_for_body_is_never_parsed() {
 }
 
 #[test]
+fn recursive_macro_expansion_stays_fast() {
+    // #373: substitute() tagged every emitted token with its own deep copy
+    // of the argument lists, and argument tokens carry the previous level's
+    // frames — so token size grew ~|args|^depth. man36's tree(4,…) took
+    // 4.4 s and depth 6 ran for hours. With the shared-Arc frame this
+    // compiles in milliseconds; a regression hangs the suite visibly.
+    let d = draw(
+        "circlerad = 0.2\n\
+         define tree {[\n\
+           if $1 <= 1 then {\n\
+             N: circle sprintf(\"%g\",$2)\n\
+           } else {\n\
+             L: tree($1-1, int(($2)/10))\n\
+             R: tree($1-1, ($2)-11) with .w at L.e+(0.1,0)\n\
+             N: circle sprintf(\"%g\",$2) with .s at 0.5<L.ne,R.nw>+(0,0.1)\n\
+             line from N to L.N chop\n\
+             line from N to R.N chop\n\
+           }\n\
+         ]}\n\
+         tree(6,1000)",
+    );
+    assert_eq!(d.shapes.len(), 125); // 63 node circles + 62 connecting lines
+}
+
+#[test]
 fn executed_for_body_still_reports_errors_with_structure() {
     let e = eval(&parse("for i = 1 to 2 do { bxo }").unwrap()).unwrap_err();
     assert!(e.msg.contains("expected an object"), "{e}");

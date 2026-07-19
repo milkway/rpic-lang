@@ -163,7 +163,7 @@ pub enum Stmt {
     /// `exec <string>` — evaluate generated pic source in the current state.
     Exec {
         command: StringExpr,
-        arg_frame: Option<Vec<Vec<Spanned>>>,
+        arg_frame: Option<std::sync::Arc<Vec<Vec<Spanned>>>>,
     },
     /// `reset` (all) or `reset a, b, …` — restore environment variables.
     Reset(Vec<EnvVar>),

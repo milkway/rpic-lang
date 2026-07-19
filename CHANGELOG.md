@@ -10,6 +10,18 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Recursive macro expansion no longer takes exponential time.** Macro
+  substitution stamped every emitted token with its own deep copy of the
+  call's argument token lists; since argument tokens already carry the
+  frames of the enclosing call, per-token size grew roughly
+  |args|^recursion-depth. `examples/dpic/manual/man36.pic` (a 17-line
+  recursive binary tree) compiled in 4.4 s versus dpic's 2.7 ms, and one
+  level deeper ran for hours. The argument frame is now built once per
+  substitution and shared (`Arc`), bringing man36 to ~6 ms with the full
+  124-file corpus byte-identical in `--svg` and `--json`. (#373)
+
 ## [0.11.0] — 2026-07-11
 
 ### Fixed

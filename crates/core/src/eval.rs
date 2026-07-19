@@ -1004,7 +1004,7 @@ impl State {
                     &src,
                     &mut self.macros,
                     &self.includes,
-                    arg_frame.as_deref(),
+                    arg_frame.as_ref().map(|a| a.as_slice()),
                 )
                 .map_err(parse_eval_error)?;
                 self.eval_stmts(&stmts)?;
