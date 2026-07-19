@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-07-19
+
 ### Fixed
 
 - **Recursive macro expansion no longer takes exponential time.** Macro
@@ -387,7 +389,8 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/milkway/rpic-lang/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/milkway/rpic-lang/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.10.0
 [0.9.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.9.0

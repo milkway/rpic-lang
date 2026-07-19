@@ -2,7 +2,7 @@
 # depend on PyO3/Python. Build wheels with maturin.
 [package]
 name = "rpic-python"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2024"
 license = "BSD-2-Clause"
 authors = ["André Leite <leite@de.ufpe.br>"]
