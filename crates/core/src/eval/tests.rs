@@ -3193,3 +3193,34 @@ fn animation_words_are_contextual() {
     );
     assert_eq!(d.anims.len(), 1);
 }
+
+#[test]
+fn optional_operand_keeps_dpic_reading_for_assigned_names() {
+    // After `dashed` (and the other optional-operand attributes) dpic reads a
+    // name as the operand and fails if it is undefined. An extension word that
+    // has been assigned must therefore be the operand, not the attribute
+    // (collision corpus, rpic-papers cola/tools); unassigned, it is the
+    // attribute as before.
+    for w in [
+        "fit",
+        "behind",
+        "opacity",
+        "gradient",
+        "class",
+        "link",
+        "hatch",
+        "crosshatch",
+    ] {
+        let ctl = crate::to_svg(&draw("zz = 0.3\nbox dashed zz"));
+        let got = crate::to_svg(&draw(&format!("{w} = 0.3\nbox dashed {w}")));
+        assert_eq!(got, ctl, "`{w}` assigned: operand reading");
+    }
+    // unassigned `fit` after `dashed` is still the attribute
+    let a = crate::to_svg(&draw("box \"a\" dashed fit"));
+    let b = crate::to_svg(&draw("box \"a\" fit dashed"));
+    assert_eq!(a, b);
+    // a `for` loop variable counts as assigned
+    let ctl = crate::to_svg(&draw("for zz = 0.2 to 0.2 do { box dashed zz }"));
+    let got = crate::to_svg(&draw("for fit = 0.2 to 0.2 do { box dashed fit }"));
+    assert_eq!(got, ctl);
+}
