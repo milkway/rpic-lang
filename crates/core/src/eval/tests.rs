@@ -2168,6 +2168,15 @@ fn previous_is_a_synonym_for_last() {
     // `previous box`, `2nd previous box` parse and resolve
     assert!(eval(&parse("box; box\ncircle at previous box.n").unwrap()).is_ok());
     assert!(eval(&parse("box; box; box\ncircle at 2nd previous box.n").unwrap()).is_ok());
+    // …and it is contextual: as a variable or macro name it is what dpic
+    // makes of it (collision corpus, rpic-papers cola/tools)
+    let ctl = crate::to_svg(&draw("zz = 2\nbox wid zz"));
+    assert_eq!(crate::to_svg(&draw("previous = 2\nbox wid previous")), ctl);
+    let ctl = crate::to_svg(&draw("define zz { box }\nzz"));
+    assert_eq!(
+        crate::to_svg(&draw("define previous { box }\nprevious")),
+        ctl
+    );
 }
 
 #[test]
