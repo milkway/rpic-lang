@@ -747,18 +747,11 @@ fn word_keyword(w: &str) -> Token {
         "for" => Kw(self::Kw::For),
         "do" => Kw(self::Kw::Do),
         "sprintf" => Kw(self::Kw::Sprintf),
-        // rpic animation extension
-        "animate" => Kw(self::Kw::Animate),
-        "after" => Kw(self::Kw::After),
-        "delay" => Kw(self::Kw::Delay),
-        "repeat" => Kw(self::Kw::Repeat),
-        "yoyo" => Kw(self::Kw::Yoyo),
-        "ease" => Kw(self::Kw::Ease),
-        "along" => Kw(self::Kw::Along),
-        "stagger" => Kw(self::Kw::Stagger),
-        "out" => Kw(self::Kw::Out),
-        "scroll" => Kw(self::Kw::Scroll),
-        "into" => Kw(self::Kw::Into),
+        // The rpic animation vocabulary (`animate`, `after`, `delay`, `repeat`,
+        // `yoyo`, `ease`, `along`, `stagger`, `out`, `scroll`, `into`) is NOT
+        // reserved: the words lex as ordinary names and the parser recognises
+        // them contextually, only inside an `animate` statement. dpic accepts
+        // `after = 2` as a variable, so rpic must too.
         // line types
         "solid" => LineType(self::LineType::Solid),
         "dotted" => LineType(self::LineType::Dotted),

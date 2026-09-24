@@ -3162,3 +3162,25 @@ fn typed_last_still_filters_by_kind() {
 fn untyped_last_with_no_object_errors() {
     assert!(eval(&parse("\"q\" at last.c").unwrap()).is_err());
 }
+
+#[test]
+fn animation_words_are_contextual() {
+    // dpic accepts every animation word as an ordinary variable or macro
+    // name; so must rpic (the collision corpus, rpic-papers cola/tools).
+    for w in [
+        "animate", "after", "delay", "repeat", "yoyo", "ease", "along", "stagger", "out", "scroll",
+        "into",
+    ] {
+        let ctl = crate::to_svg(&draw("zz = 2\nbox wid zz"));
+        let var = crate::to_svg(&draw(&format!("{w} = 2\nbox wid {w}")));
+        assert_eq!(var, ctl, "`{w}` as a variable");
+        let ctl = crate::to_svg(&draw("define zz { box }\nzz"));
+        let mac = crate::to_svg(&draw(&format!("define {w} {{ box }}\n{w}")));
+        assert_eq!(mac, ctl, "`{w}` as a macro name");
+    }
+    // …and the statement still parses with every clause word in place.
+    let d = draw(
+        "B: box\nanimate B with \"pop\" for 0.4 after B delay 0.1 repeat 2 yoyo ease \"linear\" stagger 0.1 out",
+    );
+    assert_eq!(d.anims.len(), 1);
+}

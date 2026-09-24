@@ -137,18 +137,6 @@ pub enum Kw {
     For,
     Do,
     Sprintf,
-    // rpic animation extension (not in classic pic)
-    Animate,
-    After,
-    Delay,
-    Repeat,
-    Yoyo,
-    Ease,
-    Along,
-    Stagger,
-    Out,
-    Scroll,
-    Into,
 }
 
 /// Compass / named corners of an object.

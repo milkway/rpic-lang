@@ -240,6 +240,12 @@ consumers ignore it entirely. A thin web player drives a GSAP timeline against
 those ids; the `compile_json` bundle carries the timeline as a separate
 `animations` array.
 
+`animate` and its clause words (`after`, `delay`, `repeat`, `yoyo`, `ease`,
+`along`, `stagger`, `out`, `scroll`, `into`, `wiggles`) are contextual, not
+reserved: they are recognised only inside an `animate` statement, so
+`after = 2`, `box wid delay` and `define repeat { … }` mean what they mean in
+dpic.
+
 ```
 animate <place> with "<effect>" [along <path>] [into <shape>] [to <colour>] [from <dir>] [by word|char|"chars"]
         [from <p>] [to <p>] [wiggles <n>] [out] [stagger <d>] [for <dur>] [at <t> | after <place>] [delay <d>] [repeat <n>] [yoyo] [ease "<name>"]
