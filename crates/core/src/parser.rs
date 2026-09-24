@@ -185,6 +185,7 @@ pub fn parse_body_tokens(
     toks: &[Spanned],
     macros: &mut Macros,
     includes: &IncludeCtx,
+    vars: &std::collections::HashMap<String, f64>,
 ) -> Result<Vec<Stmt>, ParseError> {
     let before = body_macro_frame(toks).unwrap_or_else(|| macros.clone());
     let mut m = before.clone();
@@ -193,6 +194,9 @@ pub fn parse_body_tokens(
     let expanded = expand(&input, &mut m, 0, includes)?;
     propagate_macro_changes(macros, &before, &m);
     let mut p = Parser::new(expanded);
+    // The variables live at this point in the evaluation are the names dpic
+    // would read as an optional attribute operand (see `Parser::assigned`).
+    p.assigned.extend(vars.keys().cloned());
     p.parse_elementlist(&[])
 }
 
@@ -221,6 +225,7 @@ pub(crate) fn parse_exec_source(
     macros: &mut Macros,
     includes: &IncludeCtx,
     arg_frame: Option<&[Vec<Spanned>]>,
+    vars: &std::collections::HashMap<String, f64>,
 ) -> Result<Vec<Stmt>, ParseError> {
     let mut toks = lex(src)?;
     if let Some(args) = arg_frame {
@@ -231,6 +236,7 @@ pub(crate) fn parse_exec_source(
     // suite's `DefineRGBColor` registers colour macros through `case`/`exec`.
     let expanded = expand(&toks, macros, 0, includes)?;
     let mut p = Parser::new(expanded);
+    p.assigned.extend(vars.keys().cloned());
     p.parse_elementlist(&[])
 }
 
@@ -1464,6 +1470,12 @@ struct Parser {
     toks: Vec<Spanned>,
     idx: usize,
     depth: u32,
+    /// Variable names assigned so far in source order (`x = …`, `for x = …`).
+    /// Used to keep dpic's reading of an optional attribute operand: after
+    /// `dashed`, `dotted`, `chop`, `fill` or `shaded`, a name that has been
+    /// assigned is the operand expression (dpic's only reading), while an
+    /// unassigned extension word (`fit`, `opacity`, …) is the rpic attribute.
+    assigned: std::collections::HashSet<String>,
 }
 
 /// Recursive-descent nesting limit. The macro expander already caps its own
@@ -1485,6 +1497,7 @@ impl Parser {
             toks,
             idx: 0,
             depth: 0,
+            assigned: std::collections::HashSet::new(),
         }
     }
 
@@ -1860,6 +1873,7 @@ impl Parser {
             Token::Name(s) | Token::Label(s) => s,
             other => return self.err(format!("expected loop variable, found {other:?}")),
         };
+        self.assigned.insert(var.clone());
         let subscript = if self.eat(&Token::LeftBrack) {
             let e = self.parse_subscript()?;
             self.expect(&Token::RightBrack)?;
@@ -2263,6 +2277,7 @@ impl Parser {
                 } else {
                     None
                 };
+                self.assigned.insert(name.clone());
                 AssignTarget::Var(name, sub)
             }
             Token::EnvVar(v) => {
@@ -3156,10 +3171,14 @@ impl Parser {
         allow_hatch: bool,
         allow_close: bool,
     ) -> bool {
+        // dpic reads any name here as the attribute's operand expression and
+        // fails if it is undefined. So a name assigned earlier in the source
+        // keeps that reading (`fit = 0.3; box dashed fit` dashes by `fit`), and
+        // only an unassigned extension word is taken as the rpic attribute.
         matches!(
             self.cur(),
             Token::Name(n)
-                if (allow_fit && n == "fit")
+                if !self.assigned.contains(n) && ((allow_fit && n == "fit")
                     || (allow_hatch
                         && matches!(
                             n.as_str(),
@@ -3178,7 +3197,7 @@ impl Parser {
                     || n == "behind"
                     || n == "class"
                     || n == "link"
-                    || (allow_close && n == "close")
+                    || (allow_close && n == "close"))
         )
     }
 

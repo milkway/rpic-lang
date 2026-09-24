@@ -515,6 +515,18 @@ circle outlined 0xb3261e
   warning in the `--json` bundle (with a "did you mean" suggestion), instead of
   silently rendering blank; the colour is still passed through unchanged.
 
+## Extension Words After an Optional Operand
+
+dpic lets `dashed`, `dotted`, `chop`, `fill` and `shaded` take an optional
+expression, and a bare name there is that expression (dpic fails if it is
+undefined). rpic keeps that reading for any name that has been **assigned
+earlier in the source** (`x = …` or `for x = …`), and takes an extension word
+(`fit`, `behind`, `opacity`, `gradient`, `class`, `link`, `hatch`, …) as the
+rpic attribute only when it has not been. So `fit = 0.3; box dashed fit` dashes
+by `fit`, exactly as in dpic, while `box "a" dashed fit` still fits the box. To
+use both, assign the variable and write the attribute first: `box "a" fit
+dashed`.
+
 ## Pikchr Positioning Niceties
 
 Two small pikchr conveniences that dpic lacks:

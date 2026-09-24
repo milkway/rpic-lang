@@ -833,7 +833,7 @@ impl State {
 
     /// Parse a deferred `if`/`for` body now, expanding macros along this path.
     fn parse_body(&mut self, body: &Body) -> ER<Vec<Stmt>> {
-        crate::parser::parse_body_tokens(body, &mut self.macros, &self.includes)
+        crate::parser::parse_body_tokens(body, &mut self.macros, &self.includes, &self.vars)
             .map_err(parse_eval_error)
     }
 
@@ -1005,6 +1005,7 @@ impl State {
                     &mut self.macros,
                     &self.includes,
                     arg_frame.as_ref().map(|a| a.as_slice()),
+                    &self.vars,
                 )
                 .map_err(parse_eval_error)?;
                 self.eval_stmts(&stmts)?;
