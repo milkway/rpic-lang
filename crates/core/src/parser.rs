@@ -1096,17 +1096,6 @@ fn kw_text(k: Kw) -> &'static str {
         Kw::For => "for",
         Kw::Do => "do",
         Kw::Sprintf => "sprintf",
-        Kw::Animate => "animate",
-        Kw::After => "after",
-        Kw::Delay => "delay",
-        Kw::Repeat => "repeat",
-        Kw::Yoyo => "yoyo",
-        Kw::Ease => "ease",
-        Kw::Along => "along",
-        Kw::Stagger => "stagger",
-        Kw::Out => "out",
-        Kw::Scroll => "scroll",
-        Kw::Into => "into",
     }
 }
 
@@ -1579,6 +1568,22 @@ impl Parser {
         }
         Err(e)
     }
+    /// Contextual-keyword helpers: an extension word is an ordinary
+    /// [`Token::Name`] to the lexer and is recognised only where the parser
+    /// asks for it by spelling, so it stays usable as a variable elsewhere.
+    fn at_name(&self, s: &str) -> bool {
+        matches!(self.cur(), Token::Name(n) if n == s)
+    }
+
+    fn eat_name(&mut self, s: &str) -> bool {
+        if self.at_name(s) {
+            self.bump();
+            true
+        } else {
+            false
+        }
+    }
+
     fn at_kw(&self, k: Kw) -> bool {
         matches!(self.cur(), Token::Kw(x) if *x == k)
     }
@@ -1681,11 +1686,13 @@ impl Parser {
             return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
         }
 
-        // rpic animation directive.
-        if self.at_kw(Kw::Animate) {
+        // rpic animation directive. Contextual, like `class` below: `animate`
+        // is an ordinary name everywhere else (`animate = 1` assigns), and its
+        // clause words are recognised only inside this statement.
+        if self.at_name("animate") && !is_assign_op(self.peek(1)) {
             // `animate scroll` is a timeline-level directive, not an object
             // animation — dispatch it before the `animate <place> …` form.
-            if matches!(self.peek(1), Token::Kw(Kw::Scroll)) {
+            if matches!(self.peek(1), Token::Name(n) if n == "scroll") {
                 self.bump();
                 self.bump();
                 return Ok(Stmt::AnimateScroll);
@@ -1955,7 +1962,9 @@ impl Parser {
     }
 
     fn parse_animate(&mut self) -> PResult<Animate> {
-        self.expect_kw(Kw::Animate)?;
+        if !self.eat_name("animate") {
+            return self.expected_here("animate");
+        }
         let target = self.parse_place()?;
         self.expect_kw(Kw::With)?;
         let effect_span = Some(self.cur_span());
@@ -1987,17 +1996,17 @@ impl Parser {
                 duration = Some(self.parse_expr()?);
             } else if self.eat_kw(Kw::At) {
                 timing = Timing::At(self.parse_expr()?);
-            } else if self.eat_kw(Kw::After) {
+            } else if self.eat_name("after") {
                 timing = Timing::After(self.parse_place()?);
-            } else if self.eat_kw(Kw::Delay) {
+            } else if self.eat_name("delay") {
                 delay = Some(self.parse_expr()?);
-            } else if self.eat_kw(Kw::Repeat) {
+            } else if self.eat_name("repeat") {
                 repeat = Some(self.parse_expr()?);
-            } else if self.eat_kw(Kw::Yoyo) {
+            } else if self.eat_name("yoyo") {
                 yoyo = true;
-            } else if self.eat_kw(Kw::Ease) {
+            } else if self.eat_name("ease") {
                 ease = Some(self.parse_stringexpr()?);
-            } else if self.eat_kw(Kw::Along) {
+            } else if self.eat_name("along") {
                 along = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::To) {
                 if is_draw {
@@ -2005,9 +2014,9 @@ impl Parser {
                 } else {
                     color = Some(self.parse_color_like()?);
                 }
-            } else if self.eat_kw(Kw::Stagger) {
+            } else if self.eat_name("stagger") {
                 stagger = Some(self.parse_expr()?);
-            } else if self.eat_kw(Kw::Out) {
+            } else if self.eat_name("out") {
                 out = true;
             } else if self.eat_kw(Kw::From) {
                 if is_draw {
@@ -2015,7 +2024,7 @@ impl Parser {
                 } else {
                     slide_from = Some(self.parse_dir()?);
                 }
-            } else if self.eat_kw(Kw::Into) {
+            } else if self.eat_name("into") {
                 morph_into = Some(self.parse_place()?);
             } else if self.eat_kw(Kw::By) {
                 // `by "…"` is the scramble charset; `by word`/`by char` is the
