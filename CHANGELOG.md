@@ -10,6 +10,40 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.11.2] — 2026-09-24
+
+### Fixed
+
+- **Extension words no longer shadow dpic identifiers.** A generated
+  collision corpus (every extension word placed where the dpic grammar admits
+  an identifier: variable, macro name, optional attribute operand; 120
+  programs, all accepted by dpic 2025.08.01) found 60 collisions. Three
+  parser fixes close all but the documented environment variables:
+  - `animate` and its clause words (`after`, `delay`, `repeat`, `yoyo`,
+    `ease`, `along`, `stagger`, `out`, `scroll`, `into`) were reserved
+    keywords; they are now contextual, recognised only inside an `animate`
+    statement, so `after = 2` and `define repeat { … }` mean what they mean in
+    dpic (#386).
+  - `previous` (the pikchr synonym for `last`) was reserved; it is now
+    contextual, so `previous = 2` and `box wid previous` keep their dpic
+    reading while `previous box`, `2nd previous`, `previous.e` still work
+    (#390).
+  - After `dashed`, `dotted`, `chop`, `fill` or `shaded`, a name that has been
+    assigned earlier keeps dpic's optional-operand reading instead of being
+    taken as an rpic attribute (`fit = 0.3; box dashed fit` now dashes by
+    `fit`); an unassigned extension word is still the attribute. Deferred
+    `if`/`for` bodies and `exec` sources see the evaluator's live variables
+    for the same decision (#388).
+
+### Added
+
+- The collision corpus is a CLI integration test (`crates/cli/tests/collide.rs`):
+  40 words × 3 positions, rendered against a neutral-name control; the six
+  environment variables of the extension surface (canvas margins, `texlabels`)
+  are frozen as the documented exceptions (#389).
+
+Every committed corpus render is byte-identical across all four changes.
+
 ## [0.11.1] — 2026-07-19
 
 ### Fixed
@@ -389,7 +423,8 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/milkway/rpic-lang/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/milkway/rpic-lang/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/milkway/rpic-lang/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/milkway/rpic-lang/releases/tag/v0.10.0
