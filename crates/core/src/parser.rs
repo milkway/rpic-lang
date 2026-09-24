@@ -2928,6 +2928,9 @@ impl Parser {
         match self.cur() {
             Token::Label(_) | Token::Block | Token::Corner(_) => true,
             Token::Kw(Kw::Last) | Token::Kw(Kw::Here) => true,
+            // contextual `previous` (synonym for `last`); as a bare name it
+            // is still a variable, which the scalar look-ahead sorts out
+            Token::Name(n) if n == "previous" => true,
             Token::Float(_) => matches!(self.peek(1), Token::Kw(Kw::Nth)),
             // `{expr}th …` / `` `expr`th … `` ordinal counts (only valid as a
             // place in position/expression context, never a group here)
@@ -2996,6 +2999,16 @@ impl Parser {
             Token::Kw(Kw::Last) | Token::Float(_) | Token::LeftBrace | Token::LeftQuote => {
                 let span = Some(self.cur_span());
                 let count = self.parse_nth()?;
+                let obj = if self.at_primobj() {
+                    self.parse_primobj()?
+                } else {
+                    PrimObj::Any
+                };
+                Ok(Place::Nth { count, obj, span })
+            }
+            Token::Name(n) if n == "previous" => {
+                let span = Some(self.cur_span());
+                let count = self.parse_nth()?;
                 // A type keyword may follow (`last box`); without one, this is an
                 // untyped reference to the most recent object of any kind
                 // (`last`, `last.c`, `2nd last.n`).
@@ -3011,13 +3024,13 @@ impl Parser {
     }
 
     fn parse_nth(&mut self) -> PResult<Nth> {
-        if self.eat_kw(Kw::Last) {
+        if self.eat_kw(Kw::Last) || self.eat_name("previous") {
             return Ok(Nth::Last);
         }
         // ncount ordinal [last]
         let e = self.parse_ncount()?;
         self.expect_kw(Kw::Nth)?;
-        let from_last = self.eat_kw(Kw::Last);
+        let from_last = self.eat_kw(Kw::Last) || self.eat_name("previous");
         Ok(Nth::Count(Box::new(e), from_last))
     }
 

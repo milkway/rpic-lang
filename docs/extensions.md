@@ -520,8 +520,9 @@ circle outlined 0xb3261e
 Two small pikchr conveniences that dpic lacks:
 
 - **`previous`** is a synonym for `last` (the immediately preceding object):
-  `previous`, `previous box`, `2nd previous`, `previous.e` all work. Like
-  `last`, it is a reserved word.
+  `previous`, `previous box`, `2nd previous`, `previous.e` all work. Unlike
+  `last`, it is contextual, not reserved: `previous = 2` and `box wid previous`
+  keep their dpic meaning.
 - **`.start` / `.end` as `with` anchors on closed objects.** rpic already reads
   `box.start` / `box.end` (the entry/exit edge for the current direction — for
   a rightward box, `.w` and `.e`); now they also work as placement anchors, so
