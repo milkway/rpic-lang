@@ -4,7 +4,25 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Workflows track the floating `v2` tag; a PR per patch release (one
+      # every few days) would only pin it to a version that is stale at once.
+      - dependency-name: taiki-e/install-action
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-patch
   - package-ecosystem: cargo
-    directory: /
+    # bindings/python and crates/wasm are standalone workspaces with their
+    # own lockfiles.
+    directories:
+      - /
+      - /bindings/python
+      - /crates/wasm
     schedule:
       interval: weekly
+    groups:
+      # Released together and version-locked to each other: one PR for the
+      # family, across the three lockfiles.
+      ratex:
+        patterns:
+          - "ratex-*"
