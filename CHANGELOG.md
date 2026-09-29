@@ -10,6 +10,13 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Changed
+
+- **ratex 0.1.13 → 0.1.14** (TeX labels, `-t`). One visible change: a
+  `$\dots$` label now gets its TeX box height (0.123 em instead of 0.313 em),
+  so the centred dots sit about 1.4 px lower at the default size. Everything
+  else in the corpus is byte-identical.
+
 ## [0.11.2] — 2026-09-24
 
 ### Fixed
