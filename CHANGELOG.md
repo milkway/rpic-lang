@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.11.3] — 2026-09-29
+
 ### Changed
 
 - **ratex 0.1.13 → 0.1.14** (TeX labels, `-t`). One visible change: a
