@@ -16,6 +16,9 @@ resolves to the latest version.
   `$\dots$` label now gets its TeX box height (0.123 em instead of 0.313 em),
   so the centred dots sit about 1.4 px lower at the default size. Everything
   else in the corpus is byte-identical.
+- **resvg 0.47 → 0.48.1** (PNG backend). PNG output is byte-identical over
+  the whole corpus. The binary grows by about 1.8 MB, because resvg 0.48
+  brings a second font stack next to the one svg2pdf still pins.
 
 ## [0.11.2] — 2026-09-24
 
