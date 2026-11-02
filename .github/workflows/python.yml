@@ -3,6 +3,10 @@ name: Python
 on:
   push:
     tags: ["v*"]
+  # re-publish path: a tag's run uses the workflow AS OF THE TAG, so a fix
+  # like this one needs a manual dispatch from main (checkout picks up the
+  # dispatched ref — run it only when main is at the release commit)
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -22,6 +26,11 @@ jobs:
           working-directory: bindings/python
           command: build
           args: --release --out dist
+          # Linux: build in the manylinux_2_28 container. The bare runner
+          # moved to ubuntu26, whose glibc is newer than any manylinux tag
+          # maturin knows — host builds now produce `linux_x86_64` wheels
+          # that PyPI rejects (this silently broke the v0.12.0 upload).
+          manylinux: 2_28
       - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}
@@ -62,5 +71,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
-        # Requires a PyPI "trusted publisher" configured for this repo/workflow.
-        continue-on-error: true
+          # tolerate re-runs where some files already made it up
+          skip-existing: true
+        # NOTE: no continue-on-error — it masked the v0.12.0 upload failure
+        # behind a green job. A PyPI rejection must fail the workflow.
