@@ -68,8 +68,8 @@ fn paints(body: &str) -> bool {
     let mut rest = body;
     while let Some(i) = rest.find('<') {
         let after = &rest[i..];
-        if after.starts_with("</text>") {
-            rest = &after[7..];
+        if let Some(r) = after.strip_prefix("</text>") {
+            rest = r;
             continue;
         }
         if after.starts_with("<text") {
@@ -100,10 +100,8 @@ fn corpus_scene_coverage_ids_order_and_schema() {
             pic.display(),
             String::from_utf8_lossy(&scene_out.stderr)
         );
-        let scene: serde_json::Value =
-            serde_json::from_slice(&scene_out.stdout).unwrap_or_else(|e| {
-                panic!("{}: scene JSON does not parse: {e}", pic.display())
-            });
+        let scene: serde_json::Value = serde_json::from_slice(&scene_out.stdout)
+            .unwrap_or_else(|e| panic!("{}: scene JSON does not parse: {e}", pic.display()));
 
         // B1: schema
         if let Err(err) = validator.validate(&scene) {
@@ -116,10 +114,8 @@ fn corpus_scene_coverage_ids_order_and_schema() {
         let groups = svg_groups(&svg);
 
         let items = scene["items"].as_array().unwrap();
-        let shape_items: Vec<&serde_json::Value> = items
-            .iter()
-            .filter(|i| i["kind"] != "block")
-            .collect();
+        let shape_items: Vec<&serde_json::Value> =
+            items.iter().filter(|i| i["kind"] != "block").collect();
 
         // A3: one item per group, same ids, same (document) order, dense z
         assert_eq!(
@@ -130,9 +126,7 @@ fn corpus_scene_coverage_ids_order_and_schema() {
             shape_items.len(),
             groups.len()
         );
-        for (k, (item, (gid, has_content))) in
-            shape_items.iter().zip(groups.iter()).enumerate()
-        {
+        for (k, (item, (gid, has_content))) in shape_items.iter().zip(groups.iter()).enumerate() {
             assert_eq!(
                 item["id"].as_str().unwrap(),
                 gid,

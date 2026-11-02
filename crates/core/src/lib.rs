@@ -357,8 +357,12 @@ fn drawing_json(d: &Drawing, scene: Option<SceneOutput>) -> String {
     let (warnings_json, scene_field) = match scene {
         None => (diagnostics_json_structured(&d.warnings), String::new()),
         Some(s) => {
-            let all: Vec<Diagnostic> =
-                d.warnings.iter().chain(s.warnings.iter()).cloned().collect();
+            let all: Vec<Diagnostic> = d
+                .warnings
+                .iter()
+                .chain(s.warnings.iter())
+                .cloned()
+                .collect();
             (
                 diagnostics_json_structured(&all),
                 format!(",\"scene\":{}", s.json),

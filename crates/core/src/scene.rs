@@ -153,10 +153,7 @@ impl ScenePath {
             s.push_str("\"closed\":true,");
         }
         if self.points.is_empty() {
-            s.push_str(&format!(
-                "\"start\":{},\"cubics\":[",
-                spoint(self.start)
-            ));
+            s.push_str(&format!("\"start\":{},\"cubics\":[", spoint(self.start)));
             for (i, c) in self.cubics.iter().enumerate() {
                 if i > 0 {
                     s.push(',');
@@ -179,7 +176,15 @@ impl ScenePath {
 
 /// Adaptive De Casteljau flattening: subdivide until both control points sit
 /// within `tol` of the chord.
-fn flatten_cubic(p0: Point, c1: Point, c2: Point, p3: Point, tol: f64, depth: u32, out: &mut Vec<Point>) {
+fn flatten_cubic(
+    p0: Point,
+    c1: Point,
+    c2: Point,
+    p3: Point,
+    tol: f64,
+    depth: u32,
+    out: &mut Vec<Point>,
+) {
     // Hard budget against hostile tolerances (`--flatten 1e-300`): at most
     // 2^12 points per cubic — subdivision converges quadratically, so any
     // sane tolerance is reached far earlier on inch-scale geometry.
@@ -299,10 +304,7 @@ fn hex_color(s: &str) -> Result<String, ()> {
         }
         return Err(());
     }
-    if let Some(body) = t
-        .strip_prefix("rgb(")
-        .and_then(|b| b.strip_suffix(')'))
-    {
+    if let Some(body) = t.strip_prefix("rgb(").and_then(|b| b.strip_suffix(')')) {
         let parts: Vec<_> = body.split(',').map(str::trim).collect();
         if parts.len() == 3
             && let (Ok(r), Ok(g), Ok(b)) = (
@@ -577,7 +579,8 @@ impl<'a> Sc<'a> {
     fn block_item(&mut self, b: usize) {
         let d = self.d;
         let info = &d.blocks[b];
-        self.out.push_str(&format!("{{\"id\":\"blk{b}\",\"kind\":\"block\""));
+        self.out
+            .push_str(&format!("{{\"id\":\"blk{b}\",\"kind\":\"block\""));
         if let Some(l) = &info.label {
             self.out
                 .push_str(&format!(",\"label\":\"{}\"", crate::json_str(l)));
@@ -739,7 +742,8 @@ impl<'a> Sc<'a> {
                     pts.clone()
                 };
                 self.out.push_str(",\"paths\":[");
-                self.out.push_str(&self.spline_scene_path(&draw_pts, *tension).json());
+                self.out
+                    .push_str(&self.spline_scene_path(&draw_pts, *tension).json());
                 self.out.push(']');
                 if filled && trimmed {
                     self.out.push_str(&format!(
@@ -836,8 +840,7 @@ impl<'a> Sc<'a> {
                 let stroked = !style.invis && !cubics.is_empty();
                 if !cubics.is_empty() {
                     let start = cubics[0][0];
-                    let segs: Vec<[Point; 3]> =
-                        cubics.iter().map(|c| [c[1], c[2], c[3]]).collect();
+                    let segs: Vec<[Point; 3]> = cubics.iter().map(|c| [c[1], c[2], c[3]]).collect();
                     let mut p = ScenePath::from_cubics(start, segs, false);
                     if let Some(tol) = self.opts.flatten {
                         p = p.flattened(tol);
@@ -876,8 +879,7 @@ impl<'a> Sc<'a> {
     fn closed_style(&mut self, style: &Style, text: &[TextLine], at: Point, span: Option<Span>) {
         let visible = svg::closed_shape_is_visible(style);
         let stroked = visible && !style.invis;
-        let filled =
-            style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some();
+        let filled = style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some();
         if stroked {
             self.stroke_json(style, span.clone());
         }
@@ -1049,9 +1051,10 @@ impl<'a> Sc<'a> {
         ));
         match style.dash {
             Dash::Solid => {}
-            Dash::Dashed(w) => self
-                .out
-                .push_str(&format!(",\"dash\":{{\"kind\":\"dashed\",\"len\":{}}}", snum(w))),
+            Dash::Dashed(w) => self.out.push_str(&format!(
+                ",\"dash\":{{\"kind\":\"dashed\",\"len\":{}}}",
+                snum(w)
+            )),
             Dash::Dotted(gap) => match gap {
                 Some(g) => self.out.push_str(&format!(
                     ",\"dash\":{{\"kind\":\"dotted\",\"gap\":{}}}",
@@ -1303,7 +1306,11 @@ mod tests {
     fn scene_of(src: &str) -> Value {
         let d = crate::compile(src).expect("compile");
         let out = scene_json(&d, &SceneOptions::default());
-        assert!(out.warnings.is_empty(), "unexpected warnings: {:?}", out.warnings);
+        assert!(
+            out.warnings.is_empty(),
+            "unexpected warnings: {:?}",
+            out.warnings
+        );
         serde_json::from_str(&out.json).expect("scene JSON parses")
     }
 
@@ -1437,10 +1444,7 @@ mod tests {
     #[test]
     fn irreducible_color_warns_scene_unsupported_with_span() {
         // B5: never silent — currentColor is valid SVG but has no hex form
-        let (v, warnings) = scene_with(
-            "box outlined \"currentColor\"",
-            &SceneOptions::default(),
-        );
+        let (v, warnings) = scene_with("box outlined \"currentColor\"", &SceneOptions::default());
         assert_eq!(items(&v)[0]["stroke"]["color"], "currentColor");
         assert_eq!(warnings.len(), 1);
         assert_eq!(warnings[0].kind, "scene_unsupported");
@@ -1465,9 +1469,27 @@ mod tests {
         assert_eq!(it[1]["block"].as_array().unwrap().len(), 1);
         assert_eq!(it[3]["block"].as_array().unwrap().len(), 2);
         // membership lists
-        assert!(outer["items"].as_array().unwrap().iter().any(|x| x == &it[1]["id"]));
-        assert!(outer["items"].as_array().unwrap().iter().any(|x| x.as_str() == Some(inner["id"].as_str().unwrap())));
-        assert!(inner["items"].as_array().unwrap().iter().any(|x| x == &it[3]["id"]));
+        assert!(
+            outer["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x == &it[1]["id"])
+        );
+        assert!(
+            outer["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x.as_str() == Some(inner["id"].as_str().unwrap()))
+        );
+        assert!(
+            inner["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x == &it[3]["id"])
+        );
     }
 
     #[test]
@@ -1503,7 +1525,13 @@ mod tests {
             .lines()
             .find(|l| l.contains("<path d=\"M"))
             .expect("spline path");
-        let dstr = dline.split("d=\"").nth(1).unwrap().split('"').next().unwrap();
+        let dstr = dline
+            .split("d=\"")
+            .nth(1)
+            .unwrap()
+            .split('"')
+            .next()
+            .unwrap();
         let nums: Vec<f64> = dstr
             .split(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
             .filter(|t| !t.is_empty())
@@ -1608,13 +1636,69 @@ mod tests {
         let mut keys = std::collections::BTreeSet::new();
         collect_keys(&v, &mut keys);
         let expect: std::collections::BTreeSet<String> = [
-            "scene", "units", "y_up", "canvas", "w", "h", "margin", "top", "right", "bottom",
-            "left", "origin", "vars", "items", "id", "kind", "z", "label", "block", "class",
-            "link", "hidden", "at", "r", "rad", "points", "closed", "paths", "fillPoints",
-            "fillPaths", "cubics", "start", "heads", "filled", "path", "stroke", "color",
-            "width", "dash", "len", "gap", "fill", "gradient", "angle", "stops", "offset",
-            "hatch", "spacing", "cross", "opacity", "text", "anchor", "font", "size", "family",
-            "bold", "italic", "rotation", "math", "depth", "outline", "source", "items",
+            "scene",
+            "units",
+            "y_up",
+            "canvas",
+            "w",
+            "h",
+            "margin",
+            "top",
+            "right",
+            "bottom",
+            "left",
+            "origin",
+            "vars",
+            "items",
+            "id",
+            "kind",
+            "z",
+            "label",
+            "block",
+            "class",
+            "link",
+            "hidden",
+            "at",
+            "r",
+            "rad",
+            "points",
+            "closed",
+            "paths",
+            "fillPoints",
+            "fillPaths",
+            "cubics",
+            "start",
+            "heads",
+            "filled",
+            "path",
+            "stroke",
+            "color",
+            "width",
+            "dash",
+            "len",
+            "gap",
+            "fill",
+            "gradient",
+            "angle",
+            "stops",
+            "offset",
+            "hatch",
+            "spacing",
+            "cross",
+            "opacity",
+            "text",
+            "anchor",
+            "font",
+            "size",
+            "family",
+            "bold",
+            "italic",
+            "rotation",
+            "math",
+            "depth",
+            "outline",
+            "source",
+            "items",
         ]
         .iter()
         .map(|s| s.to_string())

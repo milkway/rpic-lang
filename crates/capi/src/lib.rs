@@ -192,7 +192,11 @@ fn scene_opts(flatten: c_double) -> rpic_core::SceneOptions {
     }
 }
 
-fn scene_json_impl(src: *const c_char, o: &rpic_core::CompileOptions, flatten: c_double) -> *mut c_char {
+fn scene_json_impl(
+    src: *const c_char,
+    o: &rpic_core::CompileOptions,
+    flatten: c_double,
+) -> *mut c_char {
     guard_ptr(|| {
         let Some(s) = (unsafe { as_str(src) }) else {
             return ptr::null_mut();
@@ -398,9 +402,8 @@ mod tests {
         // core emitter (same options), for a representative figure.
         let src = "geo_lon = -34.8811\nB: box \"hub\" fit\narrow right from B.e\nC: circle dashed at B.e + (1,0)";
         let csrc = CString::new(src).unwrap();
-        let got = string_from_owned_ptr(unsafe {
-            rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.0)
-        });
+        let got =
+            string_from_owned_ptr(unsafe { rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.0) });
         let want = rpic_core::compile_scene_with_options(
             src,
             &rpic_core::CompileOptions::default(),
@@ -412,9 +415,8 @@ mod tests {
         assert!(got.starts_with("{\"scene\":1,"));
 
         // flatten > 0 removes the cubics; <= 0 keeps them
-        let flat = string_from_owned_ptr(unsafe {
-            rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.001)
-        });
+        let flat =
+            string_from_owned_ptr(unsafe { rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.001) });
         assert!(!flat.contains("\"cubics\""));
 
         // the bundle variant carries the scene key; a pic error is NULL for
@@ -425,9 +427,8 @@ mod tests {
         assert!(all.contains("\"scene\":{\"scene\":1,"));
         let bad = CString::new("bxo").unwrap();
         assert!(unsafe { rpic_scene_json(bad.as_ptr(), ptr::null(), 0.0) }.is_null());
-        let all_bad = string_from_owned_ptr(unsafe {
-            rpic_compile_json_all(bad.as_ptr(), ptr::null(), 0.0)
-        });
+        let all_bad =
+            string_from_owned_ptr(unsafe { rpic_compile_json_all(bad.as_ptr(), ptr::null(), 0.0) });
         assert!(all_bad.contains("\"error\""));
     }
 

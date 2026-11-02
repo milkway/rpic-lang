@@ -10,6 +10,27 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- **Scene output** — the resolved draw list as versioned, device-independent
+  JSON (`docs/scene.md`, format 1): rpic's analogue of classic pic emitting
+  troff `\D` commands, for building your own backend (GeoJSON/geopic, TikZ,
+  Canvas 2D, visual editors) without reimplementing pic. Final geometry in
+  inches (y-up), curves as cubic Béziers (`--flatten <tol>` for polylines),
+  style as descriptors with colors resolved to hex, text as text with
+  baseline anchor points, `vars` carrying every variable's final value, and
+  items in draw order with the SVG's stable `s<N>` ids. CLI `rpic --scene`
+  and `rpic --json=all`; library `scene_json`/`compile_json_all_with_options`;
+  Python `rpic.scene(...)` / `compile(..., scene=True)`; JS
+  `compile(src, {scene, flatten})`; C `rpic_scene_json` /
+  `rpic_compile_json_all`. Fully opt-in: `rpic file.pic` and `rpic --json`
+  stay byte-identical (verified over the 124-file corpus). Anything the SVG
+  paints that the scene cannot represent raises a structured
+  `scene_unsupported` warning. A ~100-line consumer in
+  `examples/scene-consumer/` redraws figures from the scene alone; a corpus
+  round-trip test keeps the reference render within 0.5% of pixels of the
+  official SVG.
+
 ## [0.11.3] — 2026-09-29
 
 ### Changed

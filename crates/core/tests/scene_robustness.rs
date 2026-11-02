@@ -9,7 +9,9 @@
 //! RPIC_FUZZ_SECS=600 cargo test -p rpic-core --test scene_robustness --release -- --ignored fuzz
 //! ```
 
-use rpic_core::{CompileOptions, IncludePolicy, SceneOptions, compile_with_diagnostics, scene_json};
+use rpic_core::{
+    CompileOptions, IncludePolicy, SceneOptions, compile_with_diagnostics, scene_json,
+};
 
 fn scene_of(src: &str, opts: &CompileOptions, sopts: &SceneOptions) -> Result<String, String> {
     match compile_with_diagnostics(src, opts) {
@@ -34,7 +36,10 @@ fn giant_labels_produce_a_valid_scene() {
     let src = format!("box \"{label}\"");
     let json = scene_of(&src, &Default::default(), &Default::default()).unwrap();
     let v: serde_json::Value = serde_json::from_str(&json).expect("valid JSON");
-    assert_eq!(v["items"][0]["text"][0]["text"].as_str().unwrap().len(), 1_000_000);
+    assert_eq!(
+        v["items"][0]["text"][0]["text"].as_str().unwrap().len(),
+        1_000_000
+    );
 }
 
 #[test]
@@ -83,7 +88,11 @@ fn hostile_flatten_tolerances_stay_bounded() {
             },
         );
         // depth cap: ≤ 2^12 points per cubic; the corpus never gets close
-        assert!(out.json.len() < 3_000_000, "tol {tol}: {} bytes", out.json.len());
+        assert!(
+            out.json.len() < 3_000_000,
+            "tol {tol}: {} bytes",
+            out.json.len()
+        );
         let _: serde_json::Value = serde_json::from_str(&out.json).expect("valid JSON");
     }
 }
@@ -124,11 +133,11 @@ const SEEDS: &[&str] = &[
     "define m(a) { box wid $1 }\nm(0.4)\nm(0.2)\nanimate last with \"draw\" from 20% to 80%",
 ];
 const TOKENS: &[&str] = &[
-    "box", "circle", "ellipse", "line", "arrow", "spline", "arc", "move", "dot", "brace",
-    "from", "to", "then", "at", "with", ".e", ".nw", "last", "2nd", "behind", "close", "fit",
-    "dashed", "dotted", "invis", "fill", "0.5", "-1e9", "(", ")", "[", "]", "{", "}", "\"t\"",
-    "$", "\\", ";", "\n", "define", "copy", "for", "do", "rotated", "aligned", "hatch",
-    "gradient", "opacity", "link", "class", "wid", "ht", "rad", "same", "<->", "->",
+    "box", "circle", "ellipse", "line", "arrow", "spline", "arc", "move", "dot", "brace", "from",
+    "to", "then", "at", "with", ".e", ".nw", "last", "2nd", "behind", "close", "fit", "dashed",
+    "dotted", "invis", "fill", "0.5", "-1e9", "(", ")", "[", "]", "{", "}", "\"t\"", "$", "\\",
+    ";", "\n", "define", "copy", "for", "do", "rotated", "aligned", "hatch", "gradient", "opacity",
+    "link", "class", "wid", "ht", "rad", "same", "<->", "->",
 ];
 
 #[test]
@@ -189,7 +198,10 @@ fn fuzz_scene_never_panics() {
                             at -= 1;
                         }
                         let ch = (32 + rng.below(95)) as u8 as char;
-                        src.replace_range(at..at + src[at..].chars().next().unwrap().len_utf8(), &ch.to_string());
+                        src.replace_range(
+                            at..at + src[at..].chars().next().unwrap().len_utf8(),
+                            &ch.to_string(),
+                        );
                     }
                 }
             }

@@ -946,11 +946,12 @@ impl State {
         // parentless inner blocks become its direct children.
         let block_base = self.blocks.len();
         let this_block = block_base + sub.blocks.len();
-        self.blocks.extend(sub.blocks.into_iter().map(|b| BlockInfo {
-            label: b.label,
-            shapes: (b.shapes.0 + first_shape, b.shapes.1 + first_shape),
-            parent: b.parent.map(|p| p + block_base).or(Some(this_block)),
-        }));
+        self.blocks
+            .extend(sub.blocks.into_iter().map(|b| BlockInfo {
+                label: b.label,
+                shapes: (b.shapes.0 + first_shape, b.shapes.1 + first_shape),
+                parent: b.parent.map(|p| p + block_base).or(Some(this_block)),
+            }));
         for (((((mut sh, layer), class), link), span), (label, block)) in sub
             .shapes
             .into_iter()

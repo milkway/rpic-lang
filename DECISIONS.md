@@ -68,17 +68,20 @@ simply absent. Discarded: omitting invisible items (breaks the id↔index mental
 model and A1's counting) and a `kind:"move"` (a move is a line that paints
 nothing; `hidden` composes better).
 
-### S7. Text: compass anchors over baseline points
+### S7. Text: baseline anchor point + pic compass (amended during implementation)
 
-(Implementation authority.) Each text line exports `at` (the anchor point) +
-`anchor` (pic compass: `c n s e w ne nw se sw`), derived from pic's
-halign/valign, plus a resolved `font {family?, size, bold?, italic?}` (size in
+(Implementation authority.) Each text line exports `at` = the **baseline
+anchor point** (the exact point the SVG backend uses, in model space) plus
+`anchor` (pic compass `c n s e w ne nw se sw` describing the justification
+semantically), a resolved `font {family?, size, bold?, italic?}` (size in
 points, always resolved — classic 11 pt, standalone height-derived, or
-explicit) and `rotation`. The exact baseline reconstruction (xheight = 0.66 em
-etc.) is documented in docs/scene.md so consumers and the A2 reference renderer
-reproduce the SVG baseline bit-for-bit. Discarded: exporting raw SVG baseline
-points + `start|middle|end` (exact but device-flavoured; the brief asked for
-pic anchors), or both (confusing double semantics).
+explicit) and `rotation` (about `at`). *Amendment*: the first draft made `at`
+the compass point with a documented back-conversion to the baseline, but the
+conversion needs the line-grid x-height, which differs from the glyph size
+when `fontsize` overrides a line — the baseline point is exact in every case
+and renders with zero font metrics; the compass stays as semantic info for
+box-anchor consumers (TikZ). Discarded: compass-point `at` (inexact under
+`fontsize`), both points (double semantics).
 
 ### S8. Colors normalized to `#rrggbb`; anything else warns
 

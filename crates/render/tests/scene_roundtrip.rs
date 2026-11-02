@@ -87,10 +87,7 @@ impl Ref {
                     ));
                 }
                 _ => {
-                    let gap = dash
-                        .get("gap")
-                        .map(|g| n(g) * 96.0)
-                        .unwrap_or(width * 5.0);
+                    let gap = dash.get("gap").map(|g| n(g) * 96.0).unwrap_or(width * 5.0);
                     a.push_str(&format!(
                         " stroke-dasharray=\"0.5,{gap}\" stroke-linecap=\"round\""
                     ));

@@ -16,6 +16,11 @@ WASM, so every binding produces identical output.
 | R | [`rpic`](https://github.com/milkway/rpic-r) | `remotes::install_github("milkway/rpic-r")` |
 | C | [`rpic-capi`](https://crates.io/crates/rpic-capi) | link `librpic` |
 
+Every binding can also return the [**scene**](/docs/scene) — the resolved
+draw list as device-independent JSON (`rpic.scene(...)` in Python,
+`compile(src, {scene: true})` in JS, `rpic_scene_json` in C) — for building
+your own backend on top of rpic's layout.
+
 ## Python
 
 `rpiclang` ships prebuilt wheels (macOS arm64, Linux, Windows) with the

@@ -64,6 +64,10 @@ to the modern web era:
   did-you-mean hints, per-object geometry in the `--json` output (`objects`:
   kind, bbox, source span), and a fixed-canvas mode for a stable viewBox —
   a base visual editors can build on without DOM heuristics.
+- **A scene output** (`--scene`): the resolved draw list as versioned,
+  device-independent JSON — final geometry in inches, cubic-Bézier curves,
+  descriptor style, text as text — so new backends (GeoJSON, TikZ, Canvas 2D)
+  can be built without reimplementing pic. See [`docs/scene.md`](docs/scene.md).
 - **Safe on untrusted input**: the parser and evaluator are hardened against
   malformed or adversarial source — bounded recursion and expression depth,
   configurable loop/shape budgets, and XML-escaped output — so an app can
@@ -118,6 +122,8 @@ rpic --pdf -o out.pdf diagram.pic
 rpic -c circuit.pic                    # load the circuit-element library
 rpic -t paper.pic                      # typeset $…$ labels as TeX math
 rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects}
+rpic --scene diagram.pic               # the resolved draw list as versioned JSON (docs/scene.md)
+rpic --json=all diagram.pic            # the compile bundle + the scene
 rpic --html -o page.html animated.pic  # self-contained page: SVG + GSAP player inline
 ```
 

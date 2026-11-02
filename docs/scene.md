@@ -87,7 +87,7 @@ index) the SVG emitter uses, so array order equals SVG document order of the
 |---|---|---|
 | `id` | always | the stable SVG id: `"s<N>"` (N = source index) for shapes, `"blk<N>"` for block items |
 | `kind` | always | `box` `circle` `ellipse` `arc` `line` `arrow` `spline` `text` `dot` `brace` `block` |
-| `z` | drawable items | index in draw order, dense, 0-based (block items carry none) |
+| `z` | shape items | index in draw order, dense, 0-based (hidden items included; block items carry none) |
 | `label` | when labelled | the pic label the statement was given (`L: box` → `"L"`) |
 | `block` | inside a block | path of enclosing block item ids, outermost first (`["blk0","blk1"]`) |
 | `class` | when set | the `class` extension string |
@@ -202,9 +202,13 @@ Text stays text. Each line of an item's `text` array:
   "rotation": 30 }
 ```
 
-- `at` + `anchor`: `anchor` names which compass point of the line's ink box
-  sits at `at` — `c n s e w ne nw se sw` (pic semantics: `ljust` → the text's
-  **w**est edge at the point; `above` → its **s**outh edge, etc.).
+- `at` is the line's **baseline anchor point** — exactly the point the SVG
+  backend places the glyph run at (pre-flip), so an SVG-like consumer needs no
+  font metrics at all: put the baseline at `at`, justify per the `anchor`'s
+  horizontal component. `anchor` is the pic compass of the justification —
+  `c n s e w ne nw se sw` (`w` = the text extends right of the reference,
+  `s` = it sits above it, …): semantic information for consumers like TikZ
+  that think in box anchors.
 - `font.size` is always present, in points, fully resolved (classic 11 pt for
   attached labels, height-derived for standalone text objects, or the explicit
   `fontsize`). `family` appears for `mono`/`font "…"`; `bold`/`italic` only
@@ -218,20 +222,15 @@ Text stays text. Each line of an item's `text` array:
   SVG backend embeds. Without `outline`, a math line raises
   `scene_unsupported` ([§9](#9-unrepresented-svg-features-warned)).
 
-**Reconstructing the SVG baseline exactly** (the reference-renderer recipe):
-with `em = size/72` inches and `xheight = 0.66·em`, the baseline point is
-
-```
-baseline.x = at.x                              (w/e anchors: text box starts/ends at at.x)
-baseline.y = at.y − xheight/2   (anchor row c)
-           = at.y               (anchor row s — text above the point)
-           = at.y − xheight     (anchor row n — text below the point)
-```
-
-and the SVG `text-anchor` is `start`/`middle`/`end` for west/center/east.
-`rotation` rotates about `(at.x, baseline.y)`. Multi-line labels come
+**Rendering recipe** (what the A2 reference renderer does): emit the glyph run
+with its baseline at `at`, horizontal justification `start`/`middle`/`end` for
+a `w`/center/`e` anchor; `rotation` rotates about `at`. Multi-line labels come
 pre-stacked: each line already carries its own `at` on the classic line grid,
-so no line-skip computation is needed downstream.
+so no line-skip computation is needed downstream. Consumers that need the ink
+*box* (e.g. TikZ node anchors) can estimate it with the engine's own metric
+model: `em = size/72` in, x-height `0.66·em`, average glyph advance `0.6·em`
+(bold ×1.05) — the box's bottom edge sits at the baseline and its top at
+baseline + x-height for anchor purposes.
 
 ## 6. A complete example
 
@@ -254,7 +253,7 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
       "at": [0, 0], "w": 0.357, "h": 0.218,
       "fill": { "color": "#90ee90" },
       "stroke": { "color": "#000000", "width": 0.8 },
-      "text": [ { "text": "hub", "at": [0, 0], "anchor": "c",
+      "text": [ { "text": "hub", "at": [0, -0.0504], "anchor": "c",
                   "font": { "size": 11 } } ] },
     { "id": "s1", "kind": "arrow", "z": 1,
       "points": [[0.178, 0], [0.693, 0]],

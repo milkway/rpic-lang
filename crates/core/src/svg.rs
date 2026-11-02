@@ -1236,7 +1236,11 @@ pub(crate) fn thick_in(style: &Style) -> f64 {
     style.thick.filter(|t| *t > 0.0).unwrap_or(0.8) / 72.0
 }
 
-pub(crate) fn path_stroke_points_model(pts: &[Point], arrows: Arrowheads, style: &Style) -> Vec<Point> {
+pub(crate) fn path_stroke_points_model(
+    pts: &[Point],
+    arrows: Arrowheads,
+    style: &Style,
+) -> Vec<Point> {
     let mut out = pts.to_vec();
     if out.len() < 2 {
         return out;
