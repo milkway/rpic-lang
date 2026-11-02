@@ -180,7 +180,10 @@ impl ScenePath {
 /// Adaptive De Casteljau flattening: subdivide until both control points sit
 /// within `tol` of the chord.
 fn flatten_cubic(p0: Point, c1: Point, c2: Point, p3: Point, tol: f64, depth: u32, out: &mut Vec<Point>) {
-    const MAX_DEPTH: u32 = 24;
+    // Hard budget against hostile tolerances (`--flatten 1e-300`): at most
+    // 2^12 points per cubic — subdivision converges quadratically, so any
+    // sane tolerance is reached far earlier on inch-scale geometry.
+    const MAX_DEPTH: u32 = 12;
     if depth >= MAX_DEPTH || cubic_flat(p0, c1, c2, p3, tol) {
         out.push(p3);
         return;
@@ -197,7 +200,12 @@ fn flatten_cubic(p0: Point, c1: Point, c2: Point, p3: Point, tol: f64, depth: u3
 }
 
 fn cubic_flat(p0: Point, c1: Point, c2: Point, p3: Point, tol: f64) -> bool {
-    dist_to_segment(c1, p0, p3) <= tol && dist_to_segment(c2, p0, p3) <= tol
+    let (d1, d2) = (dist_to_segment(c1, p0, p3), dist_to_segment(c2, p0, p3));
+    // non-finite geometry can't converge — treat as flat instead of recursing
+    if !d1.is_finite() || !d2.is_finite() {
+        return true;
+    }
+    d1 <= tol && d2 <= tol
 }
 
 fn dist_to_segment(p: Point, a: Point, b: Point) -> f64 {
@@ -1265,7 +1273,7 @@ fn block_depth(d: &Drawing, mut b: usize) -> usize {
 }
 
 /// `["blk0","blk2"]` — enclosing block ids, outermost first.
-fn block_path_json(d: &Drawing, innermost: Option<usize>) -> String {
+pub(crate) fn block_path_json(d: &Drawing, innermost: Option<usize>) -> String {
     let mut chain = Vec::new();
     let mut cur = innermost;
     while let Some(b) = cur {
@@ -1285,4 +1293,373 @@ fn block_path_json(d: &Drawing, innermost: Option<usize>) -> String {
     }
     s.push(']');
     s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn scene_of(src: &str) -> Value {
+        let d = crate::compile(src).expect("compile");
+        let out = scene_json(&d, &SceneOptions::default());
+        assert!(out.warnings.is_empty(), "unexpected warnings: {:?}", out.warnings);
+        serde_json::from_str(&out.json).expect("scene JSON parses")
+    }
+
+    fn scene_with(src: &str, opts: &SceneOptions) -> (Value, Vec<Diagnostic>) {
+        let d = crate::compile(src).expect("compile");
+        let out = scene_json(&d, opts);
+        (
+            serde_json::from_str(&out.json).expect("scene JSON parses"),
+            out.warnings,
+        )
+    }
+
+    fn items(v: &Value) -> &Vec<Value> {
+        v["items"].as_array().expect("items array")
+    }
+
+    #[test]
+    fn header_carries_version_units_canvas_and_source() {
+        let d = crate::compile("box").unwrap();
+        let out = scene_json(
+            &d,
+            &SceneOptions {
+                source: Some("fig.pic".into()),
+                ..Default::default()
+            },
+        );
+        let v: Value = serde_json::from_str(&out.json).unwrap();
+        assert_eq!(v["scene"], 1);
+        assert_eq!(v["units"], "in");
+        assert_eq!(v["y_up"], true);
+        assert_eq!(v["source"], "fig.pic");
+        assert!(v["canvas"]["w"].as_f64().unwrap() > 0.0);
+        assert!(v["canvas"]["origin"].as_array().unwrap().len() == 2);
+    }
+
+    #[test]
+    fn vars_carry_user_values_at_f64_precision_and_builtins() {
+        // B4: geo metadata round-trips exactly; built-ins show effective values
+        let v = scene_of("geo_lon = -34.8811\nscale = 250\nbox");
+        assert_eq!(v["vars"]["geo_lon"].as_f64().unwrap(), -34.8811_f64);
+        assert_eq!(v["vars"]["scale"].as_f64().unwrap(), 250.0);
+        // `scale = 250` rescales the dimension defaults (pic semantics)
+        assert_eq!(v["vars"]["boxwid"].as_f64().unwrap(), 0.75 * 250.0);
+        assert_eq!(v["vars"]["boxht"].as_f64().unwrap(), 0.5 * 250.0);
+    }
+
+    #[test]
+    fn ids_match_source_order_and_z_matches_draw_order_with_behind() {
+        // A3 at unit level: behind reorders z but never renumbers ids
+        let v = scene_of("A: box at (0,0)\nB: box behind A at (2,0)\ncircle at (4,0)");
+        let it = items(&v);
+        let ids: Vec<&str> = it.iter().map(|i| i["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, ["s1", "s0", "s2"]); // B draws first (behind A)
+        let zs: Vec<i64> = it.iter().map(|i| i["z"].as_i64().unwrap()).collect();
+        assert_eq!(zs, [0, 1, 2]);
+        assert_eq!(it[1]["label"], "A");
+        assert_eq!(it[0]["label"], "B");
+    }
+
+    #[test]
+    fn kinds_distinguish_line_arrow_dot() {
+        let v = scene_of("line right\narrow right\ndot at (3,0)\ncircle at (4,0)");
+        let kinds: Vec<&str> = items(&v)
+            .iter()
+            .map(|i| i["kind"].as_str().unwrap())
+            .collect();
+        assert_eq!(kinds, ["line", "arrow", "dot", "circle"]);
+        // the dot keeps its solid black fill
+        assert_eq!(items(&v)[2]["fill"]["color"], "#000000");
+    }
+
+    #[test]
+    fn move_is_a_hidden_item_with_an_aligned_id() {
+        let v = scene_of("box\nmove right 1\nbox");
+        let it = items(&v);
+        assert_eq!(it[1]["id"], "s1");
+        assert_eq!(it[1]["kind"], "line");
+        assert_eq!(it[1]["hidden"], true);
+        assert!(it[0].get("hidden").is_none());
+    }
+
+    #[test]
+    fn invisible_box_with_text_is_not_hidden_and_has_no_stroke() {
+        let v = scene_of("box invis \"label\"");
+        let it = &items(&v)[0];
+        assert!(it.get("hidden").is_none());
+        assert!(it.get("stroke").is_none());
+        assert_eq!(it["text"][0]["text"], "label");
+    }
+
+    #[test]
+    fn arrowhead_trims_the_shaft_and_keeps_the_tip_in_the_head() {
+        let v = scene_of("arrow right 1");
+        let it = &items(&v)[0];
+        let pts = it["points"].as_array().unwrap();
+        let end_x = pts[1][0].as_f64().unwrap();
+        assert!(end_x < 1.0, "shaft end {end_x} should be pulled back");
+        let head = &it["heads"][0];
+        assert_eq!(head["at"], "end");
+        assert_eq!(head["filled"], true);
+        let tip = head["points"][1].as_array().unwrap();
+        assert!((tip[0].as_f64().unwrap() - 1.0).abs() < 1e-9);
+        assert!(tip[1].as_f64().unwrap().abs() < 1e-9);
+    }
+
+    #[test]
+    fn style_descriptors_resolve_colors_dash_width_and_opacity() {
+        let v = scene_of(
+            "box fill 0.3 opacity 0.5\nline right dashed 0.1 thick 1.6 color rgb(255,140,0)\n\
+             box shaded \"lightgreen\" at (3,0)\nbox gradient \"red\" \"blue\" gradientangle 90 at (5,0)\n\
+             box hatch at (7,0)",
+        );
+        let it = items(&v);
+        // pic gray: 0.3 → 77/255
+        assert_eq!(it[0]["fill"]["color"], "#4d4d4d");
+        assert_eq!(it[0]["opacity"].as_f64().unwrap(), 0.5);
+        assert_eq!(it[1]["stroke"]["color"], "#ff8c00");
+        assert_eq!(it[1]["stroke"]["width"].as_f64().unwrap(), 1.6);
+        assert_eq!(it[1]["stroke"]["dash"]["kind"], "dashed");
+        assert_eq!(it[1]["stroke"]["dash"]["len"].as_f64().unwrap(), 0.1);
+        assert_eq!(it[2]["fill"]["color"], "#90ee90");
+        let g = &it[3]["fill"]["gradient"];
+        assert_eq!(g["angle"].as_f64().unwrap(), 90.0);
+        assert_eq!(g["stops"][0]["color"], "#ff0000");
+        assert_eq!(g["stops"][1]["color"], "#0000ff");
+        let h = &it[4]["fill"]["hatch"];
+        assert!(h["spacing"].as_f64().unwrap() > 0.0);
+        assert_eq!(h["color"], "#000000");
+    }
+
+    #[test]
+    fn irreducible_color_warns_scene_unsupported_with_span() {
+        // B5: never silent — currentColor is valid SVG but has no hex form
+        let (v, warnings) = scene_with(
+            "box outlined \"currentColor\"",
+            &SceneOptions::default(),
+        );
+        assert_eq!(items(&v)[0]["stroke"]["color"], "currentColor");
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(warnings[0].kind, "scene_unsupported");
+        assert_eq!(warnings[0].line, Some(1));
+    }
+
+    #[test]
+    fn blocks_become_items_and_children_carry_paths() {
+        let v = scene_of("K: [ box; N: [ circle ] with .w at last box.e ]\nbox with .nw at (0,-2)");
+        let it = items(&v);
+        // inner block first in the blocks table but outer item precedes in
+        // the array (interleaved before its earliest child, outermost first)
+        let kinds: Vec<&str> = it.iter().map(|i| i["kind"].as_str().unwrap()).collect();
+        assert_eq!(kinds, ["block", "box", "block", "circle", "box"]);
+        let outer = &it[0];
+        assert_eq!(outer["label"], "K");
+        let outer_id = outer["id"].as_str().unwrap();
+        let inner = &it[2];
+        assert_eq!(inner["label"], "N");
+        assert_eq!(inner["block"][0], outer_id);
+        // the box child belongs to the outer block, the circle to the inner
+        assert_eq!(it[1]["block"].as_array().unwrap().len(), 1);
+        assert_eq!(it[3]["block"].as_array().unwrap().len(), 2);
+        // membership lists
+        assert!(outer["items"].as_array().unwrap().iter().any(|x| x == &it[1]["id"]));
+        assert!(outer["items"].as_array().unwrap().iter().any(|x| x.as_str() == Some(inner["id"].as_str().unwrap())));
+        assert!(inner["items"].as_array().unwrap().iter().any(|x| x == &it[3]["id"]));
+    }
+
+    #[test]
+    fn spline_cubics_match_the_svg_path_d() {
+        // A5 (no flatten): scene cubics mapped through the documented
+        // transform reproduce the SVG d numbers
+        let src = "spline from (0,0) to (0.5,0.4) then to (1,0) then to (1.5,0.4)";
+        let d = crate::compile(src).unwrap();
+        let svg = crate::to_svg(&d);
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let (w, h) = (
+            v["canvas"]["w"].as_f64().unwrap(),
+            v["canvas"]["h"].as_f64().unwrap(),
+        );
+        let _ = w;
+        let ox = v["canvas"]["origin"][0].as_f64().unwrap();
+        let oy = v["canvas"]["origin"][1].as_f64().unwrap();
+        let to_px = |x: f64, y: f64| ((x + ox) * 96.0, (h - (y + oy)) * 96.0);
+
+        let path = &items(&v)[0]["paths"][0];
+        let mut expect: Vec<(f64, f64)> = Vec::new();
+        let s = path["start"].as_array().unwrap();
+        expect.push(to_px(s[0].as_f64().unwrap(), s[1].as_f64().unwrap()));
+        for c in path["cubics"].as_array().unwrap() {
+            for p in c.as_array().unwrap() {
+                let p = p.as_array().unwrap();
+                expect.push(to_px(p[0].as_f64().unwrap(), p[1].as_f64().unwrap()));
+            }
+        }
+
+        let dline = svg
+            .lines()
+            .find(|l| l.contains("<path d=\"M"))
+            .expect("spline path");
+        let dstr = dline.split("d=\"").nth(1).unwrap().split('"').next().unwrap();
+        let nums: Vec<f64> = dstr
+            .split(|c: char| !(c.is_ascii_digit() || c == '.' || c == '-'))
+            .filter(|t| !t.is_empty())
+            .map(|t| t.parse().unwrap())
+            .collect();
+        assert_eq!(nums.len(), expect.len() * 2, "point count: {dstr}");
+        for (i, (ex, ey)) in expect.iter().enumerate() {
+            assert!(
+                (nums[2 * i] - ex).abs() < 2e-4 && (nums[2 * i + 1] - ey).abs() < 2e-4,
+                "point {i}: svg ({},{}) vs scene ({ex},{ey})",
+                nums[2 * i],
+                nums[2 * i + 1]
+            );
+        }
+    }
+
+    #[test]
+    fn flatten_polylines_stay_within_tolerance_of_the_cubics() {
+        // A5 (flatten): Hausdorff distance polyline↔cubics ≤ tol
+        let src = "spline from (0,0) to (0.5,0.6) then to (1,0) then to (1.8,0.6)\n\
+                   arc from (3,0) to (3.6,0.6)";
+        let d = crate::compile(src).unwrap();
+        let tol = 1e-3;
+        let exact: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let flat: Value = serde_json::from_str(
+            &scene_json(
+                &d,
+                &SceneOptions {
+                    flatten: Some(tol),
+                    ..Default::default()
+                },
+            )
+            .json,
+        )
+        .unwrap();
+        for (ei, fi) in items(&exact).iter().zip(items(&flat)) {
+            let (Some(ep), Some(fp)) = (ei.get("paths"), fi.get("paths")) else {
+                continue;
+            };
+            let ep = &ep[0];
+            let poly: Vec<Point> = fp[0]["points"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|p| Point::new(p[0].as_f64().unwrap(), p[1].as_f64().unwrap()))
+                .collect();
+            assert!(poly.len() >= 2);
+            // sample the exact cubics densely; every sample must be within
+            // tol (+ slack) of the polyline
+            let s = ep["start"].as_array().unwrap();
+            let mut cur = Point::new(s[0].as_f64().unwrap(), s[1].as_f64().unwrap());
+            for c in ep["cubics"].as_array().unwrap() {
+                let pt = |k: usize| {
+                    let p = c[k].as_array().unwrap();
+                    Point::new(p[0].as_f64().unwrap(), p[1].as_f64().unwrap())
+                };
+                let (c1, c2, p3) = (pt(0), pt(1), pt(2));
+                for k in 0..=100 {
+                    let t = k as f64 / 100.0;
+                    let u = 1.0 - t;
+                    let q = cur * (u * u * u)
+                        + c1 * (3.0 * u * u * t)
+                        + c2 * (3.0 * u * t * t)
+                        + p3 * (t * t * t);
+                    let dmin = poly
+                        .windows(2)
+                        .map(|w| dist_to_segment(q, w[0], w[1]))
+                        .fold(f64::INFINITY, f64::min);
+                    assert!(
+                        dmin <= tol + 2e-6,
+                        "sample {q:?} is {dmin} from the polyline (> {tol})"
+                    );
+                }
+                cur = p3;
+            }
+        }
+    }
+
+    #[test]
+    fn scene_is_byte_deterministic() {
+        let src = "B: box \"x\"\narrow\nC: circle dashed";
+        let d = crate::compile(src).unwrap();
+        let a = scene_json(&d, &SceneOptions::default()).json;
+        let b = scene_json(&d, &SceneOptions::default()).json;
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn scene_version_bump_guard() {
+        // B2: the emitted key vocabulary is pinned. If this test fails you
+        // either added a key (append it here — same version) or renamed/
+        // removed one (bump SCENE_VERSION and docs/scene.md together).
+        let src = "geo = 1\nK: [ B: box \"t\" bold rotated 30 fill 0.2 opacity 0.5 ]\n\
+                   arrow right dashed from K.e\nspline from (0,-1) right 0.5 then down 0.2 <->\n\
+                   arc from (2,-1) to (2.5,-0.6) ->\ndot at (3,-1)\n\
+                   box gradient \"red\" \"blue\" hatched at (4,0) link \"https://rpic.dev\"\n\
+                   line right 0.3 dotted class \"x\"\nmove right 0.2\n\"standalone\" at (0,-2)";
+        let d = crate::compile(src).unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: Value = serde_json::from_str(&out.json).unwrap();
+        let mut keys = std::collections::BTreeSet::new();
+        collect_keys(&v, &mut keys);
+        let expect: std::collections::BTreeSet<String> = [
+            "scene", "units", "y_up", "canvas", "w", "h", "margin", "top", "right", "bottom",
+            "left", "origin", "vars", "items", "id", "kind", "z", "label", "block", "class",
+            "link", "hidden", "at", "r", "rad", "points", "closed", "paths", "fillPoints",
+            "fillPaths", "cubics", "start", "heads", "filled", "path", "stroke", "color",
+            "width", "dash", "len", "gap", "fill", "gradient", "angle", "stops", "offset",
+            "hatch", "spacing", "cross", "opacity", "text", "anchor", "font", "size", "family",
+            "bold", "italic", "rotation", "math", "depth", "outline", "source", "items",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        for k in &keys {
+            assert!(
+                expect.contains(k),
+                "scene emitted unpinned key `{k}` — new field? append it to \
+                 this test (same version); renamed/removed? bump SCENE_VERSION"
+            );
+        }
+    }
+
+    fn collect_keys(v: &Value, out: &mut std::collections::BTreeSet<String>) {
+        match v {
+            Value::Object(m) => {
+                for (k, v) in m {
+                    out.insert(k.clone());
+                    // `vars` keys are variable names (data, not schema)
+                    if k != "vars" {
+                        collect_keys(v, out);
+                    }
+                }
+            }
+            Value::Array(a) => {
+                for v in a {
+                    collect_keys(v, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn json_all_bundle_merges_scene_warnings_and_plain_json_is_unchanged() {
+        let src = "box color \"currentColor\"";
+        let plain = crate::compile_json(src);
+        assert!(!plain.contains("\"scene\""), "{plain}");
+        assert!(!plain.contains("scene_unsupported"), "{plain}");
+        let all = crate::compile_json_all_with_options(
+            src,
+            &crate::CompileOptions::default(),
+            &SceneOptions::default(),
+        );
+        assert!(all.contains("\"scene\":{\"scene\":1"), "{all}");
+        assert!(all.contains("scene_unsupported"), "{all}");
+    }
 }
