@@ -10,6 +10,30 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-11-02
+
+### Changed
+
+- **Smaller WASM**: the npm artifacts build with `opt-level = "z"` +
+  `wasm-opt -Oz` — the lean module drops to 471 KB, 5.6% below 0.11.3 even
+  with the scene emitter aboard (#403/#410).
+- **Portable Linux binary**: the release tarball is now a fully static
+  `x86_64-unknown-linux-musl` build (the ubuntu26 runner image had left the
+  gnu binary needing a newer glibc than most distros ship), and the `.deb`
+  is pinned to an ubuntu-24.04 image (#405/#411). The Linux asset name
+  changed accordingly.
+- **Dependencies**, all proved output-inert over the corpus: ratex 0.1.15
+  (SVG byte-identical incl. `-t`), resvg 0.49.0 (PNG byte-identical),
+  pyo3 0.30.1.
+
+### Fixed
+
+- **PyPI publishing**: Linux wheels build in the `manylinux_2_28` container
+  (the bare ubuntu26 runner produced `linux_x86_64` wheels PyPI rejects) and
+  upload failures now fail the workflow instead of hiding behind
+  `continue-on-error`; `workflow_dispatch` re-publishing supported
+  (#404/#407).
+
 ## [0.12.0] — 2026-11-01
 
 ### Added
