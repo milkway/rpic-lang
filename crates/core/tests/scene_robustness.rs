@@ -98,6 +98,41 @@ fn hostile_flatten_tolerances_stay_bounded() {
 }
 
 #[test]
+fn flatten_point_budget_bounds_hostile_inputs_and_warns() {
+    // a huge spline × tiny tolerance would amplify the output unboundedly;
+    // the scene-wide point budget degrades resolution instead, with a warning
+    let mut src = String::from("spline from (0,0)");
+    for i in 1..4000 {
+        src.push_str(&format!(
+            " then to ({}, {})",
+            i as f64 / 100.0,
+            (i % 2) as f64
+        ));
+    }
+    let d = compile_with_diagnostics(&src, &Default::default()).unwrap();
+    let out = scene_json(
+        &d,
+        &SceneOptions {
+            flatten: Some(1e-300),
+            ..Default::default()
+        },
+    );
+    assert!(
+        out.json.len() < 64_000_000,
+        "output must stay bounded: {} bytes",
+        out.json.len()
+    );
+    assert!(
+        out.warnings
+            .iter()
+            .any(|w| w.kind == "scene_unsupported" && w.message.contains("flatten point budget")),
+        "budget exhaustion must be reported: {:?}",
+        out.warnings
+    );
+    let _: serde_json::Value = serde_json::from_str(&out.json).expect("valid JSON");
+}
+
+#[test]
 fn non_finite_geometry_still_yields_valid_json() {
     // division toward zero-length elements and huge coordinates
     let src = "x = 1e308\nline from (0,0) to (x, x)\nbox wid 0 ht 0\narc from (0,0) to (0,0)";

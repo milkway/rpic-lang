@@ -47,8 +47,19 @@ pub fn scene_json(d: &Drawing, opts: &SceneOptions) -> SceneOutput {
         opts,
         out: String::with_capacity(4096),
         warnings: Vec::new(),
+        flatten_left: std::cell::Cell::new(FLATTEN_POINT_BUDGET),
+        flatten_exhausted: std::cell::Cell::new(false),
     };
     sc.build();
+    if sc.flatten_exhausted.get() {
+        sc.warnings.push(Diagnostic::new(
+            "scene_unsupported",
+            format!(
+                "flatten point budget ({FLATTEN_POINT_BUDGET}) exhausted; \
+                 remaining curves were delivered at reduced resolution"
+            ),
+        ));
+    }
     SceneOutput {
         json: sc.out,
         warnings: sc.warnings,
@@ -60,7 +71,18 @@ struct Sc<'a> {
     opts: &'a SceneOptions,
     out: String,
     warnings: Vec<Diagnostic>,
+    /// Remaining `--flatten` point budget for the whole scene (resource cap:
+    /// a hostile source with huge splines plus a tiny tolerance cannot
+    /// amplify the output unboundedly). `Cell` so the `&self` path builders
+    /// can draw it down.
+    flatten_left: std::cell::Cell<usize>,
+    /// Whether the budget ran out (reported once as `scene_unsupported`).
+    flatten_exhausted: std::cell::Cell<bool>,
 }
+
+/// Total points `--flatten` may emit per scene. Corpus figures use a few
+/// hundred; one million keeps even pathological scenes around tens of MB.
+const FLATTEN_POINT_BUDGET: usize = 1_000_000;
 
 // ---- number / string formatting ---------------------------------------------
 
@@ -134,14 +156,19 @@ impl ScenePath {
         }
     }
 
-    fn flattened(self, tol: f64) -> Self {
+    fn flattened(
+        self,
+        tol: f64,
+        budget: &std::cell::Cell<usize>,
+        exhausted: &std::cell::Cell<bool>,
+    ) -> Self {
         if self.cubics.is_empty() {
             return self;
         }
         let mut pts = vec![self.start];
         let mut cur = self.start;
         for c in &self.cubics {
-            flatten_cubic(cur, c[0], c[1], c[2], tol, 0, &mut pts);
+            flatten_cubic(cur, c[0], c[1], c[2], tol, 0, &mut pts, budget, exhausted);
             cur = c[2];
         }
         ScenePath::from_points(pts, self.closed)
@@ -176,6 +203,7 @@ impl ScenePath {
 
 /// Adaptive De Casteljau flattening: subdivide until both control points sit
 /// within `tol` of the chord.
+#[allow(clippy::too_many_arguments)]
 fn flatten_cubic(
     p0: Point,
     c1: Point,
@@ -184,12 +212,24 @@ fn flatten_cubic(
     tol: f64,
     depth: u32,
     out: &mut Vec<Point>,
+    budget: &std::cell::Cell<usize>,
+    exhausted: &std::cell::Cell<bool>,
 ) {
-    // Hard budget against hostile tolerances (`--flatten 1e-300`): at most
-    // 2^12 points per cubic — subdivision converges quadratically, so any
-    // sane tolerance is reached far earlier on inch-scale geometry.
+    // Hard per-cubic budget against hostile tolerances (`--flatten 1e-300`):
+    // at most 2^12 points — subdivision converges quadratically, so any sane
+    // tolerance is reached far earlier on inch-scale geometry. The scene-wide
+    // FLATTEN_POINT_BUDGET additionally caps hostile *inputs* (huge splines):
+    // once it runs out, curves finish at reduced resolution and the build
+    // reports it once, so the output cannot amplify unboundedly.
     const MAX_DEPTH: u32 = 12;
+    let left = budget.get();
+    if left == 0 {
+        exhausted.set(true);
+        out.push(p3);
+        return;
+    }
     if depth >= MAX_DEPTH || cubic_flat(p0, c1, c2, p3, tol) {
+        budget.set(left - 1);
         out.push(p3);
         return;
     }
@@ -200,8 +240,8 @@ fn flatten_cubic(
     let m012 = (m01 + m12) * 0.5;
     let m123 = (m12 + m23) * 0.5;
     let mid = (m012 + m123) * 0.5;
-    flatten_cubic(p0, m01, m012, mid, tol, depth + 1, out);
-    flatten_cubic(mid, m123, m23, p3, tol, depth + 1, out);
+    flatten_cubic(p0, m01, m012, mid, tol, depth + 1, out, budget, exhausted);
+    flatten_cubic(mid, m123, m23, p3, tol, depth + 1, out, budget, exhausted);
 }
 
 fn cubic_flat(p0: Point, c1: Point, c2: Point, p3: Point, tol: f64) -> bool {
@@ -559,6 +599,25 @@ impl<'a> Sc<'a> {
             at_pos[first].push(b);
         }
 
+        // Direct children per block, each built in ONE pass (a per-block scan
+        // over all blocks would be quadratic in heavily-blocked sources).
+        let mut child_shapes: Vec<Vec<usize>> = vec![Vec::new(); d.blocks.len()];
+        for (s, b) in d.shape_blocks.iter().enumerate() {
+            if let Some(b) = *b
+                && b < child_shapes.len()
+            {
+                child_shapes[b].push(s);
+            }
+        }
+        let mut child_blocks: Vec<Vec<usize>> = vec![Vec::new(); d.blocks.len()];
+        for (j, inner) in d.blocks.iter().enumerate() {
+            if let Some(p) = inner.parent
+                && p < child_blocks.len()
+            {
+                child_blocks[p].push(j);
+            }
+        }
+
         let mut wrote = false;
         for (pos, &i) in order.iter().enumerate() {
             for &b in &at_pos[pos] {
@@ -566,7 +625,7 @@ impl<'a> Sc<'a> {
                     self.out.push(',');
                 }
                 wrote = true;
-                self.block_item(b);
+                self.block_item(b, &child_shapes[b], &child_blocks[b]);
             }
             if wrote {
                 self.out.push(',');
@@ -576,7 +635,7 @@ impl<'a> Sc<'a> {
         }
     }
 
-    fn block_item(&mut self, b: usize) {
+    fn block_item(&mut self, b: usize, child_shapes: &[usize], child_blocks: &[usize]) {
         let d = self.d;
         let info = &d.blocks[b];
         self.out
@@ -591,23 +650,19 @@ impl<'a> Sc<'a> {
         }
         self.out.push_str(",\"items\":[");
         let mut first = true;
-        for s in info.shapes.0..info.shapes.1 {
-            if d.shape_blocks.get(s).copied().flatten() == Some(b) {
-                if !first {
-                    self.out.push(',');
-                }
-                first = false;
-                self.out.push_str(&format!("\"s{s}\""));
+        for s in child_shapes {
+            if !first {
+                self.out.push(',');
             }
+            first = false;
+            self.out.push_str(&format!("\"s{s}\""));
         }
-        for (j, inner) in d.blocks.iter().enumerate() {
-            if inner.parent == Some(b) {
-                if !first {
-                    self.out.push(',');
-                }
-                first = false;
-                self.out.push_str(&format!("\"blk{j}\""));
+        for j in child_blocks {
+            if !first {
+                self.out.push(',');
             }
+            first = false;
+            self.out.push_str(&format!("\"blk{j}\""));
         }
         self.out.push_str("]}");
     }
@@ -843,7 +898,7 @@ impl<'a> Sc<'a> {
                     let segs: Vec<[Point; 3]> = cubics.iter().map(|c| [c[1], c[2], c[3]]).collect();
                     let mut p = ScenePath::from_cubics(start, segs, false);
                     if let Some(tol) = self.opts.flatten {
-                        p = p.flattened(tol);
+                        p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
                     }
                     self.out.push_str(&format!(",\"paths\":[{}]", p.json()));
                 }
@@ -901,7 +956,7 @@ impl<'a> Sc<'a> {
             ScenePath::from_cubics(start, cubics, false)
         };
         if let Some(tol) = self.opts.flatten {
-            p = p.flattened(tol);
+            p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
         }
         p
     }
@@ -912,7 +967,7 @@ impl<'a> Sc<'a> {
         arc_cubics(c, r.abs(), t0, angle, &mut cubics);
         let mut p = ScenePath::from_cubics(start, cubics, false);
         if let Some(tol) = self.opts.flatten {
-            p = p.flattened(tol);
+            p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
         }
         p
     }
@@ -1013,7 +1068,7 @@ impl<'a> Sc<'a> {
         }
         let mut p = ScenePath::from_cubics(start, cubics, true);
         if let Some(tol) = self.opts.flatten {
-            p = p.flattened(tol);
+            p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
         }
         let json = format!(
             "{{\"at\":\"{at}\",\"filled\":{},\"path\":{}}}",
