@@ -188,11 +188,71 @@ fn render_pdf<'py>(
     Ok(PyBytes::new(py, &pdf))
 }
 
+/// Build [`rpic_core::SceneOptions`] from the Python keywords, validating
+/// `flatten`.
+fn scene_opts(flatten: Option<f64>, outline: bool) -> PyResult<rpic_core::SceneOptions> {
+    if let Some(f) = flatten
+        && (!f.is_finite() || f <= 0.0)
+    {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "flatten must be a positive finite tolerance in inches",
+        ));
+    }
+    Ok(rpic_core::SceneOptions {
+        flatten,
+        outline,
+        source: None,
+    })
+}
+
+/// Parse a JSON document into Python objects via the stdlib `json` module.
+fn json_loads<'py>(py: Python<'py>, json: &str) -> PyResult<Bound<'py, PyAny>> {
+    py.import("json")?.call_method1("loads", (json,))
+}
+
+/// Compile pic source to the device-independent **scene** draw list
+/// (docs/scene.md) as a parsed dict: versioned, inches, y-up, curves as cubic
+/// Béziers (`flatten` delivers polylines instead; `outline` embeds typeset
+/// math as SVG fragments). Raises `CompileError` on a pic error. Warnings —
+/// including the scene's own `scene_unsupported` — are available via
+/// `compile(..., scene=True)["warnings"]`.
+#[pyfunction]
+#[pyo3(signature = (src, flatten = None, outline = false, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[allow(clippy::too_many_arguments)]
+fn scene<'py>(
+    py: Python<'py>,
+    src: &str,
+    flatten: Option<f64>,
+    outline: bool,
+    circuits: bool,
+    texlabels: bool,
+    base: Option<PathBuf>,
+    include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
+) -> PyResult<Bound<'py, PyAny>> {
+    let d = compile_drawing(
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+        max_loop_iterations,
+        max_shapes,
+    )?;
+    let out = rpic_core::scene_json(&d, &scene_opts(flatten, outline)?);
+    json_loads(py, &out.json)
+}
+
 /// Compile to the parsed bundle: a dict `{"svg": str, "animations": [dict],
 /// "diagnostics": [str], "warnings": [dict]}`. Raises `CompileError` (with
-/// the structured diagnostic on `exc.info`) on a pic error.
+/// the structured diagnostic on `exc.info`) on a pic error. With
+/// `scene=True` (or a `flatten` tolerance) the dict also carries the
+/// device-independent `"scene"` draw list and its `scene_unsupported`
+/// warnings join `"warnings"` — the default output is unchanged otherwise.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, scene = false, flatten = None, outline = false))]
 #[allow(clippy::too_many_arguments)]
 fn compile<'py>(
     py: Python<'py>,
@@ -203,6 +263,9 @@ fn compile<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    scene: bool,
+    flatten: Option<f64>,
+    outline: bool,
 ) -> PyResult<Bound<'py, PyDict>> {
     let d = compile_drawing(
         py,
@@ -214,6 +277,11 @@ fn compile<'py>(
         max_loop_iterations,
         max_shapes,
     )?;
+    let scene_out = if scene || flatten.is_some() {
+        Some(rpic_core::scene_json(&d, &scene_opts(flatten, outline)?))
+    } else {
+        None
+    };
     let out = PyDict::new(py);
     out.set_item("svg", rpic_core::to_svg(&d))?;
     let anims = PyList::empty(py);
@@ -256,6 +324,11 @@ fn compile<'py>(
     for w in &d.warnings {
         warnings.append(diagnostic_dict(py, w)?)?;
     }
+    if let Some(s) = &scene_out {
+        for w in &s.warnings {
+            warnings.append(diagnostic_dict(py, w)?)?;
+        }
+    }
     out.set_item("warnings", warnings)?;
     let objects = PyList::empty(py);
     for (i, g) in rpic_core::svg::object_geometries(&d).iter().enumerate() {
@@ -287,6 +360,9 @@ fn compile<'py>(
     // rpic `animate scroll`: timeline-level scroll-scrub hint for the host.
     if d.anim_scroll {
         out.set_item("scroll", true)?;
+    }
+    if let Some(s) = &scene_out {
+        out.set_item("scene", json_loads(py, &s.json)?)?;
     }
     Ok(out)
 }
@@ -325,6 +401,7 @@ fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(render_pdf, m)?)?;
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(compile_json, m)?)?;
+    m.add_function(wrap_pyfunction!(scene, m)?)?;
     m.add("CompileError", m.py().get_type::<CompileError>())?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())

@@ -34,6 +34,13 @@ typedef struct {
 
 char *rpic_render_svg_ex(const char *src, const RpicOptions *opts);
 char *rpic_compile_json_ex(const char *src, const RpicOptions *opts);
+/* The device-independent scene draw list (docs/scene.md) alone. flatten > 0
+ * delivers curves as polylines within that tolerance in inches; 0 keeps the
+ * cubic Béziers. NULL on error; free with rpic_free_string. */
+char *rpic_scene_json(const char *src, const RpicOptions *opts, double flatten);
+/* The compile bundle with the "scene" key included (scene warnings merged
+ * into "warnings"). flatten as in rpic_scene_json. */
+char *rpic_compile_json_all(const char *src, const RpicOptions *opts, double flatten);
 unsigned char *rpic_render_png_ex(const char *src, double scale, const RpicOptions *opts, size_t *out_len);
 unsigned char *rpic_render_pdf_ex(const char *src, const RpicOptions *opts, size_t *out_len);
 

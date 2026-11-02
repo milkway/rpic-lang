@@ -164,3 +164,46 @@ assert.ok(
   assert.ok(!/^\s*import\b/m.test(src), 'player.js must have zero imports');
   assert.ok(!/from\s+['"]\.\/pkg\//.test(src), 'player.js must not touch the wasm glue');
 }
+
+// scene export (docs/scene.md): opt-in, versioned, parity-pinned with the
+// Python/C binding tests (same snippets, same facts; one core emitter).
+{
+  const out = compile('geo_lon = -34.8811\nB: box "hub" fit\narrow right from B.e', { scene: true });
+  const scene = out.scene;
+  assert.equal(scene.scene, 1);
+  assert.equal(scene.units, 'in');
+  assert.equal(scene.y_up, true);
+  assert.equal(scene.vars.geo_lon, -34.8811);
+  assert.deepEqual(scene.items.map((i) => i.id), ['s0', 's1']);
+  assert.deepEqual(scene.items.map((i) => i.kind), ['box', 'arrow']);
+  assert.equal(scene.items[0].label, 'B');
+  assert.equal(scene.items[1].heads[0].filled, true);
+
+  // no scene key unless asked — the default bundle is unchanged
+  assert.ok(!('scene' in compile('box')), 'scene must be opt-in');
+
+  // blocks and curves
+  const blocks = compile('K: [ box; N: [ circle ] with .w at last box.e ]', { scene: true }).scene;
+  assert.deepEqual(blocks.items.map((i) => i.kind), ['block', 'box', 'block', 'circle']);
+  assert.deepEqual(blocks.items[3].block, ['blk1', 'blk0']);
+
+  const spline = 'spline from (0,0) to (0.5,0.4) then to (1,0) ->';
+  const curves = compile(spline, { scene: true }).scene;
+  assert.ok(curves.items[0].paths[0].cubics.length > 0);
+
+  // flatten delivers polylines (and implies scene)
+  const flat = compile(spline, { flatten: 1e-3 }).scene;
+  assert.ok(!('cubics' in flat.items[0].paths[0]));
+  assert.ok(flat.items[0].paths[0].points.length > 2);
+
+  // style descriptors with resolved colors
+  const styled = compile('box fill 0.3 opacity 0.5\nline right dashed 0.1 color rgb(255,140,0)', { scene: true }).scene;
+  assert.equal(styled.items[0].fill.color, '#4d4d4d');
+  assert.equal(styled.items[0].opacity, 0.5);
+  assert.equal(styled.items[1].stroke.color, '#ff8c00');
+  assert.deepEqual(styled.items[1].stroke.dash, { kind: 'dashed', len: 0.1 });
+
+  // scene warnings join the bundle's warnings
+  const warned = compile('box outlined "currentColor"', { scene: true });
+  assert.ok(warned.warnings.some((w) => w.kind === 'scene_unsupported'));
+}

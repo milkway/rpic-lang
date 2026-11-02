@@ -183,6 +183,46 @@ fn render_pdf_impl(
     })
 }
 
+fn scene_opts(flatten: c_double) -> rpic_core::SceneOptions {
+    rpic_core::SceneOptions {
+        // C convention: flatten <= 0 (or non-finite) keeps the cubics
+        flatten: Some(flatten).filter(|f| f.is_finite() && *f > 0.0),
+        outline: false,
+        source: None,
+    }
+}
+
+fn scene_json_impl(src: *const c_char, o: &rpic_core::CompileOptions, flatten: c_double) -> *mut c_char {
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        match rpic_core::compile_scene_with_options(s, o, &scene_opts(flatten)) {
+            Ok(out) => to_c_string(out.json),
+            Err(_) => ptr::null_mut(),
+        }
+    })
+}
+
+fn compile_json_all_impl(
+    src: *const c_char,
+    o: &rpic_core::CompileOptions,
+    flatten: c_double,
+) -> *mut c_char {
+    guard_ptr(|| {
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        to_c_string(rpic_core::compile_json_all_with_options(
+            s,
+            o,
+            &scene_opts(flatten),
+        ))
+    })
+}
+
 // ---- circuits-only entry points (unchanged ABI) ----------------------------
 
 /// Render pic source to an SVG string. NULL on error.
@@ -260,6 +300,38 @@ pub unsafe extern "C" fn rpic_compile_json_ex(
     compile_json_impl(src, &unsafe { opts_ex(ex) })
 }
 
+/// Compile to the device-independent **scene** JSON alone (docs/scene.md):
+/// the resolved draw list, versioned, inches/y-up, curves as cubic Béziers.
+/// `flatten` > 0 delivers curves as polylines within that tolerance (inches);
+/// pass 0 to keep the cubics. NULL on error (free with [`rpic_free_string`]).
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_scene_json(
+    src: *const c_char,
+    ex: *const RpicOptions,
+    flatten: c_double,
+) -> *mut c_char {
+    scene_json_impl(src, &unsafe { opts_ex(ex) }, flatten)
+}
+
+/// Like [`rpic_compile_json_ex`], with the `scene` key included in the bundle
+/// (and the scene's `scene_unsupported` warnings merged into `warnings`).
+/// `flatten` as in [`rpic_scene_json`]. The plain `rpic_compile_json*` output
+/// is byte-identical to previous releases — only this entry point grows.
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_compile_json_all(
+    src: *const c_char,
+    ex: *const RpicOptions,
+    flatten: c_double,
+) -> *mut c_char {
+    compile_json_all_impl(src, &unsafe { opts_ex(ex) }, flatten)
+}
+
 /// Like [`rpic_render_png`] with full [`RpicOptions`] (NULL = defaults).
 ///
 /// # Safety
@@ -318,6 +390,45 @@ mod tests {
         let s = unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned();
         unsafe { rpic_free_string(p) };
         s
+    }
+
+    #[test]
+    fn scene_json_matches_the_core_emitter_and_handles_errors() {
+        // D1 parity: the C surface returns byte-identical scene JSON to the
+        // core emitter (same options), for a representative figure.
+        let src = "geo_lon = -34.8811\nB: box \"hub\" fit\narrow right from B.e\nC: circle dashed at B.e + (1,0)";
+        let csrc = CString::new(src).unwrap();
+        let got = string_from_owned_ptr(unsafe {
+            rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.0)
+        });
+        let want = rpic_core::compile_scene_with_options(
+            src,
+            &rpic_core::CompileOptions::default(),
+            &rpic_core::SceneOptions::default(),
+        )
+        .unwrap()
+        .json;
+        assert_eq!(got, want);
+        assert!(got.starts_with("{\"scene\":1,"));
+
+        // flatten > 0 removes the cubics; <= 0 keeps them
+        let flat = string_from_owned_ptr(unsafe {
+            rpic_scene_json(csrc.as_ptr(), ptr::null(), 0.001)
+        });
+        assert!(!flat.contains("\"cubics\""));
+
+        // the bundle variant carries the scene key; a pic error is NULL for
+        // the scene-only call and {error,…} for the bundle (JSON convention)
+        let all = string_from_owned_ptr(unsafe {
+            rpic_compile_json_all(csrc.as_ptr(), ptr::null(), 0.0)
+        });
+        assert!(all.contains("\"scene\":{\"scene\":1,"));
+        let bad = CString::new("bxo").unwrap();
+        assert!(unsafe { rpic_scene_json(bad.as_ptr(), ptr::null(), 0.0) }.is_null());
+        let all_bad = string_from_owned_ptr(unsafe {
+            rpic_compile_json_all(bad.as_ptr(), ptr::null(), 0.0)
+        });
+        assert!(all_bad.contains("\"error\""));
     }
 
     #[test]

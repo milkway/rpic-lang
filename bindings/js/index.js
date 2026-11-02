@@ -66,16 +66,22 @@ function ensure() {
  * Compile pic source into `{ svg, animations, diagnostics, warnings, objects }`
  * (throws on a pic error). A top-level `scroll: true` is present when the source
  * used `animate scroll` — a hint to scrub the timeline on scroll (see `animate`).
+ *
+ * Pass `scene: true` for the device-independent resolved draw list as a
+ * `scene` key (see docs/scene.md; versioned, y-up inches, cubic curves);
+ * `flatten` (inches) delivers its curves as polylines instead.
  * @param {string} src
- * @param {{circuits?: boolean, texlabels?: boolean}} [opts]
+ * @param {{circuits?: boolean, texlabels?: boolean, scene?: boolean, flatten?: number}} [opts]
  */
 export function compile(src, opts = {}) {
   ensure();
-  const json = opts.texlabels
-    ? wasm.compile_with(src, !!opts.circuits, true)
-    : opts.circuits
-      ? wasm.compile_circuits(src)
-      : wasm.compile(src);
+  const json = opts.scene || opts.flatten !== undefined
+    ? wasm.compile_scene(src, !!opts.circuits, !!opts.texlabels, opts.flatten)
+    : opts.texlabels
+      ? wasm.compile_with(src, !!opts.circuits, true)
+      : opts.circuits
+        ? wasm.compile_circuits(src)
+        : wasm.compile(src);
   const out = JSON.parse(json);
   if (out.error) {
     const err = new Error(out.error);

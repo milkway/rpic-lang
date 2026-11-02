@@ -43,6 +43,95 @@ export interface ObjectGeometry {
   file?: string;
 }
 
+/** One subpath of a scene item: a cubic Bézier chain or a polyline. */
+export interface ScenePath {
+  closed?: true;
+  /** cubic form: start point + `[c1, c2, end]` triples */
+  start?: [number, number];
+  cubics?: [[number, number], [number, number], [number, number]][];
+  /** polyline form (inherently straight, or `flatten`ed) */
+  points?: [number, number][];
+}
+
+export interface SceneItem {
+  /** `"s<N>"` — matches the SVG's `<g id>` — or `"blk<N>"` for blocks */
+  id: string;
+  kind:
+    | 'box' | 'circle' | 'ellipse' | 'arc' | 'line' | 'arrow'
+    | 'spline' | 'text' | 'dot' | 'brace' | 'block';
+  /** draw-order index (dense over shape items; absent on blocks) */
+  z?: number;
+  label?: string;
+  /** enclosing block item ids, outermost first */
+  block?: string[];
+  class?: string;
+  link?: string;
+  /** the item paints nothing (`move`, invisible helpers) */
+  hidden?: true;
+  at?: [number, number];
+  w?: number;
+  h?: number;
+  r?: number;
+  rad?: number;
+  points?: [number, number][];
+  closed?: true;
+  paths?: ScenePath[];
+  fillPaths?: ScenePath[];
+  fillPoints?: [number, number][];
+  heads?: {
+    at: 'start' | 'end';
+    filled: boolean;
+    points?: [number, number][];
+    path?: ScenePath;
+  }[];
+  stroke?: {
+    color: string;
+    /** points */
+    width: number;
+    dash?: { kind: 'dashed' | 'dotted'; len?: number; gap?: number };
+  };
+  fill?: {
+    color?: string;
+    gradient?: { angle: number; stops: { offset: number; color: string }[] };
+    hatch?: { angle: number; spacing: number; width: number; color: string; cross: boolean };
+  };
+  opacity?: number;
+  text?: {
+    text: string;
+    /** the line's baseline anchor point (see docs/scene.md §5) */
+    at: [number, number];
+    anchor: 'c' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+    font: { size: number; family?: string; bold?: true; italic?: true };
+    rotation?: number;
+    math?: { width: number; height: number; depth: number };
+    outline?: string;
+  }[];
+  /** block items: the child item ids */
+  items?: string[];
+}
+
+/**
+ * The device-independent resolved draw list (docs/scene.md). Coordinates in
+ * inches, y-up; curves as cubic Béziers; style as descriptors.
+ */
+export interface Scene {
+  /** format version (currently 1) */
+  scene: number;
+  units: 'in';
+  y_up: true;
+  canvas: {
+    w: number;
+    h: number;
+    margin: { top: number; right: number; bottom: number; left: number };
+    /** where the pic origin sits, from the canvas lower-left corner */
+    origin: [number, number];
+  };
+  source?: string;
+  /** final values of every variable (user + pic built-ins) */
+  vars: Record<string, number>;
+  items: SceneItem[];
+}
+
 export interface Bundle {
   svg: string;
   animations: Anim[];
@@ -59,6 +148,8 @@ export interface Bundle {
    * the timeline on scroll rather than autoplay. Present only when set.
    */
   scroll?: boolean;
+  /** the resolved draw list; present only when compiled with `scene: true` */
+  scene?: Scene;
 }
 
 export interface CompileError extends Error {
@@ -78,6 +169,10 @@ export interface CompileOptions {
    * labels fall back to literal text plus a diagnostic.
    */
   texlabels?: boolean;
+  /** also compute the device-independent `scene` draw list (docs/scene.md) */
+  scene?: boolean;
+  /** scene: deliver curves as polylines within this tolerance (inches); implies `scene` */
+  flatten?: number;
 }
 
 export interface ReadyOptions {
