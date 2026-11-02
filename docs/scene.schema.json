@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rpic.dev/scene.schema.json",
+  "title": "rpic scene, version 1",
+  "type": "object",
+  "required": ["scene", "units", "y_up", "canvas", "vars", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "scene": { "const": 1 },
+    "units": { "const": "in" },
+    "y_up": { "const": true },
+    "canvas": {
+      "type": "object",
+      "required": ["w", "h", "margin", "origin"],
+      "additionalProperties": false,
+      "properties": {
+        "w": { "type": "number", "minimum": 0 },
+        "h": { "type": "number", "minimum": 0 },
+        "margin": {
+          "type": "object",
+          "required": ["top", "right", "bottom", "left"],
+          "additionalProperties": false,
+          "properties": {
+            "top": { "type": "number" },
+            "right": { "type": "number" },
+            "bottom": { "type": "number" },
+            "left": { "type": "number" }
+          }
+        },
+        "origin": { "$ref": "#/$defs/point" }
+      }
+    },
+    "source": { "type": "string" },
+    "vars": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "points": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/point" },
+      "minItems": 1
+    },
+    "cubic": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/point" },
+        { "$ref": "#/$defs/point" },
+        { "$ref": "#/$defs/point" }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "closed": { "type": "boolean" },
+        "start": { "$ref": "#/$defs/point" },
+        "cubics": { "type": "array", "items": { "$ref": "#/$defs/cubic" }, "minItems": 1 },
+        "points": { "$ref": "#/$defs/points" }
+      },
+      "oneOf": [
+        { "required": ["start", "cubics"], "not": { "required": ["points"] } },
+        { "required": ["points"], "not": { "required": ["cubics"] } }
+      ]
+    },
+    "head": {
+      "type": "object",
+      "required": ["at", "filled"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "enum": ["start", "end"] },
+        "filled": { "type": "boolean" },
+        "points": { "$ref": "#/$defs/points" },
+        "path": { "$ref": "#/$defs/path" }
+      },
+      "oneOf": [
+        { "required": ["points"], "not": { "required": ["path"] } },
+        { "required": ["path"], "not": { "required": ["points"] } }
+      ]
+    },
+    "color": { "type": "string", "minLength": 1 },
+    "dash": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["dashed", "dotted"] },
+        "len": { "type": "number", "minimum": 0 },
+        "gap": { "type": "number", "minimum": 0 }
+      }
+    },
+    "stroke": {
+      "type": "object",
+      "required": ["color", "width"],
+      "additionalProperties": false,
+      "properties": {
+        "color": { "$ref": "#/$defs/color" },
+        "width": { "type": "number", "minimum": 0 },
+        "dash": { "$ref": "#/$defs/dash" }
+      }
+    },
+    "gradient": {
+      "type": "object",
+      "required": ["angle", "stops"],
+      "additionalProperties": false,
+      "properties": {
+        "angle": { "type": "number" },
+        "stops": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["offset", "color"],
+            "additionalProperties": false,
+            "properties": {
+              "offset": { "type": "number", "minimum": 0, "maximum": 1 },
+              "color": { "$ref": "#/$defs/color" }
+            }
+          }
+        }
+      }
+    },
+    "hatch": {
+      "type": "object",
+      "required": ["angle", "spacing", "width", "color", "cross"],
+      "additionalProperties": false,
+      "properties": {
+        "angle": { "type": "number" },
+        "spacing": { "type": "number", "minimum": 0 },
+        "width": { "type": "number", "minimum": 0 },
+        "color": { "$ref": "#/$defs/color" },
+        "cross": { "type": "boolean" }
+      }
+    },
+    "fill": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "color": { "$ref": "#/$defs/color" },
+        "gradient": { "$ref": "#/$defs/gradient" },
+        "hatch": { "$ref": "#/$defs/hatch" }
+      }
+    },
+    "font": {
+      "type": "object",
+      "required": ["size"],
+      "additionalProperties": false,
+      "properties": {
+        "size": { "type": "number", "exclusiveMinimum": 0 },
+        "family": { "type": "string" },
+        "bold": { "const": true },
+        "italic": { "const": true }
+      }
+    },
+    "textline": {
+      "type": "object",
+      "required": ["text", "at", "anchor", "font"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "at": { "$ref": "#/$defs/point" },
+        "anchor": { "enum": ["c", "n", "s", "e", "w", "ne", "nw", "se", "sw"] },
+        "font": { "$ref": "#/$defs/font" },
+        "rotation": { "type": "number" },
+        "math": {
+          "type": "object",
+          "required": ["width", "height", "depth"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number" },
+            "height": { "type": "number" },
+            "depth": { "type": "number" }
+          }
+        },
+        "outline": { "type": "string" }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^(s|blk)[0-9]+$" },
+        "kind": {
+          "enum": ["box", "circle", "ellipse", "arc", "line", "arrow",
+                   "spline", "text", "dot", "brace", "block"]
+        },
+        "z": { "type": "integer", "minimum": 0 },
+        "label": { "type": "string" },
+        "block": { "type": "array", "items": { "type": "string" } },
+        "class": { "type": "string" },
+        "link": { "type": "string" },
+        "hidden": { "const": true },
+        "at": { "$ref": "#/$defs/point" },
+        "w": { "type": "number" },
+        "h": { "type": "number" },
+        "r": { "type": "number" },
+        "rad": { "type": "number" },
+        "points": { "$ref": "#/$defs/points" },
+        "closed": { "const": true },
+        "paths": { "type": "array", "items": { "$ref": "#/$defs/path" }, "minItems": 1 },
+        "fillPaths": { "type": "array", "items": { "$ref": "#/$defs/path" }, "minItems": 1 },
+        "fillPoints": { "$ref": "#/$defs/points" },
+        "heads": { "type": "array", "items": { "$ref": "#/$defs/head" }, "minItems": 1, "maxItems": 2 },
+        "stroke": { "$ref": "#/$defs/stroke" },
+        "fill": { "$ref": "#/$defs/fill" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "text": { "type": "array", "items": { "$ref": "#/$defs/textline" } },
+        "items": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
