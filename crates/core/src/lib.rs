@@ -16,6 +16,7 @@ pub mod ir;
 pub mod lexer;
 mod math;
 pub mod parser;
+pub mod scene;
 pub mod svg;
 pub mod token;
 
@@ -26,6 +27,7 @@ pub use ir::Drawing;
 pub use lexer::{LexError, lex};
 pub use math::{MathSpan, set_math_renderer};
 pub use parser::{ParseError, parse, parse_in_dir, parse_with_prelude};
+pub use scene::{SCENE_VERSION, SceneOptions, SceneOutput, scene_json};
 pub use svg::to_svg;
 pub use token::Token;
 
@@ -304,12 +306,38 @@ pub fn compile_json_in_dir(src: &str, base: Option<&std::path::Path>) -> String 
 /// they are in) — never to a concatenated stream.
 pub fn compile_json_with_options(src: &str, opts: &CompileOptions) -> String {
     match compile_with_diagnostics(src, opts) {
-        Ok(d) => drawing_json(&d),
+        Ok(d) => drawing_json(&d, None),
         Err(e) => error_json(&e.message, &e.info),
     }
 }
 
-fn drawing_json(d: &Drawing) -> String {
+/// Compile the scene JSON alone (`rpic --scene`): the scene document on
+/// success, or the same `{error, error_info}` object the bundle emits on
+/// failure. Scene warnings come back alongside for the caller to surface.
+pub fn compile_scene_with_options(
+    src: &str,
+    opts: &CompileOptions,
+    sopts: &SceneOptions,
+) -> Result<SceneOutput, CompileError> {
+    Ok(scene_json(&compile_with_diagnostics(src, opts)?, sopts))
+}
+
+/// Compile to the full JSON bundle **plus** the `scene` key (`rpic
+/// --json=all`). Scene warnings are merged into the bundle's `warnings`.
+/// The plain [`compile_json_with_options`] stays byte-identical to previous
+/// releases — this is the only bundle path that grows.
+pub fn compile_json_all_with_options(
+    src: &str,
+    opts: &CompileOptions,
+    sopts: &SceneOptions,
+) -> String {
+    match compile_with_diagnostics(src, opts) {
+        Ok(d) => drawing_json(&d, Some(scene_json(&d, sopts))),
+        Err(e) => error_json(&e.message, &e.info),
+    }
+}
+
+fn drawing_json(d: &Drawing, scene: Option<SceneOutput>) -> String {
     // `animate scroll` adds a top-level hint; omitted when unset so plain
     // bundles stay byte-identical.
     let scroll = if d.anim_scroll {
@@ -324,15 +352,33 @@ fn drawing_json(d: &Drawing) -> String {
     } else {
         format!(",\"interactions\":{}", interactions_json(d))
     };
+    // `--json=all`: the scene rides along and its warnings join the stream.
+    // With `scene` = None (the default `--json`) every byte stays as before.
+    let (warnings_json, scene_field) = match scene {
+        None => (diagnostics_json_structured(&d.warnings), String::new()),
+        Some(s) => {
+            let all: Vec<Diagnostic> = d
+                .warnings
+                .iter()
+                .chain(s.warnings.iter())
+                .cloned()
+                .collect();
+            (
+                diagnostics_json_structured(&all),
+                format!(",\"scene\":{}", s.json),
+            )
+        }
+    };
     format!(
-        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}{}}}",
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}{}{}}}",
         json_str(&to_svg(d)),
         animations_json(d),
         diagnostics_json(d),
-        diagnostics_json_structured(&d.warnings),
+        warnings_json,
         objects_json(d),
         interactions,
-        scroll
+        scroll,
+        scene_field
     )
 }
 
@@ -408,7 +454,7 @@ fn json_opt_str(v: Option<&str>) -> String {
 }
 
 /// Escape a string for embedding inside a JSON string literal.
-fn json_str(s: &str) -> String {
+pub(crate) fn json_str(s: &str) -> String {
     let mut o = String::with_capacity(s.len() + 8);
     for c in s.chars() {
         match c {

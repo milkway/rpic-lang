@@ -65,6 +65,7 @@ export const nav: NavSection[] = [
     label: 'Reference',
     items: [
       { title: 'Language spec', href: '/docs/spec' },
+      { title: 'Scene output', href: '/docs/scene' },
       { title: 'The pic family', href: '/docs/pic-family' },
       { title: 'Performance', href: '/docs/performance' },
     ],

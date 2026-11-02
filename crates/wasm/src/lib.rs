@@ -44,7 +44,33 @@ pub fn compile_circuits(src: &str) -> String {
 /// `rpic_wasm_math` npm artifact) to typeset them.
 #[wasm_bindgen]
 pub fn compile_with(src: &str, circuits: bool, texlabels: bool) -> String {
-    let opts = rpic_core::CompileOptions {
+    let opts = wasm_options(circuits, texlabels);
+    rpic_core::compile_json_with_options(src, &opts)
+}
+
+/// Like [`compile_with`], but the bundle also carries the device-independent
+/// `scene` draw list (docs/scene.md); `flatten` (inches) delivers curves as
+/// polylines. The plain entry points above stay byte-identical — the scene is
+/// computed only here.
+#[wasm_bindgen]
+pub fn compile_scene(
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    flatten: Option<f64>,
+    outline: bool,
+) -> String {
+    let opts = wasm_options(circuits, texlabels);
+    let sopts = rpic_core::SceneOptions {
+        flatten: flatten.filter(|f| f.is_finite() && *f > 0.0),
+        outline,
+        source: None,
+    };
+    rpic_core::compile_json_all_with_options(src, &opts, &sopts)
+}
+
+fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
+    rpic_core::CompileOptions {
         circuits,
         texlabels,
         base: None,
@@ -52,6 +78,5 @@ pub fn compile_with(src: &str, circuits: bool, texlabels: bool) -> String {
         // error instead of an opaque io error (`copy "circuits"` still works)
         includes: rpic_core::IncludePolicy::Deny,
         ..Default::default()
-    };
-    rpic_core::compile_json_with_options(src, &opts)
+    }
 }

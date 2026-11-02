@@ -37,15 +37,54 @@ struct Svg {
     cur_type: Option<bool>,
 }
 
+/// The page frame both backends agree on: canvas size in **inches**
+/// (margins and stroke padding included) and the transform inputs. The single
+/// source of the layout math — the SVG emitter consumes it directly and the
+/// scene export publishes it, so the documented scene→pixel mapping
+/// `svg_px = ((x + ox)·96, (h − (y + oy))·96)` can never drift from the SVG.
+pub(crate) struct CanvasFrame {
+    /// Page size in inches.
+    pub(crate) w: f64,
+    pub(crate) h: f64,
+    /// Model-space left edge / top edge of the content box.
+    pub(crate) west: f64,
+    pub(crate) north: f64,
+    /// Stroke padding in inches (`prelude_thick/144`).
+    pub(crate) pad: f64,
+}
+
+impl CanvasFrame {
+    /// Where the pic origin sits, measured from the canvas lower-left corner.
+    pub(crate) fn origin(&self, m: CanvasMargin) -> (f64, f64) {
+        (
+            2.0 * self.pad + m.left - self.west,
+            self.h - self.north - self.pad - m.top,
+        )
+    }
+}
+
+pub(crate) fn canvas_frame(d: &Drawing) -> CanvasFrame {
+    // a fixed `canvas` pins the page frame; otherwise it hugs the content
+    let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
+    let pad = d.prelude_thick.max(0.0) / 144.0;
+    let m = d.canvas_margin;
+    let (west, north, raw_w, raw_h) = if raw.is_empty() {
+        (0.0, 0.0, 0.0, 0.0)
+    } else {
+        (raw.min.x, raw.max.y, raw.width(), raw.height())
+    };
+    CanvasFrame {
+        w: positive_extent(raw_w + 6.0 * pad + m.horizontal()),
+        h: positive_extent(raw_h + 6.0 * pad + m.vertical()),
+        west,
+        north,
+        pad,
+    }
+}
+
 impl Svg {
     fn new(d: &Drawing) -> Self {
-        // a fixed `canvas` pins the page frame; otherwise it hugs the content
-        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
-        let (west, north) = if raw.is_empty() {
-            (0.0, 0.0)
-        } else {
-            (raw.min.x, raw.max.y)
-        };
+        let frame = canvas_frame(d);
         let type_targets = d
             .anims
             .iter()
@@ -54,9 +93,9 @@ impl Svg {
             .collect();
         Svg {
             out: String::new(),
-            west,
-            north,
-            pad: d.prelude_thick.max(0.0) / 144.0,
+            west: frame.west,
+            north: frame.north,
+            pad: frame.pad,
             margin: d.canvas_margin,
             next_pattern: 0,
             type_targets,
@@ -73,20 +112,8 @@ impl Svg {
     }
 
     fn render(&mut self, d: &Drawing) {
-        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
-        let raw_w = if raw.is_empty() { 0.0 } else { raw.width() };
-        let raw_h = if raw.is_empty() { 0.0 } else { raw.height() };
-        let (w, h) = if raw.is_empty() {
-            (
-                positive_extent(6.0 * self.pad + self.margin.horizontal()) * PPI,
-                positive_extent(6.0 * self.pad + self.margin.vertical()) * PPI,
-            )
-        } else {
-            (
-                positive_extent(raw_w + 6.0 * self.pad + self.margin.horizontal()) * PPI,
-                positive_extent(raw_h + 6.0 * self.pad + self.margin.vertical()) * PPI,
-            )
-        };
+        let frame = canvas_frame(d);
+        let (w, h) = (frame.w * PPI, frame.h * PPI);
         self.out.push_str(&format!(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" font-family=\"sans-serif\" font-size=\"{}\" fill=\"none\">\n",
             num(w),
@@ -572,7 +599,7 @@ impl Svg {
         match &style.fill {
             None => "none".to_string(),
             Some(Fill::Gray(g)) => {
-                let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
+                let v = gray_channel(*g);
                 format!("rgb({v},{v},{v})")
             }
             Some(Fill::Color(c)) => escape_attr(c),
@@ -958,7 +985,7 @@ fn shape_kind(sh: &Shape) -> &'static str {
     }
 }
 
-fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
+pub(crate) fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
     let mut out = Bbox::new();
     for sh in shapes {
         out.union(&shape_svg_bounds(sh));
@@ -966,7 +993,7 @@ fn drawing_svg_bounds(shapes: &[Shape]) -> Bbox {
     out
 }
 
-fn positive_extent(v: f64) -> f64 {
+pub(crate) fn positive_extent(v: f64) -> f64 {
     if v.is_finite() && v > 0.0 { v } else { 0.0 }
 }
 
@@ -979,12 +1006,7 @@ fn shape_svg_bounds(sh: &Shape) -> Bbox {
                 out.add(*c + Point::new(*w / 2.0, *h / 2.0));
             }
         }
-        Shape::Circle {
-            c,
-            r,
-            style,
-            text: _,
-        } => {
+        Shape::Circle { c, r, style, .. } => {
             if closed_shape_is_visible(style) {
                 out.add(*c - Point::new(*r, *r));
                 out.add(*c + Point::new(*r, *r));
@@ -1236,12 +1258,22 @@ fn thick_px(style: &Style) -> f64 {
     pt * PPI / 72.0
 }
 
-fn thick_in(style: &Style) -> f64 {
+/// pic gray shade (0 = black … 1 = white) → one 8-bit channel. The single
+/// quantization shared by the SVG `fill_value` and the scene's hex export.
+pub(crate) fn gray_channel(g: f64) -> u32 {
+    (g.clamp(0.0, 1.0) * 255.0).round() as u32
+}
+
+pub(crate) fn thick_in(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
     style.thick.filter(|t| *t > 0.0).unwrap_or(0.8) / 72.0
 }
 
-fn path_stroke_points_model(pts: &[Point], arrows: Arrowheads, style: &Style) -> Vec<Point> {
+pub(crate) fn path_stroke_points_model(
+    pts: &[Point],
+    arrows: Arrowheads,
+    style: &Style,
+) -> Vec<Point> {
     let mut out = pts.to_vec();
     if out.len() < 2 {
         return out;
@@ -1360,21 +1392,21 @@ fn add_arc_arrowhead_bounds_model(
     }
 }
 
-struct ArcHead {
-    point: Point,
-    path: String,
-    ao: Point,
-    ai: Point,
-    co: Point,
-    ci: Point,
-    px: Point,
-    ccw: f64,
-    lwi: f64,
-    wid: f64,
+pub(crate) struct ArcHead {
+    pub(crate) point: Point,
+    pub(crate) path: String,
+    pub(crate) ao: Point,
+    pub(crate) ai: Point,
+    pub(crate) co: Point,
+    pub(crate) ci: Point,
+    pub(crate) px: Point,
+    pub(crate) ccw: f64,
+    pub(crate) lwi: f64,
+    pub(crate) wid: f64,
 }
 
 #[allow(clippy::too_many_arguments)]
-fn arc_head_geometry(
+pub(crate) fn arc_head_geometry(
     c: Point,
     point: Point,
     atyp: i32,
@@ -1483,7 +1515,7 @@ fn c_intersect(c1: Point, r1: f64, c2: Point, r2: f64, ccw: f64) -> Point {
     Point::new(x.x + dy * f * ccw, x.y - dx * f * ccw)
 }
 
-fn arc_angle_between(c: Point, start: Point, end: Point, old_angle: f64) -> f64 {
+pub(crate) fn arc_angle_between(c: Point, start: Point, end: Point, old_angle: f64) -> f64 {
     let a0 = (start - c).y.atan2((start - c).x);
     let mut da = (end - c).y.atan2((end - c).x) - a0;
     while da <= -std::f64::consts::PI {
@@ -1510,7 +1542,7 @@ fn open_arrowhead_points(tip: Point, shaft: Point, style: &Style) -> Option<(Poi
     )
 }
 
-fn open_arrowhead_points_model(
+pub(crate) fn open_arrowhead_points_model(
     tip: Point,
     shaft: Point,
     style: &Style,
@@ -1573,7 +1605,7 @@ fn filled_arrowhead_points(
     )
 }
 
-fn filled_arrowhead_points_model(
+pub(crate) fn filled_arrowhead_points_model(
     tip: Point,
     shaft: Point,
     style: &Style,
@@ -1616,7 +1648,7 @@ fn filled_arrowhead_points_scaled(
     Some((left_full, tip, right_full, point))
 }
 
-fn prop(p1: Point, p2: Point, a: f64, b: f64, c: f64) -> Point {
+pub(crate) fn prop(p1: Point, p2: Point, a: f64, b: f64, c: f64) -> Point {
     if c.abs() < 1e-12 {
         p2
     } else {
@@ -1624,7 +1656,7 @@ fn prop(p1: Point, p2: Point, a: f64, b: f64, c: f64) -> Point {
     }
 }
 
-fn midpoint(pts: &[Point]) -> Option<Point> {
+pub(crate) fn midpoint(pts: &[Point]) -> Option<Point> {
     if pts.is_empty() {
         None
     } else {
@@ -1632,7 +1664,7 @@ fn midpoint(pts: &[Point]) -> Option<Point> {
     }
 }
 
-fn path_text_point(pts: &[Point], closed: bool) -> Option<Point> {
+pub(crate) fn path_text_point(pts: &[Point], closed: bool) -> Option<Point> {
     if !closed {
         return midpoint(pts);
     }
@@ -1643,7 +1675,7 @@ fn path_text_point(pts: &[Point], closed: bool) -> Option<Point> {
     Some((bb.min + bb.max) * 0.5)
 }
 
-fn closed_shape_is_visible(style: &Style) -> bool {
+pub(crate) fn closed_shape_is_visible(style: &Style) -> bool {
     !style.invis || style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some()
 }
 
@@ -1659,21 +1691,32 @@ fn fill_opacity_attr(style: &Style) -> String {
     }
 }
 
-fn open_fill_is_visible(style: &Style) -> bool {
+pub(crate) fn open_fill_is_visible(style: &Style) -> bool {
     style.fill_open && (style.fill.is_some() || style.hatch.is_some() || style.gradient.is_some())
+}
+
+/// The cubic Bézier stream of a spline: the start point plus `[c1, c2, end]`
+/// triples. The single geometric source for the SVG `d` builders below and the
+/// scene export — the constructions are affine, so they are valid in model
+/// space and in pixel space alike. Requires `q.len() >= 3`.
+pub(crate) fn spline_cubics(q: &[Point], tension: Option<f64>) -> (Point, Vec<[Point; 3]>) {
+    match tension {
+        None => classic_spline_cubics(q),
+        Some(t) => tensioned_spline_cubics(q, t),
+    }
 }
 
 /// Classic pic spline (no tension), matching dpic's `svgsplinesegment`.
 /// Dpic emits one SVG `C` command with multiple cubic segments. The control
 /// points are fixed fractions along each original segment, not a raised
 /// quadratic through midpoint knots.
-fn classic_spline(q: &[Point]) -> String {
+fn classic_spline_cubics(q: &[Point]) -> (Point, Vec<[Point; 3]>) {
     let segs = q.len() - 1;
-    let mut d = format!("M {} {} C", num(q[0].x), num(q[0].y));
+    let mut pts: Vec<Point> = Vec::new();
     for i in 0..segs {
         let a = q[i];
         let b = q[i + 1];
-        let mut add = |p: Point| d.push_str(&format!(" {} {}", num(p.x), num(p.y)));
+        let mut add = |p: Point| pts.push(p);
         if i == 0 {
             add(prop(a, b, 5.0, 1.0, 6.0));
             add(prop(a, b, 2.0, 1.0, 3.0));
@@ -1691,6 +1734,21 @@ fn classic_spline(q: &[Point]) -> String {
             add(b);
         }
     }
+    // dpic's point stream groups into cubics: 4 + 3·(segs−2) + 5 = 3·(segs+1)
+    let (chunks, rest) = pts.as_chunks::<3>();
+    debug_assert!(rest.is_empty());
+    (q[0], chunks.to_vec())
+}
+
+fn classic_spline(q: &[Point]) -> String {
+    let (start, cubics) = classic_spline_cubics(q);
+    // one `C` command carrying the whole control stream, exactly as dpic
+    let mut d = format!("M {} {} C", num(start.x), num(start.y));
+    for c in &cubics {
+        for p in c {
+            d.push_str(&format!(" {} {}", num(p.x), num(p.y)));
+        }
+    }
     d
 }
 
@@ -1698,7 +1756,7 @@ fn classic_spline(q: &[Point]) -> String {
 /// passes through the midpoints of the *interior* segments, and bends toward
 /// each control vertex by `t`. Control point = endpoint + t·(vertex − endpoint),
 /// matching dpic's SVG backend exactly.
-fn tensioned_spline(q: &[Point], t: f64) -> String {
+fn tensioned_spline_cubics(q: &[Point], t: f64) -> (Point, Vec<[Point; 3]>) {
     let n = q.len();
     // knots: V0, mid(V1,V2), …, mid(V_{n-3},V_{n-2}), V_{n-1}
     let mut knots = Vec::with_capacity(n);
@@ -1707,14 +1765,23 @@ fn tensioned_spline(q: &[Point], t: f64) -> String {
         knots.push((q[i] + q[i + 1]) * 0.5);
     }
     knots.push(q[n - 1]);
-    let mut d = format!("M {} {}", num(knots[0].x), num(knots[0].y));
+    let mut cubics = Vec::with_capacity(knots.len() - 1);
     for j in 0..knots.len() - 1 {
         let a = knots[j];
         let b = knots[j + 1];
         let w = q[j + 1]; // via vertex for this cubic
         let c1 = a + (w - a) * t;
         let c2 = b + (w - b) * t;
-        push_cubic(&mut d, c1, c2, b);
+        cubics.push([c1, c2, b]);
+    }
+    (knots[0], cubics)
+}
+
+fn tensioned_spline(q: &[Point], t: f64) -> String {
+    let (start, cubics) = tensioned_spline_cubics(q, t);
+    let mut d = format!("M {} {}", num(start.x), num(start.y));
+    for c in &cubics {
+        push_cubic(&mut d, c[0], c[1], c[2]);
     }
     d
 }
@@ -2420,6 +2487,10 @@ mod tests {
             anim_scroll: false,
             diagnostics: Vec::new(),
             warnings: Vec::new(),
+            vars: Vec::new(),
+            shape_labels: vec![None],
+            shape_blocks: vec![None],
+            blocks: Vec::new(),
         };
         let s = to_svg(&d);
         let (root_w, root_h) = root_viewbox_size(&s);

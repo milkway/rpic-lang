@@ -15,6 +15,10 @@ enum Mode {
     Ast,
     Tokens,
     Json,
+    /// `--json=all`: the compile bundle plus the `scene` key.
+    JsonAll,
+    /// `--scene`: the scene document alone (docs/scene.md).
+    Scene,
     Html,
 }
 
@@ -28,6 +32,8 @@ fn main() -> ExitCode {
     let mut mode = Mode::Svg;
     let mut circuits = false;
     let mut texlabels = false;
+    let mut flatten: Option<f64> = None;
+    let mut outline = false;
 
     let mut i = 1;
     while i < args.len() {
@@ -41,6 +47,19 @@ fn main() -> ExitCode {
             "--ast" => mode = Mode::Ast,
             "--tokens" => mode = Mode::Tokens,
             "--json" => mode = Mode::Json,
+            "--json=all" => mode = Mode::JsonAll,
+            "--scene" => mode = Mode::Scene,
+            "--outline" => outline = true,
+            "--flatten" => {
+                i += 1;
+                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
+                    Some(v) if v > 0.0 && v.is_finite() => flatten = Some(v),
+                    _ => {
+                        eprintln!("rpic: `--flatten` needs a positive tolerance in inches");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            }
             "--html" => mode = Mode::Html,
             "-o" | "--output" => {
                 i += 1;
@@ -110,7 +129,14 @@ fn main() -> ExitCode {
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| "rpic".to_string());
-    let result = run(&src, &mode, scale, &opts, &title);
+    let sopts = rpic_core::SceneOptions {
+        flatten,
+        outline,
+        source: std::path::Path::new(&path)
+            .file_name()
+            .map(|s| s.to_string_lossy().into_owned()),
+    };
+    let result = run(&src, &mode, scale, &opts, &sopts, &title);
     match result {
         Ok(Output::Text(s)) => {
             if let Some(o) = out {
@@ -162,6 +188,7 @@ fn run(
     mode: &Mode,
     scale: f32,
     opts: &rpic_core::CompileOptions,
+    sopts: &rpic_core::SceneOptions,
     title: &str,
 ) -> Result<Output, String> {
     match mode {
@@ -193,6 +220,18 @@ fn run(
         Mode::Json => Ok(Output::Text(rpic_core::compile_json_with_options(
             src, opts,
         ))),
+        Mode::JsonAll => Ok(Output::Text(rpic_core::compile_json_all_with_options(
+            src, opts, sopts,
+        ))),
+        Mode::Scene => {
+            let d = rpic_core::compile_with_options(src, opts)?;
+            emit_diagnostics(&d);
+            let out = rpic_core::scene_json(&d, sopts);
+            for w in &out.warnings {
+                eprintln!("warning: {}", w.message);
+            }
+            Ok(Output::Text(out.json))
+        }
         Mode::Html => {
             let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
@@ -230,12 +269,16 @@ fn print_help() {
          --ast       dump the syntax tree\n    \
          --tokens    dump the token stream\n    \
     --json      emit compile JSON (svg, animations, diagnostics, warnings, objects)\n    \
+         --json=all  the compile JSON plus the device-independent scene (docs/scene.md)\n    \
+         --scene     emit the scene JSON alone (the resolved draw list)\n    \
          --html      self-contained animated page (SVG + GSAP player inline; plugins from CDN)\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
          -o, --output FILE   write to FILE (default: stdout)\n    \
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
+         --flatten TOL       scene: deliver curves as polylines within TOL inches\n    \
+         --outline           scene: embed typeset math as SVG glyph fragments\n    \
          -h, --help          show this help\n"
     );
 }

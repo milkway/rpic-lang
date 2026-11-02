@@ -1,0 +1,124 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Scene output
+description: The resolved draw list as versioned, device-independent JSON — build your own backend without reimplementing pic.
+---
+import Callout from '../../components/Callout.astro';
+
+# Scene output
+
+Classic pic was a *frontend*: it parsed and laid out the picture, then emitted
+troff `\D` drawing commands for any device to realize. The **scene** is rpic's
+version of that boundary — the resolved draw list the SVG backend consumes,
+serialized as versioned JSON. With it you can build your own device: a
+GeoJSON exporter, a TikZ backend, a Canvas&nbsp;2D player, a visual editor —
+without reimplementing any of pic's layout semantics.
+
+```sh
+rpic --scene figure.pic                 # the scene document alone
+rpic --scene --flatten 1e-3 figure.pic  # curves as polylines (tolerance in inches)
+rpic --json=all figure.pic              # the compile bundle + a "scene" key
+```
+
+The scene describes **what would be drawn**, never how to paint it:
+
+- **Final geometry**, in inches, y-up — `fit`, `rotated`, `close`, `behind`
+  and `.PS` scaling already applied. Curves (splines, arcs, even arrowheads
+  on arcs) come as **cubic Béziers**; `--flatten` delivers polylines instead.
+- **Style as descriptors** — `stroke {color, width, dash}`, `fill
+  {color | gradient | hatch}`, `opacity` — with every color resolved to
+  `#rrggbb`.
+- **Text as text**: the string, a baseline anchor point, a pic compass
+  anchor, and a resolved font descriptor. No glyph paths unless you ask
+  (`--outline`, for typeset math).
+- **`vars`** — the final value of every variable, so a source can carry
+  structured metadata for your tool (`geo_lon = -34.8811`) that rides into
+  the scene at full `f64` precision.
+- Items arrive in **draw order** with the same stable `s<N>` ids the SVG
+  uses, so a scene consumer and the rendered SVG can cross-reference.
+
+```pic
+geo_lon = -34.8811
+B: box "hub" fit shaded "lightgreen"
+arrow right 0.6 from B.e
+```
+
+compiles (with `--scene`) to:
+
+```json
+{
+  "scene": 1, "units": "in", "y_up": true,
+  "canvas": { "w": 1.19, "h": 0.26,
+              "margin": {"top": 0, "right": 0, "bottom": 0, "left": 0},
+              "origin": [0.19, 0.13] },
+  "vars": { "geo_lon": -34.8811, "boxwid": 0.75, "…": 0 },
+  "items": [
+    { "id": "s0", "kind": "box", "z": 0, "label": "B",
+      "at": [0, 0], "w": 0.357, "h": 0.218,
+      "stroke": { "color": "#000000", "width": 0.8 },
+      "fill": { "color": "#90ee90" },
+      "text": [ { "text": "hub", "at": [0, -0.05], "anchor": "c",
+                  "font": { "size": 11 } } ] },
+    { "id": "s1", "kind": "arrow", "z": 1,
+      "points": [[0.178, 0], [0.693, 0]],
+      "heads": [ { "at": "end", "filled": true,
+                   "points": [[0.678, 0.025], [0.778, 0], [0.678, -0.025]] } ],
+      "stroke": { "color": "#000000", "width": 0.8 } }
+  ]
+}
+```
+
+<Callout type="note">
+The scene is **opt-in and inert**: `rpic file.pic` and `rpic --json` are
+byte-identical whether or not the feature exists. Anything the SVG paints
+that the scene cannot represent raises a structured `scene_unsupported`
+warning — never silence.
+</Callout>
+
+## From the bindings
+
+```python
+import rpic
+scene = rpic.scene('B: box "hub"\narrow right from B.e', flatten=1e-3)
+scene["vars"], scene["items"]
+# or riding the bundle:
+out = rpic.compile(src, scene=True)   # out["scene"], warnings merged
+```
+
+```js
+import { ready, compile } from '@strategicprojects/rpic';
+await ready();
+const { scene } = compile(src, { scene: true, flatten: 1e-3 });
+```
+
+```c
+char *json = rpic_scene_json(src, NULL, /*flatten*/ 0.0);
+/* bundle with the scene key: rpic_compile_json_all(src, NULL, 0.0) */
+rpic_free_string(json);
+```
+
+(R gets `rpic_scene()` at its next engine bump — rpic-r pins the published
+crates.io core.)
+
+## Drawing from a scene
+
+A complete consumer fits in under 100 lines:
+[`examples/scene-consumer/scene2svg.py`](https://github.com/milkway/rpic-lang/blob/main/examples/scene-consumer/scene2svg.py)
+reads a scene on stdin and re-emits plain SVG with no rpic dependency — the
+repository's round-trip test holds a renderer like it to within **0.5% of
+pixels** of the official output across the whole corpus. The transform from
+scene coordinates to SVG pixel space is one line:
+
+```text
+svg_px = ( (x + origin[0]) · 96 ,  (canvas.h − (y + origin[1])) · 96 )
+```
+
+## Contract
+
+The format is specified in
+[`docs/scene.md`](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)
+with a JSON Schema
+([`docs/scene.schema.json`](https://github.com/milkway/rpic-lang/blob/main/docs/scene.schema.json))
+that every emitted scene validates against in CI. Versioning: new optional
+fields keep `scene: 1` (consumers must ignore unknown keys); renaming,
+removal or a semantic change bumps the version.

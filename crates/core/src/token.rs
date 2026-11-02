@@ -252,6 +252,10 @@ pub enum Color {
 }
 
 /// Built-in environment variables (default dimensions & globals).
+///
+/// Adding a variant? `name()` is an exhaustive match (the compiler reminds
+/// you), and the variant must ALSO join [`EnvVar::ALL`] — the
+/// `all_is_exhaustive` test cross-checks the two.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvVar {
     Arcrad,
@@ -286,4 +290,104 @@ pub enum EnvVar {
     Dotrad,
     Maxanimrepeat,
     Maxanimseconds,
+}
+
+impl EnvVar {
+    /// Every built-in, for whole-environment exports (the scene's `vars`).
+    pub const ALL: [EnvVar; 32] = [
+        EnvVar::Arcrad,
+        EnvVar::Arrowht,
+        EnvVar::Arrowwid,
+        EnvVar::Boxht,
+        EnvVar::Boxrad,
+        EnvVar::Boxwid,
+        EnvVar::Circlerad,
+        EnvVar::Dashwid,
+        EnvVar::Ellipseht,
+        EnvVar::Ellipsewid,
+        EnvVar::Lineht,
+        EnvVar::Linewid,
+        EnvVar::Moveht,
+        EnvVar::Movewid,
+        EnvVar::Textht,
+        EnvVar::Textoffset,
+        EnvVar::Textwid,
+        EnvVar::Arrowhead,
+        EnvVar::Fillval,
+        EnvVar::Linethick,
+        EnvVar::Maxpsht,
+        EnvVar::Maxpswid,
+        EnvVar::Scale,
+        EnvVar::Margin,
+        EnvVar::Topmargin,
+        EnvVar::Rightmargin,
+        EnvVar::Bottommargin,
+        EnvVar::Leftmargin,
+        EnvVar::Texlabels,
+        EnvVar::Dotrad,
+        EnvVar::Maxanimrepeat,
+        EnvVar::Maxanimseconds,
+    ];
+
+    /// The pic-source spelling of this built-in (the lexer's keyword).
+    pub fn name(self) -> &'static str {
+        match self {
+            EnvVar::Arcrad => "arcrad",
+            EnvVar::Arrowht => "arrowht",
+            EnvVar::Arrowwid => "arrowwid",
+            EnvVar::Boxht => "boxht",
+            EnvVar::Boxrad => "boxrad",
+            EnvVar::Boxwid => "boxwid",
+            EnvVar::Circlerad => "circlerad",
+            EnvVar::Dashwid => "dashwid",
+            EnvVar::Ellipseht => "ellipseht",
+            EnvVar::Ellipsewid => "ellipsewid",
+            EnvVar::Lineht => "lineht",
+            EnvVar::Linewid => "linewid",
+            EnvVar::Moveht => "moveht",
+            EnvVar::Movewid => "movewid",
+            EnvVar::Textht => "textht",
+            EnvVar::Textoffset => "textoffset",
+            EnvVar::Textwid => "textwid",
+            EnvVar::Arrowhead => "arrowhead",
+            EnvVar::Fillval => "fillval",
+            EnvVar::Linethick => "linethick",
+            EnvVar::Maxpsht => "maxpsht",
+            EnvVar::Maxpswid => "maxpswid",
+            EnvVar::Scale => "scale",
+            EnvVar::Margin => "margin",
+            EnvVar::Topmargin => "topmargin",
+            EnvVar::Rightmargin => "rightmargin",
+            EnvVar::Bottommargin => "bottommargin",
+            EnvVar::Leftmargin => "leftmargin",
+            EnvVar::Texlabels => "texlabels",
+            EnvVar::Dotrad => "dotrad",
+            EnvVar::Maxanimrepeat => "maxanimrepeat",
+            EnvVar::Maxanimseconds => "maxanimseconds",
+        }
+    }
+}
+
+#[cfg(test)]
+mod envvar_tests {
+    use super::EnvVar;
+
+    #[test]
+    fn all_is_exhaustive() {
+        // `name()` is an exhaustive match; ALL is a hand-kept list. Walking
+        // discriminants until one is missing from ALL (or names collide)
+        // catches a new variant that forgot to join ALL.
+        let mut names = std::collections::BTreeSet::new();
+        for v in EnvVar::ALL {
+            assert!(names.insert(v.name()), "duplicate in ALL: {}", v.name());
+        }
+        // every u8 discriminant below the count maps into ALL
+        assert_eq!(EnvVar::ALL.len(), names.len(), "ALL must be duplicate-free");
+        let max_disc = EnvVar::ALL.iter().map(|&v| v as u8).max().unwrap();
+        assert_eq!(
+            usize::from(max_disc) + 1,
+            EnvVar::ALL.len(),
+            "a new EnvVar variant is missing from EnvVar::ALL"
+        );
+    }
 }
