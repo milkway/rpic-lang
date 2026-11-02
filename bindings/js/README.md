@@ -81,7 +81,7 @@ first build. In Node, pass the math artifact's bytes:
 | Function | Description |
 |----------|-------------|
 | `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build; conflicting later calls reject. |
-| `compile(src, {circuits?, texlabels?})` | → `{ svg, animations, diagnostics, warnings, objects }` (throws on a pic error with `errorInfo`). |
+| `compile(src, {circuits?, texlabels?, scene?, flatten?, outline?})` | → `{ svg, animations, diagnostics, warnings, objects, scene? }` (throws on a pic error with `errorInfo`). `scene: true` adds the device-independent resolved draw list ([docs/scene.md](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)); `flatten` (inches) delivers its curves as polylines. |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

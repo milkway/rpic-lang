@@ -5,6 +5,15 @@ oracle**. The features in this document are explicit rpic extensions: they are
 available to authors who opt into them, but classic pic input should keep its
 dpic-compatible meaning when the extension is not used.
 
+## The Scene Output (not a language extension)
+
+`rpic --scene` emits the **resolved draw list** as versioned, device-independent
+JSON — final geometry in inches, cubic-Bézier curves, descriptor style, text as
+text — for building new backends (GeoJSON, TikZ, Canvas 2D) without
+reimplementing pic. It is an *output*, not a language feature: sources never
+change, and the default outputs are byte-identical. Full specification:
+[`docs/scene.md`](scene.md).
+
 ## Reusable Styles Are Macros (idiom, not an extension)
 
 pic already has named, parameterized, composable styles: `define`. A macro
