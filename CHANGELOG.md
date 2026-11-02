@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-11-01
+
 ### Added
 
 - **Scene output** — the resolved draw list as versioned, device-independent

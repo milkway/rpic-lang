@@ -1805,7 +1805,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-capi"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -1813,7 +1813,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-cli"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "jsonschema",
  "rpic-core",
@@ -1823,14 +1823,14 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "rpic-render"
-version = "0.11.3"
+version = "0.12.0"
 dependencies = [
  "ratex-layout",
  "ratex-parser",
