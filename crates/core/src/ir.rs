@@ -50,6 +50,31 @@ pub struct Drawing {
     pub diagnostics: Vec<String>,
     /// Non-fatal compiler warnings for accepted but likely unintended input.
     pub warnings: Vec<Diagnostic>,
+    /// rpic scene extension: final values of the user's variables plus the
+    /// pic built-ins (by their pic names), recorded at the end of eval.
+    /// Read only by the scene export; never affects rendering. Note: the
+    /// post-eval `.PS`/`maxps*` whole-picture rescale does not touch these.
+    pub vars: Vec<(String, f64)>,
+    /// rpic scene extension: the pic label each shape's statement carried
+    /// (`L: box` → `Some("L")`), index-aligned with `shapes`.
+    pub shape_labels: Vec<Option<String>>,
+    /// rpic scene extension: innermost enclosing block per shape (an index
+    /// into `blocks`), index-aligned with `shapes`. `None` = top level.
+    pub shape_blocks: Vec<Option<usize>>,
+    /// rpic scene extension: the flattened block structure (eval erases
+    /// blocks otherwise). Inner blocks appear before their enclosing block.
+    pub blocks: Vec<BlockInfo>,
+}
+
+/// A `[ … ]` block's identity in the flattened shape list (scene export).
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockInfo {
+    /// The label the block statement carried (`B: [ … ]`), if any.
+    pub label: Option<String>,
+    /// Half-open range `[lo, hi)` of child shape indices.
+    pub shapes: (usize, usize),
+    /// Enclosing block, if nested.
+    pub parent: Option<usize>,
 }
 
 /// Extra whitespace around the rendered canvas, in internal inches.
@@ -332,6 +357,10 @@ pub enum Shape {
     Circle {
         c: Point,
         r: f64,
+        /// rpic `dot` primitive marker: geometry is plain circle machinery
+        /// (dotrad default, gray-0 fill) but the scene export reports
+        /// `kind: "dot"`. Rendering ignores it.
+        dot: bool,
         style: Style,
         text: Vec<TextLine>,
     },

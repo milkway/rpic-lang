@@ -307,7 +307,9 @@ pub(super) fn shape_painted_bbox(sh: &Shape) -> Bbox {
             }
             out.union(&text_bbox(*c, text));
         }
-        Shape::Circle { c, r, style, text } => {
+        Shape::Circle {
+            c, r, style, text, ..
+        } => {
             let mut bb = Bbox::new();
             bb.add(*c - Point::new(*r, *r));
             bb.add(*c + Point::new(*r, *r));

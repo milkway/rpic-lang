@@ -238,6 +238,7 @@ impl State {
             Prim::Circle => Shape::Circle {
                 c: center,
                 r: rad,
+                dot,
                 style,
                 text,
             },
@@ -939,13 +940,25 @@ impl State {
         }
         let layer_shift =
             self.layer_shift_for(obj, sub.shape_layers.iter().copied().max().unwrap_or(0))?;
-        for ((((mut sh, layer), class), link), span) in sub
+        // scene export: splice the block's own (inner) block table in, shifting
+        // shape and block indices into parent space. This block's record is
+        // created below once the child range is known, at index `this_block`;
+        // parentless inner blocks become its direct children.
+        let block_base = self.blocks.len();
+        let this_block = block_base + sub.blocks.len();
+        self.blocks.extend(sub.blocks.into_iter().map(|b| BlockInfo {
+            label: b.label,
+            shapes: (b.shapes.0 + first_shape, b.shapes.1 + first_shape),
+            parent: b.parent.map(|p| p + block_base).or(Some(this_block)),
+        }));
+        for (((((mut sh, layer), class), link), span), (label, block)) in sub
             .shapes
             .into_iter()
             .zip(sub.shape_layers)
             .zip(sub.shape_classes)
             .zip(sub.shape_links)
             .zip(sub.shape_spans)
+            .zip(sub.shape_labels.into_iter().zip(sub.shape_blocks))
         {
             translate_shape(&mut sh, shift);
             if let Some(opacity) = block_fill_opacity {
@@ -956,6 +969,9 @@ impl State {
             *self.shape_links.last_mut().unwrap() = link;
             // inner objects carry their own statement spans through the merge
             *self.shape_spans.last_mut().unwrap() = span;
+            *self.shape_labels.last_mut().unwrap() = label;
+            *self.shape_blocks.last_mut().unwrap() =
+                block.map(|b| b + block_base).or(Some(this_block));
         }
         // The block's child shapes occupy [first_shape, child_end); captured
         // before the block's own centred label (pushed below) so a `stagger`
@@ -1011,6 +1027,17 @@ impl State {
         if child_end > first_shape {
             self.placed[idx].block_shapes = Some((first_shape, child_end));
         }
+        // scene export: record the block itself (skipped when empty — an
+        // empty block has nothing to group and nothing referenced it above).
+        if child_end > first_shape || self.blocks.len() > block_base {
+            debug_assert_eq!(self.blocks.len(), this_block);
+            self.blocks.push(BlockInfo {
+                label: None,
+                shapes: (first_shape, child_end),
+                parent: None,
+            });
+            self.placed[idx].block = Some(this_block);
+        }
         Ok(idx)
     }
 
@@ -1045,6 +1072,7 @@ impl State {
             shape,
             members: HashMap::new(),
             block_shapes: None,
+            block: None,
         });
         idx
     }
@@ -1061,6 +1089,8 @@ impl State {
         self.shape_classes.push(None);
         self.shape_links.push(None);
         self.shape_spans.push(self.current_span.clone());
+        self.shape_labels.push(None);
+        self.shape_blocks.push(None);
         Ok(())
     }
 

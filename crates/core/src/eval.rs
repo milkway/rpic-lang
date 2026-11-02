@@ -133,12 +133,23 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
     };
     let (maxw, maxh) = (st.env.get(EnvVar::Maxpswid), st.env.get(EnvVar::Maxpsht));
     let canvas_margin = st.canvas_margin()?;
+    // scene export: snapshot the final variable environment — the built-ins
+    // under their pic names, then the user's own variables.
+    let mut vars: Vec<(String, f64)> = EnvVar::ALL
+        .iter()
+        .map(|&e| (e.name().to_string(), st.env.get(e)))
+        .collect();
+    vars.extend(st.vars.iter().map(|(k, v)| (k.clone(), *v)));
     let mut d = Drawing {
         shapes: st.shapes,
         shape_layers: st.shape_layers,
         shape_classes: st.shape_classes,
         shape_links: st.shape_links,
         shape_spans: st.shape_spans,
+        vars,
+        shape_labels: st.shape_labels,
+        shape_blocks: st.shape_blocks,
+        blocks: st.blocks,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
@@ -394,6 +405,9 @@ struct Placed {
     /// block drew, so `animate <block> … stagger` can fan across them. `None`
     /// for non-blocks and empty blocks.
     block_shapes: Option<(usize, usize)>,
+    /// For blocks: index into `State::blocks` (scene export), so a label on
+    /// the block statement can be attached to the block's record.
+    block: Option<usize>,
 }
 
 impl Placed {
@@ -629,6 +643,12 @@ struct State {
     shape_classes: Vec<Option<String>>,
     shape_links: Vec<Option<String>>,
     shape_spans: Vec<Option<Span>>,
+    /// Scene export: label carried by each shape's statement (`L: box`).
+    shape_labels: Vec<Option<String>>,
+    /// Scene export: innermost enclosing block per shape (index into `blocks`).
+    shape_blocks: Vec<Option<usize>>,
+    /// Scene export: flattened `[ … ]` block structure.
+    blocks: Vec<BlockInfo>,
     /// Span of the object statement currently being evaluated (attached to
     /// every shape it pushes).
     current_span: Option<Span>,
@@ -780,6 +800,9 @@ impl State {
             shape_classes: Vec::new(),
             shape_links: Vec::new(),
             shape_spans: Vec::new(),
+            shape_labels: Vec::new(),
+            shape_blocks: Vec::new(),
+            blocks: Vec::new(),
             current_span: None,
             canvas: None,
             placed: Vec::new(),
@@ -870,6 +893,7 @@ impl State {
                     shape: None,
                     members: HashMap::new(),
                     block_shapes: None,
+                    block: None,
                 });
                 self.labels.insert(key, idx);
             }
@@ -883,6 +907,20 @@ impl State {
                 let idx = self.eval_object(object)?;
                 if let Some(l) = label {
                     let key = self.label_key(l)?;
+                    // scene export: remember the label on the block or shape
+                    // it names (first label wins; rebinding the name later
+                    // does not rename the original object).
+                    if let Some(b) = self.placed[idx].block {
+                        let slot = &mut self.blocks[b].label;
+                        if slot.is_none() {
+                            *slot = Some(key.clone());
+                        }
+                    } else if let Some(s) = self.placed[idx].shape
+                        && let Some(slot) = self.shape_labels.get_mut(s)
+                        && slot.is_none()
+                    {
+                        *slot = Some(key.clone());
+                    }
                     self.labels.insert(key, idx);
                 }
             }
