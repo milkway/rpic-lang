@@ -307,7 +307,16 @@ fn minor_arc_cubics(from: Point, to: Point, r: f64, ccw: bool, out: &mut Vec<[Po
         out.push(line_cubic(from, to));
         return;
     }
-    let h = (r * r - half2).max(0.0).sqrt();
+    // SVG F.6.6.2: when the endpoints are farther apart than the diameter,
+    // the renderer scales the radius UP so the arc still interpolates both
+    // endpoints (a semicircle on the chord). Mirror that exactly — clamping
+    // the radius instead put the center right but kept a circle through
+    // NEITHER endpoint, visibly distorting small-radius arrowhead wedges.
+    let (r, h) = if half2 > r * r {
+        (half2.sqrt(), 0.0)
+    } else {
+        (r.abs(), (r * r - half2).sqrt())
+    };
     let mid = (from + to) * 0.5;
     let len = (half2 * 4.0).sqrt();
     let n = Point::new(-chord.y / len, chord.x / len); // rot90 CCW of unit chord
@@ -323,9 +332,9 @@ fn minor_arc_cubics(from: Point, to: Point, r: f64, ccw: bool, out: &mut Vec<[Po
         da -= 2.0 * std::f64::consts::PI;
     }
     if (ccw && da < 0.0) || (!ccw && da > 0.0) {
-        da = -da; // numerical guard; direction is fixed by the center choice
+        da = -da; // h = 0 puts da at ±π exactly; pick the requested direction
     }
-    arc_cubics(c, r.abs(), t0, da, out);
+    arc_cubics(c, r, t0, da, out);
 }
 
 // ---- color normalization -----------------------------------------------------
@@ -1879,5 +1888,55 @@ mod review_regressions {
         .unwrap();
         assert!(v["vars"]["maxanimseconds"].as_f64().unwrap() > 0.0);
         assert!(v["vars"]["maxanimrepeat"].as_f64().unwrap() > 0.0);
+    }
+}
+
+#[cfg(test)]
+mod arc_head_regressions {
+    //! Adversarial geometry audit: `minor_arc_cubics` must mirror SVG
+    //! F.6.6.2 — when an arc piece's endpoints are farther apart than the
+    //! diameter, the radius scales UP so the arc interpolates both endpoints.
+    //! Clamping instead drew head wedges through NEITHER endpoint (up to
+    //! 21 px off on `arc -> rad 0.1 wid 1 ht 0.2`).
+    use super::*;
+    use serde_json::Value;
+
+    #[test]
+    fn arc_head_cubics_interpolate_the_arc_tip() {
+        // the worst audited repro: head wider than the arc's diameter
+        let d = crate::compile("arc -> from (0,0) to (0.12,0.08) rad 0.1 wid 1 ht 0.2").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let head = &v["items"][0]["heads"][0];
+        assert_eq!(head["at"], "end");
+        let path = &head["path"];
+        let mut vertices: Vec<(f64, f64)> = vec![(
+            path["start"][0].as_f64().unwrap(),
+            path["start"][1].as_f64().unwrap(),
+        )];
+        for c in path["cubics"].as_array().unwrap() {
+            vertices.push((c[2][0].as_f64().unwrap(), c[2][1].as_f64().unwrap()));
+        }
+        // one of the wedge's arc pieces ends exactly at the arc tip (0.12, 0.08)
+        let tip = (0.12, 0.08);
+        let hit = vertices
+            .iter()
+            .any(|(x, y)| ((x - tip.0).powi(2) + (y - tip.1).powi(2)).sqrt() < 1e-6);
+        assert!(hit, "head path must pass through the arc tip: {vertices:?}");
+    }
+
+    #[test]
+    fn long_chord_minor_arc_interpolates_both_endpoints() {
+        // chord (1,0)→(0,1) is √2 long; nominal radius 0.5 < half-chord —
+        // F.6.6.2 scales to a semicircle through both endpoints
+        let from = Point::new(1.0, 0.0);
+        let to = Point::new(0.0, 1.0);
+        let mut cubics = Vec::new();
+        minor_arc_cubics(from, to, 0.5, true, &mut cubics);
+        let end = cubics.last().unwrap()[2];
+        assert!(end.dist(to) < 1e-9, "must end at `to`, got {end:?}");
+        // and the first cubic starts from `from` (its handle leaves from it)
+        let start_handle = cubics[0][0];
+        assert!(start_handle.dist(from) < 1.0);
     }
 }

@@ -140,5 +140,17 @@ the branch; confirmed findings, all fixed and regression-tested in
    commit (children precomputed; a 1e6-point scene-wide flatten budget that
    degrades resolution and warns).
 
+An adversarial geometry audit (independent comparator: per-shape symmetric
+Hausdorff distance between the scene geometry and the SVG-painted elements,
+SVG arc endpoint parameterization implemented from spec F.6.5/F.6.6, 166
+off-corpus constructions at a 0.02 px threshold) found one further confirmed
+bug, fixed with regression tests:
+
+10. `minor_arc_cubics` clamped the radius when an arc-head piece's chord
+    exceeded the diameter; SVG F.6.6.2 scales the radius *up* so the arc
+    interpolates both endpoints. Small-radius / big-head arc arrowheads drew
+    visibly wrong wedges (0.3–21 px off across 28 of the 166 constructions).
+    After the fix the whole battery matches at ≤ 0.02 px (166/166).
+
 **Cut-line:** A1–A3, B1–B3, C1, D2 all pass. The single open item is C3b
 (wasm size), listed above with owner and reason.
