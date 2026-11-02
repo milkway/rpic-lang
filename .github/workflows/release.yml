@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # build-only test path (no uploads): verify the matrix compiles without
+  # cutting a tag — upload steps are tag-gated below
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,7 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          # musl = fully static: immune to the runner image's glibc (#405 —
+          # ubuntu26's glibc made the gnu binary unrunnable on older distros)
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl }
           - { os: macos-latest, target: aarch64-apple-darwin }
           - { os: macos-latest, target: x86_64-apple-darwin }
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
@@ -24,6 +29,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Install musl toolchain
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
       - name: Build
         run: cargo build --release -p rpic-cli --target ${{ matrix.target }}
       - name: Archive (unix)
@@ -33,6 +41,7 @@ jobs:
         if: runner.os == 'Windows'
         run: Compress-Archive "target/${{ matrix.target }}/release/rpic.exe" "rpic-${{ matrix.target }}.zip"
       - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           files: |
@@ -41,13 +50,16 @@ jobs:
 
   deb:
     name: debian package
-    runs-on: ubuntu-latest
+    # pinned (not -latest): the .deb links the build image's glibc; 24.04 =
+    # glibc 2.39, what 0.11.3 shipped (#405)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install cargo-deb
       - run: cargo deb -p rpic-cli
       - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           files: target/debian/*.deb
@@ -63,6 +75,7 @@ jobs:
       - run: cargo wix --nocapture -p rpic-cli
         continue-on-error: true
       - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v3
         with:
           files: target/wix/*.msi

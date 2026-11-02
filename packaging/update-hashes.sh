@@ -37,7 +37,7 @@ sha() {
     case "$1" in
       rpic-aarch64-apple-darwin.tar.gz) printf '%064d\n' 1 ;;
       rpic-x86_64-apple-darwin.tar.gz) printf '%064d\n' 2 ;;
-      rpic-x86_64-unknown-linux-gnu.tar.gz) printf '%064d\n' 3 ;;
+      rpic-x86_64-unknown-linux-musl.tar.gz) printf '%064d\n' 3 ;;
       rpic-x86_64-pc-windows-msvc.zip) printf '%064d\n' 4 ;;
       *) echo "unknown dry-run asset: $1" >&2; exit 1 ;;
     esac
@@ -54,7 +54,7 @@ sha() {
 
 arm="$(sha rpic-aarch64-apple-darwin.tar.gz)"
 intel="$(sha rpic-x86_64-apple-darwin.tar.gz)"
-linux="$(sha rpic-x86_64-unknown-linux-gnu.tar.gz)"
+linux="$(sha rpic-x86_64-unknown-linux-musl.tar.gz)"
 win="$(sha rpic-x86_64-pc-windows-msvc.zip)"
 
 mkdir -p "$dist"

@@ -21,7 +21,7 @@ class Rpic < Formula
   end
 
   on_linux do
-    url "https://github.com/milkway/rpic-lang/releases/download/v#{version}/rpic-x86_64-unknown-linux-gnu.tar.gz"
+    url "https://github.com/milkway/rpic-lang/releases/download/v#{version}/rpic-x86_64-unknown-linux-musl.tar.gz"
     sha256 "SHA256_LINUX"
   end
 
