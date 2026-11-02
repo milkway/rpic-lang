@@ -29,6 +29,14 @@ bundle["objects"]      # per-object geometry: {"id": "s0", "kind": "box",
                        #   "bbox": {x,y,w,h} | None, "line", "col", ...}
 # (compile_json returns the same as a JSON string)
 
+# the scene: the resolved draw list as device-independent JSON
+# (inches, y-up, cubic curves, descriptor style — see docs/scene.md)
+scene = rpic.scene('geo_lon = -34.88\nB: box "hub"\narrow right from B.e')
+scene["vars"]["geo_lon"]      # -34.88 — every variable's final value
+scene["items"][1]["kind"]     # "arrow", in draw order, ids matching the SVG
+scene = rpic.scene(src, flatten=1e-3)   # curves as polylines
+bundle = rpic.compile(src, scene=True)  # or riding the bundle ("scene" key)
+
 # `copy "file"` includes resolve relative to `base`:
 svg = rpic.render_svg('copy "shim.pic"\nbox', base="path/to/dir")
 
