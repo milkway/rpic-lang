@@ -207,3 +207,8 @@ assert.ok(
   const warned = compile('box outlined "currentColor"', { scene: true });
   assert.ok(warned.warnings.some((w) => w.kind === 'scene_unsupported'));
 }
+
+// invalid flatten must throw (parity with Python's ValueError / the CLI error)
+assert.throws(() => compile('box', { flatten: 0 }), /flatten must be a positive finite tolerance/);
+assert.throws(() => compile('box', { flatten: -1 }), /flatten/);
+assert.throws(() => compile('box', { flatten: NaN }), /flatten/);

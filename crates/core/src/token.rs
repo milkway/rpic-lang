@@ -252,6 +252,10 @@ pub enum Color {
 }
 
 /// Built-in environment variables (default dimensions & globals).
+///
+/// Adding a variant? `name()` is an exhaustive match (the compiler reminds
+/// you), and the variant must ALSO join [`EnvVar::ALL`] — the
+/// `all_is_exhaustive` test cross-checks the two.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnvVar {
     Arcrad,
@@ -290,7 +294,7 @@ pub enum EnvVar {
 
 impl EnvVar {
     /// Every built-in, for whole-environment exports (the scene's `vars`).
-    pub const ALL: [EnvVar; 30] = [
+    pub const ALL: [EnvVar; 32] = [
         EnvVar::Arcrad,
         EnvVar::Arrowht,
         EnvVar::Arrowwid,
@@ -321,6 +325,8 @@ impl EnvVar {
         EnvVar::Leftmargin,
         EnvVar::Texlabels,
         EnvVar::Dotrad,
+        EnvVar::Maxanimrepeat,
+        EnvVar::Maxanimseconds,
     ];
 
     /// The pic-source spelling of this built-in (the lexer's keyword).
@@ -359,5 +365,29 @@ impl EnvVar {
             EnvVar::Maxanimrepeat => "maxanimrepeat",
             EnvVar::Maxanimseconds => "maxanimseconds",
         }
+    }
+}
+
+#[cfg(test)]
+mod envvar_tests {
+    use super::EnvVar;
+
+    #[test]
+    fn all_is_exhaustive() {
+        // `name()` is an exhaustive match; ALL is a hand-kept list. Walking
+        // discriminants until one is missing from ALL (or names collide)
+        // catches a new variant that forgot to join ALL.
+        let mut names = std::collections::BTreeSet::new();
+        for v in EnvVar::ALL {
+            assert!(names.insert(v.name()), "duplicate in ALL: {}", v.name());
+        }
+        // every u8 discriminant below the count maps into ALL
+        assert_eq!(EnvVar::ALL.len(), names.len(), "ALL must be duplicate-free");
+        let max_disc = EnvVar::ALL.iter().map(|&v| v as u8).max().unwrap();
+        assert_eq!(
+            usize::from(max_disc) + 1,
+            EnvVar::ALL.len(),
+            "a new EnvVar variant is missing from EnvVar::ALL"
+        );
     }
 }

@@ -69,14 +69,18 @@ function ensure() {
  *
  * Pass `scene: true` for the device-independent resolved draw list as a
  * `scene` key (see docs/scene.md; versioned, y-up inches, cubic curves);
- * `flatten` (inches) delivers its curves as polylines instead.
+ * `flatten` (inches) delivers its curves as polylines instead, and
+ * `outline` embeds typeset math as SVG glyph fragments.
  * @param {string} src
- * @param {{circuits?: boolean, texlabels?: boolean, scene?: boolean, flatten?: number}} [opts]
+ * @param {{circuits?: boolean, texlabels?: boolean, scene?: boolean, flatten?: number, outline?: boolean}} [opts]
  */
 export function compile(src, opts = {}) {
   ensure();
+  if (opts.flatten !== undefined && !(Number.isFinite(opts.flatten) && opts.flatten > 0)) {
+    throw new Error('rpic: flatten must be a positive finite tolerance in inches');
+  }
   const json = opts.scene || opts.flatten !== undefined
-    ? wasm.compile_scene(src, !!opts.circuits, !!opts.texlabels, opts.flatten)
+    ? wasm.compile_scene(src, !!opts.circuits, !!opts.texlabels, opts.flatten, !!opts.outline)
     : opts.texlabels
       ? wasm.compile_with(src, !!opts.circuits, true)
       : opts.circuits

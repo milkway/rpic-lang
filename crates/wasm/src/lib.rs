@@ -53,11 +53,17 @@ pub fn compile_with(src: &str, circuits: bool, texlabels: bool) -> String {
 /// polylines. The plain entry points above stay byte-identical — the scene is
 /// computed only here.
 #[wasm_bindgen]
-pub fn compile_scene(src: &str, circuits: bool, texlabels: bool, flatten: Option<f64>) -> String {
+pub fn compile_scene(
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    flatten: Option<f64>,
+    outline: bool,
+) -> String {
     let opts = wasm_options(circuits, texlabels);
     let sopts = rpic_core::SceneOptions {
         flatten: flatten.filter(|f| f.is_finite() && *f > 0.0),
-        outline: false,
+        outline,
         source: None,
     };
     rpic_core::compile_json_all_with_options(src, &opts, &sopts)

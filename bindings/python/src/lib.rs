@@ -213,9 +213,9 @@ fn json_loads<'py>(py: Python<'py>, json: &str) -> PyResult<Bound<'py, PyAny>> {
 /// Compile pic source to the device-independent **scene** draw list
 /// (docs/scene.md) as a parsed dict: versioned, inches, y-up, curves as cubic
 /// Béziers (`flatten` delivers polylines instead; `outline` embeds typeset
-/// math as SVG fragments). Raises `CompileError` on a pic error. Warnings —
-/// including the scene's own `scene_unsupported` — are available via
-/// `compile(..., scene=True)["warnings"]`.
+/// math as SVG fragments). Raises `CompileError` on a pic error. The scene's
+/// own `scene_unsupported` warnings are emitted via `warnings.warn`;
+/// `compile(..., scene=True)["warnings"]` carries them structured.
 #[pyfunction]
 #[pyo3(signature = (src, flatten = None, outline = false, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
 #[allow(clippy::too_many_arguments)]
@@ -242,6 +242,14 @@ fn scene<'py>(
         max_shapes,
     )?;
     let out = rpic_core::scene_json(&d, &scene_opts(flatten, outline)?);
+    // "never silent": surface the scene's own warnings through Python's
+    // warnings machinery (compile(..., scene=True) carries them structured)
+    if !out.warnings.is_empty() {
+        let warnings_mod = py.import("warnings")?;
+        for w in &out.warnings {
+            warnings_mod.call_method1("warn", (format!("rpic scene: {}", w.message),))?;
+        }
+    }
     json_loads(py, &out.json)
 }
 

@@ -173,6 +173,8 @@ export interface CompileOptions {
   scene?: boolean;
   /** scene: deliver curves as polylines within this tolerance (inches); implies `scene` */
   flatten?: number;
+  /** scene: embed typeset math as SVG glyph fragments (`outline` keys) */
+  outline?: boolean;
 }
 
 export interface ReadyOptions {

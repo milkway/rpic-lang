@@ -111,5 +111,34 @@ Every claim is backed by a committed test or a command reproduced below.
 - [x] **E2 — History.** Small commits, each building with the full test
   suite green; no WIP commits.
 
+## Review round (post-PR, 2026-11-01)
+
+A high-effort automated review plus an adversarial geometry audit ran against
+the branch; confirmed findings, all fixed and regression-tested in
+`scene::review_regressions` / the binding suites:
+
+1. `snum` overflowed finite coordinates ≥ ~1.8e302 to a literal `inf`
+   (invalid JSON) — fixed, guarded.
+2. Degenerate arcs (zero radius/sweep) emitted `"cubics":[]`, violating the
+   published schema — now a one-point polyline (the SVG paints nothing there
+   either).
+3. A 2-point `line … fill` carried a `fill` descriptor the SVG never paints —
+   fill now mirrors the SVG's >2-point branch exactly.
+4. `#rrggbbaa` passed through silently as "normalized" — now warned like the
+   other irreducible colors.
+5. Python's standalone `scene()` dropped warnings — now surfaced via
+   `warnings.warn` (structured copies remain on `compile(scene=True)`).
+6. JS silently ignored invalid `flatten` values — now throws, matching
+   Python/CLI; JS also gained the `outline` option.
+7. `EnvVar::ALL` was a hand-kept 30-of-32 list — now exhaustive (the
+   animation caps ride `vars` too) with a guard test.
+8. The canvas w/h/origin math was duplicated between `svg.rs` and `scene.rs`
+   — now one shared `canvas_frame` helper (SVG output byte-identical,
+   re-proved: 124 files, 0 diffs); gray quantization likewise shared.
+9. Block-children scanning was O(blocks²) and `--flatten` output was
+   unbounded on hostile inputs — fixed earlier in the security-hardening
+   commit (children precomputed; a 1e6-point scene-wide flatten budget that
+   degrades resolution and warns).
+
 **Cut-line:** A1–A3, B1–B3, C1, D2 all pass. The single open item is C3b
 (wasm size), listed above with owner and reason.

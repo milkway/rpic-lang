@@ -37,15 +37,54 @@ struct Svg {
     cur_type: Option<bool>,
 }
 
+/// The page frame both backends agree on: canvas size in **inches**
+/// (margins and stroke padding included) and the transform inputs. The single
+/// source of the layout math — the SVG emitter consumes it directly and the
+/// scene export publishes it, so the documented scene→pixel mapping
+/// `svg_px = ((x + ox)·96, (h − (y + oy))·96)` can never drift from the SVG.
+pub(crate) struct CanvasFrame {
+    /// Page size in inches.
+    pub(crate) w: f64,
+    pub(crate) h: f64,
+    /// Model-space left edge / top edge of the content box.
+    pub(crate) west: f64,
+    pub(crate) north: f64,
+    /// Stroke padding in inches (`prelude_thick/144`).
+    pub(crate) pad: f64,
+}
+
+impl CanvasFrame {
+    /// Where the pic origin sits, measured from the canvas lower-left corner.
+    pub(crate) fn origin(&self, m: CanvasMargin) -> (f64, f64) {
+        (
+            2.0 * self.pad + m.left - self.west,
+            self.h - self.north - self.pad - m.top,
+        )
+    }
+}
+
+pub(crate) fn canvas_frame(d: &Drawing) -> CanvasFrame {
+    // a fixed `canvas` pins the page frame; otherwise it hugs the content
+    let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
+    let pad = d.prelude_thick.max(0.0) / 144.0;
+    let m = d.canvas_margin;
+    let (west, north, raw_w, raw_h) = if raw.is_empty() {
+        (0.0, 0.0, 0.0, 0.0)
+    } else {
+        (raw.min.x, raw.max.y, raw.width(), raw.height())
+    };
+    CanvasFrame {
+        w: positive_extent(raw_w + 6.0 * pad + m.horizontal()),
+        h: positive_extent(raw_h + 6.0 * pad + m.vertical()),
+        west,
+        north,
+        pad,
+    }
+}
+
 impl Svg {
     fn new(d: &Drawing) -> Self {
-        // a fixed `canvas` pins the page frame; otherwise it hugs the content
-        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
-        let (west, north) = if raw.is_empty() {
-            (0.0, 0.0)
-        } else {
-            (raw.min.x, raw.max.y)
-        };
+        let frame = canvas_frame(d);
         let type_targets = d
             .anims
             .iter()
@@ -54,9 +93,9 @@ impl Svg {
             .collect();
         Svg {
             out: String::new(),
-            west,
-            north,
-            pad: d.prelude_thick.max(0.0) / 144.0,
+            west: frame.west,
+            north: frame.north,
+            pad: frame.pad,
             margin: d.canvas_margin,
             next_pattern: 0,
             type_targets,
@@ -73,20 +112,8 @@ impl Svg {
     }
 
     fn render(&mut self, d: &Drawing) {
-        let raw = d.canvas.unwrap_or_else(|| drawing_svg_bounds(&d.shapes));
-        let raw_w = if raw.is_empty() { 0.0 } else { raw.width() };
-        let raw_h = if raw.is_empty() { 0.0 } else { raw.height() };
-        let (w, h) = if raw.is_empty() {
-            (
-                positive_extent(6.0 * self.pad + self.margin.horizontal()) * PPI,
-                positive_extent(6.0 * self.pad + self.margin.vertical()) * PPI,
-            )
-        } else {
-            (
-                positive_extent(raw_w + 6.0 * self.pad + self.margin.horizontal()) * PPI,
-                positive_extent(raw_h + 6.0 * self.pad + self.margin.vertical()) * PPI,
-            )
-        };
+        let frame = canvas_frame(d);
+        let (w, h) = (frame.w * PPI, frame.h * PPI);
         self.out.push_str(&format!(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" font-family=\"sans-serif\" font-size=\"{}\" fill=\"none\">\n",
             num(w),
@@ -572,7 +599,7 @@ impl Svg {
         match &style.fill {
             None => "none".to_string(),
             Some(Fill::Gray(g)) => {
-                let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
+                let v = gray_channel(*g);
                 format!("rgb({v},{v},{v})")
             }
             Some(Fill::Color(c)) => escape_attr(c),
@@ -1231,6 +1258,12 @@ fn thick_px(style: &Style) -> f64 {
     pt * PPI / 72.0
 }
 
+/// pic gray shade (0 = black … 1 = white) → one 8-bit channel. The single
+/// quantization shared by the SVG `fill_value` and the scene's hex export.
+pub(crate) fn gray_channel(g: f64) -> u32 {
+    (g.clamp(0.0, 1.0) * 255.0).round() as u32
+}
+
 pub(crate) fn thick_in(style: &Style) -> f64 {
     // style.thick is in points; default ~0.8pt.
     style.thick.filter(|t| *t > 0.0).unwrap_or(0.8) / 72.0
@@ -1702,9 +1735,9 @@ fn classic_spline_cubics(q: &[Point]) -> (Point, Vec<[Point; 3]>) {
         }
     }
     // dpic's point stream groups into cubics: 4 + 3·(segs−2) + 5 = 3·(segs+1)
-    debug_assert_eq!(pts.len() % 3, 0);
-    let cubics = pts.chunks_exact(3).map(|c| [c[0], c[1], c[2]]).collect();
-    (q[0], cubics)
+    let (chunks, rest) = pts.as_chunks::<3>();
+    debug_assert!(rest.is_empty());
+    (q[0], chunks.to_vec())
 }
 
 fn classic_spline(q: &[Point]) -> String {

@@ -292,8 +292,9 @@ All scene colors are `#rrggbb` (lowercase). The emitter resolves, in order:
 values already in hex (as produced by `rgb()`, `0xRRGGBB`, color expressions
 and the xcolor/dvips names, which eval maps at parse time); pic gray shades;
 the 148 CSS named colors via a static table. A color that cannot be reduced
-(e.g. `currentColor`, a raw `hsl(…)` string) is passed through verbatim and
-raises `scene_unsupported` — consumers get the SVG's exact value, flagged.
+(e.g. `currentColor`, a raw `hsl(…)` string, or an alpha form like
+`#rrggbbaa`) is passed through verbatim and raises `scene_unsupported` —
+consumers get the SVG's exact value, flagged.
 
 ## 9. Unrepresented SVG features (warned)
 

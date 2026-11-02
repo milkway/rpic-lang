@@ -92,6 +92,10 @@ fn snum(x: f64) -> String {
         return "0".to_string();
     }
     let r = (x * 1_000_000.0).round() / 1_000_000.0;
+    // the ×1e6 can overflow a finite-but-huge coordinate to infinity, which
+    // would print a literal `inf` and break the JSON — fall back to the raw
+    // value (already finite; precision is meaningless at that magnitude)
+    let r = if r.is_finite() { r } else { x };
     let r = if r == 0.0 { 0.0 } else { r }; // normalise -0
     let mut s = format!("{r:.6}");
     while s.contains('.') && (s.ends_with('0') || s.ends_with('.')) {
@@ -339,9 +343,12 @@ fn hex_color(s: &str) -> Result<String, ()> {
             }
             return Ok(out);
         }
-        if (hex.len() == 6 || hex.len() == 8) && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
             return Ok(t.to_ascii_lowercase());
         }
+        // #rgba / #rrggbbaa carry alpha, which #rrggbb cannot express —
+        // pass through with the scene_unsupported warning like other
+        // irreducible values
         return Err(());
     }
     if let Some(body) = t.strip_prefix("rgb(").and_then(|b| b.strip_suffix(')')) {
@@ -526,22 +533,13 @@ static CSS_HEX: &[(&str, &str)] = &[
 impl<'a> Sc<'a> {
     fn build(&mut self) {
         let d = self.d;
-        let raw = d
-            .canvas
-            .unwrap_or_else(|| svg::drawing_svg_bounds(&d.shapes));
-        let pad = d.prelude_thick.max(0.0) / 144.0;
+        // the one canvas-geometry source, shared with the SVG emitter — the
+        // documented mapping svg_px = ((x+ox)·96, (h−(y+oy))·96) holds by
+        // construction, not by parallel arithmetic
+        let frame = svg::canvas_frame(d);
         let m = d.canvas_margin;
-        let (west, north, raw_w, raw_h) = if raw.is_empty() {
-            (0.0, 0.0, 0.0, 0.0)
-        } else {
-            (raw.min.x, raw.max.y, raw.width(), raw.height())
-        };
-        let w = svg::positive_extent(raw_w + 6.0 * pad + m.horizontal());
-        let h = svg::positive_extent(raw_h + 6.0 * pad + m.vertical());
-        // where the pic origin sits, from the canvas lower-left corner — the
-        // inputs of the SVG transform, so svg_px = ((x+ox)·96, (h−(y+oy))·96)
-        let ox = 2.0 * pad + m.left - west;
-        let oy = h - north - pad - m.top;
+        let (w, h) = (frame.w, frame.h);
+        let (ox, oy) = frame.origin(m);
 
         self.out.push_str(&format!(
             "{{\"scene\":{SCENE_VERSION},\"units\":\"in\",\"y_up\":true,\"canvas\":{{\"w\":{},\"h\":{},\"margin\":{{\"top\":{},\"right\":{},\"bottom\":{},\"left\":{}}},\"origin\":[{},{}]}}",
@@ -745,7 +743,10 @@ impl<'a> Sc<'a> {
                 text,
             } => {
                 let stroked = !style.invis && pts.len() >= 2;
-                let filled = svg::open_fill_is_visible(style);
+                // the SVG fills an open path only in its >2-point branch — a
+                // 2-point `line … fill` paints no area there, so neither does
+                // the scene (fidelity over symmetry)
+                let filled = svg::open_fill_is_visible(style) && pts.len() > 2;
                 let trimmed = stroked && *arrows != Arrowheads::None;
                 let draw_pts: Vec<Point> = if trimmed {
                     svg::path_stroke_points_model(pts, *arrows, style)
@@ -965,6 +966,12 @@ impl<'a> Sc<'a> {
         let t0 = (start - c).y.atan2((start - c).x);
         let mut cubics = Vec::new();
         arc_cubics(c, r.abs(), t0, angle, &mut cubics);
+        if cubics.is_empty() {
+            // degenerate arc (zero radius or sweep): the SVG's `A` command
+            // paints nothing; a one-point polyline says the same and keeps
+            // the path schema-valid (an empty `cubics` list would not be)
+            return ScenePath::from_points(vec![start], false);
+        }
         let mut p = ScenePath::from_cubics(start, cubics, false);
         if let Some(tol) = self.opts.flatten {
             p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
@@ -1066,7 +1073,12 @@ impl<'a> Sc<'a> {
             cur = geom.ao;
             line_to(&mut cubics, cur, start);
         }
-        let mut p = ScenePath::from_cubics(start, cubics, true);
+        let mut p = if cubics.is_empty() {
+            // fully degenerate head geometry: keep the path schema-valid
+            ScenePath::from_points(vec![start], true)
+        } else {
+            ScenePath::from_cubics(start, cubics, true)
+        };
         if let Some(tol) = self.opts.flatten {
             p = p.flattened(tol, &self.flatten_left, &self.flatten_exhausted);
         }
@@ -1127,7 +1139,7 @@ impl<'a> Sc<'a> {
         if let Some(f) = &style.fill {
             let hex = match f {
                 Fill::Gray(g) => {
-                    let v = (g.clamp(0.0, 1.0) * 255.0).round() as u32;
+                    let v = svg::gray_channel(*g);
                     format!("#{v:02x}{v:02x}{v:02x}")
                 }
                 Fill::Color(c) => self.color(c, &span),
@@ -1800,5 +1812,72 @@ mod tests {
         );
         assert!(all.contains("\"scene\":{\"scene\":1"), "{all}");
         assert!(all.contains("scene_unsupported"), "{all}");
+    }
+}
+
+#[cfg(test)]
+mod review_regressions {
+    //! Fixes from the branch review: each test is one confirmed finding.
+    use super::*;
+    use serde_json::Value;
+
+    #[test]
+    fn huge_finite_coordinates_stay_valid_json() {
+        // snum's ×1e6 rounding step used to overflow ~1.8e302 to a literal
+        // `inf`, breaking every consumer's JSON.parse
+        let d =
+            crate::compile("maxpswid = 1e308\nmaxpsht = 1e308\nline from (0,0) to (1e305,1e305)")
+                .unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: Value = serde_json::from_str(&out.json).expect("valid JSON");
+        assert!(v["canvas"]["w"].as_f64().unwrap().is_finite());
+    }
+
+    #[test]
+    fn degenerate_arcs_emit_schema_valid_paths() {
+        // zero radius/sweep used to emit "cubics":[] (schema minItems 1)
+        let d = crate::compile("arcrad = 0\narc").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        assert!(!out.json.contains("\"cubics\":[]"), "{}", out.json);
+        let _: Value = serde_json::from_str(&out.json).unwrap();
+    }
+
+    #[test]
+    fn two_point_line_fill_matches_the_svg() {
+        // the SVG fills an open path only in its >2-point branch
+        let d = crate::compile("line right 1 fill 0.3").unwrap();
+        assert!(!crate::to_svg(&d).contains("polygon"), "svg paints no area");
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: Value = serde_json::from_str(&out.json).unwrap();
+        assert!(v["items"][0].get("fill").is_none(), "{}", out.json);
+        // and an invisible filled 2-point line paints nothing at all
+        let d = crate::compile("line right 1 invis fill 0.3").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: Value = serde_json::from_str(&out.json).unwrap();
+        assert_eq!(v["items"][0]["hidden"], true, "{}", out.json);
+        // a 3-point filled path keeps its fill (the SVG paints it there)
+        let d = crate::compile("line right 0.5 then up 0.5 fill 0.3").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: Value = serde_json::from_str(&out.json).unwrap();
+        assert_eq!(v["items"][0]["fill"]["color"], "#4d4d4d");
+    }
+
+    #[test]
+    fn alpha_hex_passes_verbatim_with_a_warning() {
+        let d = crate::compile("box outlined \"#ff000080\"").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        assert!(out.json.contains("\"color\":\"#ff000080\""), "{}", out.json);
+        assert_eq!(out.warnings.len(), 1);
+        assert_eq!(out.warnings[0].kind, "scene_unsupported");
+    }
+
+    #[test]
+    fn vars_include_the_animation_caps() {
+        let v: Value = serde_json::from_str(
+            &scene_json(&crate::compile("box").unwrap(), &SceneOptions::default()).json,
+        )
+        .unwrap();
+        assert!(v["vars"]["maxanimseconds"].as_f64().unwrap() > 0.0);
+        assert!(v["vars"]["maxanimrepeat"].as_f64().unwrap() > 0.0);
     }
 }

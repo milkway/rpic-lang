@@ -68,6 +68,12 @@ def test_scene_style_descriptors():
     assert line["stroke"]["dash"] == {"kind": "dashed", "len": 0.1}
 
 
+def test_scene_function_warns_on_unsupported():
+    # the standalone scene() surfaces scene_unsupported via warnings.warn
+    with pytest.warns(UserWarning, match="rpic scene:"):
+        rpic.scene('box outlined "currentColor"')
+
+
 def test_scene_unsupported_warning_surfaces_in_compile():
     out = rpic.compile('box outlined "currentColor"', scene=True)
     kinds = [w["kind"] for w in out["warnings"]]
