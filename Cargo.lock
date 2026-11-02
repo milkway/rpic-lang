@@ -1838,6 +1838,7 @@ dependencies = [
  "ratex-types",
  "resvg 0.48.1",
  "rpic-core",
+ "serde_json",
  "svg2pdf",
 ]
 
