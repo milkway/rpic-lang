@@ -12,6 +12,7 @@ resolves to the latest version.
 
 ### Added
 
+<<<<<<< HEAD
 - **`geopic-core`** (new workspace crate, publishable): georeferences an rpic
   scene into a GeoJSON `FeatureCollection` (WGS84). Registration by
   `geo_lon`/`geo_lat` + `geo_scale` + `geo_bearing`, by two control points
@@ -23,6 +24,8 @@ resolves to the latest version.
   properties; structured warnings, never silent. Pure Rust, no I/O, builds
   for `wasm32-unknown-unknown`. The engine does not depend on it.
 
+=======
+>>>>>>> origin/main
 - Scene: a top-level `rescale` field — the uniform factor the whole-picture
   rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`
   when none did. `vars` stay pre-rescale (classic pic), so consumers that relate
