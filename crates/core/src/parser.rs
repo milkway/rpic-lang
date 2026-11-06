@@ -587,6 +587,7 @@ fn expand(
             }
             Token::Name(n) | Token::Label(n) if macros.contains_key(n) => {
                 let body = macros.get(n).unwrap().clone();
+                let name_idx = i;
                 i += 1;
                 let args = if toks.get(i).map(|s| &s.tok) == Some(&Token::Lparen) {
                     i += 1;
@@ -596,7 +597,11 @@ fn expand(
                 } else {
                     Vec::new()
                 };
-                let sub = substitute(&body, &args);
+                let site = call_site(toks, name_idx, i, n, &args);
+                let mut sub = substitute(&body, &args);
+                for t in &mut sub {
+                    t.call_site = Some(std::sync::Arc::clone(&site));
+                }
                 let expanded = expand(&sub, macros, depth + 1, includes)?;
                 out.extend(expanded);
             }
@@ -622,6 +627,47 @@ fn expand(
         }
     }
     Ok(out)
+}
+
+/// The provenance every token of a macro expansion carries: a call made
+/// from inside another expansion keeps that (outer) call's site, so the
+/// site always names the outermost call the user wrote. `end` is the index
+/// just past the call (past `)` when it had arguments).
+fn call_site(
+    toks: &[Spanned],
+    name_idx: usize,
+    end: usize,
+    name: &str,
+    args: &[Vec<Spanned>],
+) -> std::sync::Arc<crate::lexer::CallSite> {
+    let name_tok = &toks[name_idx];
+    if let Some(site) = &name_tok.call_site {
+        return std::sync::Arc::clone(site);
+    }
+    let mut span = name_tok.span();
+    if let Some(close) = toks[name_idx + 1..end].last()
+        && close.tok == Token::Rparen
+        && close.line == span.line
+        && close.file == span.file
+    {
+        span.end_col = close.end_col;
+    }
+    let args = args
+        .iter()
+        .map(|a| match a.as_slice() {
+            // keep a lone string quoted (`tokens_to_text` unquotes it, the
+            // splicing convention), so `m("1")` and `m(1)` stay distinct
+            [one] if matches!(one.tok, Token::Str(_)) => arg_token_text(&one.tok),
+            _ => tokens_to_text(a),
+        })
+        .collect();
+    std::sync::Arc::new(crate::lexer::CallSite {
+        span,
+        call: crate::ir::MacroCall {
+            name: name.to_string(),
+            args,
+        },
+    })
 }
 
 /// Read comma-separated argument token-lists after a `(` (index `i` is just past
@@ -2357,6 +2403,7 @@ impl Parser {
 
     fn parse_object_inner(&mut self) -> PResult<Object> {
         let span = Some(self.cur_span());
+        let call_site = self.toks[self.idx].call_site.clone();
         let mut attrs = Vec::new();
         // a bare string expression (literal, `$arg`, sprintf, concatenation)
         // places a text-only object.
@@ -2367,6 +2414,7 @@ impl Parser {
             }
             return Ok(Object {
                 span,
+                call_site,
                 kind: ObjectKind::Text,
                 attrs,
             });
@@ -2440,7 +2488,12 @@ impl Parser {
         )? {
             attrs.push(a);
         }
-        Ok(Object { kind, attrs, span })
+        Ok(Object {
+            kind,
+            attrs,
+            span,
+            call_site,
+        })
     }
 
     /// True if the next token begins a bare scalar expression — the leading

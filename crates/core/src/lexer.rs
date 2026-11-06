@@ -28,6 +28,22 @@ pub struct Spanned {
     /// Macro definitions that were in scope when a deferred `if`/`for` body was
     /// copied. Used when that body is parsed later by the evaluator.
     pub macro_frame: Option<Arc<HashMap<String, Vec<Spanned>>>>,
+    /// The outermost macro call this token was expanded from: `None` for
+    /// tokens written directly at the statement level. Every token a call
+    /// produces — body and spliced arguments alike — shares one `Arc`, and
+    /// calls nested inside an expansion keep the outer call's site.
+    /// Excluded from `PartialEq` like `file`.
+    pub call_site: Option<Arc<CallSite>>,
+}
+
+/// Where a macro expansion came from: the call as written at the
+/// outermost level (see [`Spanned::call_site`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct CallSite {
+    /// The call: the macro name through the closing `)` when that is on
+    /// the same line, else the name alone.
+    pub span: Span,
+    pub call: crate::ir::MacroCall,
 }
 
 impl Spanned {
@@ -40,6 +56,7 @@ impl Spanned {
             file: None,
             arg_frame: None,
             macro_frame: None,
+            call_site: None,
         }
     }
 

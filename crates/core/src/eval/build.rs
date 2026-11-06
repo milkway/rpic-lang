@@ -948,9 +948,9 @@ impl State {
         let this_block = block_base + sub.blocks.len();
         self.blocks
             .extend(sub.blocks.into_iter().map(|b| BlockInfo {
-                label: b.label,
                 shapes: (b.shapes.0 + first_shape, b.shapes.1 + first_shape),
                 parent: b.parent.map(|p| p + block_base).or(Some(this_block)),
+                ..b
             }));
         for (((((mut sh, layer), class), link), span), (label, block)) in sub
             .shapes
@@ -1036,6 +1036,11 @@ impl State {
                 label: None,
                 shapes: (first_shape, child_end),
                 parent: None,
+                span: match &obj.call_site {
+                    Some(site) => Some(site.span.clone()),
+                    None => obj.span.clone(),
+                },
+                call: obj.call_site.as_ref().map(|site| site.call.clone()),
             });
             self.placed[idx].block = Some(this_block);
         }

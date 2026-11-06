@@ -305,6 +305,9 @@ pub struct Object {
     /// Span of the statement's leading token (for per-object geometry export
     /// and future diagnostics).
     pub span: Option<Span>,
+    /// The outermost macro call the leading token was expanded from, if any
+    /// (block provenance; see [`crate::ir::BlockInfo::span`]).
+    pub call_site: Option<std::sync::Arc<crate::lexer::CallSite>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

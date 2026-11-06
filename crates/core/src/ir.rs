@@ -86,6 +86,25 @@ pub struct BlockInfo {
     pub shapes: (usize, usize),
     /// Enclosing block, if nested.
     pub parent: Option<usize>,
+    /// Where the block came from in the user's source: the outermost macro
+    /// call that expanded to it (`name(args)`, see [`BlockInfo::call`]), or,
+    /// for a block written inline, its opening `[`. Shapes inside a macro
+    /// body keep spans that point into the `define`; this attributes the
+    /// block to the line that asked for it. `None` only when unknown.
+    pub span: Option<crate::diagnostic::Span>,
+    /// The outermost macro call that produced the block, if any.
+    pub call: Option<MacroCall>,
+}
+
+/// A macro invocation, as recorded for [`BlockInfo::call`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct MacroCall {
+    /// The macro's name.
+    pub name: String,
+    /// The arguments as written at the call, one string per argument, in
+    /// rpic's normalized token text (spacing follows the source; numbers
+    /// print canonically).
+    pub args: Vec<String>,
 }
 
 /// A named place: the point a `Label: position` statement defines.
