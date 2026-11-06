@@ -158,6 +158,7 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
         interactions: st.interactions,
         anim_scroll: st.anim_scroll,
         diagnostics: st.diagnostics,
+        passthrough: pic.passthrough.clone(),
         warnings: st.warnings,
     };
     apply_ps_size(&mut d, want_w, want_h);
