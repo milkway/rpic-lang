@@ -1,0 +1,20 @@
+# An arrow between two named features.
+#
+# Each feature is a pic place with its coordinates as <Label>_lon/_lat.
+# Two such control points fix the whole registration — scale and bearing are
+# derived from where Recife and Olinda sit on the canvas versus on the Earth —
+# so nothing else about the map needs declaring. Draw in any convenient units:
+# the geodesic distance between the two (≈ 6.3 km) is what the GeoJSON gets.
+Recife: (0, 0)
+Recife_lon = -34.8711
+Recife_lat = -8.0631
+Olinda: (0.6, 1.6)
+Olinda_lon = -34.8553
+Olinda_lat = -8.0089
+
+dot at Recife rad 0.04
+dot at Olinda rad 0.04
+arrow from Recife to Olinda thick 1.5 color "firebrick"
+"Recife" below at Recife + (0, -0.05)
+"Olinda" above at Olinda + (0, 0.05)
+"6.3 km" ljust at 0.5 <Recife, Olinda> + (0.1, 0)

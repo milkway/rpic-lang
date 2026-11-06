@@ -22,6 +22,11 @@ resolves to the latest version.
   densified in the plane before de-projection; simplestyle + `geopic:*`
   properties; structured warnings, never silent. Pure Rust, no I/O, builds
   for `wasm32-unknown-unknown`. The engine does not depend on it.
+- **`rpic --geojson`**: the CLI front of `geopic-core`, with `--geo-anchor`,
+  `--geo-scale`, `--geo-bearing`, `--geo-frame`, `--geo-view-scale` overrides
+  and repeatable `--geo-feature NAME=LON,LAT` control points; warnings on
+  stderr. `examples/geo/` holds four worked examples with their expected
+  `.geojson`, guarded against drift by `crates/cli/tests/geo.rs`.
 
 - Scene: a top-level `rescale` field — the uniform factor the whole-picture
   rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`

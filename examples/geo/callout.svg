@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="203.84" height="117.44" viewBox="0 0 203.84 117.44" font-family="sans-serif" font-size="14.666667" fill="none">
+<g id="s0">
+<circle cx="4.906667" cy="110.933333" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s1" class="screen">
+<rect x="76.906667" y="0.533333" width="124.8" height="48" fill="rgb(242,242,242)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="139.306667" y="22.04" text-anchor="middle">Marco Zero</text>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="139.306667" y="36.706667" text-anchor="middle">Recife</text>
+</g>
+<g id="s2">
+<line x1="76.906667" y1="48.533333" x2="13.173626" y2="103.029702" stroke="black" stroke-width="1.6"/>
+<polygon stroke-width="0" points="19.52271,100.75853 10.666667,105.173333 16.403268,97.110368" fill="black"/>
+</g>
+</svg>

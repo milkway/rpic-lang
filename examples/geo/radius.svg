@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="387.2" height="387.2" viewBox="0 0 387.2 387.2" font-family="sans-serif" font-size="14.666667" fill="none">
+<g id="s0">
+<circle cx="193.066667" cy="192.533333" r="192" fill="rgb(247,247,247)" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+</g>
+<g id="s1">
+<circle cx="193.066667" cy="192.533333" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s2">
+<line x1="193.066667" y1="192.533333" x2="385.066667" y2="192.533333" stroke="black" stroke-width="0.711111"/>
+</g>
+<g id="s3">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="289.066667" y="189.866667" text-anchor="middle">2 km</text>
+</g>
+</svg>

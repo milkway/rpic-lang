@@ -5,6 +5,23 @@ GeoJSON `FeatureCollection` (RFC 7946, WGS84). This document is the contract:
 how the drawing is registered on the Earth, what each scene kind becomes, the
 property vocabulary, the warnings, and how the format is versioned.
 
+## 0. Invocation
+
+```sh
+rpic --geojson map.pic                      # FeatureCollection on stdout, warnings on stderr
+rpic --geojson --geo-anchor -34.87,-8.06 --geo-scale 500 --geo-bearing 30 map.pic
+rpic --geojson --geo-frame mercator --flatten 1e-4 map.pic
+rpic --geojson --geo-feature Recife=-34.8711,-8.0631 --geo-feature Olinda=-34.8553,-8.0089 map.pic
+```
+
+`--geo-anchor LON,LAT`, `--geo-scale M`, `--geo-bearing DEG`, `--geo-frame
+enu|mercator` and `--geo-view-scale PX` override the source's variables;
+`--geo-feature NAME=LON,LAT` (repeatable) names a place or object of the
+drawing as a control point; `--flatten` is the curve tolerance. The same
+surface exists in the library (`geopic_core::georeference`) and the bindings.
+Examples with their expected output live in `examples/geo/*.pic` +
+`*.geojson`, guarded by `crates/cli/tests/geo.rs`.
+
 ## 1. Registration
 
 A **similarity** with four parameters maps canvas inches to a plane in metres,
