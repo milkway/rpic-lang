@@ -17,8 +17,10 @@ rpic --geojson --geo-feature Recife=-34.8711,-8.0631 --geo-feature Olinda=-34.85
 `--geo-anchor LON,LAT`, `--geo-scale M`, `--geo-bearing DEG`, `--geo-frame
 enu|mercator` and `--geo-view-scale PX` override the source's variables;
 `--geo-feature NAME=LON,LAT` (repeatable) names a place or object of the
-drawing as a control point; `--flatten` is the curve tolerance. The same
-surface exists in the library (`geopic_core::georeference`) and the bindings.
+drawing as a control point; `--flatten` is the curve tolerance. The library
+(`geopic_core::georeference` with `GeoOptions`) additionally takes
+`screen_classes` and a feature `bbox`, which the CLI does not expose; the
+Python binding (`rpic.geo`) mirrors the library and is the next step.
 Examples with their expected output live in `examples/geo/*.pic` +
 `*.geojson`, guarded by `crates/cli/tests/geo.rs`.
 
@@ -129,10 +131,10 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | kind | when |
 |---|---|
 | `unsupported_style` | gradient fill (first stop used) |
-| `ignored` | math label kept as its TeX literal; an item without the geometry its kind requires; an arrowhead without geometry |
+| `ignored` | math label kept as its TeX literal; an item without the geometry its kind requires; an arrowhead without geometry; `view_scale` given without `geo_px = 1` |
 | `unsupported_kind` | a scene kind this version does not map (the exhaustiveness test keeps this empty for format 1) |
 | `ignored_with_control_points` | declared anchor/scale/bearing superseded by control points |
-| `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat` |
+| `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat`; a host feature naming no label, or given twice |
 | `control_point_overridden` | the source's `<L>_lon`/`<L>_lat` lost to the host's feature of the same name (the caller wins) |
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |

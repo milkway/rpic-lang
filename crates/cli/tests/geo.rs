@@ -207,9 +207,9 @@ fn geo_options_override_the_source_and_features_act_as_control_points() {
     assert_eq!(dot(&vb)[0], -46.6333);
     assert_eq!(dot(&vb)[1], -23.5505);
     // a source without any registration fails with the structured kind …
-    let tmp = std::env::temp_dir().join(format!("rpic_geo_{}.pic", std::process::id()));
-    std::fs::write(&tmp, "P: (0,0)\nQ: (1,0)\nline from P to Q\n").unwrap();
-    let none = rpic(&["--geojson"], &tmp);
+    let tmp = TempPic::new("P: (0,0)\nQ: (1,0)\nline from P to Q\n");
+    let tmp = &tmp.path;
+    let none = rpic(&["--geojson"], tmp);
     assert!(!none.status.success());
     assert!(String::from_utf8_lossy(&none.stderr).contains("no_registration"));
     // … and host features name its places as control points
@@ -221,7 +221,7 @@ fn geo_options_override_the_source_and_features_act_as_control_points() {
             "--geo-feature",
             "Q=0.01,0",
         ],
-        &tmp,
+        tmp,
     );
     assert!(
         feat.status.success(),
@@ -234,9 +234,93 @@ fn geo_options_override_the_source_and_features_act_as_control_points() {
         .unwrap();
     assert_eq!(line[0][0], 0.0);
     assert!((line[line.len() - 1][0].as_f64().unwrap() - 0.01).abs() < 1e-9);
-    // bad option values are rejected up front
-    let bad = rpic(&["--geojson", "--geo-anchor", "x"], &pic);
-    assert!(!bad.status.success());
-    assert!(String::from_utf8_lossy(&bad.stderr).contains("--geo-anchor"));
-    let _ = std::fs::remove_file(&tmp);
+    // bad or out-of-range option values are rejected up front, naming the flag
+    for args in [
+        ["--geojson", "--geo-anchor", "x"],
+        ["--geojson", "--geo-anchor", "200,0"],
+        ["--geojson", "--geo-anchor", "nan,0"],
+        ["--geojson", "--geo-feature", "=1,2"],
+        ["--geojson", "--geo-feature", "A=1,95"],
+    ] {
+        let bad = rpic(&args, &pic);
+        assert!(!bad.status.success(), "{args:?}");
+        let err = String::from_utf8_lossy(&bad.stderr);
+        assert!(err.contains(args[1]), "{args:?}: {err}");
+        assert!(
+            !err.contains("callout.pic"),
+            "{args:?}: error blamed the input file: {err}"
+        );
+    }
+    // an unresolved feature and an unused view scale are warned, not swallowed
+    let w = rpic(
+        &[
+            "--geojson",
+            "--geo-feature",
+            "Typo=1,2",
+            "--geo-view-scale",
+            "96",
+        ],
+        &pic,
+    );
+    assert!(w.status.success());
+    let err = String::from_utf8_lossy(&w.stderr);
+    assert!(
+        err.contains("control_point_unresolved") && err.contains("Typo"),
+        "{err}"
+    );
+    assert!(
+        err.contains("(ignored)") && err.contains("view_scale"),
+        "{err}"
+    );
+}
+
+/// A pic source in the temp dir, removed on drop (also on a failed assertion).
+struct TempPic {
+    path: PathBuf,
+}
+
+impl TempPic {
+    fn new(src: &str) -> Self {
+        let path = std::env::temp_dir().join(format!(
+            "rpic_geo_{}_{}.pic",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        std::fs::write(&path, src).unwrap();
+        Self { path }
+    }
+}
+
+impl Drop for TempPic {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.path);
+    }
+}
+
+#[test]
+fn flatten_reaches_the_georeferencer() {
+    // `--flatten` also sets the geo tolerance: a tiny circle (1 m, so the
+    // 100 m chord rule is moot) gets its ring vertex count from it — the
+    // minimum 32 when coarse, a few hundred when fine. (Splines cannot show
+    // this: the scene already polylines them under `--flatten`.)
+    let tmp = TempPic::new("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 1\ncircle rad 1\n");
+    let count = |tol: &str| {
+        let out = rpic(&["--geojson", "--flatten", tol], &tmp.path);
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        v["features"][0]["geometry"]["coordinates"][0]
+            .as_array()
+            .unwrap()
+            .len()
+    };
+    let (coarse, fine) = (count("0.5"), count("0.0001"));
+    assert_eq!(coarse, 33, "coarse ring = 32 vertices + closing point");
+    assert!(fine > 200, "fine ring has {fine} vertices");
 }

@@ -25,30 +25,69 @@ enum Mode {
     Html,
 }
 
-/// Parse `LON,LAT`.
-fn parse_lonlat(v: &str) -> Option<geopic_core::LonLat> {
-    let (lon, lat) = v.split_once(',')?;
-    let (lon, lat) = (
-        lon.trim().parse::<f64>().ok()?,
-        lat.trim().parse::<f64>().ok()?,
-    );
-    Some(geopic_core::LonLat { lon, lat })
+/// Parse and validate `LON,LAT` (degrees), naming the flag on failure.
+fn parse_lonlat(flag: &str, v: &str) -> Result<geopic_core::LonLat, String> {
+    let bad = || format!("rpic: `{flag}` needs LON,LAT in degrees, got `{v}`");
+    let (lon, lat) = v.split_once(',').ok_or_else(bad)?;
+    let lon = lon.trim().parse::<f64>().map_err(|_| bad())?;
+    let lat = lat.trim().parse::<f64>().map_err(|_| bad())?;
+    geopic_core::LonLat::checked(lon, lat).map_err(|e| format!("rpic: `{flag}`: {e}"))
 }
 
 /// Parse `NAME=LON,LAT` (a host feature for `--geo-feature`).
-fn parse_feature(v: &str) -> Option<geopic_core::NamedFeature> {
-    let (name, pos) = v.split_once('=')?;
-    let name = name.trim();
-    if name.is_empty() {
-        return None;
-    }
-    let ll = parse_lonlat(pos)?;
-    Some(geopic_core::NamedFeature {
-        name: name.to_string(),
+fn parse_feature(v: &str) -> Result<geopic_core::NamedFeature, String> {
+    let (name, pos) = v
+        .split_once('=')
+        .filter(|(n, _)| !n.trim().is_empty())
+        .ok_or_else(|| format!("rpic: `--geo-feature` needs NAME=LON,LAT, got `{v}`"))?;
+    let ll = parse_lonlat("--geo-feature", pos)?;
+    Ok(geopic_core::NamedFeature {
+        name: name.trim().to_string(),
         lon: ll.lon,
         lat: ll.lat,
         bbox: None,
     })
+}
+
+/// The value after a flag, as a finite number (positive when `positive`);
+/// `what` names the unit in the error.
+fn number_arg(
+    args: &[String],
+    i: &mut usize,
+    flag: &str,
+    what: &str,
+    positive: bool,
+) -> Result<f64, String> {
+    *i += 1;
+    match args.get(*i).and_then(|v| v.parse::<f64>().ok()) {
+        Some(v) if v.is_finite() && (!positive || v > 0.0) => Ok(v),
+        _ => Err(format!(
+            "rpic: `{flag}` needs a {}{what}",
+            if positive { "positive " } else { "" }
+        )),
+    }
+}
+
+/// The value after a flag, as a string.
+fn string_arg(args: &[String], i: &mut usize, flag: &str, what: &str) -> Result<String, String> {
+    *i += 1;
+    args.get(*i)
+        .cloned()
+        .ok_or_else(|| format!("rpic: `{flag}` needs {what}"))
+}
+
+/// One stderr format for every non-fatal diagnostic: `warning: <message>
+/// (<kind>[, <item id>])`.
+fn emit_warning(kind: &str, id: Option<&str>, message: &str) {
+    match id {
+        Some(id) => eprintln!("warning: {message} ({kind}, {id})"),
+        None => eprintln!("warning: {message} ({kind})"),
+    }
+}
+
+fn fail(msg: &str) -> ExitCode {
+    eprintln!("{msg}");
+    ExitCode::FAILURE
 }
 
 fn main() -> ExitCode {
@@ -80,80 +119,48 @@ fn main() -> ExitCode {
             "--json=all" => mode = Mode::JsonAll,
             "--scene" => mode = Mode::Scene,
             "--geojson" => mode = Mode::GeoJson,
-            "--geo-anchor" => {
-                i += 1;
-                match args.get(i).and_then(|v| parse_lonlat(v)) {
-                    Some(ll) => geo.anchor = Some(ll),
-                    None => {
-                        eprintln!("rpic: `--geo-anchor` needs LON,LAT in degrees");
-                        return ExitCode::FAILURE;
-                    }
+            "--geo-anchor" => match args.get(i + 1).map(|v| parse_lonlat(a, v)) {
+                Some(Ok(ll)) => {
+                    i += 1;
+                    geo.anchor = Some(ll);
                 }
-            }
+                Some(Err(e)) => return fail(&e),
+                None => return fail(&format!("rpic: `{a}` needs LON,LAT in degrees")),
+            },
             "--geo-scale" => {
-                i += 1;
-                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
-                    Some(v) if v > 0.0 && v.is_finite() => geo.scale = Some(v),
-                    _ => {
-                        eprintln!("rpic: `--geo-scale` needs a positive number of metres per inch");
-                        return ExitCode::FAILURE;
-                    }
+                match number_arg(&args, &mut i, a, "number of metres per inch", true) {
+                    Ok(v) => geo.scale = Some(v),
+                    Err(e) => return fail(&e),
                 }
             }
-            "--geo-bearing" => {
-                i += 1;
-                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
-                    Some(v) if v.is_finite() => geo.bearing = Some(v),
-                    _ => {
-                        eprintln!("rpic: `--geo-bearing` needs an angle in degrees");
-                        return ExitCode::FAILURE;
-                    }
-                }
-            }
-            "--geo-frame" => {
-                i += 1;
-                match args.get(i).map(String::as_str) {
-                    Some("enu") => geo.frame = Some(geopic_core::Frame::Enu),
-                    Some("mercator") => geo.frame = Some(geopic_core::Frame::Mercator),
-                    _ => {
-                        eprintln!("rpic: `--geo-frame` needs `enu` or `mercator`");
-                        return ExitCode::FAILURE;
-                    }
-                }
-            }
+            "--geo-bearing" => match number_arg(&args, &mut i, a, "angle in degrees", false) {
+                Ok(v) => geo.bearing = Some(v),
+                Err(e) => return fail(&e),
+            },
+            "--geo-frame" => match string_arg(&args, &mut i, a, "`enu` or `mercator`").as_deref() {
+                Ok("enu") => geo.frame = Some(geopic_core::Frame::Enu),
+                Ok("mercator") => geo.frame = Some(geopic_core::Frame::Mercator),
+                _ => return fail(&format!("rpic: `{a}` needs `enu` or `mercator`")),
+            },
             "--geo-view-scale" => {
-                i += 1;
-                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
-                    Some(v) if v > 0.0 && v.is_finite() => geo.view_scale = Some(v),
-                    _ => {
-                        eprintln!(
-                            "rpic: `--geo-view-scale` needs a positive number of pixels per inch"
-                        );
-                        return ExitCode::FAILURE;
-                    }
+                match number_arg(&args, &mut i, a, "number of pixels per inch", true) {
+                    Ok(v) => geo.view_scale = Some(v),
+                    Err(e) => return fail(&e),
                 }
             }
-            "--geo-feature" => {
-                i += 1;
-                match args.get(i).and_then(|v| parse_feature(v)) {
-                    Some(f) => geo.features.push(f),
-                    None => {
-                        eprintln!("rpic: `--geo-feature` needs NAME=LON,LAT");
-                        return ExitCode::FAILURE;
-                    }
+            "--geo-feature" => match args.get(i + 1).map(|v| parse_feature(v)) {
+                Some(Ok(f)) => {
+                    i += 1;
+                    geo.features.push(f);
                 }
-            }
+                Some(Err(e)) => return fail(&e),
+                None => return fail(&format!("rpic: `{a}` needs NAME=LON,LAT")),
+            },
             "--outline" => outline = true,
-            "--flatten" => {
-                i += 1;
-                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
-                    Some(v) if v > 0.0 && v.is_finite() => flatten = Some(v),
-                    _ => {
-                        eprintln!("rpic: `--flatten` needs a positive tolerance in inches");
-                        return ExitCode::FAILURE;
-                    }
-                }
-            }
+            "--flatten" => match number_arg(&args, &mut i, a, "tolerance in inches", true) {
+                Ok(v) => flatten = Some(v),
+                Err(e) => return fail(&e),
+            },
             "--html" => mode = Mode::Html,
             "-o" | "--output" => {
                 i += 1;
@@ -323,7 +330,7 @@ fn run(
             emit_diagnostics(&d);
             let out = rpic_core::scene_json(&d, sopts);
             for w in &out.warnings {
-                eprintln!("warning: {}", w.message);
+                emit_warning(&w.kind, None, &w.message);
             }
             Ok(Output::Text(out.json))
         }
@@ -332,7 +339,7 @@ fn run(
             emit_diagnostics(&d);
             let scene = rpic_core::scene_json(&d, sopts);
             for w in &scene.warnings {
-                eprintln!("warning: {}", w.message);
+                emit_warning(&w.kind, None, &w.message);
             }
             let mut geo = geo.clone();
             if let Some(f) = sopts.flatten {
@@ -340,10 +347,7 @@ fn run(
             }
             let g = geopic_core::georeference(&scene.json, &geo).map_err(|e| e.to_string())?;
             for w in &g.warnings {
-                match &w.id {
-                    Some(id) => eprintln!("warning: {} ({}: {})", w.message, id, w.kind),
-                    None => eprintln!("warning: {} ({})", w.message, w.kind),
-                }
+                emit_warning(&w.kind, w.id.as_deref(), &w.message);
             }
             Ok(Output::Text(g.features.to_json()))
         }
