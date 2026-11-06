@@ -70,6 +70,11 @@ pub struct Drawing {
     /// rpic scene extension: the flattened block structure (eval erases
     /// blocks otherwise). Inner blocks appear before their enclosing block.
     pub blocks: Vec<BlockInfo>,
+    /// Named places (`Label: position` statements), one entry per evaluated
+    /// statement in evaluation order — a statement in a loop or a macro body
+    /// contributes one entry per execution, and a redefined label appears
+    /// again. Never affects rendering.
+    pub places: Vec<PlaceInfo>,
 }
 
 /// A `[ … ]` block's identity in the flattened shape list (scene export).
@@ -81,6 +86,24 @@ pub struct BlockInfo {
     pub shapes: (usize, usize),
     /// Enclosing block, if nested.
     pub parent: Option<usize>,
+}
+
+/// A named place: the point a `Label: position` statement defines.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlaceInfo {
+    /// The label as resolved, subscripts included (`P[2]`).
+    pub label: String,
+    /// Absolute position in pic units, in the same frame as the shapes: after
+    /// block placement and after the whole-picture `.PS <width>` /
+    /// `maxpswid`/`maxpsht` rescale.
+    pub at: Point,
+    /// Innermost enclosing block (an index into [`Drawing::blocks`]) when the
+    /// statement ran inside `[ … ]`. A block with no shapes of its own and no
+    /// inner blocks gets no `blocks` entry, so its places name the nearest
+    /// enclosing block that has one (or `None`).
+    pub block: Option<usize>,
+    /// Span of the statement's label, when known.
+    pub span: Option<crate::diagnostic::Span>,
 }
 
 /// A troff passthrough line (see [`Drawing::passthrough`]).

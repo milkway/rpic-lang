@@ -150,6 +150,7 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
         shape_labels: st.shape_labels,
         shape_blocks: st.shape_blocks,
         blocks: st.blocks,
+        places: st.places,
         bbox: st.bbox,
         prelude_thick: st.env.get(EnvVar::Linethick),
         canvas_margin,
@@ -188,10 +189,17 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
         for sh in &mut d.shapes {
             scale_shape(sh, factor);
         }
+        scale_places(d, factor);
         scale_canvas(d, factor);
         d.prelude_thick *= factor;
         d.canvas_margin.scale_by(factor);
         d.bbox = drawing_painted_bbox(&d.shapes);
+    }
+}
+
+fn scale_places(d: &mut Drawing, factor: f64) {
+    for p in &mut d.places {
+        p.at = p.at * factor;
     }
 }
 
@@ -222,6 +230,7 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
     for sh in &mut d.shapes {
         scale_shape(sh, factor);
     }
+    scale_places(d, factor);
     scale_canvas(d, factor);
     d.prelude_thick *= factor;
     d.canvas_margin.scale_by(factor);
@@ -650,6 +659,8 @@ struct State {
     shape_blocks: Vec<Option<usize>>,
     /// Scene export: flattened `[ … ]` block structure.
     blocks: Vec<BlockInfo>,
+    /// Named places in evaluation order (`block` relative to `blocks`).
+    places: Vec<PlaceInfo>,
     /// Span of the object statement currently being evaluated (attached to
     /// every shape it pushes).
     current_span: Option<Span>,
@@ -804,6 +815,7 @@ impl State {
             shape_labels: Vec::new(),
             shape_blocks: Vec::new(),
             blocks: Vec::new(),
+            places: Vec::new(),
             current_span: None,
             canvas: None,
             placed: Vec::new(),
@@ -871,9 +883,15 @@ impl State {
                     self.eval_assignment(a)?;
                 }
             }
-            Stmt::Place { label, pos } => {
+            Stmt::Place { label, pos, span } => {
                 let p = self.eval_pos(pos)?;
                 let key = self.label_key(label)?;
+                self.places.push(PlaceInfo {
+                    label: key.clone(),
+                    at: p,
+                    block: None,
+                    span: span.clone(),
+                });
                 let mut bb = Bbox::new();
                 bb.add(p);
                 let idx = self.placed.len();
@@ -1557,6 +1575,9 @@ impl State {
         }
         for pl in &mut self.placed {
             scale_placed(pl, factor);
+        }
+        for p in &mut self.places {
+            p.at = p.at * factor;
         }
         scale_bbox_in_place(&mut self.bbox, factor);
         scale_bbox_in_place(&mut self.layout_bbox, factor);

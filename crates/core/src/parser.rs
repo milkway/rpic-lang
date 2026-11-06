@@ -1844,6 +1844,7 @@ impl Parser {
 
         // Labelled element: `Label [suffix] : (object | position)`
         if matches!(self.cur(), Token::Label(_)) && self.label_colon_ahead() {
+            let span = Some(self.cur_span());
             let label = self.parse_label()?;
             self.expect(&Token::Colon)?;
             if self.at_object_start() {
@@ -1854,7 +1855,7 @@ impl Parser {
                 });
             } else {
                 let pos = self.parse_label_position()?;
-                return Ok(Stmt::Place { label, pos });
+                return Ok(Stmt::Place { label, pos, span });
             }
         }
 
