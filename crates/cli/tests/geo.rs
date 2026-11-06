@@ -1,7 +1,13 @@
-//! `rpic --geojson` drift guard: every `examples/geo/*.pic` must produce
-//! exactly its committed sibling `.geojson` (compact, as the CLI prints it;
-//! CRLF-normalized), and every feature's properties must validate against
-//! `docs/geopic.schema.json` (acceptance A6 of the geo prompt).
+//! `rpic --geojson` drift guard: every `examples/geo/*.pic` must produce its
+//! committed sibling `.geojson` — the same features, properties and vertex
+//! counts, every coordinate within 1e-8° (≈ 1 mm) — and every feature's
+//! properties must validate against `docs/geopic.schema.json` (acceptance A6
+//! of the geo prompt).
+//!
+//! The comparison is numeric, not byte-exact, on purpose: the platform libm
+//! (sin/cos/atan2) differs in its last bits between macOS, Linux and Windows,
+//! and the Helmert fit amplifies that into the 9th decimal of a few
+//! coordinates. Millimetres are the reproducibility this guard promises.
 //!
 //! On a mismatch: regenerate the sibling (`rpic -c --geojson <file>.pic >
 //! <file>.geojson`), look at the figure (`rpic -c --png`) and at the
@@ -40,6 +46,76 @@ fn lf(s: &str) -> String {
     s.replace("\r\n", "\n")
 }
 
+/// Coordinates within this many degrees count as equal (≈ 1 mm).
+const COORD_TOL: f64 = 1e-8;
+/// Numeric properties (`geopic:rotation` carries the fitted bearing) within this.
+const PROP_TOL: f64 = 1e-6;
+
+fn close(a: &serde_json::Value, b: &serde_json::Value, tol: f64, what: &str) {
+    use serde_json::Value;
+    match (a, b) {
+        (Value::Number(x), Value::Number(y)) => {
+            let (x, y) = (x.as_f64().unwrap(), y.as_f64().unwrap());
+            assert!((x - y).abs() <= tol, "{what}: {x} vs {y} (tolerance {tol})");
+        }
+        (Value::Array(x), Value::Array(y)) => {
+            assert_eq!(x.len(), y.len(), "{what}: array length");
+            for (i, (p, q)) in x.iter().zip(y).enumerate() {
+                close(p, q, tol, &format!("{what}[{i}]"));
+            }
+        }
+        (Value::Object(x), Value::Object(y)) => {
+            let kx: Vec<&String> = x.keys().collect();
+            let ky: Vec<&String> = y.keys().collect();
+            assert_eq!(kx, ky, "{what}: keys");
+            for (k, p) in x {
+                close(p, &y[k], tol, &format!("{what}.{k}"));
+            }
+        }
+        _ => assert_eq!(a, b, "{what}"),
+    }
+}
+
+/// Same features in the same order, equal properties (numbers to `PROP_TOL`),
+/// same geometry types and vertex counts, coordinates to `COORD_TOL`.
+fn assert_geojson_close(got: &str, want: &str, pic: &Path) {
+    let g: serde_json::Value = serde_json::from_str(got).unwrap();
+    let w: serde_json::Value = serde_json::from_str(want).unwrap();
+    let (gf, wf) = (
+        g["features"].as_array().unwrap(),
+        w["features"].as_array().unwrap(),
+    );
+    assert_eq!(
+        gf.len(),
+        wf.len(),
+        "{}: --geojson output drifted from the committed .geojson (feature count) — regenerate and review",
+        pic.display()
+    );
+    for (i, (a, b)) in gf.iter().zip(wf).enumerate() {
+        let what = format!(
+            "{}: feature {i} ({})",
+            pic.display(),
+            a["properties"]["geopic:id"]
+        );
+        close(
+            &a["properties"],
+            &b["properties"],
+            PROP_TOL,
+            &format!("{what} properties"),
+        );
+        assert_eq!(
+            a["geometry"]["type"], b["geometry"]["type"],
+            "{what} geometry type"
+        );
+        close(
+            &a["geometry"]["coordinates"],
+            &b["geometry"]["coordinates"],
+            COORD_TOL,
+            &format!("{what} coordinates"),
+        );
+    }
+}
+
 #[test]
 fn committed_geojson_matches_current_output_and_validates() {
     let schema_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/geopic.schema.json");
@@ -58,12 +134,7 @@ fn committed_geojson_matches_current_output_and_validates() {
         let got = lf(&String::from_utf8_lossy(&out.stdout));
         let committed = lf(&std::fs::read_to_string(pic.with_extension("geojson"))
             .unwrap_or_else(|_| panic!("{}: no committed .geojson sibling", pic.display())));
-        assert_eq!(
-            got.trim_end(),
-            committed.trim_end(),
-            "{}: --geojson output drifted from the committed .geojson — regenerate and review",
-            pic.display()
-        );
+        assert_geojson_close(&got, &committed, &pic);
         // no warnings on the curated examples
         let stderr = String::from_utf8_lossy(&out.stderr);
         assert!(

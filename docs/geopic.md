@@ -98,7 +98,7 @@ multiplied beyond the budget).
 | `block` | — | no feature; children carry `geopic:block` (the block path) |
 | hidden items | — | paint nothing, produce nothing (no warning) |
 
-Coordinates are `[lon, lat]`, rounded to 9 decimals.
+Coordinates are `[lon, lat]`, rounded to 9 decimals. Reproducibility across platforms is at the millimetre, not the byte: the geodesic code uses the platform's `sin`/`cos`/`atan2`, whose last bits differ between macOS, Linux and Windows, and a control-point fit can carry that into the 9th decimal — the example guard therefore compares within 1e-8°.
 
 ## 4. Properties
 
