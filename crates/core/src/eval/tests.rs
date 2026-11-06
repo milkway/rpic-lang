@@ -3224,3 +3224,22 @@ fn optional_operand_keeps_dpic_reading_for_assigned_names() {
     let got = crate::to_svg(&draw("for fit = 0.2 to 0.2 do { box dashed fit }"));
     assert_eq!(got, ctl);
 }
+
+#[test]
+fn troff_passthrough_lines_surface_on_the_drawing() {
+    let src = ".PS\n.ft B\nA: box \"x\"\n.sp 0.3\narrow\n.\\\" note\ncircle\n.PE\n";
+    let d = draw(src);
+    let lines: Vec<(&str, u32)> = d
+        .passthrough
+        .iter()
+        .map(|l| (l.text.as_str(), l.span.line))
+        .collect();
+    assert_eq!(lines, [(".ft B", 2), (".sp 0.3", 4), (".\\\" note", 6)]);
+    // they never touch the picture: same shapes and byte-identical SVG as
+    // the source without them
+    let plain = ".PS\n\nA: box \"x\"\n\narrow\n\ncircle\n.PE\n";
+    let p = draw(plain);
+    assert!(p.passthrough.is_empty());
+    assert_eq!(d.shapes, p.shapes);
+    assert_eq!(crate::svg::to_svg(&d), crate::svg::to_svg(&p));
+}

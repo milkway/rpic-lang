@@ -29,6 +29,7 @@ line -> from A.s down 0.4   # object + path attributes
 |---|---|---|
 | `.PS` … `.PE` | | Everything between the two markers is the picture |
 | `.PS` *number* | `.PS 3` | Scale the finished drawing to that width, in inches |
+| `.`*request* | `.ft B` | A line with `.` in column 1 (other than `.PS`/`.PE`) is a troff request, not pic: it is set aside, never drawn, and exposed to library users as `Drawing.passthrough` |
 
 ## Statements
 
@@ -223,6 +224,9 @@ propagate out, matching dpic.
 ## Lexical notes
 
 - Comments run from `#` to end of line.
+- A line starting with `.` in column 1 that is not `.PS`/`.PE` is troff
+  passthrough, as in classic pic and dpic. An indented `.`, the tail of a
+  `\`-continued line and text inside a multi-line string are still pic.
 - A statement ends at a newline or `;`; a trailing `\` continues the line,
   and a path also continues across a newline adjacent to `then`.
 - Labels start with an uppercase letter; variables with lowercase.
