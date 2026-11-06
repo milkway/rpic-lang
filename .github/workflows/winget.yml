@@ -1,13 +1,26 @@
 name: winget
 
-# Submits/updates the winget manifest on each published release, using the
-# WinGet Releaser action (which runs Komac on a GitHub-hosted Windows runner —
-# no local Windows machine needed). Requires a repo secret `WINGET_TOKEN`: a
-# GitHub PAT (classic `public_repo`, or fine-grained with fork + PR rights) that
-# can fork microsoft/winget-pkgs and open a PR.
+# Updates the winget manifest after each release, using the WinGet Releaser
+# action (which runs Komac on a GitHub-hosted Windows runner — no local Windows
+# machine needed). Requires (per the action's README):
+#   1. a repo secret `WINGET_TOKEN` holding a *classic* PAT with the
+#      `public_repo` and `workflow` scopes (fine-grained PATs are not supported);
+#   2. a fork of microsoft/winget-pkgs under the `milkway` org (the default
+#      `fork-user` is the repository owner).
+#
+# Trigger: the GitHub Release is created by release.yml with the workflow's own
+# GITHUB_TOKEN, and events caused by that token never start other workflows —
+# which is why an `on: release` trigger here never fired (zero runs from
+# v0.0.2 to v0.13.0). `workflow_run` on the Release workflow is delivered
+# regardless; for a tag push its `head_branch` is the tag name.
+#
+# One-time prerequisite: the package `milkway.rpic` must already exist in
+# microsoft/winget-pkgs — the action only *updates* manifests. Create it once
+# with Komac (`komac new milkway.rpic …`), then every release flows through here.
 on:
-  release:
-    types: [released]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
   workflow_dispatch:
     inputs:
       tag:
@@ -16,6 +29,11 @@ on:
 
 jobs:
   publish:
+    # only after a successful Release run of a version tag (or by hand)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
     runs-on: windows-latest
     steps:
       # Pinned to a full commit SHA (supply-chain safety: this job has the
@@ -24,5 +42,5 @@ jobs:
         with:
           identifier: milkway.rpic
           installers-regex: 'pc-windows-msvc\.zip$'
-          release-tag: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+          release-tag: ${{ github.event.inputs.tag || github.event.workflow_run.head_branch }}
           token: ${{ secrets.WINGET_TOKEN }}

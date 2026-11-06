@@ -33,3 +33,7 @@ bindings/js/pkg/
 web/pkg/
 bindings/python/.venv/
 bindings/python/dist/
+
+# local secrets (e.g. WINGET_TOKEN for the one-time Komac submission)
+.env
+.env.*
