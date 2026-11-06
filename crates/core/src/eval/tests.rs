@@ -3224,3 +3224,111 @@ fn optional_operand_keeps_dpic_reading_for_assigned_names() {
     let got = crate::to_svg(&draw("for fit = 0.2 to 0.2 do { box dashed fit }"));
     assert_eq!(got, ctl);
 }
+
+fn place<'a>(d: &'a Drawing, label: &str) -> &'a PlaceInfo {
+    d.places
+        .iter()
+        .find(|p| p.label == label)
+        .unwrap_or_else(|| panic!("no place {label}"))
+}
+
+fn assert_pt(got: Point, x: f64, y: f64) {
+    assert!(
+        (got.x - x).abs() < 1e-9 && (got.y - y).abs() < 1e-9,
+        "got ({}, {}), want ({x}, {y})",
+        got.x,
+        got.y
+    );
+}
+
+#[test]
+fn named_places_are_exported_in_evaluation_order() {
+    let d = draw(
+        "A: box\nP: A.ne + (0.5, 0)\nQ: (1, 2)\nfor i = 1 to 2 do { R[i]: (i, 0) }\nP: (3, 3)",
+    );
+    let labels: Vec<&str> = d.places.iter().map(|p| p.label.as_str()).collect();
+    // a redefinition and each loop iteration are their own entries
+    assert_eq!(labels, ["P", "Q", "R[1]", "R[2]", "P"]);
+    assert_pt(d.places[0].at, 1.25, 0.25);
+    assert_pt(d.places[1].at, 1.0, 2.0);
+    assert_pt(d.places[3].at, 2.0, 0.0);
+    assert_pt(d.places[4].at, 3.0, 3.0);
+    assert!(d.places.iter().all(|p| p.block.is_none()));
+    // the span points at the label
+    let s = d.places[1].span.as_ref().unwrap();
+    assert_eq!((s.line, s.col, s.file.as_deref()), (3, 1, None));
+    // labelled objects are not places
+    assert!(d.places.iter().all(|p| p.label != "A"));
+}
+
+#[test]
+fn named_places_follow_whole_picture_rescale() {
+    // `.PS 3` doubles a 1.5in-wide picture; places move with the shapes
+    let d = draw(".PS 3\nbox wid 1.5\nP: last box.ne\nQ: (0, 0)\n.PE");
+    let Shape::Box { c, w, h, .. } = &d.shapes[0] else {
+        panic!()
+    };
+    assert!(*w > 2.9, "w = {w}"); // scaled up (the bbox includes the stroke)
+    assert_pt(place(&d, "P").at, c.x + w / 2.0, c.y + h / 2.0);
+    assert_pt(place(&d, "Q").at, 0.0, 0.0);
+    // maxpswid clamps the same way
+    let d = draw("maxpswid = 1\nbox wid 2 ht 0.5\nP: last box.e");
+    let Shape::Box { c, w, .. } = &d.shapes[0] else {
+        panic!()
+    };
+    assert!(*w < 1.0, "w = {w}");
+    assert_pt(place(&d, "P").at, c.x + w / 2.0, c.y);
+    // and a mid-picture `scale` change rescales what came before it
+    let d = draw("box wid 1\nP: last box.e\nscale = 2\nQ: (1, 0)");
+    let Shape::Box { c, w, .. } = &d.shapes[0] else {
+        panic!()
+    };
+    assert_pt(place(&d, "P").at, c.x + w / 2.0, c.y);
+    assert_pt(place(&d, "Q").at, 0.5, 0.0);
+}
+
+#[test]
+fn named_places_inside_blocks_are_absolute_and_attributed() {
+    let d = draw(
+        "box\nB: [ box \"x\"; P: last box.e; C: [ circle; Q: last circle.n ] ] with .w at (2, 0)\nR: B.P",
+    );
+    // B's inner box: its east edge, in absolute coordinates
+    let inner_box = d
+        .shapes
+        .iter()
+        .enumerate()
+        .find_map(|(i, s)| match s {
+            Shape::Box { c, w, .. } if d.shape_blocks[i].is_some() => Some((*c, *w)),
+            _ => None,
+        })
+        .unwrap();
+    let p = place(&d, "P");
+    assert_pt(p.at, inner_box.0.x + inner_box.1 / 2.0, inner_box.0.y);
+    // and the block-relative reference resolves to the same point
+    assert_pt(place(&d, "R").at, p.at.x, p.at.y);
+    assert!(place(&d, "R").block.is_none());
+    // P belongs to B, Q to the inner block C (whose parent is B)
+    let b = p.block.unwrap();
+    assert_eq!(d.blocks[b].label.as_deref(), Some("B"));
+    let c = place(&d, "Q").block.unwrap();
+    assert_eq!(d.blocks[c].parent, Some(b));
+    let Shape::Circle { c: cc, r, .. } = d.shapes[d.blocks[c].shapes.0] else {
+        panic!()
+    };
+    assert_pt(place(&d, "Q").at, cc.x, cc.y + r);
+    // evaluation order: P, Q (inside B), then R
+    let labels: Vec<&str> = d.places.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!(labels, ["P", "Q", "R"]);
+}
+
+#[test]
+fn named_places_in_shapeless_block_fall_back_to_the_enclosing_one() {
+    let d = draw("[ box; [ P: (1, 1) ] ]");
+    let p = place(&d, "P");
+    // the inner block draws nothing and gets no `blocks` entry
+    assert_eq!(d.blocks.len(), 1);
+    assert_eq!(p.block, Some(0));
+    let d = draw("[ P: (1, 1) ]");
+    assert!(d.blocks.is_empty());
+    assert_eq!(place(&d, "P").block, None);
+}

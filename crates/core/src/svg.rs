@@ -2491,6 +2491,7 @@ mod tests {
             shape_labels: vec![None],
             shape_blocks: vec![None],
             blocks: Vec::new(),
+            places: Vec::new(),
         };
         let s = to_svg(&d);
         let (root_w, root_h) = root_viewbox_size(&s);

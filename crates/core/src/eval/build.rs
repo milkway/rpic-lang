@@ -1039,6 +1039,14 @@ impl State {
             });
             self.placed[idx].block = Some(this_block);
         }
+        // named places defined inside the block, in parent space; those at
+        // the block's top level belong to it (if it was recorded above)
+        let own_block = self.placed[idx].block;
+        self.places.extend(sub.places.into_iter().map(|mut p| {
+            p.at = p.at + shift;
+            p.block = p.block.map(|b| b + block_base).or(own_block);
+            p
+        }));
         Ok(idx)
     }
 

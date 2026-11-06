@@ -113,7 +113,12 @@ pub enum Stmt {
         object: Object,
     },
     /// `Label: position` — names a point without drawing.
-    Place { label: Label, pos: Position },
+    Place {
+        label: Label,
+        pos: Position,
+        /// Span of the label token (for the named-place export).
+        span: Option<Span>,
+    },
     /// One or more comma-separated assignments.
     Assign(Vec<Assignment>),
     /// A bare direction change (`up` / `down` / `left` / `right`).
