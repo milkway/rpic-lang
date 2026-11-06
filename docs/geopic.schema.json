@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rpic.dev/geopic.schema.json",
+  "title": "geopic feature properties, schema 1",
+  "description": "Properties of every feature geopic-core emits (GeoJSON FeatureCollection, WGS84). Geometry is Point, LineString or Polygon.",
+  "type": "object",
+  "required": ["geopic:schema", "geopic:id", "geopic:kind", "geopic:placement"],
+  "additionalProperties": false,
+  "properties": {
+    "stroke": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+    "stroke-width": { "type": "number", "minimum": 0 },
+    "stroke-opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+    "fill": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+    "fill-opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+    "title": { "type": "string" },
+    "geopic:schema": { "const": 1 },
+    "geopic:id": { "type": "string", "pattern": "^s[0-9]+$" },
+    "geopic:kind": {
+      "enum": ["box", "circle", "ellipse", "arc", "line", "arrow", "arrowhead", "spline", "text", "dot", "brace"]
+    },
+    "geopic:z": { "type": "integer", "minimum": 0 },
+    "geopic:label": { "type": "string" },
+    "geopic:block": { "type": "array", "items": { "type": "string", "pattern": "^blk[0-9]+$" } },
+    "geopic:class": { "type": "string" },
+    "geopic:link": { "type": "string" },
+    "geopic:placement": { "enum": ["geo", "screen"] },
+    "geopic:text": { "type": "string" },
+    "geopic:rotation": { "type": "number" },
+    "geopic:anchor": { "enum": ["c", "n", "s", "e", "w", "ne", "nw", "se", "sw"] },
+    "geopic:dash": { "type": "object" },
+    "geopic:hatch": { "type": "object" },
+    "geopic:head": { "enum": ["start", "end"] },
+    "geopic:filled": { "type": "boolean" },
+    "geopic:part": { "type": "integer", "minimum": 0 },
+    "geopic:role": { "const": "fill" },
+    "geopic:radius_in": { "type": "number", "minimum": 0 }
+  }
+}

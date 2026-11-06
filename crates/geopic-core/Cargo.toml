@@ -1,0 +1,28 @@
+[package]
+name = "geopic-core"
+description = "Georeference rpic scenes: pic drawings as GeoJSON (WGS84) through a local ENU or Web Mercator similarity."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+keywords = ["pic", "geojson", "gis", "map", "diagram"]
+categories = ["science::geo", "graphics"]
+
+[lib]
+name = "geopic_core"
+path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# WGS84 direct/inverse geodesic problems (Karney's algorithms). `accurate`
+# only serves polygon areas, which geopic does not compute.
+geographiclib-rs = { version = "0.2.7", default-features = false }
+
+[dev-dependencies]
+# tests compile real pic sources through the engine; a path-only
+# dev-dependency is dropped from the published manifest
+rpic-core = { path = "../core" }
+# the properties of every emitted feature validate against docs/geopic.schema.json
+jsonschema = "0.60.2"

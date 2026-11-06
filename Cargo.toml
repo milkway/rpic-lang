@@ -11,6 +11,7 @@ members = [
     "crates/render",
     "crates/cli",
     "crates/capi",
+    "crates/geopic-core",
 ]
 
 [workspace.package]
