@@ -972,6 +972,15 @@ pub fn object_geometries(d: &Drawing) -> Vec<ObjectGeometry> {
         .collect()
 }
 
+/// Map every named place (`Label: position`, [`Drawing::places`]) to SVG
+/// user units — the same frame as the [`object_geometries`] bboxes, so a host
+/// can overlay the anchors on the rendered SVG. Index-aligned with
+/// `d.places`.
+pub fn place_points(d: &Drawing) -> Vec<Point> {
+    let svg = Svg::new(d);
+    d.places.iter().map(|p| svg.p(p.at)).collect()
+}
+
 fn shape_kind(sh: &Shape) -> &'static str {
     match sh {
         Shape::Box { .. } => "box",

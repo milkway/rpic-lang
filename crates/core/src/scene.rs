@@ -115,6 +115,20 @@ fn svar(x: f64) -> String {
     s
 }
 
+/// A source span as a scene object: `{"line":L,"col":C,"end_col":E[,"file":"…"]}`
+/// (positions are relative to their own source unit, as in diagnostics).
+fn span_json(s: &Span) -> String {
+    let mut out = format!(
+        "{{\"line\":{},\"col\":{},\"end_col\":{}",
+        s.line, s.col, s.end_col
+    );
+    if let Some(f) = &s.file {
+        out.push_str(&format!(",\"file\":\"{}\"", crate::json_str(f)));
+    }
+    out.push('}');
+    out
+}
+
 fn spoint(p: Point) -> String {
     format!("[{},{}]", snum(p.x), snum(p.y))
 }
@@ -576,7 +590,27 @@ impl<'a> Sc<'a> {
             self.out
                 .push_str(&format!("\"{}\":{}", crate::json_str(k), svar(*v)));
         }
-        self.out.push_str("},\"items\":[");
+        // named places: `Label: position` statements, evaluation order
+        self.out.push_str("},\"places\":[");
+        for (i, p) in d.places.iter().enumerate() {
+            if i > 0 {
+                self.out.push(',');
+            }
+            self.out.push_str(&format!(
+                "{{\"label\":\"{}\",\"at\":{}",
+                crate::json_str(&p.label),
+                spoint(p.at)
+            ));
+            if p.block.is_some() {
+                self.out
+                    .push_str(&format!(",\"block\":{}", block_path_json(d, p.block)));
+            }
+            if let Some(sp) = &p.span {
+                self.out.push_str(&format!(",\"span\":{}", span_json(sp)));
+            }
+            self.out.push('}');
+        }
+        self.out.push_str("],\"items\":[");
         self.items();
         self.out.push_str("]}");
     }
@@ -654,6 +688,24 @@ impl<'a> Sc<'a> {
         if let Some(p) = info.parent {
             self.out
                 .push_str(&format!(",\"block\":{}", block_path_json(d, Some(p))));
+        }
+        // provenance: the outermost macro call that produced the block (or
+        // the inline `[`), and the call itself
+        if let Some(sp) = &info.span {
+            self.out.push_str(&format!(",\"span\":{}", span_json(sp)));
+        }
+        if let Some(c) = &info.call {
+            self.out.push_str(&format!(
+                ",\"call\":{{\"name\":\"{}\",\"args\":[",
+                crate::json_str(&c.name)
+            ));
+            for (i, a) in c.args.iter().enumerate() {
+                if i > 0 {
+                    self.out.push(',');
+                }
+                self.out.push_str(&format!("\"{}\"", crate::json_str(a)));
+            }
+            self.out.push_str("]}");
         }
         self.out.push_str(",\"items\":[");
         let mut first = true;
@@ -1697,6 +1749,66 @@ mod tests {
     }
 
     #[test]
+    fn scene_carries_places_and_block_provenance() {
+        let src = "define cell { [ box \"$1\" ] }\nK: cell(\"a\")\nP: K.e\n[ box; Q: (1, 1) ]";
+        let d = crate::compile(src).unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+
+        // places: evaluation order, scene units, block path, span
+        let places = v["places"].as_array().unwrap();
+        assert_eq!(places.len(), 2);
+        assert_eq!(places[0]["label"], "P");
+        assert_eq!(places[0]["at"], serde_json::json!([0.75, 0]));
+        assert!(places[0].get("block").is_none());
+        assert_eq!(
+            places[0]["span"],
+            serde_json::json!({"line": 3, "col": 1, "end_col": 2})
+        );
+        assert_eq!(places[1]["label"], "Q");
+        assert_eq!(places[1]["block"], serde_json::json!(["blk1"]));
+        assert_eq!(places[1]["span"]["line"], 4);
+        // the inline block's inner box sits at (1.5, 0)... Q is (1,1) in the
+        // block's frame, which the block placement shifts right of K
+        let q = places[1]["at"].as_array().unwrap();
+        assert!(
+            q[0].as_f64().unwrap() > 1.0 && q[1].as_f64().unwrap() == 1.0,
+            "{q:?}"
+        );
+
+        // block items: the macro block names the user's call, the inline one
+        // its `[`; the shape inside keeps pointing at the define body
+        let blocks: Vec<&Value> = v["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|i| i["kind"] == "block")
+            .collect();
+        assert_eq!(blocks.len(), 2);
+        let k = blocks.iter().find(|b| b["label"] == "K").unwrap();
+        assert_eq!(
+            k["span"],
+            serde_json::json!({"line": 2, "col": 4, "end_col": 13})
+        );
+        assert_eq!(
+            k["call"],
+            serde_json::json!({"name": "cell", "args": ["\"a\""]})
+        );
+        let inline = blocks.iter().find(|b| b.get("label").is_none()).unwrap();
+        assert_eq!(
+            inline["span"],
+            serde_json::json!({"line": 4, "col": 1, "end_col": 2})
+        );
+        assert!(inline.get("call").is_none());
+
+        // a source without places still carries the (empty) array
+        let d = crate::compile("box").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        assert_eq!(v["places"], serde_json::json!([]));
+    }
+
+    #[test]
     fn scene_version_bump_guard() {
         // B2: the emitted key vocabulary is pinned. If this test fails you
         // either added a key (append it here — same version) or renamed/
@@ -1705,7 +1817,8 @@ mod tests {
                    arrow right dashed from K.e\nspline from (0,-1) right 0.5 then down 0.2 <->\n\
                    arc from (2,-1) to (2.5,-0.6) ->\ndot at (3,-1)\n\
                    box gradient \"red\" \"blue\" hatched at (4,0) link \"https://rpic.dev\"\n\
-                   line right 0.3 dotted class \"x\"\nmove right 0.2\n\"standalone\" at (0,-2)";
+                   line right 0.3 dotted class \"x\"\nmove right 0.2\n\"standalone\" at (0,-2)\n\
+                   define cell { [ box ] }\ncell(1)\nP: K.e";
         let d = crate::compile(src).unwrap();
         let out = scene_json(&d, &SceneOptions::default());
         let v: Value = serde_json::from_str(&out.json).unwrap();
@@ -1775,6 +1888,16 @@ mod tests {
             "outline",
             "source",
             "items",
+            // 0.13: named places + block provenance (same version, additive)
+            "places",
+            "span",
+            "line",
+            "col",
+            "end_col",
+            "file",
+            "call",
+            "name",
+            "args",
         ]
         .iter()
         .map(|s| s.to_string())

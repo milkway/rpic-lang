@@ -179,7 +179,9 @@ int main(void) {
 
 Everything the bindings do is also one process away:
 `rpic --json file.pic` emits `{svg, animations, diagnostics, warnings, objects}` on
-success and `{error, error_info}` on failure — `error_info` is the same
+success — plus `places` (named `Label: position` points in SVG user units, the
+`objects` frame) and `passthrough` (troff `.` lines) when the source has any —
+and `{error, error_info}` on failure — `error_info` is the same
 structured diagnostic the bindings surface (`message`, `line`, `col`,
 `end_col`, `file`, `kind`, `found`, `expected`, `hint`). This documentation
 site drives its live examples exactly that way.

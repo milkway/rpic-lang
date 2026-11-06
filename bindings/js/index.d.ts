@@ -108,6 +108,54 @@ export interface SceneItem {
   }[];
   /** block items: the child item ids */
   items?: string[];
+  /**
+   * block items: where the block came from — the outermost macro call that
+   * expanded to it, or its opening `[` when written inline
+   */
+  span?: SourceSpan;
+  /** block items made by a macro: that outermost call */
+  call?: { name: string; args: string[] };
+}
+
+/** A source position, relative to its own source unit (like diagnostics). */
+export interface SourceSpan {
+  line: number;
+  col: number;
+  end_col: number;
+  /** absent = the user's input; `"circuits"` = the `-c` library; else the `copy` name */
+  file?: string;
+}
+
+/** A named place (`Label: position`) in the scene. */
+export interface ScenePlace {
+  /** the resolved label, subscripts included (`R[2]`) */
+  label: string;
+  /** scene units, the same frame as the items */
+  at: [number, number];
+  /** enclosing block item ids, outermost first */
+  block?: string[];
+  span?: SourceSpan;
+}
+
+/** A named place in the compile bundle: SVG user units, the `objects` frame. */
+export interface Place {
+  label: string;
+  x: number;
+  y: number;
+  line?: number;
+  col?: number;
+  end_col?: number;
+  file?: string;
+}
+
+/** A troff request line (`.` in column 1) set aside before lexing. */
+export interface Passthrough {
+  /** the line as written, leading `.` included */
+  text: string;
+  line: number;
+  col: number;
+  end_col: number;
+  file?: string;
 }
 
 /**
@@ -129,6 +177,8 @@ export interface Scene {
   source?: string;
   /** final values of every variable (user + pic built-ins) */
   vars: Record<string, number>;
+  /** named places (`Label: position`), evaluation order; empty when none */
+  places: ScenePlace[];
   items: SceneItem[];
 }
 
@@ -143,6 +193,10 @@ export interface Bundle {
   warnings: Diagnostic[];
   /** per-object geometry, index-aligned with the `<g id="sN">` groups */
   objects: ObjectGeometry[];
+  /** named places (`Label: position`) in SVG user units. Present only when the source defines some. */
+  places?: Place[];
+  /** troff request lines set aside before lexing. Present only when the source has some. */
+  passthrough?: Passthrough[];
   /**
    * `true` when the source used `animate scroll`, hinting the host to scrub
    * the timeline on scroll rather than autoplay. Present only when set.

@@ -42,6 +42,22 @@ assert.equal(geom.objects[1].kind, 'path');
 assert.equal(geom.objects[1].line, 2);
 assert.equal(geom.objects[1].col, 1);
 
+// named places (`objects` frame) and troff lines ride only when present
+const anchors = compile('box wid 1 ht 0.5\nP: last box.e\n.ft B\n');
+assert.equal(anchors.places.length, 1);
+assert.equal(anchors.places[0].label, 'P');
+assert.ok(Math.abs(anchors.places[0].x - (anchors.objects[0].bbox.x + 96)) < 1e-3);
+assert.ok(Math.abs(anchors.places[0].y - (anchors.objects[0].bbox.y + 24)) < 1e-3);
+assert.equal(anchors.places[0].line, 2);
+assert.deepEqual(anchors.passthrough, [{ text: '.ft B', line: 3, col: 1, end_col: 6 }]);
+assert.equal(geom.places, undefined);
+assert.equal(geom.passthrough, undefined);
+const prov = compile('define cell { [ box ] }\nK: cell(1)\nP: K.e', { scene: true });
+assert.deepEqual(prov.scene.places[0].at, [0.75, 0]);
+const blk = prov.scene.items.find((i) => i.kind === 'block');
+assert.equal(blk.call.name, 'cell');
+assert.equal(blk.span.line, 2);
+
 // animate manifest: optional GSAP keys ride along only when set
 const anim = compile(
   'box\nanimate last box with "pop" for 0.4 repeat -1 yoyo ease "power2.inOut"'

@@ -121,7 +121,7 @@ rpic --png --scale 2 -o out.png diagram.pic
 rpic --pdf -o out.pdf diagram.pic
 rpic -c circuit.pic                    # load the circuit-element library
 rpic -t paper.pic                      # typeset $…$ labels as TeX math
-rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects}
+rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects, places?, passthrough?}
 rpic --scene diagram.pic               # the resolved draw list as versioned JSON (docs/scene.md)
 rpic --json=all diagram.pic            # the compile bundle + the scene
 rpic --html -o page.html animated.pic  # self-contained page: SVG + GSAP player inline

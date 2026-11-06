@@ -254,7 +254,9 @@ fn scene<'py>(
 }
 
 /// Compile to the parsed bundle: a dict `{"svg": str, "animations": [dict],
-/// "diagnostics": [str], "warnings": [dict]}`. Raises `CompileError` (with
+/// "diagnostics": [str], "warnings": [dict], "objects": [dict]}` — plus
+/// `"places"` / `"passthrough"` when the source defines named places or
+/// carries troff lines. Raises `CompileError` (with
 /// the structured diagnostic on `exc.info`) on a pic error. With
 /// `scene=True` (or a `flatten` tolerance) the dict also carries the
 /// device-independent `"scene"` draw list and its `scene_unsupported`
@@ -365,6 +367,18 @@ fn compile<'py>(
         objects.append(obj)?;
     }
     out.set_item("objects", objects)?;
+    // named places (SVG user units, the `objects` frame) and troff
+    // passthrough lines: only when the source has some — parsed from the
+    // core's own serializer so the dict matches the CLI bundle by construction
+    if !d.places.is_empty() {
+        out.set_item("places", json_loads(py, &rpic_core::places_json(&d))?)?;
+    }
+    if !d.passthrough.is_empty() {
+        out.set_item(
+            "passthrough",
+            json_loads(py, &rpic_core::passthrough_json(&d))?,
+        )?;
+    }
     // rpic `animate scroll`: timeline-level scroll-scrub hint for the host.
     if d.anim_scroll {
         out.set_item("scroll", true)?;

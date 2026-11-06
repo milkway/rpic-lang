@@ -3,7 +3,7 @@
   "$id": "https://rpic.dev/scene.schema.json",
   "title": "rpic scene, version 1",
   "type": "object",
-  "required": ["scene", "units", "y_up", "canvas", "vars", "items"],
+  "required": ["scene", "units", "y_up", "canvas", "vars", "places", "items"],
   "additionalProperties": false,
   "properties": {
     "scene": { "const": 1 },
@@ -35,12 +35,47 @@
       "type": "object",
       "additionalProperties": { "type": "number" }
     },
+    "places": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/place" }
+    },
     "items": {
       "type": "array",
       "items": { "$ref": "#/$defs/item" }
     }
   },
   "$defs": {
+    "span": {
+      "type": "object",
+      "required": ["line", "col", "end_col"],
+      "additionalProperties": false,
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "col": { "type": "integer", "minimum": 1 },
+        "end_col": { "type": "integer", "minimum": 1 },
+        "file": { "type": "string" }
+      }
+    },
+    "call": {
+      "type": "object",
+      "required": ["name", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "place": {
+      "type": "object",
+      "required": ["label", "at"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "at": { "$ref": "#/$defs/point" },
+        "block": { "type": "array", "items": { "type": "string" } },
+        "span": { "$ref": "#/$defs/span" }
+      }
+    },
     "point": {
       "type": "array",
       "prefixItems": [{ "type": "number" }, { "type": "number" }],
@@ -220,7 +255,9 @@
         "fill": { "$ref": "#/$defs/fill" },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
         "text": { "type": "array", "items": { "$ref": "#/$defs/textline" } },
-        "items": { "type": "array", "items": { "type": "string" } }
+        "items": { "type": "array", "items": { "type": "string" } },
+        "span": { "$ref": "#/$defs/span" },
+        "call": { "$ref": "#/$defs/call" }
       }
     }
   }

@@ -83,3 +83,19 @@ def test_scene_unsupported_warning_surfaces_in_compile():
         w["kind"] != "scene_unsupported"
         for w in rpic.compile('box outlined "currentColor"')["warnings"]
     )
+
+
+def test_scene_places_and_block_provenance():
+    v = rpic.scene('define cell { [ box "$1" ] }\nK: cell("a")\nP: K.e\n[ box; Q: (1, 1) ]')
+    p, q = v["places"]
+    assert p["label"] == "P" and p["at"] == [0.75, 0] and "block" not in p
+    assert p["span"] == {"line": 3, "col": 1, "end_col": 2}
+    assert q["label"] == "Q" and q["block"] == ["blk1"]
+    blocks = [i for i in v["items"] if i["kind"] == "block"]
+    k = next(b for b in blocks if b.get("label") == "K")
+    assert k["call"] == {"name": "cell", "args": ['"a"']}
+    assert k["span"] == {"line": 2, "col": 4, "end_col": 13}
+    inline = next(b for b in blocks if "label" not in b)
+    assert inline["span"]["line"] == 4 and "call" not in inline
+    assert rpic.scene("box")["places"] == []
+
