@@ -571,3 +571,44 @@ fn a6_feature_properties_validate_against_the_schema() {
         .unwrap();
     assert_eq!(closed["geometry"]["type"], "Polygon");
 }
+
+// ---- hostile input: bounded output ------------------------------------------
+
+#[test]
+fn hostile_scales_are_rejected_and_densification_is_budgeted() {
+    // absurd scale → structured error, not a 10^12-vertex allocation
+    let e = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 1e12\nline right 1"),
+        &GeoOptions::default(),
+    )
+    .unwrap_err();
+    assert_eq!(e.kind, "invalid_scale");
+    // a drawing whose segments add up to far more than the budget allows
+    // (each 1 in = 1e8 m → 1e6 vertices wanted per segment, capped at 1e5)
+    let mut src = String::from("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 1e8\n");
+    for i in 0..30 {
+        src.push_str(&format!("line from ({i}, 0) to ({i}, 1)\n"));
+    }
+    let g = georeference(&scene_of(&src), &GeoOptions::default()).unwrap();
+    let total: usize = g
+        .features
+        .features
+        .iter()
+        .map(|f| match &f.geometry {
+            Geometry::LineString(p) => p.len(),
+            Geometry::Polygon(r) => r.iter().map(Vec::len).sum(),
+            Geometry::Point(_) => 1,
+        })
+        .sum();
+    assert!(
+        total <= crate::densify::MAX_VERTICES + 2 * 30,
+        "{total} vertices"
+    );
+    assert!(
+        g.warnings.iter().any(|w| w.kind == "densification_budget"),
+        "{:?}",
+        g.warnings
+    );
+    // every feature still has both endpoints
+    assert_eq!(g.features.features.len(), 30);
+}

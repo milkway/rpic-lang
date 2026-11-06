@@ -10,6 +10,13 @@ use crate::scene::Path;
 pub const MAX_STEP_M: f64 = 100.0;
 /// Shortest step worth taking, metres (short segments stay short).
 pub const MIN_STEP_M: f64 = 1.0;
+/// Most vertices one segment may receive (a 10 000 km segment at 100 m).
+pub const MAX_SEGMENT_VERTICES: usize = 100_000;
+/// Total densification budget for one scene: a hostile source (huge
+/// coordinates or `geo_scale`) cannot amplify the output unboundedly. When
+/// it runs out, remaining segments keep only their endpoints and the
+/// converter raises `densification_budget` — never silently.
+pub const MAX_VERTICES: usize = 2_000_000;
 
 /// Flatten one cubic Bézier to within `tol` (canvas inches), appending the
 /// interior and end points (the start is assumed already present).
@@ -90,9 +97,17 @@ pub fn close_ring(pts: &mut Vec<[f64; 2]>) {
 }
 
 /// Subdivide every segment of a canvas polyline so no plane step exceeds
-/// [`MAX_STEP_M`] (and none is shorter than [`MIN_STEP_M`]).
-pub fn densify_polyline(pts: &[[f64; 2]], reg: &Registration) -> Vec<[f64; 2]> {
+/// [`MAX_STEP_M`] (and none is shorter than [`MIN_STEP_M`]). `budget` is the
+/// remaining vertex allowance for the whole scene ([`MAX_VERTICES`]); it is
+/// drawn down and, once empty, segments keep only their endpoints. Returns
+/// whether the budget limited this polyline.
+pub fn densify_polyline(
+    pts: &[[f64; 2]],
+    reg: &Registration,
+    budget: &mut usize,
+) -> (Vec<[f64; 2]>, bool) {
     let mut out = Vec::with_capacity(pts.len());
+    let mut limited = false;
     if let Some(&first) = pts.first() {
         out.push(first);
     }
@@ -100,14 +115,28 @@ pub fn densify_polyline(pts: &[[f64; 2]], reg: &Registration) -> Vec<[f64; 2]> {
         let (a, b) = (w[0], w[1]);
         let len_in = (b[0] - a[0]).hypot(b[1] - a[1]);
         let len_m = reg.metres(len_in);
-        let step = (len_m / 100.0).clamp(MIN_STEP_M, MAX_STEP_M);
-        let n = ((len_m / step).ceil() as usize).max(1);
+        let wanted = if len_m.is_finite() {
+            let step = (len_m / 100.0).clamp(MIN_STEP_M, MAX_STEP_M);
+            let n = (len_m / step).ceil();
+            if n.is_finite() {
+                (n as usize).clamp(1, MAX_SEGMENT_VERTICES)
+            } else {
+                MAX_SEGMENT_VERTICES
+            }
+        } else {
+            1
+        };
+        let n = wanted.min((*budget).max(1));
+        if n < wanted {
+            limited = true;
+        }
+        *budget = budget.saturating_sub(n);
         for k in 1..=n {
             let t = k as f64 / n as f64;
             out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
         }
     }
-    out
+    (out, limited)
 }
 
 /// Vertex count for a closed curve of plane radius `r_m` metres: a 100 m

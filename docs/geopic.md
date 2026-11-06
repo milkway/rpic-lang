@@ -54,6 +54,11 @@ step of `clamp(L/100, 1 m, 100 m)`; cubic curves are flattened to the
 1 m of the geodesic it represents (test A4), whereas its two endpoints joined
 straight in longitude/latitude would not.
 
+Resource caps (a hostile scene cannot amplify the output): at most 100 000
+vertices per segment and 2 000 000 per scene — beyond the budget, segments
+keep only their endpoints and the warning `densification_budget` is raised;
+an effective scale above 10⁹ m per inch is the error `invalid_scale`.
+
 ## 3. Features by kind
 
 | Scene kind | Geometry | Notes |
@@ -103,6 +108,7 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat` |
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |
+| `densification_budget` | the 2 000 000-vertex budget ran out; later segments carry endpoints only |
 
 Errors (`GeoError {kind, message, hint?}`): `no_registration`, `invalid_scale`
 (`geo_scale ≤ 0`, non-finite bearing), `invalid_anchor` (`|lat| ≥ 90`, `|lon| >

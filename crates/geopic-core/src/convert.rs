@@ -1,6 +1,8 @@
 //! Scene items → GeoJSON features.
 
-use crate::densify::{box_ring, close_ring, densify_polyline, ellipse_ring, path_points};
+use crate::densify::{
+    MAX_VERTICES, box_ring, close_ring, densify_polyline, ellipse_ring, path_points,
+};
 use crate::geojson::{Feature, FeatureCollection, Geometry};
 use crate::register::Registration;
 use crate::scene::{Head, Item, Scene, TextLine};
@@ -26,6 +28,9 @@ struct Ctx<'a> {
     opts: &'a GeoOptions,
     warnings: &'a mut Vec<Warning>,
     out: Vec<Feature>,
+    /// Remaining densification vertices for the whole scene.
+    budget: usize,
+    budget_hit: bool,
 }
 
 impl Ctx<'_> {
@@ -34,14 +39,15 @@ impl Ctx<'_> {
         [round9(ll.lon), round9(ll.lat)]
     }
 
-    fn geo_line(&self, pts: &[[f64; 2]]) -> Vec<[f64; 2]> {
-        densify_polyline(pts, self.reg)
-            .iter()
-            .map(|&p| self.geo(p))
-            .collect()
+    fn geo_line(&mut self, pts: &[[f64; 2]]) -> Vec<[f64; 2]> {
+        let (dense, limited) = densify_polyline(pts, self.reg, &mut self.budget);
+        if limited {
+            self.budget_hit = true;
+        }
+        dense.iter().map(|&p| self.geo(p)).collect()
     }
 
-    fn geo_ring(&self, ring: &[[f64; 2]]) -> Vec<[f64; 2]> {
+    fn geo_ring(&mut self, ring: &[[f64; 2]]) -> Vec<[f64; 2]> {
         let mut r = self.geo_line(ring);
         // densification keeps first == last; make sure after rounding
         if let Some(&f) = r.first()
@@ -328,9 +334,19 @@ pub fn convert(
         opts,
         warnings,
         out: Vec::new(),
+        budget: MAX_VERTICES,
+        budget_hit: false,
     };
     for item in &ctx.scene.items {
         ctx.item(item);
+    }
+    if ctx.budget_hit {
+        ctx.warnings.push(Warning::new(
+            "densification_budget",
+            format!(
+                "densification budget ({MAX_VERTICES} vertices) exhausted; later segments keep only their endpoints"
+            ),
+        ));
     }
     FeatureCollection::new(ctx.out)
 }

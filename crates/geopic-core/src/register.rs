@@ -6,6 +6,9 @@ use crate::geodesy::{self, Frame, LonLat};
 use crate::scene::Scene;
 use crate::{GeoError, GeoOptions, NamedFeature, Warning};
 
+/// Largest accepted effective scale, metres per emitted inch.
+pub const MAX_SCALE_M_PER_IN: f64 = 1e9;
+
 /// How the registration was obtained.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -155,6 +158,15 @@ pub fn register(
     };
     // `vars` are pre-rescale; the geometry is post-rescale
     let scale_m_per_in = per_inch / scene.rescale;
+    // one inch longer than 1e9 m (25 Earth circumferences) is not a map
+    if !(scale_m_per_in.is_finite() && scale_m_per_in <= MAX_SCALE_M_PER_IN) {
+        return Err(GeoError::new(
+            "invalid_scale",
+            format!(
+                "effective scale {scale_m_per_in} m per inch exceeds the {MAX_SCALE_M_PER_IN} m limit (geo_scale / rescale)"
+            ),
+        ));
+    }
 
     let declared_bearing = opts.bearing.or_else(|| var(scene, "geo_bearing"));
     let bearing = declared_bearing.unwrap_or(0.0);

@@ -195,6 +195,10 @@ factor (additive, format stays 1) keeps the feature available and exact.
   gets a vertex every 100 m (A4: ≤ 1 m from the geodesic).
 - Closed curves get `clamp(⌈2πr/100 m⌉, 32, 128)` vertices.
 - Coordinates are rounded to 9 decimals (≈ 0.1 mm) for stable fixtures.
+- Resource caps, mirroring the scene's own flatten budget: 100 000 vertices
+  per segment, 2 000 000 per scene (warning `densification_budget`, endpoints
+  kept), effective scale ≤ 1e9 m/in (`invalid_scale`). Raised by the commit
+  security review of PR 1.
 - Hidden items (`move`, invisible helpers) produce no feature **and no
   warning**: they paint nothing in the SVG either, so nothing visible is lost.
   Block items produce no feature; their children carry `geopic:block`.
