@@ -2486,6 +2486,7 @@ mod tests {
             interactions: Vec::new(),
             anim_scroll: false,
             diagnostics: Vec::new(),
+            passthrough: Vec::new(),
             warnings: Vec::new(),
             vars: Vec::new(),
             shape_labels: vec![None],

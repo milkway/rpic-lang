@@ -30,6 +30,10 @@ pub struct Picture {
     /// Filesystem context for `copy "file"` includes (directory + policy);
     /// carried so eval-time deferred parsing resolves includes the same way.
     pub includes: IncludeCtx,
+    /// troff passthrough lines (`.` in column 1, not `.PS`/`.PE`) set aside
+    /// before lexing, in source order; carried to
+    /// [`crate::ir::Drawing::passthrough`].
+    pub passthrough: Vec<crate::ir::PassLine>,
 }
 
 /// Policy for `copy "file"` filesystem includes. The default matches the CLI:
