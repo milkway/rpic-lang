@@ -111,3 +111,27 @@ is byte-identical to before; the scene is built only by the new entry points
 warnings therefore also only exist on those paths (they are produced by the
 scene builder, not by eval), keeping the default `--json` warning stream — and
 the warning-clean corpus guarantee — untouched.
+
+### S11. Named places and provenance ride the existing outputs (2026-11-06)
+
+`Drawing.places` (#415), `Drawing.passthrough` (#414) and `BlockInfo.span`/
+`call` (#416) were landed as Rust-only fields with the format decision
+deferred. Decision: no new flag and no new document.
+
+- **Compile bundle (`--json`)**: `places` (SVG user units — the `objects`
+  bbox frame, so editors overlay without converting — plus the flat
+  `line`/`col`/`end_col`/`file` span convention `objects` already uses) and
+  `passthrough` (`text` + span). Both ride **only when non-empty**, like
+  `interactions`/`scroll`: a source without `Label: position` statements or
+  troff lines produces a byte-identical bundle. Sources *with* places do gain a
+  key, which is the same kind of additive growth `objects` brought in 0.7.0.
+  Block provenance stays out of the bundle, which has no block vocabulary.
+- **Scene**: top-level `places` (scene units, `block` path, `span` object) is
+  always present (empty array allowed), and block items gain `span` and
+  `call`. Spans in the scene are objects (`{line, col, end_col, file?}`), the
+  first span-carrying field there; §7 classes all of this as additive, so
+  `scene` stays **1** and the schema/golden-key test were extended. Troff
+  passthrough is source text, not drawing, so it does not enter the scene.
+- Bindings pass JSON through, so Python/JS/C/R see the keys with no API
+  change; the JS `.d.ts` types were extended.
+

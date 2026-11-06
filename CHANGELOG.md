@@ -10,6 +10,27 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- **troff passthrough** (#414): a line with `.` in column 1 that is not
+  `.PS`/`.PE` is a troff request, as in pic and dpic — it is set aside instead
+  of failing to parse, and surfaces as `Drawing.passthrough` and, in the
+  compile bundle, as a `passthrough` array (`text` + source span) when the
+  source has any.
+- **Named places** (#415): `Label: position` statements are exported on
+  `Drawing.places`, in the scene as a top-level `places` array (scene units,
+  block path, span) and in the compile bundle as `places` (SVG user units,
+  the `objects` frame; present only when the source defines some).
+- **Block provenance** (#416): `BlockInfo.span`/`call` name the outermost
+  macro call (or the inline `[`) a block came from; scene block items carry
+  them as `span` and `call`. Shapes keep pointing at the `define` body.
+
+### Changed
+
+- Scene format stays **1**: `places` and the block `span`/`call` fields are
+  additive (docs/scene.md §7, DECISIONS S11); the JSON Schema and the
+  golden-key test were extended accordingly.
+
 ## [0.12.1] — 2026-11-02
 
 ### Changed

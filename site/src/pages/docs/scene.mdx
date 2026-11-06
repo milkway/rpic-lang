@@ -36,6 +36,13 @@ The scene describes **what would be drawn**, never how to paint it:
   the scene at full `f64` precision.
 - Items arrive in **draw order** with the same stable `s<N>` ids the SVG
   uses, so a scene consumer and the rendered SVG can cross-reference.
+- **`places`** — every `Label: position` statement as a named point in scene
+  units, with its enclosing block and source span, so an editor can snap to
+  the anchors a figure defines without drawing them.
+- **Block provenance** — a `block` item carries `span` (the outermost macro
+  call that produced it, or its `[`) and `call` (`{name, args}`), so a tool
+  can point at the line that *asked* for the block even when the shapes
+  inside came from a `define` body.
 
 ```pic
 geo_lon = -34.8811
@@ -52,6 +59,7 @@ compiles (with `--scene`) to:
               "margin": {"top": 0, "right": 0, "bottom": 0, "left": 0},
               "origin": [0.19, 0.13] },
   "vars": { "geo_lon": -34.8811, "boxwid": 0.75, "…": 0 },
+  "places": [],
   "items": [
     { "id": "s0", "kind": "box", "z": 0, "label": "B",
       "at": [0, 0], "w": 0.357, "h": 0.218,

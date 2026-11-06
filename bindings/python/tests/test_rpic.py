@@ -50,6 +50,20 @@ def test_compile_objects_geometry():
     assert invis["bbox"] is None
 
 
+def test_compile_places_and_passthrough_ride_only_when_present():
+    # named places in the `objects` frame (SVG user units) + troff lines
+    bundle = rpic.compile("box wid 1 ht 0.5\nP: last box.e\n.ft B\n")
+    (place,) = bundle["places"]
+    bbox = bundle["objects"][0]["bbox"]
+    assert place["label"] == "P"
+    assert abs(place["x"] - (bbox["x"] + 96)) < 1e-3
+    assert abs(place["y"] - (bbox["y"] + 24)) < 1e-3
+    assert (place["line"], place["col"]) == (2, 1)
+    assert bundle["passthrough"] == [{"text": ".ft B", "line": 3, "col": 1, "end_col": 6}]
+    plain = rpic.compile("box")
+    assert "places" not in plain and "passthrough" not in plain
+
+
 def test_compile_warnings():
     bundle = rpic.compile('box "a" dashd')
     (w,) = bundle["warnings"]

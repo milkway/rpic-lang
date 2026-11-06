@@ -50,6 +50,8 @@ Library/bindings:
   "source": "figure.pic",
   "vars": { "geo_lon": -34.8811, "geo_lat": -8.0539, "scale": 1,
             "boxwid": 0.75, "boxht": 0.5, "linethick": 0.8, "...": 0 },
+  "places": [ { "label": "P", "at": [0.75, 0],
+                "span": { "line": 3, "col": 1, "end_col": 2 } } ],
   "items": [ ... ]
 }
 ```
@@ -64,6 +66,7 @@ Library/bindings:
 | `canvas.origin` | `[ox, oy]`: where the pic origin `(0,0)` sits, measured from the canvas **lower-left** corner |
 | `source` | the input's base name, when the caller provided one (the CLI does); absent otherwise |
 | `vars` | every user variable and every pic built-in (by its pic name: `boxwid`, `scale`, …) with its **final** value, full `f64` precision |
+| `places` | the named places — every `Label: position` statement, one entry per evaluation (a loop body contributes one per iteration; a redefined label appears again), in evaluation order. `label` is the resolved key, subscripts included (`R[2]`); `at` is in scene units, the same frame as the items (block placement and the whole-picture rescale applied); `block`, when the statement ran inside `[ … ]`, is the enclosing block path as in items; `span` is the label's source position. Empty array when the source defines none |
 | `items` | the draw list, in draw order ([§3](#3-items)) |
 
 **Mapping scene → SVG pixel space** (for consumers that want to overlay on the
@@ -93,6 +96,8 @@ index) the SVG emitter uses, so array order equals SVG document order of the
 | `class` | when set | the `class` extension string |
 | `link` | when set | the `link` extension URL (already validated) |
 | `hidden` | when true | the item paints nothing (`move`, invisible helper spines). Ids must align with the SVG's groups, which exist for every shape, so hidden items stay in the list |
+| `span` | block items, when known | where the block came from in the source: `{line, col, end_col, file?}` of the **outermost macro call** that expanded to it, or of its opening `[` for a block written inline. Shapes inside a macro body are attributed to the `define` body; this field names the line that asked for the block |
+| `call` | block items made by a macro | that outermost call, `{name, args}` — `args` as written, one string each, normalized token text (a lone string argument keeps its quotes) |
 
 Notes on kinds: `arrow` is a `line` whose statement carried arrowheads; `dot`
 is the `dot` primitive (a filled circle in the SVG). The `objects` array of the
@@ -248,6 +253,7 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
               "margin": {"top":0,"right":0,"bottom":0,"left":0},
               "origin": [0.571, 0.267] },
   "vars": { "geo_lon": -34.8811, "boxwid": 0.75, "boxht": 0.5, "...": 0 },
+  "places": [],
   "items": [
     { "id": "s0", "kind": "box", "z": 0, "label": "B",
       "at": [0, 0], "w": 0.357, "h": 0.218,
@@ -285,6 +291,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
   the version are updated together.
 - The machine-readable contract is [`docs/scene.schema.json`](scene.schema.json)
   (JSON Schema 2020-12); a test validates every corpus scene against it.
+- Additive history within version 1: **0.13.0** added the top-level `places`
+  array and the block items' `span`/`call` provenance fields.
 
 ## 8. Color resolution
 

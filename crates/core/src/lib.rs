@@ -161,6 +161,63 @@ pub fn objects_json(d: &Drawing) -> String {
     s
 }
 
+/// Build the JSON `places` array: one entry per `Label: position` statement
+/// ([`Drawing::places`]), in evaluation order, with the point in SVG user
+/// units — the same frame as the `objects` bboxes — and the label's source
+/// span (same `line`/`col`/`end_col`/`file` convention as `objects`).
+pub fn places_json(d: &Drawing) -> String {
+    let pts = svg::place_points(d);
+    let mut s = String::from("[");
+    for (i, (p, at)) in d.places.iter().zip(pts).enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!(
+            "{{\"label\":\"{}\",\"x\":{},\"y\":{}",
+            json_str(&p.label),
+            json_num(at.x),
+            json_num(at.y)
+        ));
+        s.push_str(&span_fields(p.span.as_ref()));
+        s.push('}');
+    }
+    s.push(']');
+    s
+}
+
+/// Build the JSON `passthrough` array: the troff request lines set aside
+/// before lexing ([`Drawing::passthrough`]), in source order, each with its
+/// text (leading `.` included) and source span.
+pub fn passthrough_json(d: &Drawing) -> String {
+    let mut s = String::from("[");
+    for (i, l) in d.passthrough.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!("{{\"text\":\"{}\"", json_str(&l.text)));
+        s.push_str(&span_fields(Some(&l.span)));
+        s.push('}');
+    }
+    s.push(']');
+    s
+}
+
+/// The flat span fields the bundle uses (`objects`, `places`, `passthrough`):
+/// `,"line":L,"col":C,"end_col":E[,"file":"…"]`, or nothing when unknown.
+fn span_fields(span: Option<&Span>) -> String {
+    let Some(span) = span else {
+        return String::new();
+    };
+    let mut s = format!(
+        ",\"line\":{},\"col\":{},\"end_col\":{}",
+        span.line, span.col, span.end_col
+    );
+    if let Some(f) = &span.file {
+        s.push_str(&format!(",\"file\":\"{}\"", json_str(f)));
+    }
+    s
+}
+
 /// Format a coordinate for JSON: finite, trimmed like the SVG serializer.
 fn json_num(x: f64) -> String {
     let v = if x.is_finite() { x } else { 0.0 };
@@ -282,7 +339,9 @@ impl CompileOptions {
 }
 
 /// Compile to a single JSON object `{ "svg": "...", "animations": [...],
-/// "diagnostics": [...], "warnings": [...] }`, or `{ "error": "...",
+/// "diagnostics": [...], "warnings": [...], "objects": [...] }` — plus
+/// `"places"` / `"passthrough"` when the source defines named places or
+/// carries troff lines — or `{ "error": "...",
 /// "error_info": { ... } }` on failure. The flat `error` string is kept for
 /// backward compatibility with older bindings.
 pub fn compile_json(src: &str) -> String {
@@ -352,6 +411,18 @@ fn drawing_json(d: &Drawing, scene: Option<SceneOutput>) -> String {
     } else {
         format!(",\"interactions\":{}", interactions_json(d))
     };
+    // named places and troff passthrough lines ride only when the source has
+    // some, so bundles of sources without them stay byte-identical.
+    let places = if d.places.is_empty() {
+        String::new()
+    } else {
+        format!(",\"places\":{}", places_json(d))
+    };
+    let passthrough = if d.passthrough.is_empty() {
+        String::new()
+    } else {
+        format!(",\"passthrough\":{}", passthrough_json(d))
+    };
     // `--json=all`: the scene rides along and its warnings join the stream.
     // With `scene` = None (the default `--json`) every byte stays as before.
     let (warnings_json, scene_field) = match scene {
@@ -370,12 +441,14 @@ fn drawing_json(d: &Drawing, scene: Option<SceneOutput>) -> String {
         }
     };
     format!(
-        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}{}{}}}",
+        "{{\"svg\":\"{}\",\"animations\":{},\"diagnostics\":{},\"warnings\":{},\"objects\":{}{}{}{}{}{}}}",
         json_str(&to_svg(d)),
         animations_json(d),
         diagnostics_json(d),
         warnings_json,
         objects_json(d),
+        places,
+        passthrough,
         interactions,
         scroll,
         scene_field
@@ -484,6 +557,47 @@ mod tests {
         // A plain animation carries none of the optional GSAP keys, so the
         // object closes right after duration (byte-inert when unused).
         assert!(j.contains("\"effect\":\"fade\",\"start\":0,\"duration\":0.6}"));
+    }
+
+    #[test]
+    fn json_emits_places_and_passthrough_only_when_present() {
+        // byte-inert for sources without them
+        let plain = compile_json("box");
+        assert!(!plain.contains("\"places\""), "{plain}");
+        assert!(!plain.contains("\"passthrough\""), "{plain}");
+
+        let j = compile_json("box wid 1 ht 0.5\nP: last box.e\n.ft B\n");
+        let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+        // the place rides in SVG user units, the `objects` bbox frame: P is
+        // the box's east edge, i.e. bbox right edge, vertically centred
+        let bb = &v["objects"][0]["bbox"];
+        let p = &v["places"][0];
+        assert_eq!(p["label"], "P");
+        let x = p["x"].as_f64().unwrap();
+        let y = p["y"].as_f64().unwrap();
+        let (bx, by) = (bb["x"].as_f64().unwrap(), bb["y"].as_f64().unwrap());
+        assert!((x - (bx + 96.0)).abs() < 1e-3, "{j}");
+        assert!((y - (by + 24.0)).abs() < 1e-3, "{j}");
+        // flat span fields, like `objects`
+        assert_eq!(
+            (p["line"].as_u64(), p["col"].as_u64(), p["end_col"].as_u64()),
+            (Some(2), Some(1), Some(2))
+        );
+        assert!(p.get("file").is_none());
+        // troff lines: text + span
+        let t = &v["passthrough"][0];
+        assert_eq!(t["text"], ".ft B");
+        assert_eq!(
+            (t["line"].as_u64(), t["col"].as_u64(), t["end_col"].as_u64()),
+            (Some(3), Some(1), Some(6))
+        );
+        assert_eq!(v["passthrough"].as_array().unwrap().len(), 1);
+        // key order: right after `objects`, before the optional GSAP keys
+        assert!(j.contains("}],\"places\":[{"), "{j}");
+        assert!(
+            j.contains("\"passthrough\":[{\"text\":\".ft B\",\"line\":3,\"col\":1,\"end_col\":6}]"),
+            "{j}"
+        );
     }
 
     #[test]
