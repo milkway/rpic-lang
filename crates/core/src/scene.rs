@@ -575,6 +575,10 @@ impl<'a> Sc<'a> {
             snum(ox),
             snum(oy),
         ));
+        // the whole-picture rescale factor (`.PS <w>`, `maxps*`); `vars` are
+        // pre-rescale, so consumers relating a variable to geometry need it
+        self.out
+            .push_str(&format!(",\"rescale\":{}", snum(d.rescale)));
         if let Some(src) = &self.opts.source {
             self.out
                 .push_str(&format!(",\"source\":\"{}\"", crate::json_str(src)));
@@ -1749,6 +1753,36 @@ mod tests {
     }
 
     #[test]
+    fn scene_reports_the_whole_picture_rescale_factor() {
+        // no rescale: 1
+        let d = crate::compile("box wid 1").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        assert_eq!(v["rescale"], 1.0);
+        // `.PS 3` on a 1.5in-wide box doubles the geometry (bbox incl. stroke
+        // padding makes the exact factor slightly under 2): the factor equals
+        // the ratio between the emitted width and the pre-rescale one, and
+        // `vars` stay pre-rescale
+        let d = crate::compile(".PS 3\nbox wid 1.5\nP: last box.e\n.PE").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let f = v["rescale"].as_f64().unwrap();
+        assert!(f > 1.9 && f < 2.0, "{f}");
+        let w = v["items"][0]["w"].as_f64().unwrap();
+        assert!((w - 1.5 * f).abs() < 1e-5, "w={w} f={f}");
+        assert_eq!(v["vars"]["boxwid"], 0.75); // untouched by the rescale
+        // the box starts at the origin, so its east edge is at 1.5 × factor
+        let px = v["places"][0]["at"][0].as_f64().unwrap();
+        assert!((px - 1.5 * f).abs() < 1e-5, "px={px} f={f}");
+        // maxpswid clamps and reports < 1
+        let d = crate::compile("maxpswid = 1\nbox wid 2 ht 0.5").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let f = v["rescale"].as_f64().unwrap();
+        assert!(f > 0.0 && f < 1.0, "{f}");
+    }
+
+    #[test]
     fn scene_carries_places_and_block_provenance() {
         let src = "define cell { [ box \"$1\" ] }\nK: cell(\"a\")\nP: K.e\n[ box; Q: (1, 1) ]";
         let d = crate::compile(src).unwrap();
@@ -1890,6 +1924,8 @@ mod tests {
             "items",
             // 0.13: named places + block provenance (same version, additive)
             "places",
+            // 0.14: whole-picture rescale factor (additive)
+            "rescale",
             "span",
             "line",
             "col",

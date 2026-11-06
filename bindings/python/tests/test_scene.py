@@ -99,3 +99,11 @@ def test_scene_places_and_block_provenance():
     assert inline["span"]["line"] == 4 and "call" not in inline
     assert rpic.scene("box")["places"] == []
 
+
+def test_scene_rescale_factor():
+    assert rpic.scene("box")["rescale"] == 1
+    v = rpic.scene(".PS 3\nbox wid 1.5\n.PE")
+    assert 1.9 < v["rescale"] < 2.0
+    assert abs(v["items"][0]["w"] - 1.5 * v["rescale"]) < 1e-5
+    assert v["vars"]["boxwid"] == 0.75  # pre-rescale, by design
+

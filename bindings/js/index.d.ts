@@ -175,6 +175,11 @@ export interface Scene {
     origin: [number, number];
   };
   source?: string;
+  /**
+   * the uniform factor the whole-picture rescale (`.PS <w>`, `maxpswid`/`maxpsht`)
+   * applied to the geometry; 1 when none acted. `vars` are pre-rescale.
+   */
+  rescale: number;
   /** final values of every variable (user + pic built-ins) */
   vars: Record<string, number>;
   /** named places (`Label: position`), evaluation order; empty when none */

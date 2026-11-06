@@ -161,6 +161,7 @@ pub fn eval_with_limits(pic: &Picture, limits: EvalLimits) -> ER<Drawing> {
         diagnostics: st.diagnostics,
         passthrough: pic.passthrough.clone(),
         warnings: st.warnings,
+        rescale: 1.0,
     };
     apply_ps_size(&mut d, want_w, want_h);
     clamp_to_maxps(&mut d, maxw, maxh);
@@ -193,6 +194,7 @@ fn clamp_to_maxps(d: &mut Drawing, maxw: f64, maxh: f64) {
         scale_canvas(d, factor);
         d.prelude_thick *= factor;
         d.canvas_margin.scale_by(factor);
+        d.rescale *= factor;
         d.bbox = drawing_painted_bbox(&d.shapes);
     }
 }
@@ -234,6 +236,7 @@ fn apply_ps_size(d: &mut Drawing, want_w: Option<f64>, want_h: Option<f64>) {
     scale_canvas(d, factor);
     d.prelude_thick *= factor;
     d.canvas_margin.scale_by(factor);
+    d.rescale *= factor;
     d.bbox = drawing_painted_bbox(&d.shapes);
 }
 

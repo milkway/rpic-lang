@@ -75,6 +75,13 @@ pub struct Drawing {
     /// contributes one entry per execution, and a redefined label appears
     /// again. Never affects rendering.
     pub places: Vec<PlaceInfo>,
+    /// rpic scene extension: the uniform factor the post-eval whole-picture
+    /// rescale (`.PS <width> [<height>]`, then the `maxpswid`/`maxpsht`
+    /// clamp) applied to the geometry — `1.0` when none acted. `vars` keep
+    /// their pre-rescale values (classic pic semantics), so a consumer that
+    /// relates a variable to the geometry (e.g. metres per inch) multiplies
+    /// by this. Read only by the scene export; never affects rendering.
+    pub rescale: f64,
 }
 
 /// A `[ … ]` block's identity in the flattened shape list (scene export).

@@ -10,6 +10,15 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- Scene: a top-level `rescale` field — the uniform factor the whole-picture
+  rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`
+  when none did. `vars` stay pre-rescale (classic pic), so consumers that relate
+  a variable to the geometry (metres per inch, for maps) multiply by it. Scene
+  format stays 1 (additive); schema and golden-key test extended.
+  `Drawing.rescale` carries it in Rust.
+
 ## [0.13.0] — 2026-11-06
 
 Minor bump: the pic-compat and tooling-data features #414–#417 add public
