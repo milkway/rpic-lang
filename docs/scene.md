@@ -47,6 +47,7 @@ Library/bindings:
   "canvas": { "w": 2.52, "h": 1.02,
               "margin": {"top": 0, "right": 0, "bottom": 0, "left": 0},
               "origin": [0.01, 0.01] },
+  "rescale": 1,
   "source": "figure.pic",
   "vars": { "geo_lon": -34.8811, "geo_lat": -8.0539, "scale": 1,
             "boxwid": 0.75, "boxht": 0.5, "linethick": 0.8, "...": 0 },
@@ -64,6 +65,7 @@ Library/bindings:
 | `canvas.w`, `canvas.h` | full page size in inches, margins and stroke padding included — the SVG root is exactly `w×96 × h×96` px |
 | `canvas.margin` | the `margin*` extension values per side, inches |
 | `canvas.origin` | `[ox, oy]`: where the pic origin `(0,0)` sits, measured from the canvas **lower-left** corner |
+| `rescale` | the uniform factor the whole-picture rescale (`.PS <width> [<height>]`, then the `maxpswid`/`maxpsht` clamp) applied to the geometry; `1` when none acted. `vars` are **pre**-rescale (see the caveat below), so a consumer relating a variable to the geometry — metres per inch, say — multiplies by this |
 | `source` | the input's base name, when the caller provided one (the CLI does); absent otherwise |
 | `vars` | every user variable and every pic built-in (by its pic name: `boxwid`, `scale`, …) with its **final** value, full `f64` precision |
 | `places` | the named places — every `Label: position` statement, one entry per evaluation (a loop body contributes one per iteration; a redefined label appears again), in evaluation order. `label` is the resolved key, subscripts included (`R[2]`); `at` is in scene units, the same frame as the items (block placement and the whole-picture rescale applied); `block`, when the statement ran inside `[ … ]`, is the enclosing block path as in items; `span` is the label's source position. Empty array when the source defines none |
@@ -78,7 +80,8 @@ svg_px = ( (x + origin[0]) · 96 ,  (canvas.h − (y + origin[1])) · 96 )
 
 **`vars` caveat:** values are the end-of-evaluation ones. The whole-picture
 rescale that `.PS <w> <h>` / `maxpswid`/`maxpsht` may apply afterwards scales
-the geometry but — as in classic pic — not the variables.
+the geometry but — as in classic pic — not the variables. The factor it used
+is `rescale`, so `vars.x × rescale` is the value in the items' frame.
 
 ## 3. Items
 
@@ -252,6 +255,7 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
   "canvas": { "w": 1.993, "h": 0.511,
               "margin": {"top":0,"right":0,"bottom":0,"left":0},
               "origin": [0.571, 0.267] },
+  "rescale": 1,
   "vars": { "geo_lon": -34.8811, "boxwid": 0.75, "boxht": 0.5, "...": 0 },
   "places": [],
   "items": [
@@ -292,7 +296,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
 - The machine-readable contract is [`docs/scene.schema.json`](scene.schema.json)
   (JSON Schema 2020-12); a test validates every corpus scene against it.
 - Additive history within version 1: **0.13.0** added the top-level `places`
-  array and the block items' `span`/`call` provenance fields.
+  array and the block items' `span`/`call` provenance fields; **0.14.0** added
+  the top-level `rescale` factor.
 
 ## 8. Color resolution
 

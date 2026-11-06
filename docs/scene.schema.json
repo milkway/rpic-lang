@@ -3,7 +3,7 @@
   "$id": "https://rpic.dev/scene.schema.json",
   "title": "rpic scene, version 1",
   "type": "object",
-  "required": ["scene", "units", "y_up", "canvas", "vars", "places", "items"],
+  "required": ["scene", "units", "y_up", "canvas", "rescale", "vars", "places", "items"],
   "additionalProperties": false,
   "properties": {
     "scene": { "const": 1 },
@@ -31,6 +31,7 @@
       }
     },
     "source": { "type": "string" },
+    "rescale": { "type": "number", "exclusiveMinimum": 0 },
     "vars": {
       "type": "object",
       "additionalProperties": { "type": "number" }
