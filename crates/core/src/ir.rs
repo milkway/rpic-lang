@@ -48,6 +48,12 @@ pub struct Drawing {
     pub anim_scroll: bool,
     /// Lines emitted by pic `print` statements, without trailing newlines.
     pub diagnostics: Vec<String>,
+    /// troff passthrough lines from the source, in source order: lines with
+    /// `.` in column 1 other than `.PS`/`.PE`. pic (and dpic) treat these as
+    /// requests for the downstream formatter rather than pic statements, so
+    /// they never affect the drawing; they are kept here for hosts that
+    /// forward them or tools that need the non-pic lines.
+    pub passthrough: Vec<PassLine>,
     /// Non-fatal compiler warnings for accepted but likely unintended input.
     pub warnings: Vec<Diagnostic>,
     /// rpic scene extension: final values of the user's variables plus the
@@ -94,6 +100,15 @@ pub struct MacroCall {
     /// rpic's normalized token text (spacing follows the source; numbers
     /// print canonically).
     pub args: Vec<String>,
+}
+
+/// A troff passthrough line (see [`Drawing::passthrough`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PassLine {
+    /// The line as written, leading `.` included, without its line ending.
+    pub text: String,
+    /// Where it sits in the user's source: column 1 to the end of the line.
+    pub span: crate::diagnostic::Span,
 }
 
 /// Extra whitespace around the rendered canvas, in internal inches.

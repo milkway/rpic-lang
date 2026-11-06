@@ -8,6 +8,7 @@
 
 use crate::ast::*;
 use crate::diagnostic::{Diagnostic, Span};
+use crate::ir::PassLine;
 use crate::lexer::{LexError, Spanned, lex, lex_named};
 use crate::token::*;
 
@@ -151,12 +152,13 @@ pub fn parse_with_prelude(
         // Initializer only — the source stays sovereign (`texlabels = 0` wins).
         splice_unit(&mut toks, lex_named("texlabels = 1\n", "<texlabels>")?);
     }
-    let src = strip_backend_preamble(src);
+    let (src, passthrough) = strip_backend_preamble(src);
     toks.extend(lex(&src)?);
     let (toks, macros) = preprocess(toks, &includes)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
     pic.includes = includes;
+    pic.passthrough = passthrough;
     Ok(pic)
 }
 
@@ -260,18 +262,29 @@ pub(crate) fn parse_stringexpr_tokens(
 
 // ---- backend preamble filter ----------------------------------------------
 
-/// Drop non-SVG backend snippets commonly embedded in dpic examples.
+/// Drop non-SVG backend snippets commonly embedded in dpic examples, and set
+/// aside troff passthrough lines.
 ///
 /// These TeX/PSTricks preambles are meaningful to other backends, but for rpic's
 /// SVG output they should be tolerated as no-ops. Replacing ignored lines with
 /// empty lines keeps subsequent diagnostics on the original line numbers.
-fn strip_backend_preamble(src: &str) -> String {
+///
+/// A line with `.` in column 1 that is not `.PS`/`.PE` is a troff request, not
+/// a pic statement: pic and dpic pass it through to the downstream formatter.
+/// It is blanked the same way and returned, with its source span, so it can be
+/// surfaced on [`crate::ir::Drawing::passthrough`]. See [`is_passthrough_line`]
+/// for the exact rule.
+fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
     let mut out = String::with_capacity(src.len());
+    let mut passthrough = Vec::new();
     let mut in_verbatimtex = false;
     let mut in_string = false;
     let mut in_raw_sh = false;
+    // the previous physical line ended in a `\` continuation, so this one is
+    // the tail of a statement, not the start of a new line
+    let mut continued = false;
 
-    for line in src.lines() {
+    for (n, line) in src.lines().enumerate() {
         let trimmed = line.trim_start();
         if in_verbatimtex {
             out.push('\n');
@@ -288,7 +301,16 @@ fn strip_backend_preamble(src: &str) -> String {
             continue;
         }
 
-        if !in_string && starts_word(trimmed, "verbatimtex") {
+        if !in_string && !continued && is_passthrough_line(line) {
+            let text = line.strip_suffix('\r').unwrap_or(line);
+            let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
+            let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
+            passthrough.push(PassLine {
+                text: text.to_string(),
+                span: Span::new(line_no, 1, end_col),
+            });
+            out.push('\n');
+        } else if !in_string && starts_word(trimmed, "verbatimtex") {
             in_verbatimtex = true;
             out.push('\n');
         } else if !in_string && is_ignored_backend_line(trimmed) {
@@ -301,9 +323,22 @@ fn strip_backend_preamble(src: &str) -> String {
             } else {
                 in_string = update_string_state(line, in_string);
             }
+            continued = !in_string && line_continues(line);
+            continue;
         }
+        continued = false;
     }
-    out
+    (out, passthrough)
+}
+
+/// A troff passthrough line, following dpic: `.` in column 1 (an indented
+/// `.` is pic, e.g. a continued `.x`, and stays an error where it was one),
+/// except the `.PS`/`.PE` markers — matched as prefixes, as dpic does, so
+/// `.PSfoo` keeps reporting the error it always has rather than vanishing.
+/// The caller also excludes lines inside a string literal and the tail of a
+/// `\`-continued statement (dpic joins those before looking at column 1).
+fn is_passthrough_line(line: &str) -> bool {
+    line.starts_with('.') && !line.starts_with(".PS") && !line.starts_with(".PE")
 }
 
 fn line_continues(line: &str) -> bool {
@@ -1708,6 +1743,7 @@ impl Parser {
             stmts,
             macros: HashMap::new(),
             includes: IncludeCtx::default(),
+            passthrough: Vec::new(),
         })
     }
 
@@ -4020,6 +4056,51 @@ box
             panic!()
         };
         assert_eq!(object.kind, ObjectKind::Primitive(Prim::Box));
+    }
+
+    #[test]
+    fn troff_lines_pass_through_with_spans() {
+        // dpic: a `.` in column 1 that is not `.PS`/`.PE` is a troff request,
+        // dropped from the picture (`.ft`, `.sp`, the `.\"` comment, and even
+        // `.ne`/`.x`, which would otherwise lex as a corner/coordinate).
+        let p = pic(".PS\nbox\n.ft B\n.sp 0.5\r\n.\\\" a comment\n.ne 3\n.x\ncircle\n.PE\n");
+        assert_eq!(p.stmts.len(), 2);
+        let got: Vec<(&str, u32, u32, u32)> = p
+            .passthrough
+            .iter()
+            .map(|l| (l.text.as_str(), l.span.line, l.span.col, l.span.end_col))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (".ft B", 3, 1, 6),
+                (".sp 0.5", 4, 1, 8),
+                (".\\\" a comment", 5, 1, 14),
+                (".ne 3", 6, 1, 6),
+                (".x", 7, 1, 3),
+            ]
+        );
+        assert!(p.passthrough.iter().all(|l| l.span.file.is_none()));
+    }
+
+    #[test]
+    fn troff_passthrough_rule_keeps_pic_lines() {
+        // `.PS`/`.PE` are markers, not passthrough (prefix match, like dpic).
+        assert!(pic(".PS\nbox\n.PE\n").passthrough.is_empty());
+        assert!(parse(".PS\nbox\n.PSfoo\n.PE\n").is_err());
+        // the tail of a `\`-continued statement is pic, even in column 1
+        let p = pic("x = 1 + \\\n.5\nline right x\n");
+        assert!(p.passthrough.is_empty());
+        assert_eq!(p.stmts.len(), 2);
+        // a `.` line inside a multi-line string is string content
+        let p = pic("box \"a\n.ft B\"\n");
+        assert!(p.passthrough.is_empty());
+        assert_eq!(p.stmts.len(), 1);
+        // an indented `.` is not column 1: still lexed (and an error, as in dpic)
+        assert!(parse("box\n  .sp 2\n").is_err());
+        // a passthrough line does not disturb later diagnostics' line numbers
+        let e = parse(".ft B\n.sp\nbox )\n").unwrap_err();
+        assert_eq!(e.line, 3);
     }
 
     #[test]
