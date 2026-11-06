@@ -137,6 +137,12 @@ pub fn register(
     let declared_scale = opts.scale.or_else(|| var(scene, "geo_scale"));
     let declared_bearing = opts.bearing.or_else(|| var(scene, "geo_bearing"));
     let px_mode = var(scene, "geo_px").is_some_and(|v| v != 0.0);
+    if opts.view_scale.is_some() && !px_mode {
+        warnings.push(Warning::new(
+            "ignored",
+            "view_scale given but the source does not set geo_px = 1 (lengths are inches, not pixels); ignored",
+        ));
+    }
     let declared_scale_m_per_in = || -> Result<f64, GeoError> {
         let scale_value = declared_scale.unwrap_or(100.0);
         if !(scale_value.is_finite() && scale_value > 0.0) {
@@ -181,14 +187,24 @@ pub fn register(
     let mut seen: Vec<String> = Vec::new();
     for NamedFeature { name, lon, lat, .. } in &opts.features {
         if seen.iter().any(|s| s == name) {
+            warnings.push(Warning::new(
+                "control_point_unresolved",
+                format!("feature {name} given more than once; the first one is used"),
+            ));
             continue;
         }
-        if let Some(canvas) = scene.point_of_label(name) {
-            controls.push(Control {
-                canvas,
-                geo: LonLat::checked(*lon, *lat)?,
-            });
-            seen.push(name.clone());
+        match scene.point_of_label(name) {
+            Some(canvas) => {
+                controls.push(Control {
+                    canvas,
+                    geo: LonLat::checked(*lon, *lat)?,
+                });
+                seen.push(name.clone());
+            }
+            None => warnings.push(Warning::new(
+                "control_point_unresolved",
+                format!("feature {name} matches no place or object label of the drawing; ignored"),
+            )),
         }
     }
     for (name, lon) in scene

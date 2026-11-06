@@ -1,7 +1,7 @@
 //! Scene items → GeoJSON features.
 
 use crate::densify::{
-    MAX_VERTICES, box_ring, close_ring, densify_polyline, ellipse_ring, path_points,
+    Budget, MAX_VERTICES, box_ring, close_ring, densify_polyline, ellipse_ring, path_points,
 };
 use crate::geojson::{Feature, FeatureCollection, Geometry};
 use crate::register::Registration;
@@ -28,9 +28,8 @@ struct Ctx<'a> {
     opts: &'a GeoOptions,
     warnings: &'a mut Vec<Warning>,
     out: Vec<Feature>,
-    /// Remaining densification vertices for the whole scene.
-    budget: usize,
-    budget_hit: bool,
+    /// The scene-wide vertex budget every producer draws from.
+    budget: Budget,
 }
 
 impl Ctx<'_> {
@@ -40,10 +39,7 @@ impl Ctx<'_> {
     }
 
     fn geo_line(&mut self, pts: &[[f64; 2]]) -> Vec<[f64; 2]> {
-        let (dense, limited) = densify_polyline(pts, self.reg, &mut self.budget);
-        if limited {
-            self.budget_hit = true;
-        }
+        let dense = densify_polyline(pts, self.reg, &mut self.budget);
         dense.iter().map(|&p| self.geo(p)).collect()
     }
 
@@ -224,7 +220,7 @@ impl Ctx<'_> {
                     self.push(Geometry::LineString(line), props);
                 }
             } else if let Some(path) = &h.path {
-                let mut ring = path_points(path, self.opts.flatten);
+                let mut ring = path_points(path, self.opts.flatten, &mut self.budget);
                 close_ring(&mut ring);
                 if ring.len() >= 4 {
                     if let Some(c) = base.get("stroke").cloned() {
@@ -270,6 +266,7 @@ impl Ctx<'_> {
                     item.rad.unwrap_or(0.0),
                     self.opts.flatten,
                     self.reg,
+                    &mut self.budget,
                 );
                 let r = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![r]), props);
@@ -278,7 +275,7 @@ impl Ctx<'_> {
                 let (Some(c), Some(r)) = (item.at, item.r) else {
                     return self.missing(item);
                 };
-                let ring = ellipse_ring(c, r, r, self.opts.flatten, self.reg);
+                let ring = ellipse_ring(c, r, r, self.opts.flatten, self.reg, &mut self.budget);
                 let g = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![g]), props);
             }
@@ -286,7 +283,14 @@ impl Ctx<'_> {
                 let (Some(c), Some(w), Some(h)) = (item.at, item.w, item.h) else {
                     return self.missing(item);
                 };
-                let ring = ellipse_ring(c, w / 2.0, h / 2.0, self.opts.flatten, self.reg);
+                let ring = ellipse_ring(
+                    c,
+                    w / 2.0,
+                    h / 2.0,
+                    self.opts.flatten,
+                    self.reg,
+                    &mut self.budget,
+                );
                 let g = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![g]), props);
             }
@@ -316,12 +320,12 @@ impl Ctx<'_> {
                     return self.missing(item);
                 };
                 for (i, path) in paths.iter().enumerate() {
-                    let pts = path_points(path, self.opts.flatten);
+                    let pts = path_points(path, self.opts.flatten, &mut self.budget);
                     let fill_outline = item
                         .fill_paths
                         .as_ref()
                         .and_then(|fp| fp.get(i))
-                        .map(|fp| path_points(fp, self.opts.flatten));
+                        .map(|fp| path_points(fp, self.opts.flatten, &mut self.budget));
                     let mut p = props.clone();
                     if paths.len() > 1 {
                         p.insert("geopic:part".into(), json!(i));
@@ -378,17 +382,16 @@ pub fn convert(
         opts,
         warnings,
         out: Vec::new(),
-        budget: MAX_VERTICES,
-        budget_hit: false,
+        budget: Budget::default(),
     };
     for item in &ctx.scene.items {
         ctx.item(item);
     }
-    if ctx.budget_hit {
+    if ctx.budget.hit {
         ctx.warnings.push(Warning::new(
             "densification_budget",
             format!(
-                "densification budget ({MAX_VERTICES} vertices) exhausted; later segments keep only their endpoints"
+                "vertex budget ({MAX_VERTICES} per scene) exhausted; later curves, rings and segments were simplified"
             ),
         ));
     }

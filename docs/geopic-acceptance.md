@@ -3,7 +3,7 @@
 Criteria from the geo prompt, with the evidence per PR. Checked items are
 enforced by tests that run in CI (`cargo test -p geopic-core`).
 
-## PR 1 — crate, registration, geodesy (2026-11-06)
+## PR 1 — crate, registration, geodesy (2026-11-06) · PR 2 — `rpic --geojson` + examples (2026-11-06)
 
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
@@ -13,7 +13,7 @@ enforced by tests that run in CI (`cargo test -p geopic-core`).
 | A4 | 20 km `line right 80` (`scale = 250`) within 1 m (Hausdorff) of the geodesic; un-densified control > 1 m | ✅ | `a4_densified_line_follows_the_geodesic_and_the_control_does_not` — densified ≤ 1 m; the lon/lat chord deviates > 1 m (anchor Porto Alegre, bearing −45°) |
 | A5 | Every scene kind has a feature or a warning; new kinds fail the test | ✅ |
 | — | Code-review follow-ups (PR 1): rotation sign (`text_rotation_is_ccw_from_east_and_open_fills_become_polygons`), open-stroke fills as `geopic:role = "fill"` polygons, latest-definition label resolution (`labels_resolve_to_the_latest_top_level_definition`), host features over source control points + scale checks after the fit + fitted-scale cap + `flatten` validation (`host_features_override_source_control_points_and_scale_checks_wait_for_the_fit`), tolerance-driven rings (`large_circles_stay_within_the_flatten_tolerance`) | ✅ | `every_scene_kind_is_handled_or_warned` checks the format's 11 kinds against `KINDS` and that a mixed drawing yields every mappable kind with no `unsupported_kind` |
-| A6 | JSON Schema of the properties; example `.geojson` validate; `geopic:schema = 1` everywhere | ◐ | `docs/geopic.schema.json` + `a6_feature_properties_validate_against_the_schema` (13+ features of every kind); `examples/geo/*.geojson` come with PR 3 |
+| A6 | JSON Schema of the properties; example `.geojson` validate; `geopic:schema = 1` everywhere | ✅ | `docs/geopic.schema.json` + `a6_feature_properties_validate_against_the_schema` (13+ features of every kind); PR 2: `examples/geo/{callout,arrow-between-features,radius,two-control-points}.pic` with committed `.geojson`, validated and drift-guarded by `crates/cli/tests/geo.rs` |
 | A7 | Never silent: `gradient`, `animate`, `texlabels` produce warnings with spans | ◐ | gradient → `unsupported_style` with the item's id/span; math lines → `ignored`. `animate` is not in the scene (no visual content) — the Python layer (PR 3) warns from the bundle's `animations` |
 | A8 | `rpic`, `--json`, `--scene`, `compile()` byte-identical over the corpus; core gains no dependency on geopic-core | ✅ | the engine is untouched in this PR (the `rescale` field landed separately in #420 with its own dual-binary proof: `--svg`/`--json` 124/124 identical). `rpic-core` has no `geopic-core` dependency; the reverse is dev-only |
 | A9 | `cargo build -p geopic-core --target wasm32-unknown-unknown` passes; size recorded | ✅ | passes locally and in CI (`bindings` job). `libgeopic_core.rlib` (release, wasm32) = 1.9 MB; the final `.wasm` size is a property of the cdylib that will wrap it (PR 3 / JS binding) |

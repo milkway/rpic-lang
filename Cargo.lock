@@ -1835,6 +1835,7 @@ dependencies = [
 name = "rpic-cli"
 version = "0.13.0"
 dependencies = [
+ "geopic-core",
  "jsonschema",
  "rpic-core",
  "rpic-render",

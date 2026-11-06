@@ -5,6 +5,25 @@ GeoJSON `FeatureCollection` (RFC 7946, WGS84). This document is the contract:
 how the drawing is registered on the Earth, what each scene kind becomes, the
 property vocabulary, the warnings, and how the format is versioned.
 
+## 0. Invocation
+
+```sh
+rpic --geojson map.pic                      # FeatureCollection on stdout, warnings on stderr
+rpic --geojson --geo-anchor -34.87,-8.06 --geo-scale 500 --geo-bearing 30 map.pic
+rpic --geojson --geo-frame mercator --flatten 1e-4 map.pic
+rpic --geojson --geo-feature Recife=-34.8711,-8.0631 --geo-feature Olinda=-34.8553,-8.0089 map.pic
+```
+
+`--geo-anchor LON,LAT`, `--geo-scale M`, `--geo-bearing DEG`, `--geo-frame
+enu|mercator` and `--geo-view-scale PX` override the source's variables;
+`--geo-feature NAME=LON,LAT` (repeatable) names a place or object of the
+drawing as a control point; `--flatten` is the curve tolerance. The library
+(`geopic_core::georeference` with `GeoOptions`) additionally takes
+`screen_classes` and a feature `bbox`, which the CLI does not expose; the
+Python binding (`rpic.geo`) mirrors the library and is the next step.
+Examples with their expected output live in `examples/geo/*.pic` +
+`*.geojson`, guarded by `crates/cli/tests/geo.rs`.
+
 ## 1. Registration
 
 A **similarity** with four parameters maps canvas inches to a plane in metres,
@@ -60,9 +79,13 @@ quarter of that each). A 20 km line therefore stays within
 straight in longitude/latitude would not.
 
 Resource caps (a hostile scene cannot amplify the output): at most 100 000
-vertices per segment and 2 000 000 per scene — beyond the budget, segments
-keep only their endpoints and the warning `densification_budget` is raised;
-an effective scale above 10⁹ m per inch is the error `invalid_scale`.
+vertices per segment and **2 000 000 per scene across every producer** —
+curve flattening, circle/box rings and segment densification draw from one
+budget; beyond it, curves keep their chords, rings their minimal polygon and
+segments their endpoints, and the warning `densification_budget` is raised.
+An effective scale above 10⁹ m per inch is the error `invalid_scale`. Output
+size is otherwise proportional to the input (its own vertices are never
+multiplied beyond the budget).
 
 ## 3. Features by kind
 
@@ -77,7 +100,7 @@ an effective scale above 10⁹ m per inch is the error `invalid_scale`.
 | `block` | — | no feature; children carry `geopic:block` (the block path) |
 | hidden items | — | paint nothing, produce nothing (no warning) |
 
-Coordinates are `[lon, lat]`, rounded to 9 decimals.
+Coordinates are `[lon, lat]`, rounded to 9 decimals. Reproducibility across platforms is at the millimetre, not the byte: the geodesic code uses the platform's `sin`/`cos`/`atan2`, whose last bits differ between macOS, Linux and Windows, and a control-point fit can carry that into the 9th decimal — the example guard therefore compares within 1e-8°.
 
 ## 4. Properties
 
@@ -108,10 +131,10 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | kind | when |
 |---|---|
 | `unsupported_style` | gradient fill (first stop used) |
-| `ignored` | math label kept as its TeX literal; an item without the geometry its kind requires; an arrowhead without geometry |
+| `ignored` | math label kept as its TeX literal; an item without the geometry its kind requires; an arrowhead without geometry; `view_scale` given without `geo_px = 1` |
 | `unsupported_kind` | a scene kind this version does not map (the exhaustiveness test keeps this empty for format 1) |
 | `ignored_with_control_points` | declared anchor/scale/bearing superseded by control points |
-| `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat` |
+| `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat`; a host feature naming no label, or given twice |
 | `control_point_overridden` | the source's `<L>_lon`/`<L>_lat` lost to the host's feature of the same name (the caller wins) |
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |

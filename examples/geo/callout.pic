@@ -1,0 +1,15 @@
+# A callout pinned to one place.
+#
+# geo_lon/geo_lat place the pic origin (0,0) on the Earth — here Recife's
+# Marco Zero — and geo_scale says how many metres one inch of the drawing is.
+# Everything else is ordinary pic; `rpic --geojson callout.pic` turns it into
+# a FeatureCollection whose dot sits at the anchor and whose box and arrow
+# are polygons/lines a few hundred metres north-east of it. The box carries
+# class "screen": a map consumer may keep it screen-anchored.
+geo_lon = -34.8711
+geo_lat = -8.0631
+geo_scale = 400          # metres per inch
+
+dot at (0, 0) rad 0.04
+B: box "Marco Zero" "Recife" wid 1.3 ht 0.5 at (1.4, 0.9) fill 0.95 class "screen"
+arrow from B.sw to (0.06, 0.06) thick 1.2

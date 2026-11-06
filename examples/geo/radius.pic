@@ -1,0 +1,14 @@
+# A geodesic radius.
+#
+# With geo_scale = 1000 (one inch = one kilometre) the circle of radius 2 is a
+# 2 km circle around the anchor. Because the plane is densified before the
+# points go to longitude/latitude, every vertex of the polygon is 2 000 m from
+# the centre along the ellipsoid — not a circle in degree space.
+geo_lon = -34.8711
+geo_lat = -8.0631
+geo_scale = 1000         # metres per inch
+
+C: circle rad 2 at (0, 0) dashed fill 0.97
+dot at C.c rad 0.04
+line from C.c to C.e thin
+"2 km" above at 0.5 <C.c, C.e>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="472.8" height="329.68" viewBox="0 0 472.8 329.68" font-family="sans-serif" font-size="14.666667" fill="none">
+<g id="s0">
+<rect x="43.866667" y="43.773333" width="384" height="240" fill="none" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s1">
+<rect x="72.666667" y="178.173333" width="115.2" height="76.8" fill="rgb(217,217,217)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="130.266667" y="221.413333" text-anchor="middle">shed</text>
+</g>
+<g id="s2">
+<circle cx="331.866667" cy="120.573333" r="38.4" fill="rgb(230,230,230)" stroke="black" stroke-width="1.066667"/>
+<text font-size="11pt" stroke-width="0.2pt" fill="black" x="331.866667" y="125.413333" text-anchor="middle">tank</text>
+</g>
+<g id="s3">
+<line x1="187.866667" y1="216.573333" x2="293.466667" y2="120.573333" stroke="black" stroke-width="1.066667" stroke-dasharray="5.6,4"/>
+</g>
+<g id="s4">
+<circle cx="43.866667" cy="283.773333" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s5">
+<circle cx="427.866667" cy="43.773333" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s6">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="29.466667" y="303.013333" text-anchor="middle">A</text>
+</g>
+<g id="s7">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="442.266667" y="34.213333" text-anchor="middle">B</text>
+</g>
+</svg>

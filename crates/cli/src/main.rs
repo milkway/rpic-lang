@@ -19,7 +19,75 @@ enum Mode {
     JsonAll,
     /// `--scene`: the scene document alone (docs/scene.md).
     Scene,
+    /// `--geojson`: the scene georeferenced as a GeoJSON FeatureCollection
+    /// (docs/geopic.md), via geopic-core.
+    GeoJson,
     Html,
+}
+
+/// Parse and validate `LON,LAT` (degrees), naming the flag on failure.
+fn parse_lonlat(flag: &str, v: &str) -> Result<geopic_core::LonLat, String> {
+    let bad = || format!("rpic: `{flag}` needs LON,LAT in degrees, got `{v}`");
+    let (lon, lat) = v.split_once(',').ok_or_else(bad)?;
+    let lon = lon.trim().parse::<f64>().map_err(|_| bad())?;
+    let lat = lat.trim().parse::<f64>().map_err(|_| bad())?;
+    geopic_core::LonLat::checked(lon, lat).map_err(|e| format!("rpic: `{flag}`: {e}"))
+}
+
+/// Parse `NAME=LON,LAT` (a host feature for `--geo-feature`).
+fn parse_feature(v: &str) -> Result<geopic_core::NamedFeature, String> {
+    let (name, pos) = v
+        .split_once('=')
+        .filter(|(n, _)| !n.trim().is_empty())
+        .ok_or_else(|| format!("rpic: `--geo-feature` needs NAME=LON,LAT, got `{v}`"))?;
+    let ll = parse_lonlat("--geo-feature", pos)?;
+    Ok(geopic_core::NamedFeature {
+        name: name.trim().to_string(),
+        lon: ll.lon,
+        lat: ll.lat,
+        bbox: None,
+    })
+}
+
+/// The value after a flag, as a finite number (positive when `positive`);
+/// `what` names the unit in the error.
+fn number_arg(
+    args: &[String],
+    i: &mut usize,
+    flag: &str,
+    what: &str,
+    positive: bool,
+) -> Result<f64, String> {
+    *i += 1;
+    match args.get(*i).and_then(|v| v.parse::<f64>().ok()) {
+        Some(v) if v.is_finite() && (!positive || v > 0.0) => Ok(v),
+        _ => Err(format!(
+            "rpic: `{flag}` needs a {}{what}",
+            if positive { "positive " } else { "" }
+        )),
+    }
+}
+
+/// The value after a flag, as a string.
+fn string_arg(args: &[String], i: &mut usize, flag: &str, what: &str) -> Result<String, String> {
+    *i += 1;
+    args.get(*i)
+        .cloned()
+        .ok_or_else(|| format!("rpic: `{flag}` needs {what}"))
+}
+
+/// One stderr format for every non-fatal diagnostic: `warning: <message>
+/// (<kind>[, <item id>])`.
+fn emit_warning(kind: &str, id: Option<&str>, message: &str) {
+    match id {
+        Some(id) => eprintln!("warning: {message} ({kind}, {id})"),
+        None => eprintln!("warning: {message} ({kind})"),
+    }
+}
+
+fn fail(msg: &str) -> ExitCode {
+    eprintln!("{msg}");
+    ExitCode::FAILURE
 }
 
 fn main() -> ExitCode {
@@ -34,6 +102,7 @@ fn main() -> ExitCode {
     let mut texlabels = false;
     let mut flatten: Option<f64> = None;
     let mut outline = false;
+    let mut geo = geopic_core::GeoOptions::default();
 
     let mut i = 1;
     while i < args.len() {
@@ -49,17 +118,49 @@ fn main() -> ExitCode {
             "--json" => mode = Mode::Json,
             "--json=all" => mode = Mode::JsonAll,
             "--scene" => mode = Mode::Scene,
-            "--outline" => outline = true,
-            "--flatten" => {
-                i += 1;
-                match args.get(i).and_then(|v| v.parse::<f64>().ok()) {
-                    Some(v) if v > 0.0 && v.is_finite() => flatten = Some(v),
-                    _ => {
-                        eprintln!("rpic: `--flatten` needs a positive tolerance in inches");
-                        return ExitCode::FAILURE;
-                    }
+            "--geojson" => mode = Mode::GeoJson,
+            "--geo-anchor" => match args.get(i + 1).map(|v| parse_lonlat(a, v)) {
+                Some(Ok(ll)) => {
+                    i += 1;
+                    geo.anchor = Some(ll);
+                }
+                Some(Err(e)) => return fail(&e),
+                None => return fail(&format!("rpic: `{a}` needs LON,LAT in degrees")),
+            },
+            "--geo-scale" => {
+                match number_arg(&args, &mut i, a, "number of metres per inch", true) {
+                    Ok(v) => geo.scale = Some(v),
+                    Err(e) => return fail(&e),
                 }
             }
+            "--geo-bearing" => match number_arg(&args, &mut i, a, "angle in degrees", false) {
+                Ok(v) => geo.bearing = Some(v),
+                Err(e) => return fail(&e),
+            },
+            "--geo-frame" => match string_arg(&args, &mut i, a, "`enu` or `mercator`").as_deref() {
+                Ok("enu") => geo.frame = Some(geopic_core::Frame::Enu),
+                Ok("mercator") => geo.frame = Some(geopic_core::Frame::Mercator),
+                _ => return fail(&format!("rpic: `{a}` needs `enu` or `mercator`")),
+            },
+            "--geo-view-scale" => {
+                match number_arg(&args, &mut i, a, "number of pixels per inch", true) {
+                    Ok(v) => geo.view_scale = Some(v),
+                    Err(e) => return fail(&e),
+                }
+            }
+            "--geo-feature" => match args.get(i + 1).map(|v| parse_feature(v)) {
+                Some(Ok(f)) => {
+                    i += 1;
+                    geo.features.push(f);
+                }
+                Some(Err(e)) => return fail(&e),
+                None => return fail(&format!("rpic: `{a}` needs NAME=LON,LAT")),
+            },
+            "--outline" => outline = true,
+            "--flatten" => match number_arg(&args, &mut i, a, "tolerance in inches", true) {
+                Ok(v) => flatten = Some(v),
+                Err(e) => return fail(&e),
+            },
             "--html" => mode = Mode::Html,
             "-o" | "--output" => {
                 i += 1;
@@ -136,7 +237,7 @@ fn main() -> ExitCode {
             .file_name()
             .map(|s| s.to_string_lossy().into_owned()),
     };
-    let result = run(&src, &mode, scale, &opts, &sopts, &title);
+    let result = run(&src, &mode, scale, &opts, &sopts, &geo, &title);
     match result {
         Ok(Output::Text(s)) => {
             if let Some(o) = out {
@@ -189,6 +290,7 @@ fn run(
     scale: f32,
     opts: &rpic_core::CompileOptions,
     sopts: &rpic_core::SceneOptions,
+    geo: &geopic_core::GeoOptions,
     title: &str,
 ) -> Result<Output, String> {
     match mode {
@@ -228,9 +330,26 @@ fn run(
             emit_diagnostics(&d);
             let out = rpic_core::scene_json(&d, sopts);
             for w in &out.warnings {
-                eprintln!("warning: {}", w.message);
+                emit_warning(&w.kind, None, &w.message);
             }
             Ok(Output::Text(out.json))
+        }
+        Mode::GeoJson => {
+            let d = rpic_core::compile_with_options(src, opts)?;
+            emit_diagnostics(&d);
+            let scene = rpic_core::scene_json(&d, sopts);
+            for w in &scene.warnings {
+                emit_warning(&w.kind, None, &w.message);
+            }
+            let mut geo = geo.clone();
+            if let Some(f) = sopts.flatten {
+                geo.flatten = f;
+            }
+            let g = geopic_core::georeference(&scene.json, &geo).map_err(|e| e.to_string())?;
+            for w in &g.warnings {
+                emit_warning(&w.kind, w.id.as_deref(), &w.message);
+            }
+            Ok(Output::Text(g.features.to_json()))
         }
         Mode::Html => {
             let d = rpic_core::compile_with_options(src, opts)?;
@@ -271,6 +390,7 @@ fn print_help() {
     --json      emit compile JSON (svg, animations, diagnostics, warnings, objects)\n    \
          --json=all  the compile JSON plus the device-independent scene (docs/scene.md)\n    \
          --scene     emit the scene JSON alone (the resolved draw list)\n    \
+         --geojson   georeference the drawing: GeoJSON FeatureCollection, WGS84 (docs/geopic.md)\n    \
          --html      self-contained animated page (SVG + GSAP player inline; plugins from CDN)\n\n\
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
@@ -279,6 +399,12 @@ fn print_help() {
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
          --flatten TOL       scene: deliver curves as polylines within TOL inches\n    \
          --outline           scene: embed typeset math as SVG glyph fragments\n    \
+         --geo-anchor LON,LAT    geojson: position of the pic origin (overrides geo_lon/geo_lat)\n    \
+         --geo-scale M           geojson: metres per authored inch (overrides geo_scale)\n    \
+         --geo-bearing DEG       geojson: azimuth of +y, clockwise from north (overrides geo_bearing)\n    \
+         --geo-frame F           geojson: `enu` (default) or `mercator`\n    \
+         --geo-view-scale PX     geojson: pixels per inch when the source sets geo_px = 1\n    \
+         --geo-feature N=LON,LAT geojson: a named feature (control point for the label N); repeatable\n    \
          -h, --help          show this help\n"
     );
 }

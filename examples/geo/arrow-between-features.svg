@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="123.466667" height="191.093333" viewBox="0 0 123.466667 191.093333" font-family="sans-serif" font-size="14.666667" fill="none">
+<g id="s0">
+<circle cx="27.466667" cy="171.28" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s1">
+<circle cx="85.066667" cy="17.68" r="3.84" fill="rgb(0,0,0)" stroke="black" stroke-width="1.066667"/>
+</g>
+<g id="s2">
+<line x1="27.466667" y1="171.28" x2="83.618948" y2="21.540584" stroke="firebrick" stroke-width="2"/>
+<polygon stroke-width="0" points="79.448692,25.826064 85.066667,17.68 83.943072,27.511456" fill="firebrick"/>
+</g>
+<g id="s3">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="27.466667" y="188.426667" text-anchor="middle">Recife</text>
+</g>
+<g id="s4">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="85.066667" y="10.213333" text-anchor="middle">Olinda</text>
+</g>
+<g id="s5">
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="68.533333" y="99.32" text-anchor="start">6.3 km</text>
+</g>
+</svg>

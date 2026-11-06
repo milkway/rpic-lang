@@ -1,0 +1,24 @@
+# Registering a sketch by two surveyed corners.
+#
+# A site plan drawn in metres (scale = 10 puts ten pic units in one inch),
+# oriented however was convenient on paper. Two corners whose coordinates were
+# surveyed, A and B, register the drawing: scale and bearing come out of the
+# fit, so the plan lands on the map rotated to true north on its own.
+scale = 10
+margin = 2.5             # canvas margin so the corner labels are not clipped
+
+A: (0, 0)
+A_lon = -34.8750
+A_lat = -8.0600
+B: (40, 25)
+B_lon = -34.87495
+B_lat = -8.05950
+
+Yard: box wid 40 ht 25 with .sw at A
+Shed: box "shed" wid 12 ht 8 with .sw at A + (3, 3) fill 0.85
+Tank: circle "tank" rad 4 at A + (30, 17) fill 0.9
+line from Shed.e to Tank.w dashed
+dot at A rad 0.4
+dot at B rad 0.4
+"A" at A + (-1.5, -1.5)
+"B" at B + (1.5, 1.5)
