@@ -189,16 +189,32 @@ factor (additive, format stays 1) keeps the feature available and exact.
 
 ### G6. Densification and output (implementation authority)
 
-- Plane step per segment `clamp(L/100, 1 m, 100 m)` — the prompt's
-  `min(100 m, L/100)` alone would put 100 vertices on every centimetre-long
-  segment; the 1 m floor keeps short segments short while a 20 km line still
-  gets a vertex every 100 m (A4: ≤ 1 m from the geodesic).
+- Plane step per segment: `⌈L / 100 m⌉` pieces — the prompt's
+  `min(100 m, L/100)` puts 100 vertices on *every* segment between 100 m and
+  10 km (a 4096-chord circle became 409 600 points in review) for no accuracy:
+  a 100 m chord lies 0.2 mm off its geodesic, and in the Mercator frame a
+  straight canvas line is already straight. A 20 km line still gets a vertex
+  every 100 m (A4: ≤ 1 m from the geodesic).
 - Closed curves get `clamp(⌈2πr/100 m⌉, 32, 128)` vertices.
 - Coordinates are rounded to 9 decimals (≈ 0.1 mm) for stable fixtures.
+- Closed curves are flattened to the `flatten` tolerance (sagitta) *and* the
+  100 m chord rule, 32..=4096 vertices — the prompt's fixed 32–128 would put a
+  100 km circle 30 m off itself. `geopic:rotation` is CCW from the map's east
+  (canvas rotation − bearing). An open stroke with a fill yields a second
+  Polygon feature (`geopic:role = "fill"`) so the painted area is never lost.
+  Host features beat source control points of the same name (`-D` rule).
 - Resource caps, mirroring the scene's own flatten budget: 100 000 vertices
   per segment, 2 000 000 per scene (warning `densification_budget`, endpoints
-  kept), effective scale ≤ 1e9 m/in (`invalid_scale`). Raised by the commit
-  security review of PR 1.
+  kept), effective scale ≤ 1e9 m/in (`invalid_scale`, declared or fitted),
+  `flatten` validated (`invalid_flatten`). Raised by the commit security
+  review and the code review of PR 1.
+
+### G7. `geopic-core` tracks the engine's version
+
+It inherits `version.workspace`, like `rpic-render`/`rpic-capi`: one version
+to bump, one release train, and the scene format it reads is pinned by the
+same tag. Its first crates.io publication will therefore be 0.14.0, not 0.1.0
+— a conscious trade of a "clean" lineage for one release checklist.
 - Hidden items (`move`, invisible helpers) produce no feature **and no
   warning**: they paint nothing in the SVG either, so nothing visible is lost.
   Block items produce no feature; their children carry `geopic:block`.

@@ -21,7 +21,9 @@ and a **frame** carries plane points to the ellipsoid.
 
 Caller options (`GeoOptions`; `anchor=`, `scale=`, `bearing=`, `frame=`, …)
 override the variables, like `-D` in troff. Host-provided **features**
-(`name, lon, lat[, bbox]`) whose name matches a label are control points too.
+(`name, lon, lat[, bbox]`) whose name matches a label are control points too,
+and win over a source `<Label>_lon`/`<Label>_lat` of the same name (warning
+`control_point_overridden`).
 
 Registration method, by number of resolved control points:
 
@@ -47,10 +49,13 @@ scale_m_per_in, bearing_deg, method, control_points, rms_m?}`.
 
 ## 2. Densification
 
-Before de-projection every straight segment is subdivided in the plane with a
-step of `clamp(L/100, 1 m, 100 m)`; cubic curves are flattened to the
-`flatten` tolerance (inches, default `1e-3`) first; circles and ellipses get
-`clamp(⌈2πr / 100 m⌉, 32, 128)` vertices. A 20 km line therefore stays within
+Before de-projection every straight segment is subdivided in the plane so no
+step exceeds 100 m (`⌈L / 100 m⌉` pieces — a 100 m chord lies 0.2 mm off its
+geodesic); cubic curves are flattened to the `flatten` tolerance (inches,
+default `1e-3`) first; circles and ellipses get
+enough vertices that the sagitta stays within `flatten` **and** no chord
+exceeds 100 m in the plane (at least 32, at most 4096; rounded box corners a
+quarter of that each). A 20 km line therefore stays within
 1 m of the geodesic it represents (test A4), whereas its two endpoints joined
 straight in longitude/latitude would not.
 
@@ -65,10 +70,10 @@ an effective scale above 10⁹ m per inch is the error `invalid_scale`.
 |---|---|---|
 | `box` | `Polygon` | corner radius honoured (8 segments per corner) |
 | `circle`, `ellipse` | `Polygon` | |
-| `line`, `arrow` | `LineString`; `Polygon` when `closed` | arrowheads are **separate** features, `geopic:kind = "arrowhead"`, same `geopic:id`; filled heads are polygons in the stroke color, open heads line strings |
+| `line`, `arrow` | `LineString`; `Polygon` when `closed` | arrowheads are **separate** features, `geopic:kind = "arrowhead"`, same `geopic:id`; filled heads are polygons in the stroke color, open heads line strings. An **open stroke with a fill** (the SVG paints the implicitly closed area) yields an extra `Polygon` with `geopic:role = "fill"` — from the scene's untrimmed `fillPoints`/`fillPaths` when present — and the LineString keeps the stroke properties only |
 | `spline`, `arc`, `brace` | `LineString`; `Polygon` when the path is closed | one feature per path (`geopic:part` when more than one) |
 | `dot` | `Point` | `geopic:radius_in` |
-| `text` | `Point` at the object's anchor | `geopic:text`, `geopic:rotation` (= line rotation + bearing), `geopic:anchor` |
+| `text` | `Point` at the object's anchor | `geopic:text`, `geopic:rotation` (degrees **counter-clockwise from the map's east**: the canvas rotation minus the bearing), `geopic:anchor` |
 | `block` | — | no feature; children carry `geopic:block` (the block path) |
 | hidden items | — | paint nothing, produce nothing (no warning) |
 
@@ -91,6 +96,7 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
 | `geopic:head`, `geopic:filled` | arrowhead features: which end, filled or open |
 | `geopic:part` | path index when an item yields several features |
+| `geopic:role` | `"fill"` on the polygon that carries an open stroke's fill |
 | `geopic:radius_in` | `dot` radius, canvas inches |
 
 The machine-readable contract is [`geopic.schema.json`](geopic.schema.json).
@@ -106,14 +112,19 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | `unsupported_kind` | a scene kind this version does not map (the exhaustiveness test keeps this empty for format 1) |
 | `ignored_with_control_points` | declared anchor/scale/bearing superseded by control points |
 | `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat` |
+| `control_point_overridden` | the source's `<L>_lon`/`<L>_lat` lost to the host's feature of the same name (the caller wins) |
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |
 | `densification_budget` | the 2 000 000-vertex budget ran out; later segments carry endpoints only |
 
 Errors (`GeoError {kind, message, hint?}`): `no_registration`, `invalid_scale`
-(`geo_scale ≤ 0`, non-finite bearing), `invalid_anchor` (`|lat| ≥ 90`, `|lon| >
-180`, non-finite), `view_scale_required` (`geo_px = 1` without `view_scale`),
-`degenerate_control_points` (coincident points), `invalid_scene`.
+(`geo_scale ≤ 0`, non-finite bearing, effective scale — declared or fitted —
+above 10⁹ m/in), `invalid_anchor` (`|lat| ≥ 90`, `|lon| > 180`, non-finite),
+`invalid_flatten` (tolerance not a positive number), `view_scale_required`
+(`geo_px = 1` without `view_scale`, only when the scale is not fitted),
+`degenerate_control_points` (coincident points), `invalid_scene`. A label
+that is redefined resolves to its **latest** definition, a top-level object
+winning over a block-local one of the same name.
 
 ## 6. Versioning
 

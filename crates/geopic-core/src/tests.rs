@@ -100,8 +100,9 @@ fn scene_with_controls(frame: Frame, pts: &[([f64; 2], LonLat)], extra_vars: &st
             p[0], p[1], ll.lon, ll.lat
         ));
     }
-    // something drawn, so the scene has a canvas
-    src.push_str("box wid 0.5 ht 0.5 at (1, 1)\n");
+    // something drawn that spans the control grid, so the scene's canvas
+    // (and the 1 % residual threshold) reflect the drawing's real extent
+    src.push_str("box wid 3.4 ht 2.6 at (1.6, 0.9)\n");
     scene_of(&src)
 }
 
@@ -207,15 +208,27 @@ fn a3_helmert_reports_the_residual_and_warns_above_threshold() {
         "{:?}",
         g.warnings
     );
-    let extent = g.registration.scale_m_per_in * 3.2_f64.max(1.8); // canvas ≈ 3.2 × 1.8 in
-    if rms > 0.01 * extent {
-        assert!(
-            g.warnings.iter().any(|w| w.kind == "registration_residual"),
-            "{:?}",
-            g.warnings
-        );
-    }
-    // and with a generous drawing the same residual stays under the threshold
+    // 2 m of noise on a ~800 m drawing stays under the 1 % threshold: no warning
+    assert!(
+        g.warnings.iter().all(|w| w.kind != "registration_residual"),
+        "{:?}",
+        g.warnings
+    );
+    // one gross outlier (a control point 300 m off) must trip it
+    let mut bad = pts.clone();
+    let (e, n) = t.plane_offset(bad[0].0);
+    bad[0].1 = geodesy::enu_to_lonlat(t.anchor, e + 300.0, n);
+    let g = georeference(
+        &scene_with_controls(Frame::Enu, &bad, ""),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    assert!(g.registration.rms_m.unwrap() > 50.0);
+    assert!(
+        g.warnings.iter().any(|w| w.kind == "registration_residual"),
+        "{:?}",
+        g.warnings
+    );
 }
 
 #[test]
@@ -358,7 +371,6 @@ fn a4_densified_line_follows_the_geodesic_and_the_control_does_not() {
         "densified line is {dense} m from the geodesic"
     );
     // control: the two endpoints alone, joined straight in lon/lat space
-    let control = [[a.lon, a.lat], [b.lon, b.lat]];
     let straight: Vec<[f64; 2]> = (0..=2000)
         .map(|k| {
             let t = k as f64 / 2000.0;
@@ -370,7 +382,6 @@ fn a4_densified_line_follows_the_geodesic_and_the_control_does_not() {
         coarse > 1.0,
         "the un-densified control only deviates {coarse} m — the test would prove nothing"
     );
-    let _ = control;
 }
 
 // ---- conversion coverage -----------------------------------------------------
@@ -611,4 +622,181 @@ fn hostile_scales_are_rejected_and_densification_is_budgeted() {
     );
     // every feature still has both endpoints
     assert_eq!(g.features.features.len(), 30);
+}
+
+// ---- review follow-ups ----------------------------------------------------------
+
+#[test]
+fn text_rotation_is_ccw_from_east_and_open_fills_become_polygons() {
+    // bearing 90: canvas +x points south = −90° CCW from east; a label
+    // rotated 30 CCW on the canvas is therefore at −60 on the map
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\ngeo_bearing = 90\n\"t\" rotated 30 at (1, 0)"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let txt = g
+        .features
+        .features
+        .iter()
+        .find(|f| f.properties["geopic:kind"] == "text")
+        .unwrap();
+    assert_eq!(txt.properties["geopic:rotation"], -60.0);
+    // an open arc with a fill paints its implicitly closed area: a Polygon
+    // with role "fill" rides next to the LineString, which keeps the stroke
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\narc from (0,0) to (0.5,0.5) fill 0.3 ->"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let arcs: Vec<_> = g
+        .features
+        .features
+        .iter()
+        .filter(|f| f.properties["geopic:kind"] == "arc")
+        .collect();
+    assert_eq!(
+        arcs.len(),
+        2,
+        "{:?}",
+        arcs.iter().map(|f| &f.properties).collect::<Vec<_>>()
+    );
+    let fill = arcs
+        .iter()
+        .find(|f| f.properties.get("geopic:role") == Some(&serde_json::json!("fill")))
+        .unwrap();
+    assert!(matches!(fill.geometry, Geometry::Polygon(_)));
+    assert_eq!(fill.properties["fill"], "#4d4d4d");
+    assert!(fill.properties.get("stroke").is_none());
+    let stroke = arcs
+        .iter()
+        .find(|f| f.properties.get("geopic:role").is_none())
+        .unwrap();
+    assert!(matches!(stroke.geometry, Geometry::LineString(_)));
+    assert!(stroke.properties.get("fill").is_none());
+    assert_eq!(stroke.properties["stroke"], "#000000");
+}
+
+#[test]
+fn labels_resolve_to_the_latest_top_level_definition() {
+    // the redefined A is the live one (pic semantics); the block-local B is
+    // not the control point when a top-level B exists
+    let src = "A: box at (0,0)\nA: box at (5,5)\nA_lon = 10\nA_lat = 20\n\
+               [ B: circle at (9,9) ]\nB: circle at (1,1)\nB_lon = 10.01\nB_lat = 20";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let r = &g.registration;
+    // A at canvas (5,5) and B at (1,1): both control points land where declared
+    let a = r.to_lonlat([5.0, 5.0]);
+    assert!(
+        geodesy::geodesic_distance(
+            a,
+            LonLat {
+                lon: 10.0,
+                lat: 20.0
+            }
+        ) < 1e-3
+    );
+    let b = r.to_lonlat([1.0, 1.0]);
+    assert!(
+        geodesy::geodesic_distance(
+            b,
+            LonLat {
+                lon: 10.01,
+                lat: 20.0
+            }
+        ) < 1e-3
+    );
+}
+
+#[test]
+fn host_features_override_source_control_points_and_scale_checks_wait_for_the_fit() {
+    let src = "P: (0,0)\nQ: (2,0)\nP_lon = 0\nP_lat = 0\nQ_lon = 0.01\nQ_lat = 0\ngeo_px = 1\ngeo_scale = 1e12\nbox";
+    let o = GeoOptions {
+        features: vec![crate::NamedFeature {
+            name: "Q".into(),
+            lon: 0.02,
+            lat: 0.0,
+            bbox: None,
+        }],
+        ..GeoOptions::default()
+    };
+    // geo_px without view_scale and an absurd geo_scale are both irrelevant
+    // once two control points fix the scale; the host's Q wins
+    let g = georeference(&scene_of(src), &o).unwrap();
+    assert_eq!(g.registration.method, Method::TwoPoints);
+    let q = g.registration.to_lonlat([2.0, 0.0]);
+    assert!(
+        geodesy::geodesic_distance(
+            q,
+            LonLat {
+                lon: 0.02,
+                lat: 0.0
+            }
+        ) < 1e-3,
+        "{q:?}"
+    );
+    assert!(
+        g.warnings
+            .iter()
+            .any(|w| w.kind == "control_point_overridden"),
+        "{:?}",
+        g.warnings
+    );
+    assert!(
+        g.warnings
+            .iter()
+            .any(|w| w.kind == "ignored_with_control_points")
+    );
+    // a fitted scale beyond the cap is still rejected
+    let far = "P: (0,0)\nQ: (0.000001,0)\nP_lon = 0\nP_lat = 0\nQ_lon = 90\nQ_lat = 0\nbox";
+    assert_eq!(
+        georeference(&scene_of(far), &GeoOptions::default())
+            .unwrap_err()
+            .kind,
+        "invalid_scale"
+    );
+    // flatten is validated
+    let o = GeoOptions {
+        flatten: 0.0,
+        ..GeoOptions::default()
+    };
+    assert_eq!(
+        georeference(&scene_of("geo_lon = 0\ngeo_lat = 0\nbox"), &o)
+            .unwrap_err()
+            .kind,
+        "invalid_flatten"
+    );
+}
+
+#[test]
+fn large_circles_stay_within_the_flatten_tolerance() {
+    // r = 1 in = 100 km: the fixed 128-vertex ring would be 30 m off; the
+    // tolerance-driven one keeps the sagitta under 1e-3 in = 0.1 km... and
+    // the 100 m chord rule caps the vertex count at 4096
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 100000\ncircle rad 1 at (0,0)"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let Geometry::Polygon(rings) = &g.features.features[0].geometry else {
+        panic!()
+    };
+    // 4096 chords of ~153 m, each split once by the 100 m rule
+    let n = rings[0].len() - 1;
+    assert!(
+        (crate::densify::MAX_RING_VERTICES..=2 * crate::densify::MAX_RING_VERTICES).contains(&n),
+        "{n} vertices"
+    );
+    // every vertex is 100 km from the centre (the circle is a true circle in
+    // the tangent plane); the worst mid-chord sagitta is r(1−cos(π/n)) ≈ 3 cm
+    for p in rings[0].iter().step_by(97) {
+        let d = geodesy::geodesic_distance(
+            LonLat { lon: 0.0, lat: 0.0 },
+            LonLat {
+                lon: p[0],
+                lat: p[1],
+            },
+        );
+        assert!((d - 100_000.0).abs() < 0.5, "{d}");
+    }
 }

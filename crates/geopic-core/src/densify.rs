@@ -8,8 +8,6 @@ use crate::scene::Path;
 
 /// Longest plane step between consecutive samples, metres.
 pub const MAX_STEP_M: f64 = 100.0;
-/// Shortest step worth taking, metres (short segments stay short).
-pub const MIN_STEP_M: f64 = 1.0;
 /// Most vertices one segment may receive (a 10 000 km segment at 100 m).
 pub const MAX_SEGMENT_VERTICES: usize = 100_000;
 /// Total densification budget for one scene: a hostile source (huge
@@ -97,7 +95,7 @@ pub fn close_ring(pts: &mut Vec<[f64; 2]>) {
 }
 
 /// Subdivide every segment of a canvas polyline so no plane step exceeds
-/// [`MAX_STEP_M`] (and none is shorter than [`MIN_STEP_M`]). `budget` is the
+/// [`MAX_STEP_M`] (a 100 m chord lies 0.2 mm off its geodesic). `budget` is the
 /// remaining vertex allowance for the whole scene ([`MAX_VERTICES`]); it is
 /// drawn down and, once empty, segments keep only their endpoints. Returns
 /// whether the budget limited this polyline.
@@ -116,8 +114,7 @@ pub fn densify_polyline(
         let len_in = (b[0] - a[0]).hypot(b[1] - a[1]);
         let len_m = reg.metres(len_in);
         let wanted = if len_m.is_finite() {
-            let step = (len_m / 100.0).clamp(MIN_STEP_M, MAX_STEP_M);
-            let n = (len_m / step).ceil();
+            let n = (len_m / MAX_STEP_M).ceil();
             if n.is_finite() {
                 (n as usize).clamp(1, MAX_SEGMENT_VERTICES)
             } else {
@@ -139,20 +136,33 @@ pub fn densify_polyline(
     (out, limited)
 }
 
-/// Vertex count for a closed curve of plane radius `r_m` metres: a 100 m
-/// chord, clamped to 32..=128 (sagitta ≈ r(1 − cos(π/n))).
-pub fn arc_vertices(r_m: f64) -> usize {
-    let n = (2.0 * std::f64::consts::PI * r_m / MAX_STEP_M).ceil();
-    if n.is_finite() {
-        (n as usize).clamp(32, 128)
+/// Most vertices a full closed curve may receive.
+pub const MAX_RING_VERTICES: usize = 4096;
+
+/// Vertex count for a full circle of canvas radius `r_in` inches: enough that
+/// the sagitta `r(1 − cos(π/n))` stays within `tol` inches **and** no chord
+/// exceeds [`MAX_STEP_M`] in the plane; at least 32, at most
+/// [`MAX_RING_VERTICES`].
+pub fn arc_vertices(r_in: f64, tol: f64, reg: &Registration) -> usize {
+    let r = r_in.abs();
+    let by_tol = if r > tol && tol > 0.0 {
+        (std::f64::consts::PI / (1.0 - tol / r).acos()).ceil()
     } else {
-        128
+        32.0
+    };
+    let by_step = (2.0 * std::f64::consts::PI * reg.metres(r) / MAX_STEP_M).ceil();
+    let n = by_tol.max(by_step);
+    if n.is_finite() {
+        (n as usize).clamp(32, MAX_RING_VERTICES)
+    } else {
+        MAX_RING_VERTICES
     }
 }
 
-/// Ellipse (or circle, `rx == ry`) outline as a closed canvas ring.
-pub fn ellipse_ring(c: [f64; 2], rx: f64, ry: f64, reg: &Registration) -> Vec<[f64; 2]> {
-    let n = arc_vertices(reg.metres(rx.max(ry)));
+/// Ellipse (or circle, `rx == ry`) outline as a closed canvas ring, flattened
+/// to `tol` inches.
+pub fn ellipse_ring(c: [f64; 2], rx: f64, ry: f64, tol: f64, reg: &Registration) -> Vec<[f64; 2]> {
+    let n = arc_vertices(rx.max(ry), tol, reg);
     let mut pts: Vec<[f64; 2]> = (0..n)
         .map(|k| {
             let t = 2.0 * std::f64::consts::PI * k as f64 / n as f64;
@@ -164,8 +174,16 @@ pub fn ellipse_ring(c: [f64; 2], rx: f64, ry: f64, reg: &Registration) -> Vec<[f
 }
 
 /// Axis-aligned box outline (corner radius `rad`, 0 = sharp) as a closed
-/// canvas ring, counter-clockwise from the south-west corner.
-pub fn box_ring(c: [f64; 2], w: f64, h: f64, rad: f64) -> Vec<[f64; 2]> {
+/// canvas ring, counter-clockwise from the south-west corner; rounded
+/// corners are flattened to `tol` inches.
+pub fn box_ring(
+    c: [f64; 2],
+    w: f64,
+    h: f64,
+    rad: f64,
+    tol: f64,
+    reg: &Registration,
+) -> Vec<[f64; 2]> {
     let (hw, hh) = (w / 2.0, h / 2.0);
     let r = rad.max(0.0).min(hw).min(hh);
     let mut pts = Vec::new();
@@ -184,9 +202,11 @@ pub fn box_ring(c: [f64; 2], w: f64, h: f64, rad: f64) -> Vec<[f64; 2]> {
             ([c[0] + hw - r, c[1] + hh - r], 0.0),
             ([c[0] - hw + r, c[1] + hh - r], 90.0),
         ];
+        // a quarter of a full circle's vertex count per corner
+        let per_quarter = arc_vertices(r, tol, reg).div_ceil(4).max(2);
         for (cc, start) in corners {
-            for k in 0..=8 {
-                let a = (start + 90.0 * k as f64 / 8.0).to_radians();
+            for k in 0..=per_quarter {
+                let a = (start + 90.0 * k as f64 / per_quarter as f64).to_radians();
                 pts.push([cc[0] + r * a.cos(), cc[1] + r * a.sin()]);
             }
         }

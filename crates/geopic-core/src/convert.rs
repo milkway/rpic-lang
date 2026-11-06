@@ -155,7 +155,19 @@ impl Ctx<'_> {
         self.out.push(Feature::new(geometry, props));
     }
 
-    fn polyline_or_polygon(&mut self, pts: &[[f64; 2]], closed: bool, props: Props) {
+    /// An open or closed stroke. Closed → Polygon. Open → LineString; when
+    /// the item is also filled (the SVG paints the implicitly closed area),
+    /// a second Polygon feature with `geopic:role = "fill"` carries the fill
+    /// — from `fill_outline` (the scene's untrimmed `fillPaths`/`fillPoints`)
+    /// when given, else from the stroke's own vertices — and the LineString
+    /// keeps only the stroke properties.
+    fn polyline_or_polygon(
+        &mut self,
+        pts: &[[f64; 2]],
+        closed: bool,
+        fill_outline: Option<&[[f64; 2]]>,
+        mut props: Props,
+    ) {
         if pts.len() < 2 {
             return;
         }
@@ -166,6 +178,23 @@ impl Ctx<'_> {
                 let r = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![r]), props);
                 return;
+            }
+        }
+        if props.contains_key("fill") {
+            let mut fill_props = props.clone();
+            fill_props.remove("stroke");
+            fill_props.remove("stroke-width");
+            fill_props.remove("stroke-opacity");
+            fill_props.remove("geopic:dash");
+            fill_props.insert("geopic:role".into(), json!("fill"));
+            props.remove("fill");
+            props.remove("fill-opacity");
+            props.remove("geopic:hatch");
+            let mut ring = fill_outline.unwrap_or(pts).to_vec();
+            close_ring(&mut ring);
+            if ring.len() >= 4 {
+                let r = self.geo_ring(&ring);
+                self.push(Geometry::Polygon(vec![r]), fill_props);
             }
         }
         let line = self.geo_line(pts);
@@ -214,7 +243,10 @@ impl Ctx<'_> {
     fn text_point(&mut self, lines: &[TextLine], at: [f64; 2], mut props: Props) {
         if let Some(first) = lines.first() {
             let rot = first.rotation.unwrap_or(0.0);
-            props.insert("geopic:rotation".into(), json!(rot + self.reg.bearing_deg));
+            // scene rotation is CCW on the canvas; the canvas +x axis sits at
+            // −bearing CCW from the map's east, so the map rotation (CCW from
+            // east) is rot − bearing
+            props.insert("geopic:rotation".into(), json!(rot - self.reg.bearing_deg));
             props.insert("geopic:anchor".into(), json!(first.anchor));
         }
         let g = self.geo(at);
@@ -231,7 +263,14 @@ impl Ctx<'_> {
                 let (Some(c), Some(w), Some(h)) = (item.at, item.w, item.h) else {
                     return self.missing(item);
                 };
-                let ring = box_ring(c, w, h, item.rad.unwrap_or(0.0));
+                let ring = box_ring(
+                    c,
+                    w,
+                    h,
+                    item.rad.unwrap_or(0.0),
+                    self.opts.flatten,
+                    self.reg,
+                );
                 let r = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![r]), props);
             }
@@ -239,7 +278,7 @@ impl Ctx<'_> {
                 let (Some(c), Some(r)) = (item.at, item.r) else {
                     return self.missing(item);
                 };
-                let ring = ellipse_ring(c, r, r, self.reg);
+                let ring = ellipse_ring(c, r, r, self.opts.flatten, self.reg);
                 let g = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![g]), props);
             }
@@ -247,7 +286,7 @@ impl Ctx<'_> {
                 let (Some(c), Some(w), Some(h)) = (item.at, item.w, item.h) else {
                     return self.missing(item);
                 };
-                let ring = ellipse_ring(c, w / 2.0, h / 2.0, self.reg);
+                let ring = ellipse_ring(c, w / 2.0, h / 2.0, self.opts.flatten, self.reg);
                 let g = self.geo_ring(&ring);
                 self.push(Geometry::Polygon(vec![g]), props);
             }
@@ -267,7 +306,7 @@ impl Ctx<'_> {
                     return self.missing(item);
                 };
                 let closed = item.closed == Some(true);
-                self.polyline_or_polygon(pts, closed, props.clone());
+                self.polyline_or_polygon(pts, closed, item.fill_points.as_deref(), props.clone());
                 if let Some(heads) = &item.heads {
                     self.heads(item, heads, &props);
                 }
@@ -278,11 +317,16 @@ impl Ctx<'_> {
                 };
                 for (i, path) in paths.iter().enumerate() {
                     let pts = path_points(path, self.opts.flatten);
+                    let fill_outline = item
+                        .fill_paths
+                        .as_ref()
+                        .and_then(|fp| fp.get(i))
+                        .map(|fp| path_points(fp, self.opts.flatten));
                     let mut p = props.clone();
                     if paths.len() > 1 {
                         p.insert("geopic:part".into(), json!(i));
                     }
-                    self.polyline_or_polygon(&pts, path.closed, p);
+                    self.polyline_or_polygon(&pts, path.closed, fill_outline.as_deref(), p);
                 }
                 if let Some(heads) = &item.heads {
                     self.heads(item, heads, &props);

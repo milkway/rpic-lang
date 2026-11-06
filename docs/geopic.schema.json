@@ -32,6 +32,7 @@
     "geopic:head": { "enum": ["start", "end"] },
     "geopic:filled": { "type": "boolean" },
     "geopic:part": { "type": "integer", "minimum": 0 },
+    "geopic:role": { "const": "fill" },
     "geopic:radius_in": { "type": "number", "minimum": 0 }
   }
 }

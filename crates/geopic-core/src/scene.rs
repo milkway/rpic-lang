@@ -207,14 +207,21 @@ impl Item {
 
 impl Scene {
     /// Canvas point a label names: the last place with that label, else the
-    /// first item carrying it (reference point).
+    /// last top-level item carrying it (else the last item at all), by its
+    /// reference point.
     pub fn point_of_label(&self, label: &str) -> Option<[f64; 2]> {
         if let Some(p) = self.places.iter().rev().find(|p| p.label == label) {
             return Some(p.at);
         }
+        // pic semantics: a redefined label names the latest definition; a
+        // top-level object wins over a block-local one of the same name
+        let named = |i: &&Item| i.label.as_deref() == Some(label);
         self.items
             .iter()
-            .find(|i| i.label.as_deref() == Some(label))
+            .rev()
+            .filter(|i| i.block.is_none())
+            .find(named)
+            .or_else(|| self.items.iter().rev().find(named))
             .and_then(Item::reference_point)
     }
 }

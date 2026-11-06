@@ -132,55 +132,65 @@ pub fn register(
         },
     };
 
-    // declared scale (metres per authored inch, or per pixel under geo_px)
+    // declared scale and bearing — only *used* when no fit supersedes them,
+    // so their validation happens where they are consumed
     let declared_scale = opts.scale.or_else(|| var(scene, "geo_scale"));
-    let scale_value = declared_scale.unwrap_or(100.0);
-    if !(scale_value.is_finite() && scale_value > 0.0) {
-        return Err(GeoError::new(
-            "invalid_scale",
-            format!("geo_scale must be a positive number of metres per inch, got {scale_value}"),
-        ));
-    }
-    let px_mode = var(scene, "geo_px").is_some_and(|v| v != 0.0);
-    let per_inch = if px_mode {
-        match opts.view_scale {
-            Some(v) if v.is_finite() && v > 0.0 => scale_value * v,
-            _ => {
-                return Err(GeoError::new(
-                    "view_scale_required",
-                    "the source sets geo_px = 1 (lengths in pixels) but no positive view_scale was given",
-                )
-                .hint("pass view_scale (pixels per inch of the rendered view, e.g. 96)"));
-            }
-        }
-    } else {
-        scale_value
-    };
-    // `vars` are pre-rescale; the geometry is post-rescale
-    let scale_m_per_in = per_inch / scene.rescale;
-    // one inch longer than 1e9 m (25 Earth circumferences) is not a map
-    if !(scale_m_per_in.is_finite() && scale_m_per_in <= MAX_SCALE_M_PER_IN) {
-        return Err(GeoError::new(
-            "invalid_scale",
-            format!(
-                "effective scale {scale_m_per_in} m per inch exceeds the {MAX_SCALE_M_PER_IN} m limit (geo_scale / rescale)"
-            ),
-        ));
-    }
-
     let declared_bearing = opts.bearing.or_else(|| var(scene, "geo_bearing"));
-    let bearing = declared_bearing.unwrap_or(0.0);
-    if !bearing.is_finite() {
-        return Err(GeoError::new(
-            "invalid_scale",
-            format!("geo_bearing must be finite, got {bearing}"),
-        ));
-    }
+    let px_mode = var(scene, "geo_px").is_some_and(|v| v != 0.0);
+    let declared_scale_m_per_in = || -> Result<f64, GeoError> {
+        let scale_value = declared_scale.unwrap_or(100.0);
+        if !(scale_value.is_finite() && scale_value > 0.0) {
+            return Err(GeoError::new(
+                "invalid_scale",
+                format!(
+                    "geo_scale must be a positive number of metres per inch, got {scale_value}"
+                ),
+            ));
+        }
+        let per_inch = if px_mode {
+            match opts.view_scale {
+                Some(v) if v.is_finite() && v > 0.0 => scale_value * v,
+                _ => {
+                    return Err(GeoError::new(
+                        "view_scale_required",
+                        "the source sets geo_px = 1 (lengths in pixels) but no positive view_scale was given",
+                    )
+                    .hint("pass view_scale (pixels per inch of the rendered view, e.g. 96)"));
+                }
+            }
+        } else {
+            scale_value
+        };
+        // `vars` are pre-rescale; the geometry is post-rescale
+        Ok(per_inch / scene.rescale)
+    };
+    let declared_bearing_deg = || -> Result<f64, GeoError> {
+        let b = declared_bearing.unwrap_or(0.0);
+        if !b.is_finite() {
+            return Err(GeoError::new(
+                "invalid_scale",
+                format!("geo_bearing must be finite, got {b}"),
+            ));
+        }
+        Ok(b)
+    };
 
-    // control points: `<L>_lon`/`<L>_lat` variables and host features whose
-    // name is a label of the scene
+    // control points: host features first (the caller overrides the source,
+    // like -D in troff), then `<L>_lon`/`<L>_lat` variables
     let mut controls: Vec<Control> = Vec::new();
     let mut seen: Vec<String> = Vec::new();
+    for NamedFeature { name, lon, lat, .. } in &opts.features {
+        if seen.iter().any(|s| s == name) {
+            continue;
+        }
+        if let Some(canvas) = scene.point_of_label(name) {
+            controls.push(Control {
+                canvas,
+                geo: LonLat::checked(*lon, *lat)?,
+            });
+            seen.push(name.clone());
+        }
+    }
     for (name, lon) in scene
         .vars
         .iter()
@@ -196,6 +206,13 @@ pub fn register(
             ));
             continue;
         };
+        if seen.iter().any(|s| s == name) {
+            warnings.push(Warning::new(
+                "control_point_overridden",
+                format!("{name}_lon/{name}_lat in the source are overridden by the host's feature {name}"),
+            ));
+            continue;
+        }
         match scene.point_of_label(name) {
             Some(canvas) => {
                 controls.push(Control {
@@ -208,18 +225,6 @@ pub fn register(
                 "control_point_unresolved",
                 format!("{name}_lon/{name}_lat are set but no place or object is labelled {name}; ignored"),
             )),
-        }
-    }
-    for NamedFeature { name, lon, lat, .. } in &opts.features {
-        if seen.iter().any(|s| s == name) {
-            continue;
-        }
-        if let Some(canvas) = scene.point_of_label(name) {
-            controls.push(Control {
-                canvas,
-                geo: LonLat::checked(*lon, *lat)?,
-            });
-            seen.push(name.clone());
         }
     }
 
@@ -239,7 +244,7 @@ pub fn register(
         },
     };
 
-    match controls.len() {
+    let reg = match controls.len() {
         0 => {
             let Some(anchor) = anchor else {
                 return Err(GeoError::new(
@@ -251,16 +256,16 @@ pub fn register(
                      or pass anchor=, or give control points <Label>_lon/<Label>_lat for labelled places",
                 ));
             };
-            Ok(Registration {
+            Registration {
                 frame,
                 anchor,
                 origin: [0.0, 0.0],
-                scale_m_per_in,
-                bearing_deg: bearing,
+                scale_m_per_in: declared_scale_m_per_in()?,
+                bearing_deg: declared_bearing_deg()?,
                 method: Method::Anchor,
                 control_points: 0,
                 rms_m: None,
-            })
+            }
         }
         1 => {
             if anchor.is_some() {
@@ -270,22 +275,22 @@ pub fn register(
                 ));
             }
             let c = controls[0];
-            Ok(Registration {
+            Registration {
                 frame,
                 anchor: c.geo,
                 origin: c.canvas,
-                scale_m_per_in,
-                bearing_deg: bearing,
+                scale_m_per_in: declared_scale_m_per_in()?,
+                bearing_deg: declared_bearing_deg()?,
                 method: Method::Anchor,
                 control_points: 1,
                 rms_m: None,
-            })
+            }
         }
         n => {
-            if declared_scale.is_some() || declared_bearing.is_some() {
+            if declared_scale.is_some() || declared_bearing.is_some() || px_mode {
                 warnings.push(Warning::new(
                     "ignored_with_control_points",
-                    "geo_scale/geo_bearing ignored: scale and bearing come from the control points",
+                    "geo_scale/geo_bearing/geo_px ignored: scale and bearing come from the control points",
                 ));
             }
             if anchor.is_some() {
@@ -318,9 +323,21 @@ pub fn register(
                     ),
                 ));
             }
-            Ok(reg)
+            reg
         }
+    };
+    // one inch longer than 1e9 m (25 Earth circumferences) is not a map —
+    // declared or fitted
+    if !(reg.scale_m_per_in.is_finite() && reg.scale_m_per_in <= MAX_SCALE_M_PER_IN) {
+        return Err(GeoError::new(
+            "invalid_scale",
+            format!(
+                "effective scale {} m per inch exceeds the {MAX_SCALE_M_PER_IN} m limit",
+                reg.scale_m_per_in
+            ),
+        ));
     }
+    Ok(reg)
 }
 
 /// Least-squares similarity (Helmert, 4 parameters) through the control

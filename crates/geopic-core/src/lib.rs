@@ -103,7 +103,8 @@ impl Default for GeoOptions {
 pub struct Warning {
     /// Stable machine-readable kind (`unsupported_style`, `ignored`,
     /// `registration_residual`, `ignored_with_control_points`,
-    /// `control_point_unresolved`, `unsupported_kind`, …).
+    /// `control_point_unresolved`, `control_point_overridden`,
+    /// `unsupported_kind`, `densification_budget`, …).
     pub kind: String,
     pub message: String,
     /// The scene item concerned, when there is one (`s<N>`).
@@ -135,7 +136,7 @@ impl Warning {
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct GeoError {
     /// `no_registration`, `invalid_scale`, `invalid_anchor`, `invalid_scene`,
-    /// `view_scale_required`, `degenerate_control_points`.
+    /// `invalid_flatten`, `view_scale_required`, `degenerate_control_points`.
     pub kind: String,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -210,6 +211,16 @@ pub fn georeference(scene_json: &str, opts: &GeoOptions) -> Result<GeoScene, Geo
 
 /// Georeference an already-parsed scene.
 pub fn georeference_scene(scene: &Scene, opts: &GeoOptions) -> Result<GeoScene, GeoError> {
+    if !(opts.flatten.is_finite() && opts.flatten > 0.0) {
+        return Err(GeoError::new(
+            "invalid_flatten",
+            format!(
+                "flatten must be a positive tolerance in inches, got {}",
+                opts.flatten
+            ),
+        )
+        .hint("the default is 1e-3"));
+    }
     let mut warnings = Vec::new();
     let registration = register::register(scene, opts, &mut warnings)?;
     let features = convert::convert(scene, &registration, opts, &mut warnings);
