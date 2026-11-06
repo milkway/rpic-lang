@@ -10,6 +10,13 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-11-06
+
+Minor bump: the pic-compat and tooling-data features #414–#417 add public
+fields to `Drawing`, `BlockInfo`, `Object` and `Spanned` (additive; code that
+builds them by literal needs `..`). SVG output is byte-identical to 0.12.1
+over the whole corpus.
+
 ### Added
 
 - **troff passthrough** (#414): a line with `.` in column 1 that is not
@@ -29,7 +36,10 @@ resolves to the latest version.
 
 - Scene format stays **1**: `places` and the block `span`/`call` fields are
   additive (docs/scene.md §7, DECISIONS S11); the JSON Schema and the
-  golden-key test were extended accordingly.
+  golden-key test were extended accordingly (#417).
+- The compile bundle (`--json`, Python `compile`, JS, C) gains `places` and
+  `passthrough` only for sources that have them; every other bundle is
+  byte-identical to 0.12.1 (#417).
 
 ## [0.12.1] — 2026-11-02
 
@@ -503,7 +513,11 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/milkway/rpic-lang/compare/v0.12.1...v0.13.0
+[0.12.1]: https://github.com/milkway/rpic-lang/compare/v0.12.0...v0.12.1
+[0.12.0]: https://github.com/milkway/rpic-lang/compare/v0.11.3...v0.12.0
+[0.11.3]: https://github.com/milkway/rpic-lang/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/milkway/rpic-lang/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/milkway/rpic-lang/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/milkway/rpic-lang/compare/v0.10.0...v0.11.0
