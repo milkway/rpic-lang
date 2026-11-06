@@ -1810,6 +1810,82 @@ fn nested_macro_block_can_reference_parent_label() {
 }
 
 #[test]
+fn inline_blocks_carry_their_own_span() {
+    let d = draw("box\nB: [\n  box\n  circle\n]\n[ ellipse ]");
+    assert_eq!(d.blocks.len(), 2);
+    let s0 = d.blocks[0].span.as_ref().unwrap();
+    assert_eq!((s0.line, s0.col, s0.file.as_deref()), (2, 4, None));
+    let s1 = d.blocks[1].span.as_ref().unwrap();
+    assert_eq!((s1.line, s1.col), (6, 1));
+    assert!(d.blocks.iter().all(|b| b.call.is_none()));
+}
+
+#[test]
+fn macro_blocks_are_attributed_to_the_outermost_call() {
+    let src = "define cell { [ box \"$1\" ] }\n\
+               define pair { [ cell($1); cell($2) ] }\n\
+               \n\
+               X: pair(a, \"b c\")\n\
+               cell(1.50)";
+    let d = draw(src);
+    // inner blocks come before their enclosing block
+    assert_eq!(d.blocks.len(), 4);
+    let outer = d
+        .blocks
+        .iter()
+        .position(|b| b.label.as_deref() == Some("X"))
+        .unwrap();
+    // pair's own block and both nested cell blocks name the user's call on
+    // line 4 — not the define bodies on lines 1-2, where the shapes point
+    for b in &d.blocks[..3] {
+        let s = b.span.as_ref().unwrap();
+        assert_eq!((s.line, s.col, s.end_col), (4, 4, 18), "{b:?}");
+        let call = b.call.as_ref().unwrap();
+        assert_eq!(call.name, "pair");
+        assert_eq!(call.args, ["a", "\"b c\""]);
+    }
+    assert_eq!(outer, 2);
+    assert_eq!(d.blocks[0].parent, Some(outer));
+    let first = d.blocks[0].shapes.0;
+    assert_eq!(d.shape_spans[first].as_ref().unwrap().line, 1);
+    // a direct top-level call
+    let last = &d.blocks[3];
+    let s = last.span.as_ref().unwrap();
+    assert_eq!((s.line, s.col, s.end_col), (5, 1, 11));
+    let call = last.call.as_ref().unwrap();
+    assert_eq!(
+        (call.name.as_str(), call.args.as_slice()),
+        ("cell", &["1.5".to_string()][..])
+    );
+}
+
+#[test]
+fn macro_call_provenance_survives_deferred_bodies() {
+    // calls inside a user `for` body are expanded at eval time; a block made
+    // by a call nested in an `if` inside a macro still names the outer call
+    let src = "define cell { [ box ] }\n\
+               define maybe { if $1 > 0 then { cell } }\n\
+               for i = 1 to 2 do { cell }\n\
+               maybe(1)";
+    let d = draw(src);
+    assert_eq!(d.blocks.len(), 3);
+    let lines: Vec<(u32, &str)> = d
+        .blocks
+        .iter()
+        .map(|b| {
+            (
+                b.span.as_ref().unwrap().line,
+                b.call.as_ref().unwrap().name.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(lines, [(3, "cell"), (3, "cell"), (4, "maybe")]);
+    // a call without parentheses spans just the name
+    let s = d.blocks[0].span.as_ref().unwrap();
+    assert_eq!((s.col, s.end_col), (21, 25));
+}
+
+#[test]
 fn position_vector_arithmetic() {
     // (w,h)/2 and p + q with correct precedence
     let d = draw("box wid 0.2 ht 0.2 at (2,4)/2 + (1,0)");
