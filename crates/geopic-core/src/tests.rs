@@ -800,3 +800,51 @@ fn large_circles_stay_within_the_flatten_tolerance() {
         assert!((d - 100_000.0).abs() < 0.5, "{d}");
     }
 }
+
+#[test]
+fn curve_flattening_and_rings_draw_from_the_same_budget() {
+    // a hand-made scene: 60 000 cubics that each want thousands of vertices
+    // at the default tolerance, plus 1 000 large circles — bounded output,
+    // one warning
+    let mut items = String::new();
+    for i in 0..60_000 {
+        let x = (i % 1000) as f64;
+        items.push_str(&format!(
+            "{{\"id\":\"s{i}\",\"kind\":\"spline\",\"z\":{i},\"paths\":[{{\"start\":[{x},0],\"cubics\":[[[{x},50],[{},50],[{},0]]]}}],\"stroke\":{{\"color\":\"#000000\",\"width\":0.8}}}},",
+            x + 1.0, x + 1.0
+        ));
+    }
+    for i in 0..1000 {
+        items.push_str(&format!(
+            "{{\"id\":\"s{}\",\"kind\":\"circle\",\"z\":{},\"at\":[0,0],\"r\":5,\"stroke\":{{\"color\":\"#000000\",\"width\":0.8}}}},",
+            60_000 + i,
+            60_000 + i
+        ));
+    }
+    items.pop();
+    let scene = format!(
+        "{{\"scene\":1,\"units\":\"in\",\"y_up\":true,\"canvas\":{{\"w\":1000,\"h\":100,\"margin\":{{\"top\":0,\"right\":0,\"bottom\":0,\"left\":0}},\"origin\":[0,0]}},\"rescale\":1,\"vars\":{{\"geo_lon\":0,\"geo_lat\":0,\"geo_scale\":100000}},\"places\":[],\"items\":[{items}]}}"
+    );
+    let g = georeference(&scene, &GeoOptions::default()).unwrap();
+    let total: usize = g
+        .features
+        .features
+        .iter()
+        .map(|f| match &f.geometry {
+            Geometry::LineString(p) => p.len(),
+            Geometry::Polygon(r) => r.iter().map(Vec::len).sum(),
+            Geometry::Point(_) => 1,
+        })
+        .sum();
+    // the budget plus the floors every feature keeps (endpoints, minimal rings)
+    assert!(
+        total <= crate::densify::MAX_VERTICES + 61_000 * 10,
+        "{total} vertices"
+    );
+    assert_eq!(g.features.features.len(), 61_000);
+    assert!(
+        g.warnings.iter().any(|w| w.kind == "densification_budget"),
+        "{:?}",
+        g.warnings
+    );
+}

@@ -77,9 +77,13 @@ quarter of that each). A 20 km line therefore stays within
 straight in longitude/latitude would not.
 
 Resource caps (a hostile scene cannot amplify the output): at most 100 000
-vertices per segment and 2 000 000 per scene — beyond the budget, segments
-keep only their endpoints and the warning `densification_budget` is raised;
-an effective scale above 10⁹ m per inch is the error `invalid_scale`.
+vertices per segment and **2 000 000 per scene across every producer** —
+curve flattening, circle/box rings and segment densification draw from one
+budget; beyond it, curves keep their chords, rings their minimal polygon and
+segments their endpoints, and the warning `densification_budget` is raised.
+An effective scale above 10⁹ m per inch is the error `invalid_scale`. Output
+size is otherwise proportional to the input (its own vertices are never
+multiplied beyond the budget).
 
 ## 3. Features by kind
 

@@ -16,6 +16,39 @@ pub const MAX_SEGMENT_VERTICES: usize = 100_000;
 /// converter raises `densification_budget` — never silently.
 pub const MAX_VERTICES: usize = 2_000_000;
 
+/// The scene-wide vertex allowance every producer of vertices draws from —
+/// curve flattening, ring construction and segment densification alike — so
+/// no input, however hostile, can make the output grow past [`MAX_VERTICES`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Budget {
+    pub left: usize,
+    /// Set once any request had to be cut down.
+    pub hit: bool,
+}
+
+impl Default for Budget {
+    fn default() -> Self {
+        Self {
+            left: MAX_VERTICES,
+            hit: false,
+        }
+    }
+}
+
+impl Budget {
+    /// Grant up to `wanted` vertices, never fewer than `floor` (a geometry
+    /// must still be representable: endpoints, a minimal ring), and record
+    /// whether the request was cut.
+    pub fn take(&mut self, wanted: usize, floor: usize) -> usize {
+        let n = wanted.min(self.left.max(floor));
+        if n < wanted {
+            self.hit = true;
+        }
+        self.left = self.left.saturating_sub(n);
+        n
+    }
+}
+
 /// Flatten one cubic Bézier to within `tol` (canvas inches), appending the
 /// interior and end points (the start is assumed already present).
 pub fn flatten_cubic(
@@ -24,8 +57,10 @@ pub fn flatten_cubic(
     c2: [f64; 2],
     p3: [f64; 2],
     tol: f64,
+    budget: &mut Budget,
     out: &mut Vec<[f64; 2]>,
 ) {
+    #[allow(clippy::too_many_arguments)]
     fn rec(
         p0: [f64; 2],
         c1: [f64; 2],
@@ -33,6 +68,7 @@ pub fn flatten_cubic(
         p3: [f64; 2],
         tol: f64,
         depth: u32,
+        budget: &mut Budget,
         out: &mut Vec<[f64; 2]>,
     ) {
         // flatness: distance of the control points from the chord
@@ -44,7 +80,13 @@ pub fn flatten_cubic(
             }
             ((p[0] - p0[0]) * vy - (p[1] - p0[1]) * vx).abs() / len
         };
-        if depth >= 16 || d(c1).max(d(c2)) <= tol {
+        let flat = d(c1).max(d(c2)) <= tol;
+        // a split costs one more vertex; out of budget, the chord stands in
+        if depth >= 16 || flat || budget.left < 2 {
+            if !flat && budget.left < 2 {
+                budget.hit = true;
+            }
+            budget.take(1, 1);
             out.push(p3);
             return;
         }
@@ -56,15 +98,15 @@ pub fn flatten_cubic(
         let p012 = mid(p01, p12);
         let p123 = mid(p12, p23);
         let m = mid(p012, p123);
-        rec(p0, p01, p012, m, tol, depth + 1, out);
-        rec(m, p123, p23, p3, tol, depth + 1, out);
+        rec(p0, p01, p012, m, tol, depth + 1, budget, out);
+        rec(m, p123, p23, p3, tol, depth + 1, budget, out);
     }
-    rec(p0, c1, c2, p3, tol.max(1e-9), 0, out);
+    rec(p0, c1, c2, p3, tol.max(1e-9), 0, budget, out);
 }
 
 /// The vertices of a scene path as a canvas polyline (closed paths repeat
 /// their first vertex at the end).
-pub fn path_points(path: &Path, tol: f64) -> Vec<[f64; 2]> {
+pub fn path_points(path: &Path, tol: f64, budget: &mut Budget) -> Vec<[f64; 2]> {
     let mut pts: Vec<[f64; 2]> = if let Some(p) = &path.points {
         p.clone()
     } else {
@@ -73,7 +115,7 @@ pub fn path_points(path: &Path, tol: f64) -> Vec<[f64; 2]> {
             out.push(start);
             let mut cur = start;
             for seg in path.cubics.iter().flatten() {
-                flatten_cubic(cur, seg[0], seg[1], seg[2], tol, &mut out);
+                flatten_cubic(cur, seg[0], seg[1], seg[2], tol, budget, &mut out);
                 cur = seg[2];
             }
         }
@@ -95,17 +137,15 @@ pub fn close_ring(pts: &mut Vec<[f64; 2]>) {
 }
 
 /// Subdivide every segment of a canvas polyline so no plane step exceeds
-/// [`MAX_STEP_M`] (a 100 m chord lies 0.2 mm off its geodesic). `budget` is the
-/// remaining vertex allowance for the whole scene ([`MAX_VERTICES`]); it is
-/// drawn down and, once empty, segments keep only their endpoints. Returns
-/// whether the budget limited this polyline.
+/// [`MAX_STEP_M`] (a 100 m chord lies 0.2 mm off its geodesic), drawing the
+/// new vertices from `budget`; once it is empty, segments keep only their
+/// endpoints.
 pub fn densify_polyline(
     pts: &[[f64; 2]],
     reg: &Registration,
-    budget: &mut usize,
-) -> (Vec<[f64; 2]>, bool) {
+    budget: &mut Budget,
+) -> Vec<[f64; 2]> {
     let mut out = Vec::with_capacity(pts.len());
-    let mut limited = false;
     if let Some(&first) = pts.first() {
         out.push(first);
     }
@@ -123,17 +163,13 @@ pub fn densify_polyline(
         } else {
             1
         };
-        let n = wanted.min((*budget).max(1));
-        if n < wanted {
-            limited = true;
-        }
-        *budget = budget.saturating_sub(n);
+        let n = budget.take(wanted, 1);
         for k in 1..=n {
             let t = k as f64 / n as f64;
             out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
         }
     }
-    (out, limited)
+    out
 }
 
 /// Most vertices a full closed curve may receive.
@@ -161,8 +197,15 @@ pub fn arc_vertices(r_in: f64, tol: f64, reg: &Registration) -> usize {
 
 /// Ellipse (or circle, `rx == ry`) outline as a closed canvas ring, flattened
 /// to `tol` inches.
-pub fn ellipse_ring(c: [f64; 2], rx: f64, ry: f64, tol: f64, reg: &Registration) -> Vec<[f64; 2]> {
-    let n = arc_vertices(rx.max(ry), tol, reg);
+pub fn ellipse_ring(
+    c: [f64; 2],
+    rx: f64,
+    ry: f64,
+    tol: f64,
+    reg: &Registration,
+    budget: &mut Budget,
+) -> Vec<[f64; 2]> {
+    let n = budget.take(arc_vertices(rx.max(ry), tol, reg), 8);
     let mut pts: Vec<[f64; 2]> = (0..n)
         .map(|k| {
             let t = 2.0 * std::f64::consts::PI * k as f64 / n as f64;
@@ -183,11 +226,13 @@ pub fn box_ring(
     rad: f64,
     tol: f64,
     reg: &Registration,
+    budget: &mut Budget,
 ) -> Vec<[f64; 2]> {
     let (hw, hh) = (w / 2.0, h / 2.0);
     let r = rad.max(0.0).min(hw).min(hh);
     let mut pts = Vec::new();
     if r <= 0.0 {
+        budget.take(4, 4);
         pts.extend([
             [c[0] - hw, c[1] - hh],
             [c[0] + hw, c[1] - hh],
@@ -203,7 +248,8 @@ pub fn box_ring(
             ([c[0] - hw + r, c[1] + hh - r], 90.0),
         ];
         // a quarter of a full circle's vertex count per corner
-        let per_quarter = arc_vertices(r, tol, reg).div_ceil(4).max(2);
+        let wanted = arc_vertices(r, tol, reg).div_ceil(4).max(2);
+        let per_quarter = budget.take(wanted * 4, 8) / 4;
         for (cc, start) in corners {
             for k in 0..=per_quarter {
                 let a = (start + 90.0 * k as f64 / per_quarter as f64).to_radians();
