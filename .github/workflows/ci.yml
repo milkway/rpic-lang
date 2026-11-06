@@ -104,6 +104,8 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack
+      - name: Build geopic-core for wasm32 (A9 of the geo prompt)
+        run: cargo build --release -p geopic-core --target wasm32-unknown-unknown
       - name: Build JS WASM package
         working-directory: bindings/js
         run: npm run build:wasm

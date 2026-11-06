@@ -43,6 +43,6 @@ jobs:
             fi
             echo "::endgroup::"
           }
-          for crate in rpic-core rpic-render rpic-capi rpic-cli; do
+          for crate in rpic-core rpic-render rpic-capi rpic-cli geopic-core; do
             publish "$crate" || exit 1
           done

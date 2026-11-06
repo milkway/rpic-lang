@@ -1,0 +1,118 @@
+# geopic — pic drawings as GeoJSON
+
+`geopic-core` reads an rpic **scene** ([docs/scene.md](scene.md)) and emits a
+GeoJSON `FeatureCollection` (RFC 7946, WGS84). This document is the contract:
+how the drawing is registered on the Earth, what each scene kind becomes, the
+property vocabulary, the warnings, and how the format is versioned.
+
+## 1. Registration
+
+A **similarity** with four parameters maps canvas inches to a plane in metres,
+and a **frame** carries plane points to the ellipsoid.
+
+| Source | Meaning |
+|---|---|
+| `geo_lon`, `geo_lat` | WGS84 position of the pic origin `(0, 0)` |
+| `geo_scale` | metres per inch of the drawing *as authored* (default 100). The scene's `rescale` (`.PS <width>`, `maxpswid`) is folded in automatically |
+| `geo_bearing` | azimuth of the canvas +y axis, degrees clockwise from north (default 0) |
+| `geo_frame` | `0` = `enu` (default), `1` = `mercator` |
+| `geo_px` | `1` = lengths are pixels at the caller's `view_scale` (px per inch); `geo_scale` is then metres per pixel |
+| `<Label>_lon`, `<Label>_lat` | a **control point**: the place `Label: …` (or the object labelled `Label`) sits at that position |
+
+Caller options (`GeoOptions`; `anchor=`, `scale=`, `bearing=`, `frame=`, …)
+override the variables, like `-D` in troff. Host-provided **features**
+(`name, lon, lat[, bbox]`) whose name matches a label are control points too.
+
+Registration method, by number of resolved control points:
+
+| Control points | Method | Scale and bearing |
+|---|---|---|
+| 0 | `anchor` — needs `geo_lon`/`geo_lat` (else error `no_registration`) | declared |
+| 1 | `anchor` at that point (a declared anchor is ignored, warning `ignored_with_control_points`) | declared |
+| 2 | `two_points` — closed form (exact) | fitted; declared ones ignored with a warning |
+| ≥ 3 | `helmert` — least squares; `rms_m` reported; warning `registration_residual` when the RMS exceeds 1 % of the drawing's extent | fitted |
+
+Frames:
+
+- **`enu`** — local tangent plane at the anchor. Plane offsets go to the
+  ellipsoid by the geodesic direct problem (Karney, via `geographiclib-rs`),
+  so a straight segment through the anchor is a geodesic and distances are
+  true metres. Bearings are relative to the anchor's meridian.
+- **`mercator`** — a similarity in EPSG:3857 metres and the Web Mercator
+  inverse: straight lines of the drawing stay straight on a web map; lengths
+  are Mercator metres (true at the equator, inflated by `1/cos φ`).
+
+`registration` in the result: `{frame, anchor:{lon,lat}, origin:[x,y],
+scale_m_per_in, bearing_deg, method, control_points, rms_m?}`.
+
+## 2. Densification
+
+Before de-projection every straight segment is subdivided in the plane with a
+step of `clamp(L/100, 1 m, 100 m)`; cubic curves are flattened to the
+`flatten` tolerance (inches, default `1e-3`) first; circles and ellipses get
+`clamp(⌈2πr / 100 m⌉, 32, 128)` vertices. A 20 km line therefore stays within
+1 m of the geodesic it represents (test A4), whereas its two endpoints joined
+straight in longitude/latitude would not.
+
+## 3. Features by kind
+
+| Scene kind | Geometry | Notes |
+|---|---|---|
+| `box` | `Polygon` | corner radius honoured (8 segments per corner) |
+| `circle`, `ellipse` | `Polygon` | |
+| `line`, `arrow` | `LineString`; `Polygon` when `closed` | arrowheads are **separate** features, `geopic:kind = "arrowhead"`, same `geopic:id`; filled heads are polygons in the stroke color, open heads line strings |
+| `spline`, `arc`, `brace` | `LineString`; `Polygon` when the path is closed | one feature per path (`geopic:part` when more than one) |
+| `dot` | `Point` | `geopic:radius_in` |
+| `text` | `Point` at the object's anchor | `geopic:text`, `geopic:rotation` (= line rotation + bearing), `geopic:anchor` |
+| `block` | — | no feature; children carry `geopic:block` (the block path) |
+| hidden items | — | paint nothing, produce nothing (no warning) |
+
+Coordinates are `[lon, lat]`, rounded to 9 decimals.
+
+## 4. Properties
+
+simplestyle-spec keys, then the `geopic:` namespace:
+
+| Property | Source |
+|---|---|
+| `stroke`, `stroke-width` | `stroke.color` (hex), `stroke.width` (points) |
+| `fill` | `fill.color`; for a gradient, the first stop's color (warning `unsupported_style`) |
+| `stroke-opacity`, `fill-opacity` | the item's `opacity` |
+| `title` | the item's text lines joined by `\n` |
+| `geopic:schema` | `1` — the version of this vocabulary |
+| `geopic:id`, `geopic:kind`, `geopic:z`, `geopic:label`, `geopic:block`, `geopic:class`, `geopic:link` | the scene item's fields |
+| `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement |
+| `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
+| `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
+| `geopic:head`, `geopic:filled` | arrowhead features: which end, filled or open |
+| `geopic:part` | path index when an item yields several features |
+| `geopic:radius_in` | `dot` radius, canvas inches |
+
+The machine-readable contract is [`geopic.schema.json`](geopic.schema.json).
+
+## 5. Warnings and errors
+
+Warnings (`{kind, message, id?, span?}`), never silent:
+
+| kind | when |
+|---|---|
+| `unsupported_style` | gradient fill (first stop used) |
+| `ignored` | math label kept as its TeX literal; an item without the geometry its kind requires; an arrowhead without geometry |
+| `unsupported_kind` | a scene kind this version does not map (the exhaustiveness test keeps this empty for format 1) |
+| `ignored_with_control_points` | declared anchor/scale/bearing superseded by control points |
+| `control_point_unresolved` | `<L>_lon` without `<L>_lat`, or no place/object labelled `L`; a lone `geo_lon`/`geo_lat` |
+| `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
+| `invalid_frame` | `geo_frame` not 0/1 (ENU used) |
+
+Errors (`GeoError {kind, message, hint?}`): `no_registration`, `invalid_scale`
+(`geo_scale ≤ 0`, non-finite bearing), `invalid_anchor` (`|lat| ≥ 90`, `|lon| >
+180`, non-finite), `view_scale_required` (`geo_px = 1` without `view_scale`),
+`degenerate_control_points` (coincident points), `invalid_scene`.
+
+## 6. Versioning
+
+`geopic:schema` is a single integer, **1**. Adding a property or a kind keeps
+it; renaming, removing or changing the meaning or unit of a property bumps it
+(release-noted; the old value is not emitted anymore). Consumers must ignore
+properties they do not know. The input contract is the scene format, versioned
+separately (`scene`).

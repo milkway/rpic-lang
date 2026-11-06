@@ -135,3 +135,70 @@ deferred. Decision: no new flag and no new document.
 - Bindings pass JSON through, so Python/JS/C/R see the keys with no API
   change; the JS `.d.ts` types were extended.
 
+## geopic-core (2026-11-06)
+
+### G1. Input is the scene *document*, not engine types — approved by the user
+
+`geopic-core` deserializes the scene JSON (format 1, `docs/scene.md`) with
+serde and knows nothing of `rpic-core`. Alternatives: a `rpic-scene` crate of
+shared types (a new public surface to version), or consuming `Drawing` (couples
+the geo layer to eval internals). Parsing the document keeps A8 true by
+construction — the engine gains no dependency — and lets every binding hand
+over the scene it already has. The core is a dev-dependency only, for tests
+that compile real pic sources.
+
+### G2. Geodesics via `geographiclib-rs` — approved by the user
+
+Karney's algorithms, pure Rust, `wasm32` clean, nanometre accuracy at any
+distance; `default-features = false` drops the `accurate` summation only
+polygon areas need. A home-grown Vincenty would fail near-antipodal cases
+(A2 includes two) and add review surface. The `Geodesic` is a `OnceLock`
+singleton (its coefficient tables are computed once).
+
+### G3. `GeoOptions` is flat, mirroring the binding kwargs — approved by the user
+
+`frame, anchor, scale, bearing, features, flatten, view_scale,
+screen_classes`; `GeoScene { features, warnings, registration }`. Python
+`rpic.geo.compile` returns `{"geojson", "warnings", "registration"}`. A nested
+form was rejected: every binding would flatten it again.
+
+### G4. The scene gains a `rescale` factor (engine PR #420) — approved by the user
+
+`vars` are pre-rescale, geometry post-rescale, so `geo_scale` (metres per
+*authored* inch) must be divided by the factor `.PS <w>`/`maxps*` applied.
+Refusing rescaled drawings with a warning was the alternative; exposing the
+factor (additive, format stays 1) keeps the feature available and exact.
+
+### G5. Registration conventions (implementation authority)
+
+- `geo_lon`/`geo_lat` is the position of the **pic origin** `(0, 0)`;
+  `geo_bearing` is the azimuth of the canvas +y axis, clockwise from north.
+- One control point acts as the anchor at its own canvas position (declared
+  anchor ignored with `ignored_with_control_points`); two or more also fix
+  scale and bearing (declared ones ignored with the same warning). The two-point
+  case is the N-point least-squares solution, which is exact for two.
+- The ENU fit is done about a provisional anchor and repeated once about the
+  fitted anchor (the control points' canvas centroid), so the plane used for
+  fitting is the plane the registration uses. The reported bearing is
+  therefore relative to the fitted anchor's meridian — it differs from a
+  bearing declared at another anchor by the meridian convergence.
+- RMS is the geodesic distance between where each control point lands and
+  where it should be (frame-independent, honest metres).
+- `geo_px = 1` without `view_scale` is an error (`view_scale_required`), not
+  a silent 96 px/in.
+
+### G6. Densification and output (implementation authority)
+
+- Plane step per segment `clamp(L/100, 1 m, 100 m)` — the prompt's
+  `min(100 m, L/100)` alone would put 100 vertices on every centimetre-long
+  segment; the 1 m floor keeps short segments short while a 20 km line still
+  gets a vertex every 100 m (A4: ≤ 1 m from the geodesic).
+- Closed curves get `clamp(⌈2πr/100 m⌉, 32, 128)` vertices.
+- Coordinates are rounded to 9 decimals (≈ 0.1 mm) for stable fixtures.
+- Hidden items (`move`, invisible helpers) produce no feature **and no
+  warning**: they paint nothing in the SVG either, so nothing visible is lost.
+  Block items produce no feature; their children carry `geopic:block`.
+- Arrowheads are separate features (`geopic:kind = "arrowhead"`, same
+  `geopic:id`, filled ones painted in the stroke color); a spline with several
+  paths yields one feature per path (`geopic:part`).
+
