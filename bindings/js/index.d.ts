@@ -107,6 +107,8 @@ export interface SceneItem {
     math?: { width: number; height: number; depth: number };
     outline?: string;
   }[];
+  /** present with `text`: the centre the lines are laid out around (docs/scene.md §5) */
+  text_center?: [number, number];
   /** block items: the child item ids */
   items?: string[];
   /**

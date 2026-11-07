@@ -1364,6 +1364,12 @@ impl<'a> Sc<'a> {
         }
         self.out
             .push_str(&format!(",\"text\":[{}]", parts.join(",")));
+        // the centre the lines were laid out around (S12): a consumer that
+        // places the label as one block (a map's symbol) needs it, and it
+        // cannot be recovered from the emitted baselines (blank lines are
+        // skipped, valign/halign shift them)
+        self.out
+            .push_str(&format!(",\"text_center\":{}", spoint(center)));
         visible
     }
 }
@@ -1930,6 +1936,8 @@ mod tests {
             "places",
             // 0.14: whole-picture rescale factor (additive)
             "rescale",
+            // 0.15.1: the centre attached/standalone text is laid out around
+            "text_center",
             "span",
             "line",
             "col",
@@ -1992,6 +2000,34 @@ mod review_regressions {
     //! Fixes from the branch review: each test is one confirmed finding.
     use super::*;
     use serde_json::Value;
+
+    #[test]
+    fn text_center_is_the_layout_centre_and_rides_only_with_text() {
+        // S12: the centre the lines are laid out around, which the baselines
+        // cannot give back (blank line, valign, halign)
+        let d = crate::compile(
+            "box \"\" \"below\" at (0,0)\nline from (0,0) to (2,0) \"mid\" above\n\
+             box \"a\" ljust at (4,0)\nbox at (5,0)\narc from (2,-1) to (2.5,-0.5) \"q\"\n\
+             \"free\" at (3,1)",
+        )
+        .unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let items = v["items"].as_array().unwrap();
+        let tc = |i: usize| items[i].get("text_center").cloned();
+        assert_eq!(tc(0), Some(serde_json::json!([0, 0])));
+        assert_eq!(tc(1), Some(serde_json::json!([1, 0])));
+        assert_eq!(tc(2), Some(serde_json::json!([4, 0])));
+        assert_eq!(tc(3), None, "no text, no centre");
+        assert_eq!(v["rescale"], 1.0);
+        assert_eq!(tc(5), Some(serde_json::json!([3, 1])));
+        // the arc's text centre is its circle's centre (no `rad`: the chord
+        // is a diameter), not a point on the path
+        assert_eq!(tc(4), Some(serde_json::json!([2.25, -0.75])));
+        // the baselines are offset from it, so it is not derivable from them
+        assert_ne!(items[1]["text"][0]["at"][1], serde_json::json!(0));
+        assert_eq!(items[0]["text"].as_array().unwrap().len(), 1);
+    }
 
     #[test]
     fn huge_finite_coordinates_stay_valid_json() {

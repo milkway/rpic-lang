@@ -135,6 +135,20 @@ deferred. Decision: no new flag and no new document.
 - Bindings pass JSON through, so Python/JS/C/R see the keys with no API
   change; the JS `.d.ts` types were extended.
 
+### S12. Items with text carry the centre their text is laid out around (#435)
+
+Each scene item with a `text` array also carries `text_center: [x, y]` —
+the `center` the emitter hands to the text layout (`text_json`), in scene
+inches: a box's/circle's/ellipse's centre, a line's path text point, a
+spline's midpoint, an arc's centre, a brace's label point, a text object's
+`at`. The per-line baselines are not enough to recover it: blank lines are
+skipped yet still advance the stack, `above`/`below` shift the baseline by
+the valign offset, `ljust`/`rjust` shift `x`. A consumer that places the
+label as one block — geopic's title points (G10), a MapLibre symbol —
+needs the centre plus the first line's compass. Additive under §7: `scene`
+stays **1**, the schema and the golden-key test gain the key, and it rides
+only on items that emit text. `--svg`/`--json` are untouched.
+
 ## geopic-core (2026-11-06)
 
 ### G1. Input is the scene *document*, not engine types — approved by the user
