@@ -245,6 +245,13 @@ export interface ReadyOptions {
    * pass the math wasm bytes as `wasmInput`.
    */
   math?: boolean;
+  /**
+   * Load the geo-enabled wasm build (`pkg/rpic_wasm_geo_bg.wasm`), which adds
+   * `compileGeoJSON` / `geoToCanvas` (geopic: drawings as GeoJSON). Fetched
+   * only when requested; cannot be combined with `math`. In Node, pass the
+   * geo wasm bytes as `wasmInput`.
+   */
+  geo?: boolean;
 }
 
 /**
@@ -262,3 +269,161 @@ export function compile(src: string, opts?: CompileOptions): Bundle;
 
 /** Compile and return only the SVG string. */
 export function renderSvg(src: string, opts?: CompileOptions): string;
+
+// ---------------------------------------------------------------------------
+// geopic: pic drawings as GeoJSON (docs/geopic.md). Needs the geo build:
+// `await ready(undefined, { geo: true })`.
+// ---------------------------------------------------------------------------
+
+/** `[west, south, east, north]`, degrees. */
+export type GeoBBox = [number, number, number, number];
+
+/**
+ * A named geographic feature the host knows about. The name must be a pic
+ * label (`/^[A-Z][A-Za-z0-9_]*$/`); anything else is rejected before
+ * compiling. With a `bbox` it is injected as an invisible box, so
+ * `Name.n`/`Name.e`/… follow its extent (compass corners are canvas
+ * directions).
+ */
+export interface GeoFeatureInput {
+  name: string;
+  lon: number;
+  lat: number;
+  bbox?: GeoBBox | null;
+}
+
+/**
+ * `features` in any of its accepted forms: `{ Name: [lon, lat] }`,
+ * `{ Name: [lon, lat, bbox] }`, `{ Name: { lon, lat, bbox? } }`, or an array
+ * of `{ name, lon, lat, bbox? }` objects / `[name, lon, lat, bbox?]` tuples.
+ */
+export type GeoFeatures =
+  | Record<string, [number, number] | [number, number, GeoBBox | null] | { lon: number; lat: number; bbox?: GeoBBox | null }>
+  | Array<GeoFeatureInput | [string, number, number] | [string, number, number, GeoBBox | null]>;
+
+export interface GeoOptions {
+  /** load the native circuit-element library */
+  circuits?: boolean;
+  /** set `texlabels = 1` (the geo build has no math renderer: literal labels + a diagnostic) */
+  texlabels?: boolean;
+  /** projection frame; overrides `geo_frame` */
+  frame?: 'enu' | 'mercator';
+  /** `[lon, lat]` of the pic origin; overrides `geo_lon`/`geo_lat` */
+  anchor?: [number, number];
+  /** metres per authored inch; overrides `geo_scale` (default 100) */
+  scale?: number;
+  /** azimuth of the canvas +y axis, degrees clockwise from north; overrides `geo_bearing` */
+  bearing?: number;
+  /**
+   * Named features: those the source defines (places or labelled objects)
+   * are control points of its geometry; the others are injected as places
+   * (two-pass), so `arrow from Recife to Olinda` works without the source
+   * defining them.
+   */
+  features?: GeoFeatures;
+  /** flattening tolerance for curves, inches (default `1e-3`) */
+  flatten?: number;
+  /** pixels per inch when the source sets `geo_px = 1` */
+  viewScale?: number;
+  /** `class` words marking screen-anchored items (default `['screen']`) */
+  screenClasses?: string[];
+}
+
+/** A non-fatal loss or substitution while georeferencing (never silent). */
+export interface GeoWarning {
+  /**
+   * `unsupported_style`, `ignored`, `registration_residual`,
+   * `ignored_with_control_points`, `control_point_unresolved`,
+   * `control_point_overridden`, `unsupported_kind`, `densification_budget`,
+   * …; engine `scene_unsupported` diagnostics ride here too (with the
+   * `Diagnostic` keys instead of `id`/`span`).
+   */
+  kind: string;
+  message: string;
+  /** the scene item concerned (`s<N>`), when there is one */
+  id?: string;
+  /** its source span, relative to your own source */
+  span?: { line: number; col: number; end_col: number; file?: string };
+}
+
+/** The similarity canvas (inches) → Earth. */
+export interface GeoRegistration {
+  frame: 'enu' | 'mercator';
+  /** geographic position of `origin` */
+  anchor: { lon: number; lat: number };
+  /** the canvas point (inches) that sits at `anchor` */
+  origin: [number, number];
+  /** metres per inch of the emitted geometry */
+  scale_m_per_in: number;
+  /** azimuth of the canvas +y axis, degrees clockwise from north */
+  bearing_deg: number;
+  method: 'anchor' | 'two_points' | 'helmert';
+  /** control points used by the fit (0 for a declared anchor) */
+  control_points: number;
+  /** RMS residual of the fit, metres (fits only) */
+  rms_m?: number;
+}
+
+export interface GeoJSONGeometry {
+  type: 'Point' | 'LineString' | 'Polygon' | 'MultiPoint' | 'MultiLineString' | 'MultiPolygon';
+  coordinates: unknown;
+}
+
+export interface GeoJSONFeature {
+  type: 'Feature';
+  geometry: GeoJSONGeometry | null;
+  /** simplestyle keys (`stroke`, `fill`, …) and `geopic:*` (docs/geopic.md) */
+  properties: Record<string, unknown>;
+}
+
+export interface GeoJSONFeatureCollection {
+  type: 'FeatureCollection';
+  features: GeoJSONFeature[];
+}
+
+export interface GeoResult {
+  /** RFC 7946 FeatureCollection, WGS84 */
+  geojson: GeoJSONFeatureCollection;
+  warnings: (GeoWarning | Diagnostic)[];
+  registration: GeoRegistration;
+  /** what a host needs to write canvas positions back as source coordinates */
+  canvas: {
+    /** the whole-picture rescale (`.PS <width>`, `maxpswid`); 1 when none */
+    rescale: number;
+    /** the pic `scale` variable (source units per inch) */
+    scale: number;
+  };
+}
+
+/** A georeferencing error; `info.kind` is machine-readable. */
+export class GeoError extends Error {
+  constructor(message: string, info: { kind: string; message: string; hint?: string });
+  info: {
+    /**
+     * `no_registration`, `invalid_scale`, `invalid_anchor`, `invalid_frame`,
+     * `invalid_scene`, `invalid_flatten`, `view_scale_required`,
+     * `degenerate_control_points`, `invalid_options` (option JSON of the
+     * wrong shape).
+     */
+    kind: string;
+    message: string;
+    hint?: string;
+  };
+}
+
+/**
+ * Georeference pic source as a GeoJSON FeatureCollection (WGS84). Needs the
+ * geo build (`ready(…, { geo: true })`). Throws a `CompileError` on a pic
+ * error, a `GeoError` on a georeferencing error, and a plain `Error` for an
+ * invalid feature name/shape (checked before anything compiles).
+ */
+export function compileGeoJSON(src: string, opts?: GeoOptions): GeoResult;
+
+/**
+ * Canvas positions (inches) of WGS84 `[lon, lat]` points under a
+ * registration (as `compileGeoJSON` returned it). Needs the geo build.
+ */
+export function geoToCanvas(
+  registration: GeoRegistration | string,
+  points: [number, number][]
+): [number, number][];

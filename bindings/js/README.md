@@ -76,13 +76,50 @@ call that asks for the other build rejects instead of silently reusing the
 first build. In Node, pass the math artifact's bytes:
 `ready(readFileSync(new URL('…/pkg/rpic_wasm_math_bg.wasm', import.meta.url)), { math: true })`.
 
+### Maps (geopic: drawings as GeoJSON)
+
+A third, opt-in build georeferences a drawing in the browser: the result is an
+RFC 7946 `FeatureCollection` (WGS84) for Leaflet, MapLibre, OpenLayers…
+The drawing is placed by `geo_lon`/`geo_lat`/`geo_scale`/`geo_bearing` in the
+source, by control points, or by the options below (which override them) —
+the contract is [docs/geopic.md](https://github.com/milkway/rpic-lang/blob/main/docs/geopic.md).
+
+```js
+await rpic.ready(undefined, { geo: true }); // browser: fetches pkg/rpic_wasm_geo_bg.wasm
+
+const { geojson, warnings, registration } = rpic.compileGeoJSON(
+  'geo_scale = 1000\narrow from Recife to Olinda\n"Recife" at Recife below',
+  {
+    anchor: [-34.8711, -8.0631],
+    features: { Recife: [-34.8711, -8.0631], Olinda: [-34.8553, -8.0089] },
+  }
+);
+L.geoJSON(geojson).addTo(map); // e.g. Leaflet
+```
+
+`features` names points the source may use without defining them: names the
+source defines are control points of its own geometry, the others are
+injected as places (or invisible boxes, given a `bbox: [w, s, e, n]`, so
+`Zone.n` follows the extent). Names must be pic labels (`/^[A-Z][A-Za-z0-9_]*$/`)
+and are validated before anything compiles. Options: `frame` (`'enu'` |
+`'mercator'`), `anchor`, `scale` (m per inch), `bearing` (° clockwise from
+north), `features`, `flatten`, `viewScale`, `screenClasses`, `circuits`,
+`texlabels`. A georeferencing failure throws a `GeoError` whose `info` is
+`{ kind, message, hint }` (`no_registration`, `invalid_anchor`, …); pic errors
+throw the usual error with `errorInfo`. Nothing is dropped silently: every loss
+(an unsupported style, ignored `animate` timelines…) is in `warnings`.
+`geoToCanvas(registration, [[lon, lat], …])` maps points back onto the canvas.
+In Node, pass the bytes of `pkg/rpic_wasm_geo_bg.wasm` to `ready(…, { geo: true })`.
+
 ## API
 
 | Function | Description |
 |----------|-------------|
-| `ready(wasmInput?, {math?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build; conflicting later calls reject. |
+| `ready(wasmInput?, {math?, geo?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build, `geo: true` the geo-enabled one; conflicting later calls reject. |
 | `compile(src, {circuits?, texlabels?, scene?, flatten?, outline?})` | → `{ svg, animations, diagnostics, warnings, objects, places?, passthrough?, scene? }` (throws on a pic error with `errorInfo`; `places` = named `Label: position` points in SVG units, `passthrough` = troff `.` lines, each present only when the source has some). `scene: true` adds the device-independent resolved draw list ([docs/scene.md](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)); `flatten` (inches) delivers its curves as polylines. |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
+| `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, …})` | Geo build only. → `{ geojson, warnings, registration, canvas }`; throws `GeoError` (`info.kind`) or a pic error. |
+| `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 
 Compile errors keep a readable `message` and expose structured data for editors:
