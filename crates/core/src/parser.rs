@@ -9,7 +9,7 @@
 use crate::ast::*;
 use crate::diagnostic::{Diagnostic, Span};
 use crate::ir::PassLine;
-use crate::lexer::{LexError, Spanned, lex, lex_named};
+use crate::lexer::{LexError, Spanned, lex, lex_in, lex_named};
 use crate::token::*;
 
 /// A parse error with source location. `file` (via [`ParseError::span`]) is
@@ -140,20 +140,27 @@ pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseErro
 /// own input reports user lines, and library problems name the library.
 pub fn parse_with_prelude(
     src: &str,
-    includes: IncludeCtx,
+    mut includes: IncludeCtx,
     circuits: bool,
     texlabels: bool,
 ) -> Result<Picture, ParseError> {
+    // a fresh table per compilation: a reused context must not accumulate
+    // every text it ever lexed
+    includes.sources = Default::default();
+    let table = includes.sources.clone();
     let mut toks: Vec<Spanned> = Vec::new();
     if circuits {
-        splice_unit(&mut toks, lex_named(crate::CIRCUITS, "circuits")?);
+        splice_unit(
+            &mut toks,
+            lex_in(crate::CIRCUITS, Some("circuits"), &table)?,
+        );
     }
     if texlabels {
         // Initializer only — the source stays sovereign (`texlabels = 0` wins).
         splice_unit(&mut toks, lex_named("texlabels = 1\n", "<texlabels>")?);
     }
     let (src, passthrough) = strip_backend_preamble(src);
-    toks.extend(lex(&src)?);
+    toks.extend(lex_in(&src, None, &table)?);
     let (toks, macros) = preprocess(toks, &includes)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
@@ -229,7 +236,7 @@ pub(crate) fn parse_exec_source(
     arg_frame: Option<&[Vec<Spanned>]>,
     vars: &std::collections::HashMap<String, f64>,
 ) -> Result<Vec<Stmt>, ParseError> {
-    let mut toks = lex(src)?;
+    let mut toks = lex_in(src, None, &includes.sources)?;
     if let Some(args) = arg_frame {
         toks = substitute(&toks, args);
     }
@@ -615,7 +622,7 @@ fn expand(
                 } else {
                     (Vec::new(), Vec::new())
                 };
-                let site = call_site(toks, name_idx, i, n, &args, &seps);
+                let site = call_site(toks, name_idx, i, n, &args, &seps, &includes.sources);
                 let mut sub = substitute(&body, &args);
                 for t in &mut sub {
                     t.call_site = Some(std::sync::Arc::clone(&site));
@@ -659,6 +666,7 @@ fn call_site(
     name: &str,
     args: &[Vec<Spanned>],
     seps: &[usize],
+    sources: &crate::lexer::SourceTable,
 ) -> std::sync::Arc<crate::lexer::CallSite> {
     let name_tok = &toks[name_idx];
     if let Some(site) = &name_tok.call_site {
@@ -681,10 +689,12 @@ fn call_site(
             _ => tokens_to_text(a),
         })
         .collect();
+    // one `(`/`,` in front of every argument, by construction (read_args)
+    debug_assert_eq!(seps.len(), args.len());
     let raw_args = args
         .iter()
-        .enumerate()
-        .map(|(k, a)| raw_arg(a, seps.get(k).and_then(|&j| toks.get(j))))
+        .zip(seps)
+        .map(|(a, &j)| raw_arg(a, &toks[j], sources))
         .collect();
     std::sync::Arc::new(crate::lexer::CallSite {
         span,
@@ -697,33 +707,28 @@ fn call_site(
 }
 
 /// One argument as written: the source text from its first token to its
-/// last, sliced from the text they were lexed from — not rebuilt from the
-/// tokens, so spelling, spacing and continuations survive. `sep` is the
-/// `(`/`,` in front of it, which places an empty argument. Tokens that do
-/// not share one lexed text (synthesized, or pasted from elsewhere) fall
-/// back to the normalized text at the first token's position.
-fn raw_arg(arg: &[Spanned], sep: Option<&Spanned>) -> crate::ir::RawArg {
+/// last, sliced from the text they were lexed from (via `sources`) — not
+/// rebuilt from the tokens, so spelling, spacing and continuations
+/// survive. `sep` is the `(`/`,` in front of it, which places an empty
+/// argument. Tokens that do not share one registered text (synthesized,
+/// or pasted from elsewhere) fall back to the normalized text at the first
+/// token's position.
+fn raw_arg(
+    arg: &[Spanned],
+    sep: &Spanned,
+    sources: &crate::lexer::SourceTable,
+) -> crate::ir::RawArg {
     let (Some(first), Some(last)) = (arg.first(), arg.last()) else {
-        let (line, col, file) = sep
-            .map(|s| (s.line, s.end_col, s.file.clone()))
-            .unwrap_or((0, 0, None));
+        let col = sep.end_col;
         return crate::ir::RawArg {
             text: String::new(),
-            line,
-            col,
-            end_line: line,
-            end_col: col,
-            file,
+            span: Span::new(sep.line, col, col).in_file(sep.file.clone()),
+            end_line: sep.line,
         };
     };
-    let sliced = match (&first.source, &last.source) {
-        (Some(a), Some(b)) if std::sync::Arc::ptr_eq(&a.text, &b.text) && a.start <= b.end => a
-            .text
-            .get(a.start as usize..b.end as usize)
-            .map(|cs| cs.iter().collect::<String>()),
-        _ => None,
-    };
-    let text = sliced.unwrap_or_else(|| tokens_to_text(arg));
+    let text = sources
+        .slice(first.src, last.src)
+        .unwrap_or_else(|| tokens_to_text(arg));
     // the end position follows from the text itself, so a multi-line
     // argument (a `\` continuation, a newline inside parentheses) is exact
     let (end_line, end_col) = match text.rfind('\n') {
@@ -735,11 +740,8 @@ fn raw_arg(arg: &[Spanned], sep: Option<&Spanned>) -> crate::ir::RawArg {
     };
     crate::ir::RawArg {
         text,
-        line: first.line,
-        col: first.col,
+        span: Span::new(first.line, first.col, end_col).in_file(first.file.clone()),
         end_line,
-        end_col,
-        file: first.file.clone(),
     }
 }
 
@@ -1369,7 +1371,7 @@ fn include_file(
         if macros.contains_key("__resistor") {
             return Ok(Vec::new());
         }
-        let toks = lex_named(crate::CIRCUITS, "circuits")?;
+        let toks = lex_in(crate::CIRCUITS, Some("circuits"), &includes.sources)?;
         let mut expanded = expand(&toks, macros, depth + 1, includes)?;
         if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
             expanded.pop();
@@ -1414,7 +1416,7 @@ fn include_file(
     }
     let content =
         std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
-    let toks = lex_named(&content, fname)?;
+    let toks = lex_in(&content, Some(fname), &includes.sources)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
     let inc_ctx = includes.child(inc_base);
     let mut expanded = expand(&toks, macros, depth + 1, &inc_ctx)?;
@@ -4166,14 +4168,21 @@ box
     fn raw_args_of_a_call_in_a_named_unit_carry_its_name() {
         // positions stay relative to their own source: a call in the
         // circuits library reports file "circuits"
-        let toks =
-            crate::lexer::lex_named("define m { [ box ] }\nm( 1e-9 )\n", "circuits").unwrap();
+        let ctx = IncludeCtx::default();
+        let src = "define m { [ box ] }\nm( 1e-9 )\n";
+        let toks = lex_in(src, Some("circuits"), &ctx.sources).unwrap();
         let mut macros = HashMap::new();
-        let out = expand(&toks, &mut macros, 0, &IncludeCtx::default()).unwrap();
+        let out = expand(&toks, &mut macros, 0, &ctx).unwrap();
         let site = out.iter().find_map(|t| t.call_site.clone()).unwrap();
         let a = &site.call.raw_args[0];
         assert_eq!(
-            (a.text.as_str(), a.line, a.col, a.end_col, a.file.as_deref()),
+            (
+                a.text.as_str(),
+                a.span.line,
+                a.span.col,
+                a.span.end_col,
+                a.span.file.as_deref()
+            ),
             ("1e-9", 2, 4, 8, Some("circuits"))
         );
     }
@@ -4183,11 +4192,15 @@ box
         // a user call to a `-c` library macro: every token it expands to —
         // including the library's inner `__resistor($1, $2)` call — names
         // the user's call, whose raw arguments are file-less user text
+        let ctx = IncludeCtx::default();
         let mut toks = Vec::new();
-        splice_unit(&mut toks, lex_named(crate::CIRCUITS, "circuits").unwrap());
-        toks.extend(lex("A: (0,0); B: (2,0)\nresistor( A ,B)").unwrap());
+        splice_unit(
+            &mut toks,
+            lex_in(crate::CIRCUITS, Some("circuits"), &ctx.sources).unwrap(),
+        );
+        toks.extend(lex_in("A: (0,0); B: (2,0)\nresistor( A ,B)", None, &ctx.sources).unwrap());
         let mut macros = HashMap::new();
-        let out = expand(&toks, &mut macros, 0, &IncludeCtx::default()).unwrap();
+        let out = expand(&toks, &mut macros, 0, &ctx).unwrap();
         let sites: Vec<_> = out.iter().filter_map(|t| t.call_site.clone()).collect();
         assert!(!sites.is_empty());
         for site in &sites {
@@ -4196,7 +4209,14 @@ box
                 .call
                 .raw_args
                 .iter()
-                .map(|a| (a.text.as_str(), a.line, a.col, a.file.as_deref()))
+                .map(|a| {
+                    (
+                        a.text.as_str(),
+                        a.span.line,
+                        a.span.col,
+                        a.span.file.as_deref(),
+                    )
+                })
                 .collect();
             assert_eq!(raw, [("A", 2, 11, None), ("B", 2, 14, None)]);
         }

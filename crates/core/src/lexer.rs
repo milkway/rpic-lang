@@ -34,20 +34,62 @@ pub struct Spanned {
     /// calls nested inside an expansion keep the outer call's site.
     /// Excluded from `PartialEq` like `file`.
     pub call_site: Option<Arc<CallSite>>,
-    /// The token's place in the text it was lexed from: that text (shared
-    /// by every token of one lexing pass) and the token's char range
-    /// `[start, end)` in it. Lets the preprocessor recover a macro
-    /// argument exactly as written ([`crate::ir::RawArg`]). `None` for
-    /// synthesized tokens. Excluded from `PartialEq` like `file`.
-    pub(crate) source: Option<TokenSource>,
+    /// The token's place in the text it was lexed from (see [`SrcRange`]).
+    /// Lets the preprocessor recover a macro argument exactly as written
+    /// ([`crate::ir::RawArg`]). Plain `Copy` data, so cloning a token costs
+    /// nothing more; excluded from `PartialEq` like `file`.
+    pub(crate) src: SrcRange,
 }
 
-/// See [`Spanned::source`].
-#[derive(Clone)]
-pub(crate) struct TokenSource {
-    pub(crate) text: Arc<[char]>,
+/// A token's char range `[start, end)` in lexed text number `unit` of the
+/// compilation's [`SourceTable`]. `unit == 0` = unknown (synthesized
+/// tokens, or text lexed without a table).
+#[derive(Clone, Copy, Default, Debug)]
+pub(crate) struct SrcRange {
+    pub(crate) unit: u32,
     pub(crate) start: u32,
     pub(crate) end: u32,
+}
+
+/// The texts one compilation lexed (user input, preludes, `copy`
+/// includes, `exec` strings), so token [`SrcRange`]s can be resolved back
+/// to source text. Shared by the clones of one [`crate::ast::IncludeCtx`]
+/// and dropped with the compiled picture.
+#[derive(Clone, Default)]
+pub(crate) struct SourceTable(Arc<std::sync::Mutex<Vec<Arc<[char]>>>>);
+
+impl SourceTable {
+    fn register(&self, text: &Arc<[char]>) -> u32 {
+        let mut t = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        t.push(Arc::clone(text));
+        u32::try_from(t.len()).unwrap_or(0)
+    }
+
+    /// The text spanning `first` through `last`, when both lie in one
+    /// known unit in order.
+    pub(crate) fn slice(&self, first: SrcRange, last: SrcRange) -> Option<String> {
+        if first.unit == 0 || first.unit != last.unit || first.start > last.end {
+            return None;
+        }
+        let t = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let text = t.get(first.unit as usize - 1)?;
+        text.get(first.start as usize..last.end as usize)
+            .map(|cs| cs.iter().collect())
+    }
+}
+
+impl std::fmt::Debug for SourceTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SourceTable")
+    }
+}
+
+/// Bookkeeping, not identity: two contexts compare equal whatever they
+/// have lexed.
+impl PartialEq for SourceTable {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
 }
 
 /// Where a macro expansion came from: the call as written at the
@@ -71,7 +113,7 @@ impl Spanned {
             arg_frame: None,
             macro_frame: None,
             call_site: None,
-            source: None,
+            src: SrcRange::default(),
         }
     }
 
@@ -156,12 +198,26 @@ pub fn lex_named(src: &str, file: &str) -> Result<Vec<Spanned>, LexError> {
     Lexer::new(src, Some(Arc::from(file))).run()
 }
 
+/// Like [`lex`] / [`lex_named`] (`file` = `None` / `Some`), registering the
+/// text in `table` so the tokens' [`SrcRange`]s resolve back to it.
+pub(crate) fn lex_in(
+    src: &str,
+    file: Option<&str>,
+    table: &SourceTable,
+) -> Result<Vec<Spanned>, LexError> {
+    let mut l = Lexer::new(src, file.map(Arc::from));
+    l.unit = table.register(&l.chars);
+    l.run()
+}
+
 struct Lexer {
     chars: Arc<[char]>,
     pos: usize,
     line: u32,
     col: u32,
     file: Option<Arc<str>>,
+    /// This text's number in a [`SourceTable`] (0 = not registered).
+    unit: u32,
     out: Vec<Spanned>,
 }
 
@@ -173,6 +229,7 @@ impl Lexer {
             line: 1,
             col: 1,
             file,
+            unit: 0,
             out: Vec::new(),
         }
     }
@@ -321,11 +378,13 @@ impl Lexer {
         let mut t = Spanned::new(tok, line, col)
             .with_end(end_col)
             .with_file(self.file.clone());
-        t.source = Some(TokenSource {
-            text: Arc::clone(&self.chars),
-            start: u32::try_from(start).unwrap_or(u32::MAX),
-            end: u32::try_from(self.pos).unwrap_or(u32::MAX),
-        });
+        if self.unit != 0 {
+            t.src = SrcRange {
+                unit: self.unit,
+                start: u32::try_from(start).unwrap_or(u32::MAX),
+                end: u32::try_from(self.pos).unwrap_or(u32::MAX),
+            };
+        }
         self.out.push(t);
     }
 

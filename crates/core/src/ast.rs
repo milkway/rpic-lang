@@ -67,6 +67,9 @@ pub struct IncludeCtx {
     /// every filesystem include is denied (a fence that failed to resolve
     /// must fail closed).
     pub(crate) fence: Option<std::path::PathBuf>,
+    /// The texts this compilation lexed, for recovering macro arguments
+    /// as written. Shared by `child` contexts; reset per compilation.
+    pub(crate) sources: crate::lexer::SourceTable,
 }
 
 impl IncludeCtx {
@@ -76,6 +79,7 @@ impl IncludeCtx {
             dir,
             policy: IncludePolicy::Unrestricted,
             fence: None,
+            sources: Default::default(),
         }
     }
 
@@ -88,7 +92,12 @@ impl IncludeCtx {
             }
             _ => None,
         };
-        Self { dir, policy, fence }
+        Self {
+            dir,
+            policy,
+            fence,
+            sources: Default::default(),
+        }
     }
 
     /// A nested include's context: its own directory, same policy and fence.
@@ -97,6 +106,7 @@ impl IncludeCtx {
             dir,
             policy: self.policy,
             fence: self.fence.clone(),
+            sources: self.sources.clone(),
         }
     }
 }

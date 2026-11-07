@@ -3438,10 +3438,18 @@ fn macro_calls_keep_their_arguments_as_written() {
     let raw: Vec<(&str, u32, u32, u32, u32)> = call
         .raw_args
         .iter()
-        .map(|a| (a.text.as_str(), a.line, a.col, a.end_line, a.end_col))
+        .map(|a| {
+            (
+                a.text.as_str(),
+                a.span.line,
+                a.span.col,
+                a.end_line,
+                a.span.end_col,
+            )
+        })
         .collect();
     assert_eq!(raw, [("1e-9", 2, 3, 2, 7), ("\"a, b\"", 2, 9, 2, 15)]);
-    assert!(call.raw_args.iter().all(|a| a.file.is_none()));
+    assert!(call.raw_args.iter().all(|a| a.span.file.is_none()));
 }
 
 #[test]
@@ -3455,7 +3463,15 @@ fn raw_macro_arguments_span_continuations_and_empty_slots() {
     let raw: Vec<(&str, u32, u32, u32, u32)> = call
         .raw_args
         .iter()
-        .map(|a| (a.text.as_str(), a.line, a.col, a.end_line, a.end_col))
+        .map(|a| {
+            (
+                a.text.as_str(),
+                a.span.line,
+                a.span.col,
+                a.end_line,
+                a.span.end_col,
+            )
+        })
         .collect();
     assert_eq!(
         raw,
@@ -3502,7 +3518,14 @@ fn raw_macro_arguments_in_an_include_name_the_include() {
     let raw: Vec<(&str, u32, u32, Option<&str>)> = call
         .raw_args
         .iter()
-        .map(|a| (a.text.as_str(), a.line, a.col, a.file.as_deref()))
+        .map(|a| {
+            (
+                a.text.as_str(),
+                a.span.line,
+                a.span.col,
+                a.span.file.as_deref(),
+            )
+        })
         .collect();
     assert_eq!(
         raw,

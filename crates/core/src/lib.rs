@@ -208,26 +208,18 @@ pub fn passthrough_json(d: &Drawing) -> String {
 }
 
 /// Build the JSON `raw_args` array of a macro call ([`ir::MacroCall::raw_args`]):
-/// one `{"text","line","col","end_line","end_col"[,"file"]}` object per
-/// argument, the argument exactly as written and where.
+/// one `{"text","line","col","end_col"[,"file"],"end_line"}` object per
+/// argument — the argument exactly as written (`text` may contain `\n`)
+/// and its range, in the flat span convention of `passthrough`.
 pub fn raw_args_json(call: &ir::MacroCall) -> String {
     let mut s = String::from("[");
     for (i, a) in call.raw_args.iter().enumerate() {
         if i > 0 {
             s.push(',');
         }
-        s.push_str(&format!(
-            "{{\"text\":\"{}\",\"line\":{},\"col\":{},\"end_line\":{},\"end_col\":{}",
-            json_str(&a.text),
-            a.line,
-            a.col,
-            a.end_line,
-            a.end_col
-        ));
-        if let Some(f) = &a.file {
-            s.push_str(&format!(",\"file\":\"{}\"", json_str(f)));
-        }
-        s.push('}');
+        s.push_str(&format!("{{\"text\":\"{}\"", json_str(&a.text)));
+        s.push_str(&span_fields(Some(&a.span)));
+        s.push_str(&format!(",\"end_line\":{}}}", a.end_line));
     }
     s.push(']');
     s

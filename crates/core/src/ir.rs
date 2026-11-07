@@ -119,24 +119,24 @@ pub struct MacroCall {
 }
 
 /// One macro-call argument as written (see [`MacroCall::raw_args`]).
+/// Same shape as [`PassLine`]: text, a [`Span`](crate::diagnostic::Span)
+/// from its start to its end, and the last line.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawArg {
     /// The source text from the argument's first token to its last,
     /// verbatim (inner whitespace, `\` line continuations and comments
-    /// included, surrounding whitespace not). Empty for an empty argument.
+    /// included, surrounding whitespace not); it may contain `\n`. Empty
+    /// for an empty argument.
     pub text: String,
-    /// Where `text` starts: 1-based line and column (in chars). For an
-    /// empty argument, just past the `(` or `,` that precedes it.
-    pub line: u32,
-    pub col: u32,
-    /// Where `text` ends: the line of its last char and the column just
-    /// past it (exclusive). Equal to `line`/`col` for an empty argument.
+    /// Where `text` sits, relative to its own source unit (`span.file`:
+    /// `None` = the user's input, `"circuits"` = the library, else the
+    /// `copy` name as written): `span.line`/`span.col` (1-based, in chars)
+    /// where it starts, `span.end_col` just past its last char, on
+    /// `end_line`. An empty argument sits just past the `(` or `,` that
+    /// precedes it (`col == end_col`).
+    pub span: crate::diagnostic::Span,
+    /// The line `text` ends on: `span.line` unless it spans lines.
     pub end_line: u32,
-    pub end_col: u32,
-    /// The source the positions are relative to, as in
-    /// [`crate::diagnostic::Span::file`]: `None` = the user's input,
-    /// `"circuits"` = the library, else the `copy` name as written.
-    pub file: Option<std::sync::Arc<str>>,
 }
 
 /// A named place: the point a `Label: position` statement defines.
