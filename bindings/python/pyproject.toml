@@ -23,5 +23,12 @@ Homepage = "https://github.com/milkway/rpic-lang"
 Repository = "https://github.com/milkway/rpic-lang"
 Issues = "https://github.com/milkway/rpic-lang/issues"
 
+[project.optional-dependencies]
+# `rpic.geo.to_geodataframe()` — the GeoJSON side needs nothing
+geo = ["geopandas>=0.14"]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
+# mixed layout: the extension is `rpic._native`, `python/rpic/` is the package
+python-source = "python"
+module-name = "rpic._native"

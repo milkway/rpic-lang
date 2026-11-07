@@ -18,7 +18,7 @@ use std::sync::OnceLock;
 pub const MERCATOR_RADIUS: f64 = 6_378_137.0;
 
 /// Projection frame of a registration (`geo_frame`: 0 = ENU, 1 = Mercator).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Frame {
     #[default]
@@ -47,7 +47,7 @@ impl Frame {
 }
 
 /// A WGS84 position, degrees.
-#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LonLat {
     pub lon: f64,
     pub lat: f64,

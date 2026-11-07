@@ -1,0 +1,123 @@
+---
+layout: ../../layouts/MdxLayout.astro
+title: Maps — pic drawings as GeoJSON
+description: Place a pic drawing on the Earth with a few variables and get a GeoJSON FeatureCollection, a GeoDataFrame or an sf object — annotations, callouts and sketches on real maps.
+---
+import Callout from '../../components/Callout.astro';
+import PicFigure from '../../components/PicFigure.astro';
+
+# Maps — pic drawings as GeoJSON
+
+A pic drawing is a plane of inches. **geopic** places that plane on the Earth
+with a four-parameter similarity — an anchor, a scale in metres per inch and
+a bearing — and carries every shape to longitude/latitude: boxes and circles
+become polygons, lines and arrows line strings, labels points, all with their
+style as [simplestyle](https://github.com/mapbox/simplestyle-spec) properties
+plus a `geopic:*` namespace. The result is a standard GeoJSON
+`FeatureCollection` (WGS84) that Leaflet, MapLibre, QGIS, geopandas or sf read
+directly.
+
+Nothing about the pic language changes: the placement is a few variables in
+the source (or options on the call), and the same drawing still renders to
+SVG, PNG and PDF as before.
+
+## Declare where the origin is
+
+```pic
+geo_lon = -34.8711     # WGS84 position of the pic origin (0, 0)
+geo_lat = -8.0631
+geo_scale = 400        # metres per inch of the drawing
+geo_bearing = 0        # azimuth of +y, clockwise from north (default)
+
+dot at (0, 0) rad 0.04
+B: box "Marco Zero" "Recife" wid 1.3 ht 0.5 at (1.4, 0.9) fill 0.95 class "screen"
+arrow from B.sw to (0.06, 0.06) thick 1.2
+```
+
+<PicFigure src="examples/geo/callout.pic" caption="examples/geo/callout.pic — the same source, rendered as SVG. With --geojson the dot lands on Marco Zero and the box a few hundred metres north-east of it." />
+
+```sh
+rpic --geojson callout.pic > callout.geojson
+```
+
+```json
+{ "type": "FeatureCollection", "features": [
+  { "type": "Feature",
+    "geometry": { "type": "Point", "coordinates": [-34.8711, -8.0631] },
+    "properties": { "geopic:schema": 1, "geopic:id": "s0", "geopic:kind": "dot",
+                    "geopic:placement": "screen", "fill": "#000000", "…": "…" } },
+  { "type": "Feature",
+    "geometry": { "type": "Polygon", "coordinates": [[[-34.868, -8.0616], "…"]] },
+    "properties": { "geopic:kind": "box", "title": "Marco Zero\nRecife",
+                    "fill": "#f2f2f2", "stroke": "#000000", "stroke-width": 0.8,
+                    "geopic:label": "B", "geopic:class": "screen",
+                    "geopic:placement": "screen", "…": "…" } }
+] }
+```
+
+## Or let two known points fix everything
+
+Name two places and say where they are: scale and bearing follow from how
+they sit on the canvas versus on the Earth (three or more points give a
+least-squares fit with the residual reported).
+
+<PicFigure src="examples/geo/arrow-between-features.pic" caption="examples/geo/arrow-between-features.pic — Recife_lon/_lat and Olinda_lon/_lat are control points; the arrow becomes a 62-vertex geodesic of 6.3 km." />
+
+## Geodesic geometry
+
+Straight segments are densified in the plane before being carried to the
+ellipsoid, so a long line follows the geodesic and a circle is a true circle
+in metres — not in degrees.
+
+<PicFigure src="examples/geo/radius.pic" caption="examples/geo/radius.pic — a 2 km radius: every polygon vertex is 2 000 m from the centre along the ellipsoid." />
+
+<PicFigure src="examples/geo/two-control-points.pic" caption="examples/geo/two-control-points.pic — a site plan drawn in metres, registered by two surveyed corners; it lands on the map rotated to true north on its own." />
+
+## From Python
+
+```python
+import rpic
+
+fc  = rpic.geo.to_geojson(src)                     # dict: a FeatureCollection
+out = rpic.geo.compile(src, frame="mercator")      # {"geojson", "warnings", "registration"}
+gdf = rpic.geo.to_geodataframe(src)                # geopandas, EPSG:4326 — pip install "rpiclang[geo]"
+
+# name features the source may refer to without defining them:
+fc = rpic.geo.to_geojson(
+    'geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 1000\narrow from Recife to Olinda',
+    features={"Recife": (-34.8711, -8.0631), "Olinda": (-34.8553, -8.0089)},
+)
+```
+
+`features` also takes a GeoDataFrame indexed by name (centroid as the point,
+bounds as the bbox, so `Name.n`, `Name.e` … follow its extent). Warnings are
+raised as `rpic.geo.GeoWarning` and returned structured; errors are
+`rpic.geo.GeoError` with `exc.info["kind"]` (`no_registration`,
+`invalid_anchor`, …).
+
+<Callout type="note">
+Reproducibility is at the millimetre, not the byte: the platform's `sin`/`cos`
+differ in their last bits between operating systems, and a control-point fit
+can carry that into the ninth decimal of a coordinate. The repository's own
+example guard compares within 1e-8°.
+</Callout>
+
+## Frames, caps and the contract
+
+- `geo_frame = 0` (default) is **`enu`**: a local tangent plane at the anchor,
+  geodesics by Karney's algorithms (`geographiclib-rs`). `geo_frame = 1` is
+  **`mercator`**: a similarity in EPSG:3857 metres, so straight lines stay
+  straight on a web map.
+- `geo_px = 1` reads lengths as pixels at a `view_scale` (px per inch); the
+  scene's `rescale` (`.PS <width>`) is folded in automatically.
+- Hostile input cannot amplify the output: 100 000 vertices per segment,
+  2 000 000 per scene (warning `densification_budget`), effective scale
+  ≤ 10⁹ m/in.
+- Everything the GeoJSON cannot represent — gradients, typeset math, animation
+  timelines — raises a structured warning, never silence.
+
+The full contract (registration rules, kind table, property vocabulary, JSON
+Schema, warnings, versioning) is
+[`docs/geopic.md`](https://github.com/milkway/rpic-lang/blob/main/docs/geopic.md);
+the crate is [`geopic-core`](https://crates.io/crates/geopic-core) and the
+engine does not depend on it.

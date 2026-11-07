@@ -27,6 +27,16 @@ resolves to the latest version.
   and repeatable `--geo-feature NAME=LON,LAT` control points; warnings on
   stderr. `examples/geo/` holds four worked examples with their expected
   `.geojson`, guarded against drift by `crates/cli/tests/geo.rs`.
+- **Python `rpic.geo`** (`rpiclang`, now a mixed package wrapping the native
+  `rpic._native`): `compile(src, …)` → `{"geojson", "warnings",
+  "registration"}`, `to_geojson()` and `to_geodataframe()` (geopandas via the
+  `rpiclang[geo]` extra; an `ImportError` names it otherwise). Keyword
+  overrides mirror `GeoOptions`; `features` (dict, tuples or a GeoDataFrame)
+  are injected as places — or invisible boxes when they have a bbox — before
+  compiling, so a source can say `arrow from Recife to Olinda` without
+  defining them. Warnings are raised as `GeoWarning` and returned
+  structured; `animate` timelines raise an `ignored` warning. Site page
+  "Maps (GeoJSON)"; `examples/geo/folium.ipynb`.
 
 - Scene: a top-level `rescale` field — the uniform factor the whole-picture
   rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`
