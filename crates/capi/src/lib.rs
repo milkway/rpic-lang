@@ -417,26 +417,31 @@ pub unsafe extern "C" fn rpic_compile_json_opts(
     ex: *const RpicOptions,
     opts_json: *const c_char,
 ) -> *mut c_char {
-    let mut o = unsafe { opts_ex(ex) };
-    let json = if opts_json.is_null() {
-        None
-    } else {
-        match unsafe { as_str(opts_json) } {
-            Some(j) => Some(j),
-            None => return to_c_string(invalid_options_json("options JSON is not UTF-8")),
-        }
-    };
-    match json_opts(json, &mut o) {
-        Err(msg) => to_c_string(invalid_options_json(&msg)),
-        Ok(None) => compile_json_impl(src, &o),
-        Ok(Some(sopts)) => guard_ptr(|| {
-            let Some(s) = (unsafe { as_str(src) }) else {
-                return ptr::null_mut();
-            };
-            ensure_math_renderer();
-            to_c_string(rpic_core::compile_json_all_with_options(s, &o, &sopts))
-        }),
-    }
+    // the whole body, options parsing included, runs under `guard_ptr`: no
+    // panic may unwind across `extern "C"` (#319)
+    guard_ptr(|| {
+        let mut o = unsafe { opts_ex(ex) };
+        let json = if opts_json.is_null() {
+            None
+        } else {
+            match unsafe { as_str(opts_json) } {
+                Some(j) => Some(j),
+                None => return to_c_string(invalid_options_json("options JSON is not UTF-8")),
+            }
+        };
+        let sopts = match json_opts(json, &mut o) {
+            Ok(s) => s,
+            Err(msg) => return to_c_string(invalid_options_json(&msg)),
+        };
+        let Some(s) = (unsafe { as_str(src) }) else {
+            return ptr::null_mut();
+        };
+        ensure_math_renderer();
+        to_c_string(match sopts {
+            None => rpic_core::compile_json_with_options(s, &o),
+            Some(sopts) => rpic_core::compile_json_all_with_options(s, &o, &sopts),
+        })
+    })
 }
 
 /// Like [`rpic_render_png`] with full [`RpicOptions`] (NULL = defaults).
