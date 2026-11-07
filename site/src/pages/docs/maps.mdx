@@ -5,6 +5,7 @@ description: Place a pic drawing on the Earth with a few variables and get a Geo
 ---
 import Callout from '../../components/Callout.astro';
 import PicFigure from '../../components/PicFigure.astro';
+import GeoMap from '../../components/GeoMap.astro';
 
 # Maps — pic drawings as GeoJSON
 
@@ -34,7 +35,9 @@ B: box "Marco Zero" "Recife" wid 1.3 ht 0.5 at (1.4, 0.9) fill 0.95 class "scree
 arrow from B.sw to (0.06, 0.06) thick 1.2
 ```
 
-<PicFigure src="examples/geo/callout.pic" caption="examples/geo/callout.pic — the same source, rendered as SVG. With --geojson the dot lands on Marco Zero and the box a few hundred metres north-east of it." />
+<PicFigure src="examples/geo/callout.pic" caption="examples/geo/callout.pic — the same source, rendered as SVG." />
+
+<GeoMap src="examples/geo/callout.pic" caption="… and on the map. The dot sits on Marco Zero; the box (class “screen”) is an HTML marker that keeps its pixel size while the arrow scales with the zoom. Click a shape for its id." />
 
 ```sh
 rpic --geojson callout.pic > callout.geojson
@@ -61,7 +64,9 @@ Name two places and say where they are: scale and bearing follow from how
 they sit on the canvas versus on the Earth (three or more points give a
 least-squares fit with the residual reported).
 
-<PicFigure src="examples/geo/arrow-between-features.pic" caption="examples/geo/arrow-between-features.pic — Recife_lon/_lat and Olinda_lon/_lat are control points; the arrow becomes a 62-vertex geodesic of 6.3 km." />
+<PicFigure src="examples/geo/arrow-between-features.pic" caption="examples/geo/arrow-between-features.pic — Recife_lon/_lat and Olinda_lon/_lat are control points." />
+
+<GeoMap src="examples/geo/arrow-between-features.pic" caption="The arrow is a 62-vertex geodesic of 6.3 km between the two control points; labels are symbol layers from geopic:text." />
 
 ## Geodesic geometry
 
@@ -69,9 +74,13 @@ Straight segments are densified in the plane before being carried to the
 ellipsoid, so a long line follows the geodesic and a circle is a true circle
 in metres — not in degrees.
 
-<PicFigure src="examples/geo/radius.pic" caption="examples/geo/radius.pic — a 2 km radius: every polygon vertex is 2 000 m from the centre along the ellipsoid." />
+<PicFigure src="examples/geo/radius.pic" caption="examples/geo/radius.pic — a 2 km radius." />
 
-<PicFigure src="examples/geo/two-control-points.pic" caption="examples/geo/two-control-points.pic — a site plan drawn in metres, registered by two surveyed corners; it lands on the map rotated to true north on its own." />
+<GeoMap src="examples/geo/radius.pic" caption="Every vertex of the polygon is 2 000 m from the centre along the ellipsoid; the dashed stroke comes from geopic:dash." />
+
+<PicFigure src="examples/geo/two-control-points.pic" caption="examples/geo/two-control-points.pic — a site plan drawn in metres, registered by two surveyed corners." />
+
+<GeoMap src="examples/geo/two-control-points.pic" height="18rem" caption="The plan lands on the map rotated to true north on its own: scale and bearing come out of the two-point fit." />
 
 ## From Python
 

@@ -36,7 +36,9 @@ resolves to the latest version.
   compiling, so a source can say `arrow from Recife to Olinda` without
   defining them. Warnings are raised as `GeoWarning` and returned
   structured; `animate` timelines raise an `ignored` warning. Site page
-  "Maps (GeoJSON)"; `examples/geo/folium.ipynb`.
+  "Maps (GeoJSON)" with the four examples on **interactive MapLibre maps**
+  (georeferenced at build time, styled from their simplestyle + `geopic:*`
+  properties; screen-placed boxes as HTML markers); `examples/geo/folium.ipynb`.
 - **JS/TS `compileGeoJSON` / `geoToCanvas`** (`@strategicprojects/rpic`):
   geopic in the browser. A third, lazily fetched wasm build
   (`ready(…, { geo: true })` → `pkg/rpic_wasm_geo_bg.wasm`, from the new `geo`
