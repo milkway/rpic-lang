@@ -322,7 +322,7 @@ define ac_source {
 }
 
 # --- SPST switch (open) ---------------------------------------------------
-define switch {
+define __switch {
   ssx=$1.x; ssy=$1.y; sex=$2.x; sey=$2.y
   sdx=sex-ssx; sdy=sey-ssy; sL=sqrt(sdx*sdx+sdy*sdy)
   sux=sdx/sL; suy=sdy/sL; spx=0-suy; spy=sux
@@ -376,7 +376,7 @@ define transformer {
 # Batch 4: MOSFETs, extra sources, diode variants.
 
 # --- n-channel MOSFET (enhancement) --------------------------------------
-define nmos {
+define __nmos {
   mx=$1.x; my=$1.y
   line from (mx-0.4,my) to (mx-0.2,my)
   line from (mx-0.2,my-0.18) to (mx-0.2,my+0.18)
@@ -393,7 +393,7 @@ define nmos {
 }
 
 # --- p-channel MOSFET (enhancement) --------------------------------------
-define pmos {
+define __pmos {
   mx=$1.x; my=$1.y
   line from (mx-0.4,my) to (mx-0.2,my)
   line from (mx-0.2,my-0.18) to (mx-0.2,my+0.18)
@@ -989,7 +989,7 @@ define signal_ground {
 # Batch 10: JFETs, digital blocks, transducers.
 
 # --- n-channel JFET ------------------------------------------------------
-define njfet {
+define __njfet {
   mx=$1.x; my=$1.y
   line from (mx-0.12,my-0.2) to (mx-0.12,my+0.2)
   line from (mx-0.4,my) to (mx-0.24,my)
@@ -1002,7 +1002,7 @@ define njfet {
 }
 
 # --- p-channel JFET (gate arrow points outward) --------------------------
-define pjfet {
+define __pjfet {
   mx=$1.x; my=$1.y
   line from (mx-0.12,my-0.2) to (mx-0.12,my+0.2)
   line from (mx-0.4,my) to (mx-0.28,my)
@@ -1090,3 +1090,14 @@ define thermocouple {
   circle rad 0.025 fill 0 at (esx+eux*em+epx*0.18,esy+euy*em+epy*0.18)
   line from (esx+eux*(em+0.15),esy+euy*(em+0.15)) to (eex,eey)
 }
+
+# --- two-name glyphs --------------------------------------------------------
+# These elements keep their geometry under a `__` name, like `__resistor`,
+# so a prelude that shadows the public name (to add pins or a value label
+# around it) can still draw the library's geometry instead of copying it.
+# Kept at the end so no line above moves (object spans point into bodies).
+define switch { __switch($1, $2) }
+define nmos   { __nmos($1) }
+define pmos   { __pmos($1) }
+define njfet  { __njfet($1) }
+define pjfet  { __pjfet($1) }
