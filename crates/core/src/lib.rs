@@ -312,7 +312,10 @@ pub struct CompileOptions {
     /// must be non-empty, unique, free of `"` and line breaks, and not a
     /// reserved name (`circuits`, `<texlabels>`, `features`); a bad name is an
     /// `invalid_options` compile error. [`IncludePolicy`] is unaffected:
-    /// the text is given, not read.
+    /// the text is given, not read — but a `copy "file"` *inside* a prelude
+    /// is an ordinary include and still goes through [`IncludePolicy`] (and
+    /// resolves against [`CompileOptions::base`]), so a prelude cannot be
+    /// used to escape a sandbox.
     pub preludes: Vec<Prelude>,
 }
 
@@ -1182,6 +1185,21 @@ mod tests {
             let j = compile_json_with_options("box\n", &opts);
             assert!(j.contains("\"kind\":\"invalid_options\""), "{j}");
         }
+    }
+
+    #[test]
+    fn a_copy_inside_a_prelude_obeys_the_include_policy() {
+        let opts = CompileOptions {
+            includes: IncludePolicy::Deny,
+            ..Default::default()
+        }
+        .with_prelude("lib", "box\ncopy \"secret.pic\"\n");
+        let e = compile_with_diagnostics("circle\n", &opts).unwrap_err();
+        assert_eq!(e.info.kind, "include_denied", "{e:?}");
+        assert_eq!(
+            (e.info.line, e.info.file.as_deref()),
+            (Some(2), Some("lib"))
+        );
     }
 
     #[test]
