@@ -69,6 +69,47 @@ pub fn compile_scene(
     rpic_core::compile_json_all_with_options(src, &opts, &sopts)
 }
 
+/// Like [`compile_with`], plus named preludes (`names[i]` ↔ `texts[i]`):
+/// source units spliced after `circuits`/`texlabels`, in order, before `src`
+/// — positions inside one carry `file` = its name; the user's own positions
+/// never shift. Bad names (or mismatched lengths) come back as an
+/// `invalid_options` error bundle. `scene` adds the scene key as
+/// [`compile_scene`] does.
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn compile_preludes(
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    names: Vec<String>,
+    texts: Vec<String>,
+    scene: bool,
+    flatten: Option<f64>,
+    outline: bool,
+) -> String {
+    let mut opts = wasm_options(circuits, texlabels);
+    if names.len() != texts.len() {
+        // a name without a text: let the core's validation name it
+        opts.preludes.push(rpic_core::Prelude::new("", ""));
+    } else {
+        opts.preludes = names
+            .into_iter()
+            .zip(texts)
+            .map(|(n, t)| rpic_core::Prelude::new(n, t))
+            .collect();
+    }
+    if scene {
+        let sopts = rpic_core::SceneOptions {
+            flatten: flatten.filter(|f| f.is_finite() && *f > 0.0),
+            outline,
+            source: None,
+        };
+        rpic_core::compile_json_all_with_options(src, &opts, &sopts)
+    } else {
+        rpic_core::compile_json_with_options(src, &opts)
+    }
+}
+
 pub(crate) fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
     rpic_core::CompileOptions {
         circuits,

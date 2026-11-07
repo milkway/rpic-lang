@@ -272,6 +272,20 @@ export interface CompileOptions {
   flatten?: number;
   /** scene: embed typeset math as SVG glyph fragments (`outline` keys) */
   outline?: boolean;
+  /**
+   * Named source units compiled before `src` (after `circuits`/`texlabels`,
+   * in order): positions inside one carry `file: name`; the caller's own
+   * positions never shift. Names must be non-empty, unique, free of `"` and
+   * line breaks, and not `circuits`/`<texlabels>` (else an
+   * `invalid_options` error).
+   */
+  preludes?: Prelude[];
+}
+
+/** A named source unit for `CompileOptions.preludes`. */
+export interface Prelude {
+  name: string;
+  text: string;
 }
 
 export interface ReadyOptions {
@@ -344,6 +358,8 @@ export interface GeoOptions {
   circuits?: boolean;
   /** set `texlabels = 1` (the geo build has no math renderer: literal labels + a diagnostic) */
   texlabels?: boolean;
+  /** named source units compiled before the source, as in `CompileOptions.preludes` */
+  preludes?: Prelude[];
   /** projection frame; overrides `geo_frame` */
   frame?: 'enu' | 'mercator';
   /** `[lon, lat]` of the pic origin; overrides `geo_lon`/`geo_lat` */

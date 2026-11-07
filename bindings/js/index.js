@@ -86,15 +86,35 @@ function ensure() {
  * `scene` key (see docs/scene.md; versioned, y-up inches, cubic curves);
  * `flatten` (inches) delivers its curves as polylines instead, and
  * `outline` embeds typeset math as SVG glyph fragments.
+ *
+ * `preludes: [{ name, text }]` are named source units (a macro library, a
+ * house style …) compiled before `src`, after `circuits`/`texlabels`, in
+ * order: positions inside one carry `file: name`, the caller's own positions
+ * never shift, and objects drawn by a prelude macro called from `src` keep
+ * the call's provenance. A bad name throws with `errorInfo.kind ===
+ * 'invalid_options'`.
  * @param {string} src
- * @param {{circuits?: boolean, texlabels?: boolean, scene?: boolean, flatten?: number, outline?: boolean}} [opts]
+ * @param {{circuits?: boolean, texlabels?: boolean, scene?: boolean, flatten?: number, outline?: boolean, preludes?: {name: string, text: string}[]}} [opts]
  */
 export function compile(src, opts = {}) {
   ensure();
   if (opts.flatten !== undefined && !(Number.isFinite(opts.flatten) && opts.flatten > 0)) {
     throw new Error('rpic: flatten must be a positive finite tolerance in inches');
   }
-  const json = opts.scene || opts.flatten !== undefined
+  const preludes = normalizePreludes(opts.preludes);
+  const scene = !!opts.scene || opts.flatten !== undefined;
+  const json = preludes.length
+    ? wasm.compile_preludes(
+        src,
+        !!opts.circuits,
+        !!opts.texlabels,
+        preludes.map((p) => p.name),
+        preludes.map((p) => p.text),
+        scene,
+        opts.flatten,
+        !!opts.outline,
+      )
+    : scene
     ? wasm.compile_scene(src, !!opts.circuits, !!opts.texlabels, opts.flatten, !!opts.outline)
     : opts.texlabels
       ? wasm.compile_with(src, !!opts.circuits, true)
@@ -106,6 +126,23 @@ export function compile(src, opts = {}) {
     throw compileError(out);
   }
   return out;
+}
+
+/**
+ * `preludes` as `[{ name, text }]` with string fields (the engine validates
+ * the names); `undefined`/`null` = none.
+ */
+function normalizePreludes(preludes) {
+  if (preludes == null) return [];
+  if (!Array.isArray(preludes)) {
+    throw new TypeError('rpic: preludes must be an array of { name, text }');
+  }
+  return preludes.map((p, i) => {
+    if (!p || typeof p.name !== 'string' || typeof p.text !== 'string') {
+      throw new TypeError(`rpic: preludes[${i}] must be { name: string, text: string }`);
+    }
+    return { name: p.name, text: p.text };
+  });
 }
 
 /** The Error a pic error becomes: `.errorInfo` (a Diagnostic) + `.warnings`. */
@@ -315,14 +352,20 @@ function compileWithFeatures(src, feats, base, opts) {
   // placeholder lines (a span is relative to the caller's text + prelude)
   let scene;
   try {
-    scene = compile(placeholders + src, { circuits: opts.circuits, texlabels: opts.texlabels, scene: true }).scene;
+    scene = compile(placeholders + src, {
+      circuits: opts.circuits,
+      texlabels: opts.texlabels,
+      preludes: opts.preludes,
+      scene: true,
+    }).scene;
   } catch (e) {
     rebaseLine(e.errorInfo, k);
     throw e;
   }
   const defined = new Set();
   for (const p of [...(scene.places ?? []), ...(scene.items ?? [])]) {
-    if (names.has(p.label) && (p.span?.line ?? 0) > k) defined.add(p.label);
+    // a definition inside a named prelude (`file` set) is the source's too
+    if (names.has(p.label) && (p.span?.file != null || (p.span?.line ?? 0) > k)) defined.add(p.label);
   }
   const own = feats.filter((f) => defined.has(f.name));
   const inject = feats.filter((f) => !defined.has(f.name));
@@ -389,6 +432,9 @@ function layerOptions(o) {
  * they have a `bbox`, so `Name.n`/`Name.e` follow its extent — before the
  * final pass. Diagnostics keep the caller's line numbers.
  *
+ * `preludes: [{ name, text }]` are named source units compiled before
+ * `src`, as in `compile`.
+ *
  * `layers: true` adds `layers`: the MapLibre style-spec layers that draw the
  * collection with sizes true to the ground (source id `"pic"`; hand them to
  * `attach` from `@strategicprojects/rpic/maplibre`). `layers: { textScale }`
@@ -411,6 +457,8 @@ export function compileGeoJSON(src, opts = {}) {
     flatten: opts.flatten,
     view_scale: opts.viewScale,
     screen_classes: opts.screenClasses,
+    // named preludes (compiled before the source, see `compile`)
+    preludes: normalizePreludes(opts.preludes),
     // the MapLibre layers (docs/geopic.md § 6); absent unless asked for
     layers,
   };

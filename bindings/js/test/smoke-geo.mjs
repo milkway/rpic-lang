@@ -190,6 +190,22 @@ const injLayers = compileGeoJSON('geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_sca
 });
 assert.equal(injLayers.layers.length, 6);
 
+// #450: preludes reach compileGeoJSON, also through the two-pass injection
+{
+  const pre = [{ name: 'lib', text: 'define spot { [ circle rad 0.1 ] }\nRecife: (0,0)\n' }];
+  const g = compileGeoJSON('geo_lon = -34.8711\ngeo_lat = -8.0631\nspot()\n', { preludes: pre });
+  assert.ok(g.geojson.features.length >= 1);
+  const inj = compileGeoJSON('geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 1000\narrow from Recife to Olinda', {
+    preludes: pre,
+    features: { Olinda: [-34.8553, -8.0089] },
+  });
+  assert.ok(inj.geojson.features.length >= 1);
+  assert.throws(
+    () => compileGeoJSON('box', { preludes: [{ name: '', text: 'box' }] }),
+    (e) => e.errorInfo?.kind === 'invalid_options',
+  );
+}
+
 // the regular compile surface still carries scenes
 assert.ok(compile('box', { scene: true }).scene.items.length === 1);
 
