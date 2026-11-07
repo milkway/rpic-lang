@@ -2,8 +2,11 @@
 //!
 //! The core stays free of any typesetting dependency: a renderer is a plain
 //! function registered once per process (the CLI and bindings register the
-//! RaTeX-backed implementation from `rpic-render`; the wasm build registers
-//! nothing and math labels fall back to literal text). The hook is
+//! RaTeX-backed implementation from `rpic-render`; on wasm only the
+//! math-enabled build — `crates/wasm`'s `math` feature, the `rpic_wasm_math`
+//! npm artifact — registers it at module start, while the lean default build
+//! registers nothing and math labels fall back to literal text plus a
+//! diagnostic; see `docs/tex-labels.md` § "On wasm"). The hook is
 //! deliberately neutral so an alternative backend — e.g. Typst + mitex, the
 //! documented second choice in `docs/tex-labels.md` — can slot in without
 //! touching the core.
