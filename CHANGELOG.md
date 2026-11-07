@@ -15,8 +15,9 @@ resolves to the latest version.
 - Macro calls keep their arguments as written: `MacroCall.raw_args`
   (`Vec<RawArg>`, index-aligned with the normalized `args`) gives each
   argument's source text from its first token to its last — `1e-9` stays
-  `1e-9`, spacing, quotes and `\` continuations kept — with
-  `line`/`col` → `end_line`/`end_col` and the source unit's `file`. Sliced
+  `1e-9`, spacing, quotes and `\` continuations kept — with its `span`
+  (start, `end_col`, the source unit's `file`) and `end_line`, the shape
+  of `PassLine`. Sliced
   from the lexed text, not rebuilt from tokens; nested calls carry the
   outermost call's, like `args`. The scene's block `call` gains `raw_args`
   (additive; `scene` stays 1). `--svg`/`--json` unchanged. DECISIONS E1
@@ -30,6 +31,11 @@ resolves to the latest version.
   bundle's `passthrough` entry gains `end_line`) instead of being a parse
   error. A `+` line anywhere else is still an error; dpic 2025.08.01 rejects
   both. Single-line entries are byte-identical. DECISIONS E2 (#425).
+- **API:** `ir::MacroCall`, `ir::RawArg` and `ir::PassLine` are now
+  `#[non_exhaustive]`: they are embedder-facing records that will keep
+  growing (#425 item 3 extends them again), so code outside rpic-core can
+  read their fields but no longer build them with a struct literal or
+  match them exhaustively. Nothing in rpic or rpic-r builds them.
 
 ## [0.15.1] — 2026-11-07
 

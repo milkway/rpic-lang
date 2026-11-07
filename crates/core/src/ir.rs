@@ -105,6 +105,7 @@ pub struct BlockInfo {
 
 /// A macro invocation, as recorded for [`BlockInfo::call`].
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct MacroCall {
     /// The macro's name.
     pub name: String,
@@ -122,6 +123,7 @@ pub struct MacroCall {
 /// Same shape as [`PassLine`]: text, a [`Span`](crate::diagnostic::Span)
 /// from its start to its end, and the last line.
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct RawArg {
     /// The source text from the argument's first token to its last,
     /// verbatim (inner whitespace, `\` line continuations and comments
@@ -159,6 +161,7 @@ pub struct PlaceInfo {
 
 /// A troff passthrough line (see [`Drawing::passthrough`]).
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct PassLine {
     /// The line as written, leading `.` included, without its line ending.
     /// A request continued by column-1 `+` lines (the troff convention for
