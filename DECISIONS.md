@@ -312,25 +312,47 @@ Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
 
 ## Embedder API (2026-11-07, #425)
 
-### E1. Raw call-site arguments are sliced from the lexed text
+### E1. Raw call-site arguments are sliced from the lexed text (side table)
 
 `MacroCall.raw_args` (index-aligned with `args`) records each argument as
-the author wrote it. The text is the slice of the source the tokens were
-lexed from, from the argument's first token to its last: every token now
-carries (crate-private) an `Arc` of its lexing pass's text — one per pass,
-shared, so cloning costs a refcount — and its char range. Rebuilding from
-tokens would lose the spelling (`1e-9`), the spacing and continuations,
-which is the point. Consequences:
+the author wrote it, as `RawArg {text, span, end_line}` — the same shape as
+`PassLine`, one shape for "source text with a range". The text is the
+slice of the source the tokens were lexed from, from the argument's first
+token to its last. Rebuilding from tokens would lose the spelling
+(`1e-9`), the spacing and continuations, which is the point.
 
-- Positions follow the diagnostics architecture: `line`/`col` of the first
-  token, `end_line`/`end_col` (exclusive) derived from the slice itself, and
-  `file` = `None` (user input), `"circuits"`, or the `copy` name. A span
-  type with `end_line` was needed because `Span` is single-line.
+Representation: every token carries a crate-private `Copy`
+`SrcRange {unit, start, end}` (char offsets), and the texts one compilation
+lexes (user input, `circuits`, `copy` includes, `exec` strings) live in a
+`SourceTable` on the `IncludeCtx` — created fresh by each
+`parse_with_prelude`, shared by its clones (eval-time expansion of deferred
+bodies), dropped with the picture. A first version put an `Arc<[char]>` of
+the text on every token; measured against main (release builds, medians,
+macOS arm64) it cost too much memory, so it was replaced:
+
+| | main | `Arc` per token | side table (kept) |
+|---|---|---|---|
+| `Spanned` size | 88 B | 112 B | 96 B |
+| peak RSS `-c` figuras/fig30 | 30.7 MiB | 36.2 MiB (+18 %) | 33.1 MiB (+8 %) |
+| peak RSS `-c` figuras/fig01 | 15.4 MiB | — | 16.1 MiB (+5 %) |
+| `-c --svg` dpic/man36 (#373 case, 31 runs) | 4.49 ms | 5.3 ms¹ | 4.55 ms (+1 %) |
+| full corpus `-c -t --svg`, 128 files (5 runs) | 1.611 s | 2.00 s¹ | 1.691 s (+5 %) |
+
+¹ separate, noisier session (main 4.3 ms / 1.87 s there); the RSS figures
+are stable across runs.
+
+Below the ~10 % budget, so the side table stays. Consequences:
+
+- Positions follow the diagnostics architecture: `span.line`/`span.col` of
+  the first token, `span.end_col` (exclusive) and `end_line` derived from
+  the slice itself, `span.file` = `None` (user input), `"circuits"`, or the
+  `copy` name. `end_line` is needed because `Span` is single-line.
 - User input is lexed after the backend-preamble filter, which blanks lines
   but keeps line structure, so positions match the original source; a
   blanked troff line inside an argument would read as empty there.
 - An empty argument (`m(a,,b)`) has `text` `""` placed just past its
-  `(`/`,`. Tokens without one shared lexed text (synthesized, or `exec`
+  `(`/`,` (`read_args` returns one separator per argument; asserted). Tokens
+  without one registered lexed text (synthesized, or `exec`
   text mixed with substituted arguments) fall back to the normalized text.
 - Nested calls carry the outermost call's raw arguments, exactly like
   `args`. Exposed in the scene's block `call` (additive, format 1); the
@@ -345,6 +367,10 @@ statement — now joins the previous `PassLine`: `text` keeps the newlines
 (the embedder can re-split), `span.line` is the first line, `span.end_col`
 the end of the last, and `end_line` the last line. The bundle emits
 `end_line` only for continued entries, so every existing output is
-byte-identical. Anywhere else a column-1 `+` keeps its parse error.
+byte-identical. Anywhere else a column-1 `+` keeps its parse error — in
+particular right after `.PS`/`.PE` (e.g. `.PS 4` then `+ x`): those are the
+picture markers handled with the backend preamble, not passthrough
+entries, so there is nothing to continue ("expected an object, found +";
+dpic rejects it too).
 dpic 2025.08.01 rejects both forms ("Syntax error, unexpected +"): this is
 an rpic leniency, inert for every source dpic accepts.

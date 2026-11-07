@@ -256,7 +256,9 @@ fn scene<'py>(
 /// Compile to the parsed bundle: a dict `{"svg": str, "animations": [dict],
 /// "diagnostics": [str], "warnings": [dict], "objects": [dict]}` — plus
 /// `"places"` / `"passthrough"` when the source defines named places or
-/// carries troff lines. Raises `CompileError` (with
+/// carries troff lines. A passthrough entry's `"text"` may contain `\n`: a
+/// request continued by column-1 `+` lines is one entry, and only such a
+/// continued entry carries `"end_line"` (its last line). Raises `CompileError` (with
 /// the structured diagnostic on `exc.info`) on a pic error. With
 /// `scene=True` (or a `flatten` tolerance) the dict also carries the
 /// device-independent `"scene"` draw list and its `scene_unsupported`

@@ -229,7 +229,8 @@ propagate out, matching dpic.
   `\`-continued line and text inside a multi-line string are still pic.
   A `+` in column 1 right after such a line (or after another `+` line)
   continues the same troff request and joins its passthrough entry; dpic
-  rejects it, and a `+` line anywhere else is still a parse error.
+  rejects it, and a `+` line anywhere else — including right after
+  `.PS`/`.PE`, which are markers, not passthrough — is still a parse error.
 - A statement ends at a newline or `;`; a trailing `\` continues the line,
   and a path also continues across a newline adjacent to `then`.
 - Labels start with an uppercase letter; variables with lowercase.

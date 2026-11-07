@@ -187,7 +187,10 @@ pub fn places_json(d: &Drawing) -> String {
 
 /// Build the JSON `passthrough` array: the troff request lines set aside
 /// before lexing ([`Drawing::passthrough`]), in source order, each with its
-/// text (leading `.` included) and source span.
+/// text (leading `.` included) and source span. A request continued by
+/// column-1 `+` lines is one entry whose `text` contains `\n` and which
+/// carries `end_line` (its last line); `end_line` rides only on such
+/// continued entries, so single-line entries keep their 0.13.0 shape.
 pub fn passthrough_json(d: &Drawing) -> String {
     let mut s = String::from("[");
     for (i, l) in d.passthrough.iter().enumerate() {
