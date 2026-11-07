@@ -133,8 +133,11 @@ pub const ANCHORS: [(&str, &str); 9] = [
     ("sw", "bottom-left"),
 ];
 
-/// The per-collection numbers the size expressions are built from.
+/// The per-collection numbers the size expressions are built from. Built
+/// only by [`sizing`] / [`sizing_with`] (`#[non_exhaustive]`: fields may be
+/// added, as `text_scale` was).
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct Sizing {
     /// `registration.scale_m_per_in` (100 when absent).
     pub m_per_in: f64,

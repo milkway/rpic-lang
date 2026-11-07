@@ -10,6 +10,13 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Changed
+
+- geopic-core: `maplibre::Sizing` gained a `text_scale` field and is now
+  `#[non_exhaustive]` — read its fields freely, but build it only through
+  `sizing()` / `sizing_with()` (a struct literal outside the crate no longer
+  compiles).
+
 ### Added
 
 - geopic → MapLibre: a `text_scale` layer option multiplies every label's
