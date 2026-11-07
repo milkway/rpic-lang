@@ -370,8 +370,12 @@ function compileWithFeatures(src, feats, base, opts) {
   const own = feats.filter((f) => defined.has(f.name));
   const inject = feats.filter((f) => !defined.has(f.name));
   // pass 1: the registration — declared anchor, or the source's control
-  // points, the source-defined features among them
-  const first = geoPass(placeholders + src, k, { ...base, features: own }, opts);
+  // points, the source-defined features among them. Placeholders only for
+  // the features nobody defines: a placeholder sits in the caller's text,
+  // after any prelude, and would clobber a prelude's definition (last
+  // label wins); the source's own definitions need none either.
+  const holders = inject.map((f) => `${f.name}: (0, 0)\n`).join('');
+  const first = geoPass(holders + src, inject.length, { ...base, features: own }, opts);
   if (!inject.length) return first;
   const pre = prelude(first.registration, first.canvas, inject);
   const out = geoPass(pre + src, inject.length, { ...base, features: feats }, opts);

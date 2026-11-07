@@ -200,6 +200,18 @@ assert.equal(injLayers.layers.length, 6);
     features: { Olinda: [-34.8553, -8.0089] },
   });
   assert.ok(inj.geojson.features.length >= 1);
+  // a feature the prelude defines is not clobbered by a placeholder (which
+  // would sit after the prelude, in the caller's text)
+  const own = compileGeoJSON('geo_scale = 1000\narrow from Recife to Olinda', {
+    preludes: [{ name: 'lib', text: 'Recife: (3, 1)\n' }],
+    features: { Recife: [-34.8711, -8.0631], Olinda: [-34.8553, -8.0089] },
+  });
+  // exactly as if the source itself defined Recife
+  const same = compileGeoJSON('geo_scale = 1000\nRecife: (3, 1)\narrow from Recife to Olinda', {
+    features: { Recife: [-34.8711, -8.0631], Olinda: [-34.8553, -8.0089] },
+  });
+  assert.deepEqual(own.registration, same.registration);
+  assert.ok(Math.abs(own.registration.scale_m_per_in - 1000) < 0.1, JSON.stringify(own.registration));
   assert.throws(
     () => compileGeoJSON('box', { preludes: [{ name: '', text: 'box' }] }),
     (e) => e.errorInfo?.kind === 'invalid_options',

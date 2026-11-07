@@ -231,8 +231,12 @@ def _compile_with_features(src: str, feats: list[_Feature], kwargs: dict) -> dic
     own = [f for f in feats if f[0] in defined]
     inject = [f for f in feats if f[0] not in defined]
     # pass 1: the registration — declared anchor, or the source's control
-    # points, the source-defined features among them
-    first = _compile(placeholders + src, k, features=own, **kwargs)
+    # points, the source-defined features among them. Placeholders only for
+    # the features nobody defines: a placeholder sits in the caller's text,
+    # after any prelude, and would clobber a prelude's definition (last
+    # label wins); the source's own definitions need none either.
+    holders = "".join(f"{f[0]}: (0, 0)\n" for f in inject)
+    first = _compile(holders + src, len(inject), features=own, **kwargs)
     if not inject:
         return first
     prelude = _prelude(first["registration"], first["canvas"], inject)
