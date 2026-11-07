@@ -1509,6 +1509,22 @@ mod tests {
     }
 
     #[test]
+    fn vars_hold_the_top_level_table_block_locals_stay_out() {
+        // S14: `=` inside `[ ]` is block-local (as dpic), so it never reaches
+        // the top-level `vars`; `:=` on an existing outer variable propagates.
+        let v = scene_of("[ x = 3; box ]");
+        assert!(v["vars"].get("x").is_none(), "block-local x leaked");
+        let v = scene_of("x = 1\n[ x = 3; box ]");
+        assert_eq!(v["vars"]["x"].as_f64().unwrap(), 1.0);
+        let v = scene_of("x = 1\n[ x := 3; box ]");
+        assert_eq!(v["vars"]["x"].as_f64().unwrap(), 3.0);
+        // `if`/`for` bodies are not scopes
+        let v = scene_of("if 1 then { y = 2 }\nfor i = 1 to 1 do { z = 4 }\nbox");
+        assert_eq!(v["vars"]["y"].as_f64().unwrap(), 2.0);
+        assert_eq!(v["vars"]["z"].as_f64().unwrap(), 4.0);
+    }
+
+    #[test]
     fn ids_match_source_order_and_z_matches_draw_order_with_behind() {
         // A3 at unit level: behind reorders z but never renumbers ids
         let v = scene_of("A: box at (0,0)\nB: box behind A at (2,0)\ncircle at (4,0)");

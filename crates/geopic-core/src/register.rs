@@ -268,8 +268,10 @@ pub fn register(
                     "nothing places this drawing on the Earth",
                 )
                 .hint(
-                    "set geo_lon/geo_lat (+ geo_scale in metres per inch, geo_bearing) in the source \
-                     or pass anchor=, or give control points <Label>_lon/<Label>_lat for labelled places",
+                    "set geo_lon/geo_lat (+ geo_scale in metres per inch, geo_bearing) at the top level \
+                     of the source (a `=` inside `[ ]` is local to the block, as in dpic; `:=` there \
+                     assigns an existing top-level variable) or pass anchor=, or give control points \
+                     <Label>_lon/<Label>_lat for labelled places",
                 ));
             };
             Registration {

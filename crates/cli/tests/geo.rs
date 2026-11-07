@@ -529,3 +529,28 @@ fn text_scale_scales_the_maplibre_labels() {
         String::from_utf8_lossy(&alone.stderr).contains("only applies to `--geojson --maplibre`")
     );
 }
+
+#[test]
+fn block_local_geo_vars_explain_no_registration() {
+    // #443 / DECISIONS S14: `=` inside `[ ]` is block-local (as dpic)
+    let tmp = TempPic::new("[ geo_lon = -34.87; geo_lat = -8.06; box ]\n");
+    let out = rpic(&["--geojson"], &tmp.path);
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("no_registration") && err.contains("top level"),
+        "{err}"
+    );
+    // `:=` onto a top-level variable registers
+    let tmp =
+        TempPic::new("geo_lon = 0\ngeo_lat = 0\n[ geo_lon := -34.87; geo_lat := -8.06; box ]\n");
+    let out = rpic(&["--geojson"], &tmp.path);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["geopic"]["registration"]["anchor"]["lon"], -34.87);
+    assert_eq!(v["geopic"]["registration"]["anchor"]["lat"], -8.06);
+}

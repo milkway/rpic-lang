@@ -186,6 +186,9 @@ The sizing formulas and the layer table are in
   geodesics by Karney's algorithms (`geographiclib-rs`). `geo_frame = 1` is
   **`mercator`**: a similarity in EPSG:3857 metres, so straight lines stay
   straight on a web map.
+- Assign `geo_*` (and `<Label>_lon`/`_lat`) at the top level: as in dpic, a
+  `=` inside `[ … ]` is local to the block, so `[ geo_lon = … ]` gives
+  `no_registration`; `:=` onto an existing top-level variable propagates.
 - `geo_px = 1` reads lengths as pixels at a `view_scale` (px per inch); the
   scene's `rescale` (`.PS <width>`) is folded in automatically.
 - Hostile input cannot amplify the output: 100 000 vertices per segment,

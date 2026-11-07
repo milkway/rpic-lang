@@ -12,6 +12,12 @@ resolves to the latest version.
 
 ### Fixed
 
+- geopic: `geo_*` assigned with `=` inside a `[ … ]` block gave a bare
+  `no_registration`. That is pic scoping (a `=` inside a block is local, as in
+  dpic — verified against the oracle), so the engine is unchanged; the
+  `no_registration` hint, docs/geopic.md, docs/scene.md (`vars` = the
+  top-level table) and the Maps page now say to assign them at top level, or
+  with `:=` onto an existing top-level variable (DECISIONS S14, #443).
 - Python: `rpic.compile()` now carries every key of the `--json` bundle
   (#444). It built its dict by hand and dropped the objects' `"link"`
   (`link "<url>"`, #358), the top-level `"interactions"` array

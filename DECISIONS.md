@@ -166,6 +166,32 @@ the schema/golden-key test and the JS types gain them, they ride only on
 items that emit text. `--svg`/`--json` are untouched; the corpus `--scene`
 changes only by the two keys.
 
+### S14. `vars` is the top-level table; `=` inside `[ ]` stays block-local (#443)
+
+`[ geo_lon = -34.87; geo_lat = -8.06; box ]` gave `no_registration` while the
+same assignments in an `if`/`for` body registered. Not an export bug: the
+evaluator scopes `=` inside a block locally (`eval/build.rs::block` evaluates
+in a sub-`State` and copies back only `:=`/`+=`-style updates of inherited
+variables), and that is pic semantics — the oracle (dpic 2025.08.01, `-v`)
+agrees on every probe, and so does rpic:
+
+| source | dpic | rpic |
+|---|---|---|
+| `[ x = 3; box ]` / `box wid x` | `Variable not found … "x"` | ``variable not found `x` `` |
+| `x = 1` / `[ x = 3; box ]` / `box wid x` | wid 1 in (96 px) | wid 1 in |
+| `x = 1` / `[ x := 3; box ]` / `box wid x` | wid 3 in (288 px) | wid 3 in |
+| `if 1 then { x = 3 }` / `box wid x` | wid 3 in | wid 3 in |
+| `for i = 1 to 1 do { y = 2 }` / `box wid y` | wid 2 in | wid 2 in |
+
+So the scene's `vars` is, consistently, the **top-level** variable table at
+the end of evaluation; block-local variables die with their block and are not
+exported (exporting them would invent a global that pic itself does not
+have). The engine is unchanged; the fix is the contract: docs/scene.md
+(`vars`), docs/geopic.md §1 and the Maps page say "assign `geo_*` at top
+level (or `:=` onto a top-level variable)", and geopic's `no_registration`
+hint says the same. Tests lock both behaviours (scene, geopic-core, CLI).
+`--svg`/`--json`/`--scene` are byte-unchanged; only the hint text moves.
+
 ## geopic-core (2026-11-06)
 
 ### G1. Input is the scene *document*, not engine types — approved by the user

@@ -1527,3 +1527,27 @@ fn maplibre_text_field_pads_a_trailing_blank_row() {
         .unwrap();
     assert_eq!(title.properties["geopic:text"], "above\n");
 }
+
+#[test]
+fn block_local_geo_vars_do_not_register_but_colon_eq_does() {
+    // S14 / #443: `=` inside `[ ]` is block-local (as dpic), so the drawing
+    // has no registration — and the hint says why.
+    for src in [
+        "[ geo_lon = -34.87; geo_lat = -8.06; box ]",
+        "B: [ geo_lon = -34.87; geo_lat = -8.06; box ]",
+    ] {
+        let e = georeference(&scene_of(src), &GeoOptions::default()).unwrap_err();
+        assert_eq!(e.kind, "no_registration", "{src}");
+        let hint = e.hint.as_deref().unwrap_or("");
+        assert!(hint.contains("top level") && hint.contains(":="), "{hint}");
+    }
+    // `:=` onto a top-level variable propagates out of the block
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\n[ geo_lon := -34.87; geo_lat := -8.06; box ]"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(g.registration.method, Method::Anchor);
+    assert_eq!(g.registration.anchor.lon, -34.87);
+    assert_eq!(g.registration.anchor.lat, -8.06);
+}
