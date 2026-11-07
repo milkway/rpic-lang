@@ -137,11 +137,15 @@ fn main() -> ExitCode {
                 Ok(v) => geo.bearing = Some(v),
                 Err(e) => return fail(&e),
             },
-            "--geo-frame" => match string_arg(&args, &mut i, a, "`enu` or `mercator`").as_deref() {
-                Ok("enu") => geo.frame = Some(geopic_core::Frame::Enu),
-                Ok("mercator") => geo.frame = Some(geopic_core::Frame::Mercator),
-                _ => return fail(&format!("rpic: `{a}` needs `enu` or `mercator`")),
-            },
+            "--geo-frame" => {
+                match string_arg(&args, &mut i, a, "`enu` or `mercator`").and_then(|v| {
+                    v.parse::<geopic_core::Frame>()
+                        .map_err(|e| format!("rpic: `{a}`: {e}"))
+                }) {
+                    Ok(f) => geo.frame = Some(f),
+                    Err(e) => return fail(&e),
+                }
+            }
             "--geo-view-scale" => {
                 match number_arg(&args, &mut i, a, "number of pixels per inch", true) {
                     Ok(v) => geo.view_scale = Some(v),
@@ -345,7 +349,11 @@ fn run(
             if let Some(f) = sopts.flatten {
                 geo.flatten = f;
             }
-            let g = geopic_core::georeference(&scene.json, &geo).map_err(|e| e.to_string())?;
+            let mut g = geopic_core::georeference(&scene.json, &geo).map_err(|e| e.to_string())?;
+            if !d.anims.is_empty() {
+                g.warnings
+                    .push(geopic_core::Warning::animations_ignored(d.anims.len()));
+            }
             for w in &g.warnings {
                 emit_warning(&w.kind, w.id.as_deref(), &w.message);
             }

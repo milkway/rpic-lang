@@ -99,7 +99,7 @@ index) the SVG emitter uses, so array order equals SVG document order of the
 | `class` | when set | the `class` extension string |
 | `link` | when set | the `link` extension URL (already validated) |
 | `hidden` | when true | the item paints nothing (`move`, invisible helper spines). Ids must align with the SVG's groups, which exist for every shape, so hidden items stay in the list |
-| `span` | block items, when known | where the block came from in the source: `{line, col, end_col, file?}` of the **outermost macro call** that expanded to it, or of its opening `[` for a block written inline. Shapes inside a macro body are attributed to the `define` body; this field names the line that asked for the block |
+| `span` | when known | the item's source position `{line, col, end_col, file?}`: for a shape the statement that produced it (inside a macro body, the `define` line — as `objects` reports); for a block item the **outermost macro call** that expanded to it, or its opening `[` when written inline — the line that asked for the block |
 | `call` | block items made by a macro | that outermost call, `{name, args}` — `args` as written, one string each, normalized token text (a lone string argument keeps its quotes) |
 
 Notes on kinds: `arrow` is a `line` whose statement carried arrowheads; `dot`
@@ -297,7 +297,7 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
   (JSON Schema 2020-12); a test validates every corpus scene against it.
 - Additive history within version 1: **0.13.0** added the top-level `places`
   array and the block items' `span`/`call` provenance fields; **0.14.0** added
-  the top-level `rescale` factor.
+  the top-level `rescale` factor and `span` on shape items.
 
 ## 8. Color resolution
 

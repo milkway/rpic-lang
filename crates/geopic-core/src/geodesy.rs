@@ -46,6 +46,22 @@ impl Frame {
     }
 }
 
+impl std::str::FromStr for Frame {
+    type Err = GeoError;
+
+    /// `"enu"` or `"mercator"` — the one parse every front end shares.
+    fn from_str(s: &str) -> Result<Self, GeoError> {
+        match s {
+            "enu" => Ok(Frame::Enu),
+            "mercator" => Ok(Frame::Mercator),
+            other => Err(GeoError::new(
+                "invalid_frame",
+                format!("frame must be `enu` or `mercator`, got `{other}`"),
+            )),
+        }
+    }
+}
+
 /// A WGS84 position, degrees.
 #[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct LonLat {

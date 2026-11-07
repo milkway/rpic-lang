@@ -301,6 +301,18 @@ impl Drop for TempPic {
 }
 
 #[test]
+fn animations_are_warned_on_the_cli_too() {
+    let tmp = TempPic::new("geo_lon = 0\ngeo_lat = 0\nbox\nanimate last box with \"fade\"\n");
+    let out = rpic(&["--geojson"], &tmp.path);
+    assert!(out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("animation") && err.contains("(ignored)"),
+        "{err}"
+    );
+}
+
+#[test]
 fn flatten_reaches_the_georeferencer() {
     // `--flatten` also sets the geo tolerance: a tiny circle (1 m, so the
     // 100 m chord rule is moot) gets its ring vertex count from it — the

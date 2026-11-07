@@ -206,22 +206,38 @@ impl Item {
 }
 
 impl Scene {
-    /// Canvas point a label names: the last place with that label, else the
-    /// last top-level item carrying it (else the last item at all), by its
-    /// reference point.
+    /// Canvas point a label names, with pic's scoping: among the places and
+    /// objects carrying the label, a top-level definition beats a block-local
+    /// one, and among those the **latest in the source** (by span; by
+    /// position in the scene when spans are missing) wins — so a definition
+    /// the user wrote overrides one a host prepended.
     pub fn point_of_label(&self, label: &str) -> Option<[f64; 2]> {
-        if let Some(p) = self.places.iter().rev().find(|p| p.label == label) {
-            return Some(p.at);
+        // (top-level?, line, col, order) → point
+        type Key = (bool, u32, u32, usize);
+        let mut best: Option<(Key, [f64; 2])> = None;
+        let mut consider = |top: bool, span: Option<&Span>, order: usize, at: [f64; 2]| {
+            let key = (
+                top,
+                span.map_or(0, |s| s.line),
+                span.map_or(0, |s| s.col),
+                order,
+            );
+            if best.is_none_or(|(k, _)| key > k) {
+                best = Some((key, at));
+            }
+        };
+        for (i, p) in self.places.iter().enumerate() {
+            if p.label == label {
+                consider(p.block.is_none(), p.span.as_ref(), i, p.at);
+            }
         }
-        // pic semantics: a redefined label names the latest definition; a
-        // top-level object wins over a block-local one of the same name
-        let named = |i: &&Item| i.label.as_deref() == Some(label);
-        self.items
-            .iter()
-            .rev()
-            .filter(|i| i.block.is_none())
-            .find(named)
-            .or_else(|| self.items.iter().rev().find(named))
-            .and_then(Item::reference_point)
+        for (i, it) in self.items.iter().enumerate() {
+            if it.label.as_deref() == Some(label)
+                && let Some(at) = it.reference_point()
+            {
+                consider(it.block.is_none(), it.span.as_ref(), i, at);
+            }
+        }
+        best.map(|(_, at)| at)
     }
 }

@@ -44,6 +44,9 @@ resolves to the latest version.
   a variable to the geometry (metres per inch, for maps) multiply by it. Scene
   format stays 1 (additive); schema and golden-key test extended.
   `Drawing.rescale` carries it in Rust.
+- Scene: shape items carry their source `span` (as block items already did),
+  so a consumer can order definitions the way pic does — `geopic-core` uses
+  it to let a user's later `A: box` win over a host-prepended `A: (0,0)`.
 
 ## [0.13.0] — 2026-11-06
 

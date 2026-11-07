@@ -462,13 +462,10 @@ fn geo_options(
 ) -> PyResult<geopic_core::GeoOptions> {
     let frame = match frame {
         None => None,
-        Some("enu") => Some(geopic_core::Frame::Enu),
-        Some("mercator") => Some(geopic_core::Frame::Mercator),
-        Some(other) => {
-            return Err(pyo3::exceptions::PyValueError::new_err(format!(
-                "frame must be 'enu' or 'mercator' (got '{other}')"
-            )));
-        }
+        Some(f) => Some(
+            f.parse::<geopic_core::Frame>()
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.message))?,
+        ),
     };
     let defaults = geopic_core::GeoOptions::default();
     Ok(geopic_core::GeoOptions {
@@ -484,7 +481,8 @@ fn geo_options(
 }
 
 /// Georeference pic source (rpic.geo.compile's native half): returns
-/// `{"geojson": dict, "warnings": [dict], "registration": dict}`. Raises
+/// `{"geojson": dict, "warnings": [dict], "registration": dict, "canvas":
+/// {"rescale", "scale"}}`. Raises
 /// `CompileError` on a pic error and `GeoError` on a registration error.
 /// Animations cannot ride into GeoJSON: a source with `animate` statements
 /// adds an `ignored` warning naming how many timelines were dropped.
@@ -532,15 +530,8 @@ fn geo_compile<'py>(
     let scene = rpic_core::scene_json(&d, &rpic_core::SceneOptions::default());
     let mut g = geopic_core::georeference(&scene.json, &gopts).map_err(|e| geo_err(py, e))?;
     if !d.anims.is_empty() {
-        g.warnings.push(geopic_core::Warning {
-            kind: "ignored".to_string(),
-            message: format!(
-                "{} animation timeline(s) are not representable in GeoJSON; ignored",
-                d.anims.len()
-            ),
-            id: None,
-            span: None,
-        });
+        g.warnings
+            .push(geopic_core::Warning::animations_ignored(d.anims.len()));
     }
     let out = PyDict::new(py);
     out.set_item("geojson", json_loads(py, &g.features.to_json())?)?;
@@ -562,7 +553,32 @@ fn geo_compile<'py>(
             &serde_json::to_string(&g.registration).unwrap_or_default(),
         )?,
     )?;
+    // what the host needs to write canvas positions back as source
+    // coordinates: pic `scale` units per inch and the whole-picture rescale
+    let canvas = PyDict::new(py);
+    canvas.set_item("rescale", d.rescale)?;
+    let scale_var = d
+        .vars
+        .iter()
+        .find(|(k, _)| k == "scale")
+        .map_or(1.0, |(_, v)| *v);
+    canvas.set_item("scale", scale_var)?;
+    out.set_item("canvas", canvas)?;
     Ok(out)
+}
+
+/// Canvas positions (inches) of WGS84 points under a registration dict.
+#[pyfunction]
+fn geo_to_canvas_many(registration: &str, points: Vec<(f64, f64)>) -> PyResult<Vec<(f64, f64)>> {
+    let reg: geopic_core::Registration = serde_json::from_str(registration)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("bad registration: {e}")))?;
+    Ok(points
+        .into_iter()
+        .map(|(lon, lat)| {
+            let p = reg.to_canvas(geopic_core::LonLat { lon, lat });
+            (p[0], p[1])
+        })
+        .collect())
 }
 
 /// Canvas position (inches) of a WGS84 point under a registration dict (as
@@ -587,6 +603,7 @@ fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scene, m)?)?;
     m.add_function(wrap_pyfunction!(geo_compile, m)?)?;
     m.add_function(wrap_pyfunction!(geo_to_canvas, m)?)?;
+    m.add_function(wrap_pyfunction!(geo_to_canvas_many, m)?)?;
     m.add("CompileError", m.py().get_type::<CompileError>())?;
     m.add("GeoError", m.py().get_type::<GeoError>())?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;

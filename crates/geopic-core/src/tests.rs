@@ -709,6 +709,41 @@ fn labels_resolve_to_the_latest_top_level_definition() {
 }
 
 #[test]
+fn a_later_object_definition_beats_an_earlier_place_of_the_same_label() {
+    // a host prelude `A: (0,0)` followed by the user's own `A: box at (5,5)`:
+    // the user's definition is the live one (latest wins, by span)
+    let src =
+        "A: (0,0)\nA: box at (5,5)\nA_lon = 10\nA_lat = 20\nB: (1,1)\nB_lon = 10.01\nB_lat = 20";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let a = g.registration.to_lonlat([5.0, 5.0]);
+    assert!(
+        geodesy::geodesic_distance(
+            a,
+            LonLat {
+                lon: 10.0,
+                lat: 20.0
+            }
+        ) < 1e-3,
+        "{a:?}"
+    );
+    // and the reverse order: a place after the object wins
+    let src =
+        "A: box at (5,5)\nA: (0,0)\nA_lon = 10\nA_lat = 20\nB: (1,1)\nB_lon = 10.01\nB_lat = 20";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let a = g.registration.to_lonlat([0.0, 0.0]);
+    assert!(
+        geodesy::geodesic_distance(
+            a,
+            LonLat {
+                lon: 10.0,
+                lat: 20.0
+            }
+        ) < 1e-3,
+        "{a:?}"
+    );
+}
+
+#[test]
 fn host_features_override_source_control_points_and_scale_checks_wait_for_the_fit() {
     let src = "P: (0,0)\nQ: (2,0)\nP_lon = 0\nP_lat = 0\nQ_lon = 0.01\nQ_lat = 0\ngeo_px = 1\ngeo_scale = 1e12\nbox";
     let o = GeoOptions {
