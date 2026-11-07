@@ -39,6 +39,25 @@ resolves to the latest version.
   "Maps (GeoJSON)" with the four examples on **interactive MapLibre maps**
   (georeferenced at build time, styled from their simplestyle + `geopic:*`
   properties; screen-placed boxes as HTML markers); `examples/geo/folium.ipynb`.
+- **JS/TS `compileGeoJSON` / `geoToCanvas`** (`@strategicprojects/rpic`):
+  geopic in the browser. A third, lazily fetched wasm build
+  (`ready(…, { geo: true })` → `pkg/rpic_wasm_geo_bg.wasm`, from the new `geo`
+  feature of `crates/wasm`: `compile_geo` / `geo_to_canvas`) keeps the lean
+  module unchanged — geopic would have added 187 KB to it (DECISIONS G8).
+  `compileGeoJSON(src, { anchor, scale, bearing, frame, features, flatten,
+  viewScale, screenClasses, circuits, texlabels })` returns `{ geojson,
+  warnings, diagnostics, registration, canvas }` and ports `rpic.geo`'s
+  two-pass feature injection (validated, unique names; caller line numbers;
+  a position inside the injected lines is tagged `file: "features"`);
+  numeric options are validated (NaN/Infinity never fall back silently);
+  georeferencing failures throw `GeoError` with `info = { kind, message,
+  hint }`. Full TypeScript types (`GeoOptions`, `GeoResult`, `GeoWarning`,
+  `GeoRegistration`, `GeoFeatureInput`).
+- Geo results (wasm, JS and Python `rpic.geo.compile`) now carry the
+  engine's own warnings (`invalid_color`, `ignored_attribute`, …) ahead of
+  the scene and geopic ones, and a `diagnostics` list (pic `print` lines,
+  engine notices) — both were dropped before. `rpic_core::diagnostic_json`
+  is now public so bindings serialize diagnostics with the engine's keys.
 
 - Scene: a top-level `rescale` field — the uniform factor the whole-picture
   rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`

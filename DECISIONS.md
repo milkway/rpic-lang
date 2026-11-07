@@ -222,3 +222,21 @@ same tag. Its first crates.io publication will therefore be 0.14.0, not 0.1.0
   `geopic:id`, filled ones painted in the stroke color); a spline with several
   paths yields one feature per path (`geopic:part`).
 
+### G8. geopic in the browser is a third wasm artifact, not part of the lean module
+
+Measured with the release profile (`opt-level = "z"`, LTO, `wasm-opt -Oz`):
+the lean `rpic_wasm_bg.wasm` is 478 825 bytes on main; linking
+`geopic-core` (geodesics, registration, densification, GeoJSON writer,
+serde-derived option parsing) into it gives 666 318 bytes — **+187 493
+bytes (+39 %)**, 192 → 277 KB gzipped. That is over the ~150 KB budget set
+for "just put it in the lean module", and the lean build is what every
+rpic.dev example and every npm consumer pays for. So `crates/wasm` gains a
+`geo` cargo feature and the npm package a third artifact
+(`pkg/rpic_wasm_geo*`, 665 200 bytes), built by `build:wasm:geo` and loaded
+by `ready(url?, { geo: true })` — the exact mechanism of the `math` build,
+including the "already initialized as X" rejection. `math` and `geo` are
+mutually exclusive in `ready()` (no combined build is shipped; a page that
+needs typeset math *and* GeoJSON is not a use case yet). The host-side layer
+(two-pass feature injection) lives in `bindings/js/index.js`, a faithful port
+of `rpic.geo`, so the wasm surface stays two functions.
+

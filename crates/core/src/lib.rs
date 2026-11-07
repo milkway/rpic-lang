@@ -499,7 +499,11 @@ fn diagnostics_json_structured(items: &[Diagnostic]) -> String {
     s
 }
 
-fn diagnostic_json(d: &Diagnostic) -> String {
+/// One [`Diagnostic`] as the JSON object the bundle's `warnings` and
+/// `error_info` carry (`message`, `line`, `col`, `end_col`, `file`, `kind`,
+/// `found`, `expected`, `hint`) — for bindings that assemble their own
+/// result objects around engine diagnostics.
+pub fn diagnostic_json(d: &Diagnostic) -> String {
     let mut s = String::from("{");
     s.push_str(&format!("\"message\":\"{}\"", json_str(&d.message)));
     s.push_str(&format!(",\"line\":{}", json_opt_u32(d.line)));

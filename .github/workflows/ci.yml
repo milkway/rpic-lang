@@ -88,6 +88,8 @@ jobs:
         run: cargo fmt --manifest-path crates/wasm/Cargo.toml --all --check
       - name: Clippy standalone WASM crate
         run: cargo clippy --manifest-path crates/wasm/Cargo.toml --all-targets -- -D warnings
+      - name: Clippy standalone WASM crate (geo feature)
+        run: cargo clippy --manifest-path crates/wasm/Cargo.toml --all-targets --features geo -- -D warnings
 
   bindings:
     name: build bindings (wasm + python)

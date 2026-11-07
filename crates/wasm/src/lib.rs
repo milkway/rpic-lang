@@ -69,7 +69,7 @@ pub fn compile_scene(
     rpic_core::compile_json_all_with_options(src, &opts, &sopts)
 }
 
-fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
+pub(crate) fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
     rpic_core::CompileOptions {
         circuits,
         texlabels,
@@ -80,3 +80,8 @@ fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
         ..Default::default()
     }
 }
+
+/// geopic (`--features geo`, the `rpic_wasm_geo` npm artifact): pic drawings
+/// as GeoJSON. Gated because it adds ~180 KB to the module (DECISIONS.md G8).
+#[cfg(feature = "geo")]
+mod geo;

@@ -20,7 +20,28 @@ enu|mercator` and `--geo-view-scale PX` override the source's variables;
 drawing as a control point; `--flatten` is the curve tolerance. The library
 (`geopic_core::georeference` with `GeoOptions`) additionally takes
 `screen_classes` and a feature `bbox`, which the CLI does not expose; the
-Python binding (`rpic.geo`) mirrors the library and is the next step.
+Python binding (`rpic.geo.compile` / `to_geojson` / `to_geodataframe`) and
+the JS/TS package mirror the library. In JS, geopic lives in a third,
+lazily fetched wasm build (DECISIONS G8):
+
+```js
+import { ready, compileGeoJSON, geoToCanvas } from '@strategicprojects/rpic';
+await ready(undefined, { geo: true });   // fetches pkg/rpic_wasm_geo_bg.wasm
+const { geojson, warnings, diagnostics, registration, canvas } = compileGeoJSON(src, {
+  anchor: [-34.8711, -8.0631], scale: 1000, bearing: 0, frame: 'enu',
+  features: { Recife: [-34.8711, -8.0631], Olinda: [-34.8553, -8.0089] },
+});
+```
+
+Both bindings inject host `features` the source does not define in two
+passes (placed by the first pass's registration, as places or — with a
+`bbox` — invisible boxes), validate feature names against the pic-label
+pattern before anything compiles, report the engine's warnings and `print`
+lines (`diagnostics`) next to the geo warnings with the caller's line numbers
+(a position inside the injected lines carries `file: "features"`), and
+report errors structured (`GeoError` with `info = {kind, message, hint}`). The wasm exports underneath are
+`compile_geo(src, circuits, texlabels, opts_json)` and
+`geo_to_canvas(registration_json, points_json)`.
 Examples with their expected output live in `examples/geo/*.pic` +
 `*.geojson`, guarded by `crates/cli/tests/geo.rs`.
 

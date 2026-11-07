@@ -16,7 +16,8 @@
       "default": "./player.js"
     },
     "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm",
-    "./pkg/rpic_wasm_math_bg.wasm": "./pkg/rpic_wasm_math_bg.wasm"
+    "./pkg/rpic_wasm_math_bg.wasm": "./pkg/rpic_wasm_math_bg.wasm",
+    "./pkg/rpic_wasm_geo_bg.wasm": "./pkg/rpic_wasm_geo_bg.wasm"
   },
   "files": [
     "index.js",
@@ -31,16 +32,21 @@
     "pkg/rpic_wasm_math.d.ts",
     "pkg/rpic_wasm_math_bg.wasm",
     "pkg/rpic_wasm_math_bg.wasm.d.ts",
+    "pkg/rpic_wasm_geo.js",
+    "pkg/rpic_wasm_geo.d.ts",
+    "pkg/rpic_wasm_geo_bg.wasm",
+    "pkg/rpic_wasm_geo_bg.wasm.d.ts",
     "README.md"
   ],
   "scripts": {
     "build:wasm:lean": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg",
     "build:wasm:math": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg --out-name rpic_wasm_math -- --features math",
-    "build:wasm": "npm run build:wasm:lean && npm run build:wasm:math",
+    "build:wasm:geo": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg --out-name rpic_wasm_geo -- --features geo",
+    "build:wasm": "npm run build:wasm:lean && npm run build:wasm:math && npm run build:wasm:geo",
     "prepack": "npm run build:wasm",
-    "test": "node test/smoke.mjs && node test/smoke-math.mjs"
+    "test": "node test/smoke.mjs && node test/smoke-math.mjs && node test/smoke-geo.mjs"
   },
-  "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits"],
+  "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits", "geojson", "maps"],
   "author": "André Leite <leite@de.ufpe.br>",
   "license": "BSD-2-Clause",
   "repository": {

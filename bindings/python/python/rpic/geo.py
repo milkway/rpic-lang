@@ -8,7 +8,7 @@ Format, properties and warnings: ``docs/geopic.md`` in the repository.
 
     import rpic
     fc = rpic.geo.to_geojson(src)                 # dict (a FeatureCollection)
-    out = rpic.geo.compile(src)                   # {"geojson", "warnings", "registration", "canvas"}
+    out = rpic.geo.compile(src)                   # {"geojson", "warnings", "diagnostics", "registration", "canvas"}
     gdf = rpic.geo.to_geodataframe(src)           # needs `pip install "rpiclang[geo]"`
 """
 
@@ -129,18 +129,27 @@ def _normalize_features(features: FeatureLike) -> list[_Feature]:
     return out
 
 
+def _shift(d: Any, k: int) -> None:
+    """Re-base one position (``line``/``file``) past the ``k`` prelude lines.
+    A position *inside* the prelude is not the caller's: it is tagged
+    ``file = "features"`` (``line`` stays relative to the prelude)."""
+    if not k or not isinstance(d, dict) or d.get("file") is not None:
+        return
+    line = d.get("line")
+    if not isinstance(line, int) or line < 1:
+        return
+    if line > k:
+        d["line"] = line - k
+    else:
+        d["file"] = "features"
+
+
 def _rebase(out: dict, k: int) -> dict:
     """Shift diagnostics back by the ``k`` prelude lines the host prepended,
     so positions refer to the caller's own source (positions inside an
     include/library carry a ``file`` and are left alone)."""
-    if not k:
-        return out
     for w in out.get("warnings", []):
-        span = w.get("span")
-        if isinstance(span, dict) and span.get("file") is None and span.get("line", 0) > k:
-            span["line"] -= k
-        elif "line" in w and w.get("file") is None and (w.get("line") or 0) > k:
-            w["line"] -= k
+        _shift(w["span"] if isinstance(w.get("span"), dict) else w, k)
     return out
 
 
@@ -149,9 +158,7 @@ def _compile(src: str, k: int, **kwargs: Any) -> dict:
     try:
         return _rebase(_native.geo_compile(src, **kwargs), k)
     except CompileError as e:
-        info = getattr(e, "info", None)
-        if k and isinstance(info, dict) and info.get("file") is None and (info.get("line") or 0) > k:
-            info["line"] -= k
+        _shift(getattr(e, "info", None), k)
         raise
 
 
@@ -203,9 +210,7 @@ def _compile_with_features(src: str, feats: list[_Feature], kwargs: dict) -> dic
     try:
         sc = _native.scene(placeholders + src, **compile_kw)
     except CompileError as e:
-        info = getattr(e, "info", None)
-        if isinstance(info, dict) and info.get("file") is None and (info.get("line") or 0) > k:
-            info["line"] -= k
+        _shift(getattr(e, "info", None), k)
         raise
     defined = set()
     for p in sc.get("places", []):
@@ -231,7 +236,7 @@ def _compile_with_features(src: str, feats: list[_Feature], kwargs: dict) -> dic
 
 
 def compile(src: str, *, warn: bool = True, features: FeatureLike = None, _stacklevel: int = 2, **kwargs: Any) -> dict:
-    """Georeference ``src``: ``{"geojson": dict, "warnings": [dict], "registration": dict, "canvas": dict}``.
+    """Georeference ``src``: ``{"geojson": dict, "warnings": [dict], "diagnostics": [str], "registration": dict, "canvas": dict}``.
 
     Keyword arguments: ``frame`` (``"enu"`` | ``"mercator"``), ``anchor``
     ``(lon, lat)``, ``scale`` (metres per inch), ``bearing`` (degrees,
