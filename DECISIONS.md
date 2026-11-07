@@ -616,9 +616,13 @@ circuit library takes. Consequences, all inherited rather than built:
   `define` came from.
 
 Names are validated before parsing: non-empty, unique, no `"` or line break
-(a name is echoed into JSON and `L:C:` messages), and not a reserved unit
-(`circuits`, `<texlabels>` — an embedder unit must not be mistaken for the
-library). A bad name is a structured compile error with kind
+(a name is echoed into JSON and `L:C:` messages), and not a reserved name:
+`circuits` and `<texlabels>` (an embedder unit must not be mistaken for the
+library or the `-t` initializer) and `features` — the `file` the JS and
+Python geo bindings stamp on positions inside the feature lines they inject
+(docs/geopic.md). That sentinel was *reserved*, not renamed to
+`<features>`: it is documented, released behaviour (0.14.0) that hosts may
+match on, and reserving it costs nothing. A bad name is a structured compile error with kind
 `invalid_options`, the kind geopic already uses for bad host options.
 `IncludePolicy` is unaffected: the text is given, not read; a `copy` *inside*
 a prelude obeys the policy like any other.

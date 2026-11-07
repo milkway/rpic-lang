@@ -276,7 +276,7 @@ export interface CompileOptions {
    * Named source units compiled before `src` (after `circuits`/`texlabels`,
    * in order): positions inside one carry `file: name`; the caller's own
    * positions never shift. Names must be non-empty, unique, free of `"` and
-   * line breaks, and not `circuits`/`<texlabels>` (else an
+   * line breaks, and not `circuits`/`<texlabels>`/`features` (else an
    * `invalid_options` error).
    */
   preludes?: Prelude[];

@@ -310,7 +310,7 @@ pub struct CompileOptions {
     /// prelude carry `file = name`, and objects drawn by a prelude macro
     /// called from user code keep the user's call-site provenance. Names
     /// must be non-empty, unique, free of `"` and line breaks, and not a
-    /// reserved unit (`circuits`, `<texlabels>`); a bad name is an
+    /// reserved name (`circuits`, `<texlabels>`, `features`); a bad name is an
     /// `invalid_options` compile error. [`IncludePolicy`] is unaffected:
     /// the text is given, not read.
     pub preludes: Vec<Prelude>,
@@ -348,7 +348,7 @@ impl CompileOptions {
         let bad = |msg: String| {
             let info = Diagnostic::new("invalid_options", msg.clone()).hint(
                 "prelude names must be non-empty, unique, without `\"` or line breaks, \
-                 and not `circuits` or `<texlabels>`",
+                 and not `circuits`, `<texlabels>` or `features`",
             );
             Err(CompileError {
                 message: msg,
@@ -366,7 +366,9 @@ impl CompileOptions {
                     "invalid prelude name {n:?}: contains `\"` or a line break"
                 ));
             }
-            if n == "circuits" || n == "<texlabels>" {
+            // `features` is what the JS/Python geo bindings stamp on positions
+            // inside their injected feature lines (docs/geopic.md)
+            if matches!(n, "circuits" | "<texlabels>" | "features") {
                 return bad(format!("invalid prelude name {n:?}: reserved"));
             }
             if !seen.insert(n) {
@@ -1167,6 +1169,7 @@ mod tests {
             (vec!["a\nb"], "contains"),
             (vec!["circuits"], "reserved"),
             (vec!["<texlabels>"], "reserved"),
+            (vec!["features"], "reserved"),
             (vec!["x", "x"], "duplicate"),
         ] {
             let mut opts = CompileOptions::default();

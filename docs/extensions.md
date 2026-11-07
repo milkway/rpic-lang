@@ -910,7 +910,8 @@ What that buys:
   tagged with the prelude's name.
 
 Names must be non-empty, unique, free of `"` and line breaks, and not
-`circuits` or `<texlabels>`; anything else is a compile error with kind
+`circuits`, `<texlabels>` or `features` (the `file` the JS/Python geo
+bindings give positions inside their injected feature lines); anything else is a compile error with kind
 `invalid_options`. The include policy is unaffected — the text is given, not
 read — though a `copy` inside a prelude obeys it. Bindings: JS
 `compile(src, { preludes: [{ name, text }] })` and `compileGeoJSON`, Python

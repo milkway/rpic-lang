@@ -18,7 +18,8 @@ resolves to the latest version.
   in order, before the user's source. User positions never shift; positions
   inside a prelude carry `file` = its name (passthrough included); a prelude
   macro called from user code keeps the user's call-site provenance. Bad
-  names are `invalid_options` errors. Exposed as CLI `--prelude NAME=FILE`
+  names (empty, duplicate, with `"` or a line break, or the reserved
+  `circuits`, `<texlabels>`, `features`) are `invalid_options` errors. Exposed as CLI `--prelude NAME=FILE`
   (repeatable), JS `compile(src, { preludes })` and `compileGeoJSON`
   (wasm `compile_preludes`, `compile_geo` options key `preludes`), Python
   `preludes=` on every compile function and `rpic.geo`, C
