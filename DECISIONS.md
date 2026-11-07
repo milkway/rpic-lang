@@ -375,8 +375,10 @@ where every consumer gets them the same way:
   the layer objects; the specs stay a pure function of the collection and
   the options. The zero-import JS module takes it: `attach(map, fc,
   { before })` / `createGeoMap(…, { before })`, a layer id or `'labels'` =
-  the first `symbol` layer of `map.getStyle().layers` that is not one of
-  ours, resolved when the layers are added. Only the geometry layers
+  a layer whose id really is `labels` when the style has one (the sentinel
+  must not shadow a real id), else the first `symbol` layer of
+  `map.getStyle().layers` that is not one of ours, resolved when the layers
+  are added. Only the geometry layers
   (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) go before it;
   `pic-text`/`pic-title` are appended on top — the first cut moved all six,
   and review saw the basemap's "Olinda" drawn over the drawing's own

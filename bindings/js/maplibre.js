@@ -173,14 +173,16 @@ export function bounds(fc) {
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /**
- * The layer id the pic layers are inserted before, resolved now from the
- * map's current style: `'labels'` = the first `symbol` layer that is not one
- * of ours (the basemap's place names, road labels…); any other string = that
+ * The layer id the pic geometry layers are inserted before, resolved now from
+ * the map's current style: `'labels'` = a layer whose id really is `labels`
+ * when the style has one, else the first `symbol` layer that is not one of
+ * ours (the basemap's place names, road labels…); any other string = that
  * layer, when the map has it. `undefined` (append on top) otherwise.
  */
 function beforeId(map, before) {
   if (before == null) return undefined;
   if (before === 'labels') {
+    if (map.getLayer('labels')) return 'labels'; // a style with a real `labels` layer
     const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
     const first = (style?.layers ?? []).find((l) => l.type === 'symbol' && !LAYER_IDS.includes(l.id));
     return first?.id;

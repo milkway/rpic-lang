@@ -84,9 +84,9 @@ export interface AttachOptions {
   fit?: boolean;
   /**
    * add the geometry layers (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`,
-   * `pic-dot`) under this one: a layer id, or `'labels'` = the first `symbol`
-   * layer of the map's current style (the basemap's labels stay above the
-   * shapes). Resolved when the layers are added; on top when there is none.
+   * `pic-dot`) under this one: a layer id, or `'labels'` = the style's layer
+   * with id `labels` if it has one, else its first `symbol` layer (the
+   * basemap's labels stay above the shapes). Resolved when the layers are added; on top when there is none.
    * The drawing's own labels (`pic-text`, `pic-title`) always go on top.
    * A placement on the consumer's map, not part of the layer specs.
    */

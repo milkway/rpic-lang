@@ -231,6 +231,11 @@ h.detach();
 h = attach(m, callout, { before: 'labels' });
 assert.deepEqual(m.order(), under);
 h.detach();
+// 'labels' names a real layer when the style has one with that id
+m = fakeMap({ loaded: true, style: [...basemap.slice(0, 3), { id: 'labels', type: 'fill' }, ...basemap.slice(3)] });
+attach(m, callout, { before: 'labels' });
+assert.deepEqual(m.order(), ['background', 'water', 'roads', ...GEOM, 'labels', 'road-names', 'place-names', ...TEXT]);
+// …otherwise it is the first non-pic symbol layer (checked above with road-names)
 // a layer id
 m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout, { before: 'roads' });
