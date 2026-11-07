@@ -309,3 +309,42 @@ Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
 `pic-text` (anchor, rotation), still the sixth layer. Additive:
 `geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
 `:title` id suffix.
+
+## Embedder API (2026-11-07, #425)
+
+### E1. Raw call-site arguments are sliced from the lexed text
+
+`MacroCall.raw_args` (index-aligned with `args`) records each argument as
+the author wrote it. The text is the slice of the source the tokens were
+lexed from, from the argument's first token to its last: every token now
+carries (crate-private) an `Arc` of its lexing pass's text — one per pass,
+shared, so cloning costs a refcount — and its char range. Rebuilding from
+tokens would lose the spelling (`1e-9`), the spacing and continuations,
+which is the point. Consequences:
+
+- Positions follow the diagnostics architecture: `line`/`col` of the first
+  token, `end_line`/`end_col` (exclusive) derived from the slice itself, and
+  `file` = `None` (user input), `"circuits"`, or the `copy` name. A span
+  type with `end_line` was needed because `Span` is single-line.
+- User input is lexed after the backend-preamble filter, which blanks lines
+  but keeps line structure, so positions match the original source; a
+  blanked troff line inside an argument would read as empty there.
+- An empty argument (`m(a,,b)`) has `text` `""` placed just past its
+  `(`/`,`. Tokens without one shared lexed text (synthesized, or `exec`
+  text mixed with substituted arguments) fall back to the normalized text.
+- Nested calls carry the outermost call's raw arguments, exactly like
+  `args`. Exposed in the scene's block `call` (additive, format 1); the
+  bundle `--json` has no block vocabulary (S11), so it does not change.
+
+### E2. `+` continuation lines join their passthrough entry
+
+troff continues a request with a `+` in column 1; pic users write it after
+a `.` passthrough line. Such a line — directly after a passthrough line or
+another continuation, and not inside a string or a `\`-continued
+statement — now joins the previous `PassLine`: `text` keeps the newlines
+(the embedder can re-split), `span.line` is the first line, `span.end_col`
+the end of the last, and `end_line` the last line. The bundle emits
+`end_line` only for continued entries, so every existing output is
+byte-identical. Anywhere else a column-1 `+` keeps its parse error.
+dpic 2025.08.01 rejects both forms ("Syntax error, unexpected +"): this is
+an rpic leniency, inert for every source dpic accepts.

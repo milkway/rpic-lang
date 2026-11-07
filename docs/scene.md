@@ -100,7 +100,7 @@ index) the SVG emitter uses, so array order equals SVG document order of the
 | `link` | when set | the `link` extension URL (already validated) |
 | `hidden` | when true | the item paints nothing (`move`, invisible helper spines). Ids must align with the SVG's groups, which exist for every shape, so hidden items stay in the list |
 | `span` | when known | the item's source position `{line, col, end_col, file?}`: for a shape the statement that produced it (inside a macro body, the `define` line — as `objects` reports); for a block item the **outermost macro call** that expanded to it, or its opening `[` when written inline — the line that asked for the block |
-| `call` | block items made by a macro | that outermost call, `{name, args}` — `args` as written, one string each, normalized token text (a lone string argument keeps its quotes) |
+| `call` | block items made by a macro | that outermost call, `{name, args, raw_args}` — `args` one string per argument in normalized token text (`1e-9` → `0.000000001`; a lone string argument keeps its quotes); `raw_args` the same arguments exactly as the author wrote them, index-aligned: `{text, line, col, end_line, end_col, file?}` — `text` is the source from the argument's first token to its last (inner spacing, `\` continuations and comments kept), the range runs to `end_line`/`end_col` (exclusive), positions relative to the argument's own source like diagnostics; an empty argument has `text` `""` placed just past its `(`/`,` |
 
 Notes on kinds: `arrow` is a `line` whose statement carried arrowheads; `dot`
 is the `dot` primitive (a filled circle in the SVG). The `objects` array of the
@@ -308,7 +308,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
 - Additive history within version 1: **0.13.0** added the top-level `places`
   array and the block items' `span`/`call` provenance fields; **0.14.0** added
   the top-level `rescale` factor and `span` on shape items; **0.15.1** added
-  `text_center` on items that carry `text` (DECISIONS S12).
+  `text_center` on items that carry `text` (DECISIONS S12); the block `call`
+  gained `raw_args`, the arguments as written (#425, DECISIONS E1).
 
 ## 8. Color resolution
 
