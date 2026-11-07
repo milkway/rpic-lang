@@ -178,11 +178,17 @@ export interface Place {
 
 /** A troff request line (`.` in column 1) set aside before lexing. */
 export interface Passthrough {
-  /** the line as written, leading `.` included */
+  /**
+   * the line as written, leading `.` included; a request continued by
+   * column-1 `+` lines holds all of them, joined by `\n`
+   */
   text: string;
   line: number;
   col: number;
+  /** end of the entry's last line */
   end_col: number;
+  /** the entry's last line; present only when `+` continuation lines follow it */
+  end_line?: number;
   file?: string;
 }
 

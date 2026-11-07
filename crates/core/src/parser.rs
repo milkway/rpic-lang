@@ -276,15 +276,19 @@ pub(crate) fn parse_stringexpr_tokens(
 /// for the exact rule.
 fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
     let mut out = String::with_capacity(src.len());
-    let mut passthrough = Vec::new();
+    let mut passthrough: Vec<PassLine> = Vec::new();
     let mut in_verbatimtex = false;
     let mut in_string = false;
     let mut in_raw_sh = false;
     // the previous physical line ended in a `\` continuation, so this one is
     // the tail of a statement, not the start of a new line
     let mut continued = false;
+    // the previous physical line was a passthrough entry (or a `+`
+    // continuation of one), so a column-1 `+` here continues that entry
+    let mut after_pass = false;
 
     for (n, line) in src.lines().enumerate() {
+        let follows_pass = std::mem::take(&mut after_pass);
         let trimmed = line.trim_start();
         if in_verbatimtex {
             out.push('\n');
@@ -301,15 +305,29 @@ fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
             continue;
         }
 
-        if !in_string && !continued && is_passthrough_line(line) {
-            let text = line.strip_suffix('\r').unwrap_or(line);
-            let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
-            let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
+        let text = line.strip_suffix('\r').unwrap_or(line);
+        let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
+        let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
+        if follows_pass
+            && line.starts_with('+')
+            && let Some(entry) = passthrough.last_mut()
+        {
+            // troff's continuation of the previous request line: same
+            // logical line, so it joins that entry (newline kept)
+            entry.text.push('\n');
+            entry.text.push_str(text);
+            entry.span.end_col = end_col;
+            entry.end_line = line_no;
+            out.push('\n');
+            after_pass = true;
+        } else if !in_string && !continued && is_passthrough_line(line) {
             passthrough.push(PassLine {
                 text: text.to_string(),
                 span: Span::new(line_no, 1, end_col),
+                end_line: line_no,
             });
             out.push('\n');
+            after_pass = true;
         } else if !in_string && starts_word(trimmed, "verbatimtex") {
             in_verbatimtex = true;
             out.push('\n');
@@ -4182,6 +4200,20 @@ box
                 .collect();
             assert_eq!(raw, [("A", 2, 11, None), ("B", 2, 14, None)]);
         }
+    }
+
+    #[test]
+    fn plus_continuations_join_the_passthrough_entry() {
+        let (out, pass) = strip_backend_preamble(".ft B\n+a\r\n+b\nbox\n+c\n");
+        assert_eq!(pass.len(), 1);
+        assert_eq!(pass[0].text, ".ft B\n+a\n+b");
+        assert_eq!(
+            (pass[0].span.line, pass[0].end_line, pass[0].span.end_col),
+            (1, 3, 3)
+        );
+        // blanked line for line, so later positions do not move; the stray
+        // `+c` (not after a request) is left for the parser to reject
+        assert_eq!(out, "\n\n\nbox\n+c\n");
     }
 
     #[test]

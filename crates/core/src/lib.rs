@@ -196,6 +196,11 @@ pub fn passthrough_json(d: &Drawing) -> String {
         }
         s.push_str(&format!("{{\"text\":\"{}\"", json_str(&l.text)));
         s.push_str(&span_fields(Some(&l.span)));
+        // only a `+`-continued entry spans lines; single-line entries keep
+        // the 0.13.0 shape byte for byte
+        if l.end_line != l.span.line {
+            s.push_str(&format!(",\"end_line\":{}", l.end_line));
+        }
         s.push('}');
     }
     s.push(']');
@@ -626,6 +631,29 @@ mod tests {
         assert!(j.contains("}],\"places\":[{"), "{j}");
         assert!(
             j.contains("\"passthrough\":[{\"text\":\".ft B\",\"line\":3,\"col\":1,\"end_col\":6}]"),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_passthrough_entry_spans_its_continuation_lines() {
+        // #425: `+` continuation lines join their request; only such an
+        // entry gains `end_line` (single-line entries keep their shape)
+        let j = compile_json(".ft B\n+ more\nbox\n.sp\n");
+        let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+        assert!(v.get("error").is_none(), "{j}");
+        let t = &v["passthrough"];
+        assert_eq!(t[0]["text"], ".ft B\n+ more");
+        assert_eq!(
+            (
+                t[0]["line"].as_u64(),
+                t[0]["end_line"].as_u64(),
+                t[0]["end_col"].as_u64()
+            ),
+            (Some(1), Some(2), Some(7))
+        );
+        assert!(
+            j.contains("{\"text\":\".sp\",\"line\":4,\"col\":1,\"end_col\":4}"),
             "{j}"
         );
     }

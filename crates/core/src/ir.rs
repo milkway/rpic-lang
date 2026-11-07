@@ -161,9 +161,16 @@ pub struct PlaceInfo {
 #[derive(Debug, Clone, PartialEq)]
 pub struct PassLine {
     /// The line as written, leading `.` included, without its line ending.
+    /// A request continued by column-1 `+` lines (the troff convention for
+    /// "same logical line") holds all of them, joined by `\n`.
     pub text: String,
-    /// Where it sits in the user's source: column 1 to the end of the line.
+    /// Where it sits in the user's source: column 1 of its first line
+    /// (`span.line`) to the end of its last line (`span.end_col`, on
+    /// `end_line`).
     pub span: crate::diagnostic::Span,
+    /// The entry's last line: `span.line` unless `+` continuation lines
+    /// follow it.
+    pub end_line: u32,
 }
 
 /// Extra whitespace around the rendered canvas, in internal inches.

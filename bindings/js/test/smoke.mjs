@@ -56,6 +56,7 @@ const prov = compile('define cell { [ box ] }\nK: cell(1)\nP: K.e', { scene: tru
 assert.deepEqual(prov.scene.places[0].at, [0.75, 0]);
 const blk = prov.scene.items.find((i) => i.kind === 'block');
 assert.equal(blk.call.name, 'cell');
+assert.equal(blk.span.line, 2);
 // the call's arguments as written, beside the normalized ones (#425)
 const raw = compile('define r { [ box ] }\nr(1e-9, "a, b")', { scene: true });
 const rcall = raw.scene.items.find((i) => i.kind === 'block').call;
@@ -63,6 +64,10 @@ assert.deepEqual(rcall.args, ['0.000000001', '"a, b"']);
 assert.deepEqual(rcall.raw_args, [
   { text: '1e-9', line: 2, col: 3, end_line: 2, end_col: 7 },
   { text: '"a, b"', line: 2, col: 9, end_line: 2, end_col: 15 },
+]);
+// a request continued by column-1 `+` lines is one passthrough entry
+assert.deepEqual(compile('.ft B\n+ more\nbox').passthrough, [
+  { text: '.ft B\n+ more', line: 1, col: 1, end_col: 7, end_line: 2 },
 ]);
 
 // animate manifest: optional GSAP keys ride along only when set

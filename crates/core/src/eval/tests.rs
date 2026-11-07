@@ -3513,3 +3513,36 @@ fn raw_macro_arguments_in_an_include_name_the_include() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn troff_continuation_lines_join_their_passthrough_entry() {
+    // #425: a column-1 `+` right after a passthrough line (or another `+`)
+    // continues that request; the entry keeps the newlines and spans them
+    let src = ".PS\n.ft B\n+ more\n+ still\nbox\n.sp\n+x\n.PE\n";
+    let d = draw(src);
+    let got: Vec<(&str, u32, u32, u32)> = d
+        .passthrough
+        .iter()
+        .map(|l| (l.text.as_str(), l.span.line, l.end_line, l.span.end_col))
+        .collect();
+    assert_eq!(
+        got,
+        [(".ft B\n+ more\n+ still", 2, 4, 8), (".sp\n+x", 6, 7, 3)]
+    );
+    // drawing unaffected
+    let plain = draw(".PS\n\n\n\nbox\n\n\n.PE\n");
+    assert_eq!(d.shapes, plain.shapes);
+    // a single-line entry ends where it starts
+    let d = draw(".ft B\nbox");
+    assert_eq!(d.passthrough[0].end_line, 1);
+}
+
+#[test]
+fn a_plus_line_not_after_passthrough_is_still_an_error() {
+    // only a continuation of a request joins it; elsewhere `+` in column 1
+    // stays the parse error it always was (dpic errors on both)
+    assert!(parse(".PS\nbox\n+ more\n.PE\n").is_err());
+    assert!(parse(".ft B\n\n+ more\n").is_err());
+    // an indented `+` after a request is not a continuation either
+    assert!(parse(".ft B\n + more\n").is_err());
+}
