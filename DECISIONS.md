@@ -464,3 +464,104 @@ entries, so there is nothing to continue ("expected an object, found +";
 dpic rejects it too).
 dpic 2025.08.01 rejects both forms ("Syntax error, unexpected +"): this is
 an rpic leniency, inert for every source dpic accepts.
+
+### E3. A label on a flat macro call names the group it draws
+
+`X1: m(…)` where `m`'s expansion cannot take a label the classic way now
+names the group of objects the call draws. The proposal ("wrap the
+expansion in an implicit `[ ]`, without changing layout") was kept, with
+one restriction found at the oracle: pic expands textually, and dpic
+2025.08.01 *accepts* `Z: twob()` with `define twob { box; box }` — the label
+names the first box. So a labelled call is not always a group:
+
+- **Classic first.** For a labelled call (`Label:` or `Label[i]:` directly
+  before it), the preprocessor asks the parser's own statement dispatch
+  (`Parser::statement_form`, which `parse_element` itself matches on) what
+  the expansion's first statement is. If it is the object form — what a
+  label takes today: an object (incl. strings and `[ … ]`) or anything that
+  parses as a position — the tokens are left exactly as the unlabelled
+  expansion's, and the statement is what it always was. That covers every
+  `[ ]`-bodied library macro (the label is the block's, no new machinery)
+  and the style-macro idiom `B: mybox ht 1`.
+- **Group otherwise:** the first statement is empty or any other form —
+  an assignment (env vars too: `margin = 0.5`), another label (`define pair
+  { A: box; B: box }`), a control or keyword statement, `{ … }`, a bare
+  direction, a `%` comment, or an rpic statement (`canvas from`, `animate`,
+  `class`/`link`/`draggable` statements). Only then is the expansion
+  bracketed with two synthetic tokens, `Token::CallOpen`/`CallClose`, which
+  the parser turns into `Stmt::LabelledCall`. Because the rule *is* the
+  dispatch, a future statement form is covered without a list to update
+  (review of #441: the first version used a keyword allowlist and missed
+  `canvas`/`animate`/…, and removed the brackets of every classic call
+  from the whole token stream — two `Vec::remove`s, O(n·k) over a `-c`
+  stream with many `Q1: bi_tr(…)`; now classification costs the first
+  statement's length and classic calls are never bracketed; test
+  `many_classic_labelled_calls_parse_in_linear_time`). A bare direction at
+  the group's end ends its statement like a newline (`at_stmt_end`:
+  `Newline | Eof | CallClose`). Each group form was a syntax error in rpic,
+  and dpic rejects them ("Syntax error, unexpected =", "Variable not
+  found", "Place name not found") — so the extension is inert for every
+  source dpic accepts. Corpus proof, main vs
+  branch binaries (isolated target dirs, `cmp` differ), `-c -t`: `--svg`,
+  `--json` and `--scene` 128/128 identical.
+- Rejected: always grouping a labelled multi-statement call. It is the more
+  uniform rule, but it silently changes `Z.c`/`Z.wid` for dpic-valid input.
+  Rejected too: a per-token "which call" field on `Spanned` (+8 B per token,
+  the cost E1 had to fight); two marker tokens exist only around labelled
+  calls.
+
+Semantics of the group (`Stmt::LabelledCall`, evaluated in place):
+
+- Objects, `Here`, the direction, variables and the inner labels are exactly
+  the unlabelled call's — no sub-scope, no translation. The inner labels stay
+  global (as in any flat expansion) *and* the ones the call binds
+  **directly** become the group's members, so `X1.T` and `B.X1.T` resolve
+  like a block's sub-labels; a nested labelled call's labels are that
+  call's (`H.G.T`, not `H.T`), the same scoping as nested `[ ]` blocks.
+- Members are **indices** into the evaluator's `placed`, collected from a
+  per-call frame that `bind_label` fills (no copy of the label map, no deep
+  copy of member records). Security review of #441: the first version
+  cloned the whole label map per call and deep-copied every label bound
+  below, again at each nesting level — super-linear in depth × labels.
+  Now the work per call is its own direct labels; a record is turned into
+  a self-contained copy (`State::detached`, cost = its own subtree) only
+  where it crosses a `[ ]` boundary, the same place blocks already copy
+  their members. Each group also counts toward `max_shapes` (structured
+  error "drawing exceeded N shapes (labelled macro calls count toward the
+  budget)"). Regression tests: `labelled_group_members_are_direct_and_by_index`
+  (depth 8, per-level member counts) and `nested_labelled_groups_stay_linear`
+  (26 depth-8 trees × 40 labels per level, 8 320 boxes: 0.05 s debug).
+- Geometry: the box is the union of the group's layout extent (invisible
+  helpers included, as `[ ]` measures a block — the evaluator's
+  `layout_bbox` is swapped out around the body), so `.c`/`.n`/`.wid`/`.ht`
+  read like a block's; `.start`/`.end` are exactly the first drawn object's
+  start and the last drawn object's end. That is **not** "the terminals" in
+  general: an element that draws decorations last ends elsewhere (`led`'s
+  last object is its emission arrow, so `X.end` is the arrow tip, not its
+  second point). Library bodies are not reordered (corpus byte-freeze);
+  wire to the element's own point arguments or to labels it defines.
+- Counting: a synthetic `Placed` (`kind` Block, `synthetic: true`) that
+  `nth_index` skips — `last []`, `2nd []` and untyped `last` count exactly
+  the objects they counted before. (Named places stay in `placed` as they
+  always were; they are not objects of the group.)
+- Directives on the label treat it as a block: `animate`/`draggable` act on
+  its first shape, `stagger` fans across its shapes, and whatever refuses a
+  block today (`class` on a block) refuses the group alike.
+- Scene: a `BlockInfo` with `label`, `shapes` = the group's range, `span`/
+  `call` of the **outermost** call (same convention as every block, S11/E1;
+  for the usual top-level call that is the labelled call itself, raw args
+  included). It adopts the parentless blocks, shapes and places the
+  expansion produced. The bundle `--json` has no block vocabulary (S11) and
+  is unchanged.
+- Errors: a labelled call that draws nothing → `label_on_empty_call`, "label
+  `X1` on a macro that draws nothing", at the label, with a hint naming the
+  macro. Text after the call on its line (`X1: m() dashed`) is a parse error
+  in the group form — there is no single object for it to modify.
+
+The embedder that motivated it (dune) also copied the geometry of
+`switch`, `nmos`, `pmos`, `njfet`, `pjfet` because its prelude *shadows*
+those names and a shadowing macro cannot call the library's macro of the
+same name. Labels alone do not fix that, so those five got `__name` geometry
+twins like `__resistor`: bodies renamed in place, the public one-line
+definitions appended at the end of `circuits.pic` so no line moves (object
+spans point into the bodies; corpus `--json` identical).

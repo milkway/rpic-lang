@@ -76,6 +76,25 @@ call's arguments: `node("hi")`. A macro body can hold objects, attributes
 (a reusable style!), or whole sub-pictures — see
 [Variables & macros](/docs/variables-and-macros).
 
+**Labelled calls** (ext). Because expansion is textual, `Z: m()` labels
+whatever the body starts with — the first object, a position, or the block
+of a `[ … ]` body — exactly as in pic and dpic. When the body cannot take a
+label that way (a "flat" macro that starts with assignments, like the
+circuit elements: `R1: resistor(A,B)`), rpic names the **group of objects
+the call draws** instead, as if it were a block — but nothing moves: the
+objects, `Here` and the direction are what the unlabelled call gives.
+
+| Reference | Means |
+|---|---|
+| `R1.n` · `R1.c` · `R1.wid` | Corners, centre and size of the group's bounding box |
+| `R1.start` · `R1.end` | Start of its first drawn object, end of its last (not necessarily the terminals: wire to the points you passed) |
+| `R1.T` | A label the body bound directly (`T: …`), like a block's sub-label; a nested labelled call keeps its own (`R1.G.T`) |
+
+The group is reachable only through its label: `last []` and ordinals
+count the same objects as before. A labelled call that draws nothing is an
+error. Classic sources never reach this form (dpic rejects every input
+that does), so it changes nothing when unused.
+
 ## Objects
 
 An object is a primitive followed by any number of attributes:

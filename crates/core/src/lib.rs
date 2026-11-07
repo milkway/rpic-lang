@@ -870,6 +870,55 @@ mod tests {
     }
 
     #[test]
+    fn circuit_elements_take_labels() {
+        // #425 item 3: the library's two-terminal elements are flat macros
+        // (assignments, then the strokes); `X1: resistor(A,B)` names their
+        // group without moving a stroke
+        let opts = CompileOptions {
+            circuits: true,
+            ..Default::default()
+        };
+        let body = "A: (0,0); B: (2,0)\nresistor(A,B)\ncapacitor(B,(3,0))";
+        let labelled = "A: (0,0); B: (2,0)\nR1: resistor(A,B)\nC1: capacitor(B,(3,0))\n\
+                        N: R1.n; W: R1.w; E: C1.e";
+        let plain = compile_with_options(body, &opts).unwrap();
+        let d = compile_with_options(labelled, &opts).unwrap();
+        assert_eq!(plain.shapes, d.shapes);
+        let at = |n: &str| d.places.iter().find(|p| p.label == n).unwrap().at;
+        assert!((at("W").x - 0.0).abs() < 1e-9 && (at("E").x - 3.0).abs() < 1e-9);
+        assert!((at("N").x - 1.0).abs() < 1e-9 && at("N").y > 0.0);
+        let r1 = d
+            .blocks
+            .iter()
+            .find(|b| b.label.as_deref() == Some("R1"))
+            .unwrap();
+        let call = r1.call.as_ref().unwrap();
+        assert_eq!(
+            (call.name.as_str(), call.args.as_slice()),
+            ("resistor", &["A".to_string(), "B".to_string()][..])
+        );
+        assert_eq!(r1.span.as_ref().unwrap().file, None);
+    }
+
+    #[test]
+    fn a_shadowing_prelude_reuses_the_library_geometry() {
+        // #425 item 3: an embedder that redefines `switch` (to add pins)
+        // draws the library's strokes through `__switch` instead of a copy,
+        // and the labelled call exposes the pins it added
+        let opts = CompileOptions {
+            circuits: true,
+            ..Default::default()
+        };
+        let std = compile_with_options("A: (0,0); B: (2,0)\nswitch(A,B)", &opts).unwrap();
+        let src = "define switch { __switch($1,$2); P: circle invis rad 0 at $1 }\n\
+                   A: (0,0); B: (2,0)\nS1: switch(A,B)\nQ: S1.P; E: S1.e";
+        let d = compile_with_options(src, &opts).unwrap();
+        assert_eq!(d.shapes[..std.shapes.len()], std.shapes[..]);
+        let at = |n: &str| d.places.iter().find(|p| p.label == n).unwrap().at;
+        assert!(at("Q").x.abs() < 1e-9 && (at("E").x - 2.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn copy_circuits_loads_the_embedded_library() {
         // `copy "circuits"` is the in-source spelling of `-c`: byte-identical
         // output, and it works with no base dir (the wasm/compile_json case,

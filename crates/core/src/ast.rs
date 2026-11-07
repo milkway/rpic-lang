@@ -133,6 +133,18 @@ pub enum Stmt {
         /// Span of the label token (for the named-place export).
         span: Option<Span>,
     },
+    /// rpic extension: `Label: m(…)` on a macro call whose expansion does
+    /// not start with an object or a position (a "flat" macro: assignments
+    /// then several objects). The label names the group of objects the
+    /// expansion draws, evaluated in place — no layout change (DECISIONS E3).
+    LabelledCall {
+        label: Label,
+        body: Vec<Stmt>,
+        /// Span of the label token.
+        span: Option<Span>,
+        /// The (outermost) macro call that was labelled.
+        call_site: Option<std::sync::Arc<crate::lexer::CallSite>>,
+    },
     /// One or more comma-separated assignments.
     Assign(Vec<Assignment>),
     /// A bare direction change (`up` / `down` / `left` / `right`).

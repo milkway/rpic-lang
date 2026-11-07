@@ -3585,3 +3585,261 @@ fn re_lexed_text_does_not_grow_the_source_table() {
     assert_eq!(pic.includes.sources.len(), 2);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ---- labelled flat macro calls (#425 item 3, DECISIONS E3) ----------------
+
+const GLYPH: &str = "define glyph { gx = 1; box wid 0.5; T: circle rad 0.1; line right 0.5 }\n";
+
+fn place_at(d: &Drawing, name: &str) -> (f64, f64) {
+    let p = d.places.iter().rev().find(|p| p.label == name).unwrap();
+    ((p.at.x * 1e9).round() / 1e9, (p.at.y * 1e9).round() / 1e9)
+}
+
+#[test]
+fn labelled_flat_macro_names_the_group_it_draws() {
+    let d = draw(&format!(
+        "{GLYPH}X1: glyph()\nC: X1.c; N: X1.n; I: X1.T; S: X1.start; E: X1.end\n\
+         D: (X1.wid, X1.ht); H: Here"
+    ));
+    // box 0..0.5, circle 0.5..0.7, line 0.7..1.2 — the union of the group
+    assert_eq!(place_at(&d, "C"), (0.6, 0.0));
+    assert_eq!(place_at(&d, "N"), (0.6, 0.25));
+    assert_eq!(place_at(&d, "D"), (1.2, 0.5));
+    // inner labels are members; start/end = first/last object's
+    assert_eq!(place_at(&d, "I"), (0.6, 0.0));
+    assert_eq!(place_at(&d, "S"), (0.0, 0.0));
+    assert_eq!(place_at(&d, "E"), (1.2, 0.0));
+    // the cursor moved exactly as for the unlabelled call
+    assert_eq!(place_at(&d, "H"), (1.2, 0.0));
+    // a scene block over the three shapes, with the call's provenance
+    assert_eq!(d.blocks.len(), 1);
+    let b = &d.blocks[0];
+    assert_eq!(b.label.as_deref(), Some("X1"));
+    assert_eq!(b.shapes, (0, 3));
+    assert_eq!(b.parent, None);
+    assert_eq!(b.call.as_ref().unwrap().name, "glyph");
+    assert_eq!(b.span.as_ref().unwrap().line, 2);
+    assert!(d.shape_blocks.iter().all(|&s| s == Some(0)));
+    // a named place inside the expansion belongs to the group
+    let d = draw("define g { gx = 1; box; P: Here }\nX1: g()");
+    let p = d.places.iter().find(|p| p.label == "P").unwrap();
+    assert_eq!(p.block, Some(0));
+}
+
+#[test]
+fn labelling_a_flat_call_changes_no_geometry() {
+    let body = "A: (0,0); B: (1,0)\nglyph()\nline up\nglyph()";
+    let plain = draw(&format!("{GLYPH}{body}"));
+    let labelled = draw(&format!(
+        "{GLYPH}{}",
+        body.replacen("glyph()", "X1: glyph()", 1)
+            .replacen("\nglyph()", "\nX2: glyph()", 1)
+    ));
+    assert_eq!(plain.shapes, labelled.shapes);
+    assert_eq!(crate::svg::to_svg(&plain), crate::svg::to_svg(&labelled));
+    assert_eq!(labelled.blocks.len(), 2);
+}
+
+#[test]
+fn labelled_group_is_invisible_to_last_and_ordinals() {
+    // `last []` / `1st block` / untyped `last` still see only real objects
+    let d = draw(
+        "define g { gx = 1; [ box ]; circle }\nX1: g()\n\
+         L: last.c; K: last [].c; F: 1st [].c",
+    );
+    assert_eq!(place_at(&d, "L"), (1.0, 0.0));
+    assert_eq!(place_at(&d, "K"), (0.375, 0.0));
+    assert_eq!(place_at(&d, "F"), (0.375, 0.0));
+    // the real block is a child of the group in the scene table
+    assert_eq!(d.blocks.len(), 2);
+    assert_eq!(d.blocks[0].label, None);
+    assert_eq!(d.blocks[0].parent, Some(1));
+    assert_eq!(d.blocks[1].label.as_deref(), Some("X1"));
+}
+
+#[test]
+fn block_bodied_macro_label_is_unchanged() {
+    // a `[ ]`-bodied macro already yields a block: the label takes it the
+    // classic way, no synthetic group
+    let d = draw("define bm {[ box; T: circle ]}\nX1: bm()\nI: X1.T");
+    assert_eq!(d.blocks.len(), 1);
+    assert_eq!(d.blocks[0].label.as_deref(), Some("X1"));
+    assert_eq!(place_at(&d, "I"), (1.0, 0.0));
+}
+
+#[test]
+fn labelled_call_that_draws_nothing_is_an_error() {
+    let e = eval(&parse("define setup { q = 1; R: (1,1) }\nX1: setup()").unwrap())
+        .err()
+        .unwrap();
+    assert_eq!(e.msg, "label `X1` on a macro that draws nothing");
+    let info = e.info.unwrap();
+    assert_eq!(info.kind, "label_on_empty_call");
+    assert_eq!((info.line, info.col), (Some(2), Some(1)));
+    assert!(info.hint.unwrap().contains("`setup`"));
+    // an empty body too
+    assert!(eval(&parse("define nil { }\nX1: nil()").unwrap()).is_err());
+}
+
+#[test]
+fn labelled_calls_nest_in_blocks_loops_and_groups() {
+    let d = draw(&format!(
+        "{GLYPH}define pair {{ P1: glyph(); P2: glyph() }}\n\
+         W: [ Q: pair() ]\nI: W.Q.P2.T\n\
+         for i = 1 to 2 do {{ Y[i]: glyph() }}\nJ: Y[2].T"
+    ));
+    assert_eq!(place_at(&d, "I"), (1.8, 0.0));
+    assert_eq!(place_at(&d, "J"), (4.2, 0.0));
+    // W, then inside it Q with P1, P2; then Y[1], Y[2]
+    let labels: Vec<_> = d.blocks.iter().map(|b| b.label.clone()).collect();
+    let names = ["P1", "P2", "Q", "W", "Y[1]", "Y[2]"];
+    for n in names {
+        assert!(labels.contains(&Some(n.to_string())), "{n}: {labels:?}");
+    }
+    let idx = |n: &str| labels.iter().position(|l| l.as_deref() == Some(n));
+    assert_eq!(d.blocks[idx("P1").unwrap()].parent, idx("Q"));
+    assert_eq!(d.blocks[idx("Q").unwrap()].parent, idx("W"));
+    assert_eq!(d.blocks[idx("Y[2]").unwrap()].parent, None);
+}
+
+/// Evaluate `src` and hand back the evaluator state (for bookkeeping checks).
+fn state_after(src: &str) -> State {
+    let pic = parse(src).unwrap();
+    let mut st = State::new();
+    st.macros = pic.macros.clone();
+    st.includes = pic.includes.clone();
+    st.eval_stmts(&pic.stmts).unwrap();
+    st
+}
+
+/// `g1` … `g<depth>`: each level binds `k` labels of its own and calls the
+/// level below under the label `G`.
+fn nested_group_macros(depth: usize, k: usize) -> String {
+    let mut src = String::new();
+    for level in 1..=depth {
+        let mut body = format!("q{level} = 1; ");
+        if level > 1 {
+            body.push_str(&format!("G: g{}(); ", level - 1));
+        }
+        for j in 0..k {
+            body.push_str(&format!("L{level}x{j}: box wid 0.1; "));
+        }
+        src.push_str(&format!("define g{level} {{ {body}}}\n"));
+    }
+    src
+}
+
+#[test]
+fn labelled_group_members_are_direct_and_by_index() {
+    // members are the labels the call itself bound, as indices — a nested
+    // call's labels belong to that call only, like `[ ]` blocks
+    let (depth, k) = (8, 5);
+    let st = state_after(&format!("{}H: g{depth}()", nested_group_macros(depth, k)));
+    let mut pl = &st.placed[st.labels["H"]];
+    for level in (1..=depth).rev() {
+        assert!(pl.synthetic && pl.members.is_empty());
+        let own = if level > 1 { k + 1 } else { k };
+        assert_eq!(pl.group_members.len(), own, "level {level}");
+        assert!(
+            pl.group_members
+                .iter()
+                .all(|(n, _)| n == "G" || n.starts_with(&format!("L{level}x")))
+        );
+        if level > 1 {
+            let g = pl.group_members.iter().find(|(n, _)| n == "G").unwrap().1;
+            pl = &st.placed[g];
+        }
+    }
+    // reachable through the chain, not flattened into the outer group
+    let d = draw(&format!(
+        "{}H: g3()\nA: H.G.G.L1x0.c; B: H.L3x0.c",
+        nested_group_macros(3, 2)
+    ));
+    assert_eq!(d.places.len(), 2);
+    let e = eval(
+        &parse(&format!(
+            "{}H: g3()\nA: H.L1x0.c",
+            nested_group_macros(3, 2)
+        ))
+        .unwrap(),
+    )
+    .err()
+    .unwrap();
+    assert!(e.msg.contains("no sub-label `L1x0`"), "{e}");
+}
+
+#[test]
+fn nested_labelled_groups_stay_linear() {
+    // security review of #441: members used to be deep copies of every
+    // label bound below, re-copied at each level, plus a clone of the label
+    // map per call. Depth 8 × 40 labels per level, the whole tree 25 times
+    // in a loop and once inside a block (detached across the boundary).
+    let (depth, k) = (8, 40);
+    let src = format!(
+        "{}for i = 1 to 25 do {{ T[i]: g{depth}() }}\nW: [ H: g{depth}() ]\n\
+         A: W.H.G.G.G.G.G.G.G.L1x0.c; B: T[25].G.L7x3.c",
+        nested_group_macros(depth, k)
+    );
+    let t = std::time::Instant::now();
+    let st = state_after(&src);
+    let elapsed = t.elapsed();
+    // 26 trees × 8 levels × 40 boxes
+    assert_eq!(st.shapes.len(), 26 * depth * k);
+    assert_eq!(st.groups, 26 * depth);
+    // index members only: one entry per direct label, nothing deep-copied
+    let total: usize = st.placed.iter().map(|p| p.group_members.len()).sum();
+    assert_eq!(total, 25 * (depth * k + depth - 1));
+    assert!(elapsed.as_secs() < 10, "took {elapsed:?}");
+}
+
+#[test]
+fn labelled_groups_count_toward_the_shape_budget() {
+    let pic = parse("define g { q = 1; box }\nfor i = 1 to 3 do { X[i]: g() }").unwrap();
+    let limits = |max_shapes| EvalLimits {
+        max_shapes,
+        ..Default::default()
+    };
+    // 3 boxes + 3 groups
+    assert!(eval_with_limits(&pic, limits(6)).is_ok());
+    let e = eval_with_limits(&pic, limits(5)).unwrap_err();
+    assert!(
+        e.msg
+            .contains("drawing exceeded 5 shapes (labelled macro calls count"),
+        "{e}"
+    );
+}
+
+#[test]
+fn labelled_call_body_may_end_in_a_bare_direction() {
+    // review of #441: `up` right before the group's end is a direction
+    // change, exactly as in the unlabelled call (nested too)
+    for d in ["up", "down", "left", "right"] {
+        let defs = format!("define m {{ x = 1; box; {d} }}\ndefine n {{ y = 1; G: m() }}\n");
+        let plain = draw(&format!("{defs}m()\nbox\nn()\nbox"));
+        let labelled = draw(&format!("{defs}X: m()\nbox\nH: n()\nbox\nP: H.G.c"));
+        assert_eq!(plain.shapes, labelled.shapes, "{d}");
+        assert_eq!(labelled.blocks.len(), 3, "{d}");
+    }
+}
+
+#[test]
+fn labelled_call_body_may_start_with_any_statement_form() {
+    // review of #441: the group rule is the parser's own dispatch, not a
+    // keyword list — rpic statements (`canvas`, `animate`, `class`, `link`,
+    // `draggable`, `%` comments) and env-var assignments start groups too
+    for first in [
+        "canvas from (0,0) to (3,3)",
+        "margin = 0.5",
+        "animate last box with \"fade\"",
+        "class last box \"hot\"",
+        "link last box \"https://rpic.dev\"",
+        "draggable last box",
+        "% a comment",
+    ] {
+        let defs = format!("define m {{ {first}\nbox }}\n");
+        let plain = draw(&format!("box\n{defs}m()"));
+        let d = draw(&format!("box\n{defs}X: m()\nC: X.c"));
+        assert_eq!(plain.shapes, d.shapes, "{first}");
+        assert_eq!(place_at(&d, "C"), (1.125, 0.0), "{first}");
+    }
+}

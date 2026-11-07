@@ -640,7 +640,24 @@ fn expand(
                     t.call_site = Some(std::sync::Arc::clone(&site));
                 }
                 let expanded = expand(&sub, macros, depth + 1, includes)?;
-                out.extend(expanded);
+                if follows_label(&out) && expansion_is_group(&expanded) {
+                    // `X1: m(…)` whose expansion the label cannot take the
+                    // classic way: bracket it so the parser gives the label
+                    // to the call's whole group (DECISIONS E3)
+                    let mark = |tok| {
+                        let mut t = toks[name_idx].clone();
+                        t.tok = tok;
+                        t.call_site = Some(std::sync::Arc::clone(&site));
+                        t.arg_frame = None;
+                        t.macro_frame = None;
+                        t
+                    };
+                    out.push(mark(Token::CallOpen));
+                    out.extend(expanded);
+                    out.push(mark(Token::CallClose));
+                } else {
+                    out.extend(expanded);
+                }
             }
             // `copy "file"` splices another pic file's (expanded) tokens inline.
             Token::Kw(Kw::Copy) => {
@@ -664,6 +681,64 @@ fn expand(
         }
     }
     Ok(out)
+}
+
+/// Whether `out` ends with a statement label and its colon (`X1:` or
+/// `X[i]:`), i.e. a macro call starting here is a labelled call.
+fn follows_label(out: &[Spanned]) -> bool {
+    let Some((colon, rest)) = out.split_last() else {
+        return false;
+    };
+    if colon.tok != Token::Colon {
+        return false;
+    }
+    match rest.last().map(|s| &s.tok) {
+        Some(Token::Label(_)) => true,
+        Some(Token::RightBrack) => {
+            // a subscripted label: walk back over the balanced `[ … ]`
+            let mut depth = 0i32;
+            for (k, t) in rest.iter().enumerate().rev() {
+                match t.tok {
+                    Token::RightBrack => depth += 1,
+                    Token::LeftBrack => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return k > 0 && matches!(rest[k - 1].tok, Token::Label(_));
+                        }
+                    }
+                    Token::Newline => return false,
+                    _ => {}
+                }
+            }
+            false
+        }
+        _ => false,
+    }
+}
+
+/// Whether a labelled call's `expanded` tokens make a group (DECISIONS
+/// E3): the label cannot take their first statement the classic way — it
+/// is empty or is any statement form other than an object (which includes
+/// every position). Decided by the parser's own dispatch
+/// ([`Parser::statement_form`]) over the first statement only, so the cost
+/// is that statement's length and a classic call's tokens are untouched.
+fn expansion_is_group(expanded: &[Spanned]) -> bool {
+    let first = expanded
+        .iter()
+        .position(|t| t.tok != Token::Newline)
+        .unwrap_or(expanded.len());
+    let end = expanded[first..]
+        .iter()
+        .position(|t| t.tok == Token::Newline)
+        .map_or(expanded.len(), |k| first + k);
+    if first == end {
+        return true;
+    }
+    let mut toks = expanded[first..end].to_vec();
+    let mut eof = toks[toks.len() - 1].clone();
+    eof.tok = Token::Eof;
+    toks.push(eof);
+    Parser::new(toks).statement_form() != StmtForm::Object
 }
 
 /// The provenance every token of a macro expansion carries: a call made
@@ -1095,7 +1170,7 @@ fn arg_token_text(tok: &Token) -> String {
         Token::Newline => ";".into(),
         Token::DotPS => ".PS".into(),
         Token::DotPE => ".PE".into(),
-        Token::Eof => String::new(),
+        Token::Eof | Token::CallOpen | Token::CallClose => String::new(),
         Token::Lt => "<".into(),
         Token::Gt => ">".into(),
         Token::Le => "<=".into(),
@@ -1291,6 +1366,8 @@ fn token_text(t: &Token) -> String {
         Token::DotPS => ".PS".into(),
         Token::DotPE => ".PE".into(),
         Token::Eof => "end of input".into(),
+        Token::CallOpen => "the start of a labelled macro call".into(),
+        Token::CallClose => "the end of a labelled macro call".into(),
         Token::Lt => "<".into(),
         Token::Lparen => "(".into(),
         Token::Rparen => ")".into(),
@@ -1639,6 +1716,29 @@ fn is_assign_op(t: &Token) -> bool {
     )
 }
 
+/// What [`Parser::statement_form`] sees at a statement start.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum StmtForm {
+    Comment,
+    Animate,
+    Class,
+    Link,
+    Draggable,
+    Canvas,
+    Keyword,
+    Brace,
+    Labelled,
+    Assign,
+    Direction,
+    /// Anything else: parsed as an object (a label takes it, or a position).
+    Object,
+}
+
+/// Whether `t` ends a statement (incl. the end of a labelled call's group).
+fn at_stmt_end(t: &Token) -> bool {
+    matches!(t, Token::Newline | Token::Eof | Token::CallClose)
+}
+
 struct Parser {
     toks: Vec<Spanned>,
     idx: usize,
@@ -1862,162 +1962,198 @@ impl Parser {
 
     // ---- statements --------------------------------------------------------
 
-    fn parse_element(&mut self) -> PResult<Stmt> {
-        // A `%`-led line is a comment convention in some source documents (pic
-        // proper uses `#`). `%` is never valid at statement start, so skip the
-        // line as a no-op.
-        if self.at(&Token::Percent) {
-            while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
-                self.bump();
-            }
-            return Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))));
-        }
-
-        // rpic animation directive. Contextual, like `class` below: `animate`
-        // is an ordinary name everywhere else (`animate = 1` assigns), and its
-        // clause words are recognised only inside this statement.
-        if self.at_name("animate") && !is_assign_op(self.peek(1)) {
-            // `animate scroll` is a timeline-level directive, not an object
-            // animation — dispatch it before the `animate <place> …` form.
-            if matches!(self.peek(1), Token::Name(n) if n == "scroll") {
-                self.bump();
-                self.bump();
-                return Ok(Stmt::AnimateScroll);
-            }
-            return Ok(Stmt::Animate(Box::new(self.parse_animate()?)));
-        }
-
-        // rpic `class <place> "name"` statement (extension). Contextual:
-        // `class = 2` stays an assignment and `class` remains usable as a
-        // variable, mirroring how `animate` targets are referenced.
-        if matches!(self.cur(), Token::Name(n) if n == "class")
-            && !is_assign_op(self.peek(1))
-            && !matches!(self.peek(1), Token::LeftBrack)
-        {
-            self.bump();
-            let target = self.parse_place()?;
-            let class = self.parse_stringexpr()?;
-            return Ok(Stmt::Class { target, class });
-        }
-
-        // rpic `link <place> "<url>"` statement (extension). Contextual like
-        // `class`: `link = 2` stays an assignment and `link` remains usable
-        // as a variable.
-        if matches!(self.cur(), Token::Name(n) if n == "link")
-            && !is_assign_op(self.peek(1))
-            && !matches!(self.peek(1), Token::LeftBrack)
-        {
-            self.bump();
-            let target = self.parse_place()?;
-            let url = self.parse_stringexpr()?;
-            return Ok(Stmt::Link { target, url });
-        }
-
-        // rpic `draggable <place> [inertia] [bounds <place>] [x|y]` statement
-        // (extension). Contextual like `class`: `draggable = 1` stays an
-        // assignment and `draggable` remains usable as a variable.
-        if matches!(self.cur(), Token::Name(n) if n == "draggable")
-            && !is_assign_op(self.peek(1))
-            && !matches!(self.peek(1), Token::LeftBrack)
-        {
-            return Ok(Stmt::Draggable(self.parse_draggable()?));
-        }
-
-        // rpic `canvas from <pos> to <pos>` statement (extension). Contextual
-        // and stricter than `class`: only the exact `canvas from …` spelling
-        // triggers, so `canvas = 2`, a `canvas(…)` macro and a plain variable
-        // named canvas all keep their classic meaning.
-        if matches!(self.cur(), Token::Name(n) if n == "canvas")
-            && matches!(self.peek(1), Token::Kw(Kw::From))
-        {
-            self.bump();
-            self.bump();
-            let from = self.parse_position()?;
-            self.expect(&Token::Kw(Kw::To))?;
-            let to = self.parse_position()?;
-            return Ok(Stmt::Canvas { from, to });
-        }
-
-        // control constructs
+    /// Which statement form [`Parser::parse_element`] dispatches to at the
+    /// cursor. The one source of truth for that dispatch, so the labelled-
+    /// call rule (DECISIONS E3: a group whenever the label cannot take the
+    /// first statement the classic way) can never drift from the parser.
+    fn statement_form(&self) -> StmtForm {
+        let named_stmt = |w: &str| {
+            matches!(self.cur(), Token::Name(n) if n == w)
+                && !is_assign_op(self.peek(1))
+                && !matches!(self.peek(1), Token::LeftBrack)
+        };
         match self.cur() {
-            Token::Kw(Kw::If) => return self.parse_if(),
-            Token::Kw(Kw::For) => return self.parse_for(),
-            Token::Kw(Kw::Print) => return self.parse_print(),
-            Token::Kw(Kw::Exec) => return self.parse_exec(),
-            Token::Kw(Kw::Reset) => return self.parse_reset(),
+            Token::Percent => return StmtForm::Comment,
+            Token::Kw(
+                Kw::If
+                | Kw::For
+                | Kw::Print
+                | Kw::Exec
+                | Kw::Reset
+                | Kw::Define
+                | Kw::Undef
+                | Kw::Command
+                | Kw::Sh
+                | Kw::Copy,
+            ) => return StmtForm::Keyword,
+            Token::LeftBrace => return StmtForm::Brace,
             _ => {}
         }
+        if self.at_name("animate") && !is_assign_op(self.peek(1)) {
+            StmtForm::Animate
+        } else if named_stmt("class") {
+            StmtForm::Class
+        } else if named_stmt("link") {
+            StmtForm::Link
+        } else if named_stmt("draggable") {
+            StmtForm::Draggable
+        } else if matches!(self.cur(), Token::Name(n) if n == "canvas")
+            && matches!(self.peek(1), Token::Kw(Kw::From))
+        {
+            StmtForm::Canvas
+        } else if matches!(self.cur(), Token::Label(_)) && self.label_colon_ahead() {
+            StmtForm::Labelled
+        } else if self.at_assignment_start() {
+            StmtForm::Assign
+        } else if matches!(self.cur(), Token::Dir(_)) && at_stmt_end(self.peek(1)) {
+            StmtForm::Direction
+        } else {
+            StmtForm::Object
+        }
+    }
 
-        // `define`/`undef` are handled by the macro preprocessor before parsing;
-        // reaching here means a non-brace form we don't support.
-        if let Token::Kw(k) = self.cur() {
-            match k {
-                Kw::Define | Kw::Undef => {
-                    return self.err("only the `define name { body }` macro form is supported");
-                }
-                // Policy (docs/raw-backend-policy in dpic-compat-audit.md):
-                // `command` raw backend text is never injected into the SVG
-                // output, and `sh` is never executed — both are tolerated as
-                // true no-ops so dpic sources keep compiling. The lexer already
-                // skipped their raw argument text.
-                Kw::Command | Kw::Sh => {
+    fn parse_element(&mut self) -> PResult<Stmt> {
+        match self.statement_form() {
+            // A `%`-led line is a comment convention in some source documents
+            // (pic proper uses `#`). `%` is never valid at statement start, so
+            // skip the line as a no-op.
+            StmtForm::Comment => {
+                while !self.at(&Token::Newline) && !self.at(&Token::Eof) {
                     self.bump();
-                    return Ok(Stmt::Group(Vec::new()));
                 }
-                Kw::Copy => {
-                    return self.err("`copy` is not supported yet (planned milestone)");
+                Ok(Stmt::Print(PrintItem::Str(StringExpr::Lit(String::new()))))
+            }
+            // rpic animation directive. Contextual, like `class` below:
+            // `animate` is an ordinary name everywhere else (`animate = 1`
+            // assigns), and its clause words are recognised only inside this
+            // statement.
+            StmtForm::Animate => {
+                // `animate scroll` is a timeline-level directive, not an
+                // object animation — dispatch it before `animate <place> …`.
+                if matches!(self.peek(1), Token::Name(n) if n == "scroll") {
+                    self.bump();
+                    self.bump();
+                    return Ok(Stmt::AnimateScroll);
                 }
-                _ => {}
+                Ok(Stmt::Animate(Box::new(self.parse_animate()?)))
             }
-        }
-
-        // `{ … }` grouping. Nesting recurses parse_element → parse_elementlist
-        // → parse_element, so bound it through `descend` like the other block
-        // forms (a deeply nested `{{{…}}}` would otherwise overflow the stack).
-        if self.eat(&Token::LeftBrace) {
-            let stmts = self.descend(|p| p.parse_elementlist(&[Token::RightBrace]))?;
-            self.expect(&Token::RightBrace)?;
-            return Ok(Stmt::Group(stmts));
-        }
-
-        // Labelled element: `Label [suffix] : (object | position)`
-        if matches!(self.cur(), Token::Label(_)) && self.label_colon_ahead() {
-            let span = Some(self.cur_span());
-            let label = self.parse_label()?;
-            self.expect(&Token::Colon)?;
-            if self.at_object_start() {
-                let object = self.parse_object()?;
-                return Ok(Stmt::Object {
-                    label: Some(label),
-                    object,
-                });
-            } else {
-                let pos = self.parse_label_position()?;
-                return Ok(Stmt::Place { label, pos, span });
-            }
-        }
-
-        // Assignment: `name [suffix] op …` or `envvar op …`
-        if self.at_assignment_start() {
-            return Ok(Stmt::Assign(self.parse_assignlist()?));
-        }
-
-        // Bare direction change.
-        if let Token::Dir(d) = self.cur() {
-            let d = *d;
-            // Only a standalone direction (next token ends the statement).
-            if matches!(self.peek(1), Token::Newline | Token::Eof) {
+            // rpic `class <place> "name"` statement (extension). Contextual:
+            // `class = 2` stays an assignment and `class` remains usable as a
+            // variable, mirroring how `animate` targets are referenced.
+            StmtForm::Class => {
                 self.bump();
-                return Ok(Stmt::Direction(d));
+                let target = self.parse_place()?;
+                let class = self.parse_stringexpr()?;
+                Ok(Stmt::Class { target, class })
+            }
+            // rpic `link <place> "<url>"` statement (extension). Contextual
+            // like `class`.
+            StmtForm::Link => {
+                self.bump();
+                let target = self.parse_place()?;
+                let url = self.parse_stringexpr()?;
+                Ok(Stmt::Link { target, url })
+            }
+            // rpic `draggable <place> [inertia] [bounds <place>] [x|y]`
+            // statement (extension). Contextual like `class`.
+            StmtForm::Draggable => Ok(Stmt::Draggable(self.parse_draggable()?)),
+            // rpic `canvas from <pos> to <pos>` statement (extension). Only the
+            // exact `canvas from …` spelling triggers, so `canvas = 2`, a
+            // `canvas(…)` macro and a plain variable named canvas all keep
+            // their classic meaning.
+            StmtForm::Canvas => {
+                self.bump();
+                self.bump();
+                let from = self.parse_position()?;
+                self.expect(&Token::Kw(Kw::To))?;
+                let to = self.parse_position()?;
+                Ok(Stmt::Canvas { from, to })
+            }
+            StmtForm::Keyword => self.parse_keyword_statement(),
+            // `{ … }` grouping. Nesting recurses parse_element →
+            // parse_elementlist → parse_element, so bound it through `descend`
+            // like the other block forms (a deeply nested `{{{…}}}` would
+            // otherwise overflow the stack).
+            StmtForm::Brace => {
+                self.bump();
+                let stmts = self.descend(|p| p.parse_elementlist(&[Token::RightBrace]))?;
+                self.expect(&Token::RightBrace)?;
+                Ok(Stmt::Group(stmts))
+            }
+            StmtForm::Labelled => self.parse_labelled(),
+            // Assignment: `name [suffix] op …` or `envvar op …`
+            StmtForm::Assign => Ok(Stmt::Assign(self.parse_assignlist()?)),
+            // Bare direction change (the next token ends the statement).
+            StmtForm::Direction => match self.bump() {
+                Token::Dir(d) => Ok(Stmt::Direction(d)),
+                _ => unreachable!("statement_form saw a direction"),
+            },
+            // Otherwise: an unlabelled object.
+            StmtForm::Object => {
+                let object = self.parse_object()?;
+                Ok(Stmt::Object {
+                    label: None,
+                    object,
+                })
             }
         }
+    }
 
-        // Otherwise: an unlabelled object.
-        let object = self.parse_object()?;
-        Ok(Stmt::Object {
-            label: None,
-            object,
-        })
+    /// Control constructs and the keyword statements the preprocessor
+    /// normally consumes.
+    fn parse_keyword_statement(&mut self) -> PResult<Stmt> {
+        match self.cur() {
+            Token::Kw(Kw::If) => self.parse_if(),
+            Token::Kw(Kw::For) => self.parse_for(),
+            Token::Kw(Kw::Print) => self.parse_print(),
+            Token::Kw(Kw::Exec) => self.parse_exec(),
+            Token::Kw(Kw::Reset) => self.parse_reset(),
+            // `define`/`undef` are handled by the macro preprocessor before
+            // parsing; reaching here means a non-brace form we don't support.
+            Token::Kw(Kw::Define | Kw::Undef) => {
+                self.err("only the `define name { body }` macro form is supported")
+            }
+            // Policy (docs/raw-backend-policy in dpic-compat-audit.md):
+            // `command` raw backend text is never injected into the SVG
+            // output, and `sh` is never executed — both are tolerated as true
+            // no-ops so dpic sources keep compiling. The lexer already skipped
+            // their raw argument text.
+            Token::Kw(Kw::Command | Kw::Sh) => {
+                self.bump();
+                Ok(Stmt::Group(Vec::new()))
+            }
+            _ => self.err("`copy` is not supported yet (planned milestone)"),
+        }
+    }
+
+    /// `Label [suffix] : (object | position)`, or the labelled-call group the
+    /// preprocessor bracketed (DECISIONS E3).
+    fn parse_labelled(&mut self) -> PResult<Stmt> {
+        let span = Some(self.cur_span());
+        let label = self.parse_label()?;
+        self.expect(&Token::Colon)?;
+        if self.at(&Token::CallOpen) {
+            let call_site = self.toks[self.idx].call_site.clone();
+            self.bump();
+            let body = self.descend(|p| p.parse_elementlist(&[Token::CallClose]))?;
+            self.expect(&Token::CallClose)?;
+            return Ok(Stmt::LabelledCall {
+                label,
+                body,
+                span,
+                call_site,
+            });
+        }
+        if self.at_object_start() {
+            let object = self.parse_object()?;
+            Ok(Stmt::Object {
+                label: Some(label),
+                object,
+            })
+        } else {
+            let pos = self.parse_label_position()?;
+            Ok(Stmt::Place { label, pos, span })
+        }
     }
 
     fn parse_if(&mut self) -> PResult<Stmt> {
@@ -4098,6 +4234,63 @@ ellipse "typesetter"
     }
 
     #[test]
+    fn labelled_flat_macro_call_parses_as_a_group() {
+        // #425 item 3 / DECISIONS E3: an expansion the label cannot take
+        // the classic way (it starts with an assignment) becomes a group
+        let p = pic("define g { gx = 1; box; T: circle }\nX1: g()\nbox");
+        assert_eq!(p.stmts.len(), 2);
+        let Stmt::LabelledCall {
+            label,
+            body,
+            call_site,
+            ..
+        } = &p.stmts[0]
+        else {
+            panic!("{:?}", p.stmts[0])
+        };
+        assert_eq!(label.name, "X1");
+        assert_eq!(body.len(), 3);
+        assert_eq!(call_site.as_ref().unwrap().call.name, "g");
+        // subscripted labels are labels too
+        let p = pic("define g { gx = 1; box }\nX[2]: g()");
+        assert!(matches!(&p.stmts[0], Stmt::LabelledCall { label, .. }
+            if label.subscript.is_some()));
+        // an expansion starting with a label is a group as well
+        let p = pic("define g { A: box; B: box }\nX1: g()");
+        assert!(matches!(&p.stmts[0], Stmt::LabelledCall { body, .. } if body.len() == 2));
+        // nothing may follow the call on its line
+        assert!(parse("define g { gx = 1; box }\nX1: g() dashed").is_err());
+    }
+
+    #[test]
+    fn labelled_call_keeps_the_classic_reading_when_it_can() {
+        // pic/dpic expand textually: `Z: twob()` labels the first box, a
+        // macro yielding a position names that position, a `[ ]` body is
+        // the labelled block. Those parses do not change (the brackets are
+        // dropped; the corpus guards prove the bytes).
+        let labelled_object = |src: &str, n: usize| {
+            let p = pic(src);
+            assert_eq!(p.stmts.len(), n, "{src}");
+            assert!(
+                matches!(&p.stmts[0], Stmt::Object { label: Some(_), .. }),
+                "{src}: {:?}",
+                p.stmts[0]
+            );
+        };
+        labelled_object("define twob { box; box }\nZ: twob()", 2);
+        labelled_object("define mb { box wid 2 }\nB: mb ht 1", 1);
+        labelled_object("define bk { [ box ] }\nK: bk()", 1);
+        let p = pic("define mid { 0.5 between (0,0) and (1,0) }\nM: mid()");
+        assert!(matches!(&p.stmts[0], Stmt::Place { .. }));
+        // `mb ht 1`: the trailing attribute still reaches the box
+        let Stmt::Object { object, .. } = &pic("define mb { box wid 2 }\nB: mb ht 1").stmts[0]
+        else {
+            panic!()
+        };
+        assert_eq!(object.attrs.len(), 2);
+    }
+
+    #[test]
     fn place_scalar_in_coord_pair() {
         // issue #3: (A.x, expr) must parse as an (expr,expr) pair, not a place
         let p = pic("A: box\n\"t\" at (A.x, A.y - 0.5)");
@@ -4174,6 +4367,55 @@ box
             ]
         );
         assert!(p.passthrough.iter().all(|l| l.span.file.is_none()));
+    }
+
+    #[test]
+    fn classic_labelled_calls_get_no_brackets() {
+        // the classic reading is decided in `expand`: its tokens are exactly
+        // the unlabelled expansion's, no CallOpen/CallClose to remove later
+        let ctx = IncludeCtx::default();
+        let marks = |src: &str| {
+            let toks = lex_in(src, None, &ctx.sources).unwrap();
+            let out = expand(&toks, &mut HashMap::new(), 0, &ctx).unwrap();
+            out.iter()
+                .filter(|t| matches!(t.tok, Token::CallOpen | Token::CallClose))
+                .count()
+        };
+        assert_eq!(marks("define t { box; box }\nZ: t()"), 0);
+        assert_eq!(marks("define t { [ box ] }\nZ: t()"), 0);
+        assert_eq!(marks("define t { (1,2) }\nZ: t()"), 0);
+        assert_eq!(marks("define t { x = 1; box }\nZ: t()"), 2);
+        // one statement form per dispatch arm of parse_element
+        for first in [
+            "canvas from (0,0) to (3,3)",
+            "margin = 0.5",
+            "animate last box with \"fade\"",
+            "class last box \"hot\"",
+            "link last box \"https://rpic.dev\"",
+            "draggable last box",
+            "% a comment",
+            "print 1",
+            "{ box }",
+            "up",
+            "A: box",
+        ] {
+            let src = format!("box\ndefine t {{ {first}\nbox }}\nZ: t()");
+            assert_eq!(marks(&src), 2, "{first}");
+        }
+    }
+
+    #[test]
+    fn many_classic_labelled_calls_parse_in_linear_time() {
+        // review of #441: removing the brackets of each classic call from the
+        // whole token stream was O(n·k); now classic calls are never bracketed
+        let mut src = String::from("define mb { box wid 0.1 }\n");
+        for i in 0..4000 {
+            src.push_str(&format!("Q{i}: mb()\n"));
+        }
+        let t = std::time::Instant::now();
+        let p = pic(&src);
+        assert_eq!(p.stmts.len(), 4000);
+        assert!(t.elapsed().as_secs() < 5, "took {:?}", t.elapsed());
     }
 
     #[test]

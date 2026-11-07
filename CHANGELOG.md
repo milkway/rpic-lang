@@ -39,6 +39,18 @@ resolves to the latest version.
   nested calls carry the outermost call's, like `args`. The scene's block
   `call` gains `raw_args` (additive; `scene` stays 1). `--svg`/`--json`
   unchanged. DECISIONS E1 (#425).
+- Labels on flat macro calls: `R1: resistor(A,B)` — a label in front of a
+  call whose body cannot take it the classic way (it starts with
+  assignments, a label, a control statement, or is empty) names the group
+  of objects the call draws, like a block (`R1.n`, `R1.wid`, `R1.start`,
+  labels it binds directly as `R1.T`) without moving anything (each group
+  counts toward `max_shapes`); `last []`/ordinals skip
+  it, `--scene` gets a labelled block with the call's provenance, a call
+  that draws nothing is an error. Bodies that start with an object or a
+  position keep pic's textual reading, so every source dpic accepts is
+  unchanged (`--svg`/`--json`/`--scene` corpus 128/128). The circuit
+  library's `switch`, `nmos`, `pmos`, `njfet`, `pjfet` gained `__` geometry
+  twins for preludes that shadow them. DECISIONS E3 (#425).
 
 ### Changed
 
@@ -50,9 +62,12 @@ resolves to the latest version.
   both. Single-line entries are byte-identical. DECISIONS E2 (#425).
 - **API:** `ir::MacroCall`, `ir::RawArg` and `ir::PassLine` are now
   `#[non_exhaustive]`: they are embedder-facing records that will keep
-  growing (#425 item 3 extends them again), so code outside rpic-core can
-  read their fields but no longer build them with a struct literal or
-  match them exhaustively. Nothing in rpic or rpic-r builds them.
+  growing, so code outside rpic-core can read their fields but no longer
+  build them with a struct literal or match them exhaustively. Nothing in
+  rpic or rpic-r builds them.
+- **API:** `ast::Stmt` gains `LabelledCall` and `token::Token` gains the
+  synthetic `CallOpen`/`CallClose` (labelled calls, E3); exhaustive
+  matches on either outside rpic-core need an arm.
 - geopic-core: `maplibre::Sizing` gained a `text_scale` field and is now
   `#[non_exhaustive]` — read its fields freely, but build it only through
   `sizing()` / `sizing_with()` (a struct literal outside the crate no longer

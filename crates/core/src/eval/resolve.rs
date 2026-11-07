@@ -101,7 +101,14 @@ impl State {
                     } => self.indexed_name(name, subscript.as_deref())?,
                     _ => return err("a block sub-label must be a name"),
                 };
-                b.members.get(&key).cloned().ok_or_else(|| EvalError {
+                if let Some(m) = b.members.get(&key) {
+                    return Ok(m.clone());
+                }
+                // a labelled-call group of this state: index members
+                if let Some(&(_, i)) = b.group_members.iter().find(|(n, _)| *n == key) {
+                    return Ok(self.placed[i].clone());
+                }
+                Err(EvalError {
                     msg: format!("no sub-label `{key}` in that block"),
                     info: None,
                 })
@@ -172,7 +179,7 @@ impl State {
             .placed
             .iter()
             .enumerate()
-            .filter(|(_, pl)| want.is_none_or(|w| pl.kind == w))
+            .filter(|(_, pl)| !pl.synthetic && want.is_none_or(|w| pl.kind == w))
             .map(|(i, _)| i)
             .collect();
         if matches.is_empty() {

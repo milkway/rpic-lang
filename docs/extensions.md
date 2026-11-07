@@ -787,6 +787,68 @@ dpic-compatible when `brace` is not used. Additional runnable examples are in
 `examples/brace_sides.pic`, `examples/brace_style.pic`, and
 `examples/brace_width.pic`.
 
+## Labels on Flat Macro Calls
+
+pic expands macros textually, so a label in front of a call labels the
+first statement of the body: `Z: twob()` with `define twob { box; box }`
+names the first box (dpic agrees, and rpic keeps that). A *flat* macro —
+assignments first, then several objects, the shape of every two-terminal
+element in the circuit library — therefore could not be labelled at all:
+`R1: resistor(A,B)` read as `R1: rsx = A.x; …`, a syntax error. Embedders
+wrapped each glyph in a `[ ]` block of their own just to name it.
+
+rpic now gives such a label to the **group** the call draws:
+
+```pic
+.PS
+copy "circuits"
+A: (0,0); B: (2,0)
+R1: resistor(A,B)
+line from R1.n up 0.2          # top of the zig-zag's bounding box
+C1: capacitor(B, (3,0))       # wire to the element's own points
+.PE
+```
+
+Rules:
+
+- **Classic first.** Whenever the label can take the expansion's first
+  statement the classic way — an object, a position, a `[ … ]` block —
+  the old reading stands, byte for byte. A body whose first statement is
+  anything else — an assignment, another label, a control statement
+  (`if`, `for`, `print`, …), `{ … }`, a bare direction, a `%` comment, an
+  rpic statement such as `canvas from …` or `animate …`, or nothing at
+  all — is a group (the rule is the parser's own statement dispatch). dpic rejects all of
+  those, so no source it accepts changes.
+- **Nothing moves.** The statements run in place: same objects, same
+  `Here`, same direction as the unlabelled call. `--svg` is identical.
+- **Resolves like a block.** `R1.c`, `R1.n`, `R1.wid`, `R1.ht` come from
+  the bounding box of the group's geometry (invisible helpers included,
+  as for a block); `R1.start`/`R1.end` are exactly the first drawn
+  object's start and the last drawn object's end — not necessarily the
+  element's terminals (`led` draws its emission arrows last, so `X.end`
+  is an arrow tip): wire to the points you passed or to labels the body
+  defines; labels the call binds directly are members
+  (`R1.T`, `B.R1.T` inside a block). A nested labelled call keeps its own:
+  `H.G.T`, not `H.T`, exactly as for nested `[ ]` blocks. Those labels are
+  still defined globally too, as in any flat expansion.
+- **Budget.** Each group counts toward the shape budget (`max_shapes`).
+- **Not a block for counting.** `last []`, `2nd []` and untyped `last`
+  skip the group, so ordinals mean what they did.
+- **Provenance.** `--scene` gets a `blk<N>` item with `label`, `span` and
+  `call` (the outermost call, raw arguments included — DECISIONS E1), and
+  the places the body defined name that block. The `--json` bundle has no
+  block vocabulary and does not change.
+- A labelled call that draws nothing (`define setup { q = 1 }`,
+  `X: setup()`) is the error `label on a macro that draws nothing`
+  (`label_on_empty_call`).
+- Text after the call on the same line is an error in the group form
+  (there is no single object for it to modify).
+
+The library's `switch`, `nmos`, `pmos`, `njfet` and `pjfet` also gained
+`__switch` … `__pjfet` twins (like `__resistor`), so a prelude that
+shadows one of those names to add pins can still draw the library's
+geometry. Design record: DECISIONS E3.
+
 ## In-Source Circuit Library Loading
 
 `copy "circuits"` is a reserved include target that loads the embedded native

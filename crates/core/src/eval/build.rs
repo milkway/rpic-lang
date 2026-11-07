@@ -895,13 +895,13 @@ impl State {
         // expose this scope's labels (read-only, absolute coords) to the block
         sub.outer_labels = self.outer_labels.clone();
         for (name, &i) in &self.labels {
-            sub.outer_labels
-                .insert(name.clone(), self.placed[i].clone());
+            sub.outer_labels.insert(name.clone(), self.detached(i));
         }
         sub.eval_stmts(stmts)?;
         // Variables, parameters and direction changes inside `[ ... ]` are
         // local to the block. Random draws still consume the shared sequence.
         self.rng = sub.rng.clone();
+        self.groups += sub.groups;
         self.diagnostics.append(&mut sub.diagnostics);
         self.warnings.append(&mut sub.warnings);
         for key in &sub.export_vars {
@@ -934,7 +934,7 @@ impl State {
         // shapes are moved out, so `B.A` / `last [].Outer` can resolve.
         let mut members: HashMap<String, Placed> = HashMap::new();
         for (name, &i) in &sub.labels {
-            let mut pl = sub.placed[i].clone();
+            let mut pl = sub.detached(i);
             rebase_placed(&mut pl, shift, first_shape);
             members.insert(name.clone(), pl);
         }
@@ -1055,6 +1055,111 @@ impl State {
         Ok(idx)
     }
 
+    /// `Label: m(…)` on a flat macro call (DECISIONS E3): evaluate the
+    /// expansion in place — positions, direction and every object exactly
+    /// as the unlabelled call — then name the group it drew with a
+    /// synthetic block record (bbox = the union of the group's geometry,
+    /// members = the labels the expansion defined).
+    pub(super) fn labelled_call(
+        &mut self,
+        label: &Label,
+        body: &[Stmt],
+        span: Option<&Span>,
+        call_site: Option<&crate::lexer::CallSite>,
+    ) -> ER<()> {
+        let key = self.label_key(label)?;
+        let placed_base = self.placed.len();
+        let first_shape = self.shapes.len();
+        let block_base = self.blocks.len();
+        let places_base = self.places.len();
+        // the labels this call binds directly (nested calls keep their own)
+        self.group_frames.push(HashMap::new());
+        // the group's own layout extent, measured like a block's
+        let outer_layout = std::mem::take(&mut self.layout_bbox);
+        let result = self.eval_stmts(body);
+        let group_layout = std::mem::replace(&mut self.layout_bbox, outer_layout);
+        self.layout_bbox.union(&group_layout);
+        let frame = self.group_frames.pop().unwrap_or_default();
+        result?;
+        // a group is a record like a shape: it counts toward the budget
+        self.groups += 1;
+        if self.shapes.len().saturating_add(self.groups) > self.limits.max_shapes {
+            return err(format!(
+                "drawing exceeded {} shapes (labelled macro calls count toward the budget)",
+                self.limits.max_shapes
+            ));
+        }
+
+        // objects drawn (named places are bookkeeping, not objects)
+        let drawn: Vec<usize> = (placed_base..self.placed.len())
+            .filter(|&i| {
+                let pl = &self.placed[i];
+                !(pl.kind == PKind::Text && pl.shape.is_none())
+            })
+            .collect();
+        let (Some(&first), Some(&last)) = (drawn.first(), drawn.last()) else {
+            let name = call_site.map_or("the macro", |c| c.call.name.as_str());
+            let mut d = Diagnostic::new(
+                "label_on_empty_call",
+                format!("label `{key}` on a macro that draws nothing"),
+            )
+            .found(key.clone())
+            .hint(format!(
+                "`{name}` draws no object for the label to name; label a place \
+                 inside the macro instead, or drop the label"
+            ));
+            if let Some(s) = span {
+                d = d.at(s.clone());
+            }
+            return Err(diag_error(d));
+        };
+        let mut bb = group_layout;
+        if bb.is_empty() {
+            for &i in &drawn {
+                bb.union(&self.placed[i].bbox);
+            }
+        }
+        let center = (bb.min + bb.max) * 0.5;
+        let (start, end) = (self.placed[first].start, self.placed[last].end);
+        let mut members: Vec<(String, usize)> = frame.into_iter().collect();
+        members.sort_unstable_by_key(|&(_, i)| i);
+        let child_end = self.shapes.len();
+        let shape = (child_end > first_shape).then_some(first_shape);
+        let idx = self.record(PKind::Block, center, bb, start, end, 0.0, shape);
+        self.placed[idx].synthetic = true;
+        self.placed[idx].group_members = members;
+        if child_end > first_shape {
+            self.placed[idx].block_shapes = Some((first_shape, child_end));
+        }
+        // scene export: a block record over the group's shapes, adopting the
+        // parentless blocks, shapes and places the expansion produced
+        if child_end > first_shape || self.blocks.len() > block_base {
+            let this_block = self.blocks.len();
+            for b in &mut self.blocks[block_base..] {
+                b.parent = b.parent.or(Some(this_block));
+            }
+            for slot in &mut self.shape_blocks[first_shape..child_end] {
+                *slot = slot.or(Some(this_block));
+            }
+            for p in &mut self.places[places_base..] {
+                p.block = p.block.or(Some(this_block));
+            }
+            self.blocks.push(BlockInfo {
+                label: Some(key.clone()),
+                shapes: (first_shape, child_end),
+                parent: None,
+                span: match call_site {
+                    Some(site) => Some(site.span.clone()),
+                    None => span.cloned(),
+                },
+                call: call_site.map(|site| site.call.clone()),
+            });
+            self.placed[idx].block = Some(this_block);
+        }
+        self.bind_label(key, idx);
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn record(
         &mut self,
@@ -1087,8 +1192,31 @@ impl State {
             members: HashMap::new(),
             block_shapes: None,
             block: None,
+            synthetic: false,
+            group_members: Vec::new(),
         });
         idx
+    }
+
+    /// Bind `key` to `placed[idx]` in this scope, and as a direct member of
+    /// the innermost labelled call being evaluated, if any.
+    pub(super) fn bind_label(&mut self, key: String, idx: usize) {
+        if let Some(frame) = self.group_frames.last_mut() {
+            frame.insert(key.clone(), idx);
+        }
+        self.labels.insert(key, idx);
+    }
+
+    /// A copy of `placed[idx]` that stands on its own outside this state:
+    /// a labelled-call group's index members become `members` (recursively
+    /// for nested groups, so the cost is the group's own subtree). Used
+    /// where records cross into or out of a `[ ]` block.
+    pub(super) fn detached(&self, idx: usize) -> Placed {
+        let mut pl = self.placed[idx].clone();
+        for (name, i) in std::mem::take(&mut pl.group_members) {
+            pl.members.insert(name, self.detached(i));
+        }
+        pl
     }
 
     fn push_shape(&mut self, shape: Shape, layer: i32) -> ER<()> {
