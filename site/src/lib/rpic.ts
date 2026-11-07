@@ -112,6 +112,38 @@ export function renderPicFile(relPath: string, opts: RenderOptions = {}): string
   return svg;
 }
 
+/**
+ * Georeference a repo `.pic` file with `rpic --geojson` (beside its own dir,
+ * so `copy` resolves) and return the parsed FeatureCollection. Cached like
+ * the figures. A source without a registration (no `geo_lon`/`geo_lat` or
+ * control points) fails the build — only georeferenced examples belong here.
+ */
+export function renderGeoFile(relPath: string, opts: RenderOptions = {}): unknown {
+  const abs = resolve(process.cwd(), '..', relPath);
+  const code = readFileSync(abs, 'utf8');
+  const key = cacheKey([
+    'geo',
+    relPath,
+    code,
+    opts.circuits ?? false,
+    opts.texlabels ?? false,
+    rpicBinarySignature(),
+    copyDependencySignature(abs),
+  ]);
+  const cached = join(CACHE_DIR, `${key}.geojson`);
+  if (existsSync(cached)) return JSON.parse(readFileSync(cached, 'utf8'));
+  const args = [
+    ...(opts.circuits ? ['-c'] : []),
+    ...(opts.texlabels ? ['-t'] : []),
+    '--geojson',
+    abs,
+  ];
+  const text = execFileSync(rpicBin(), args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  mkdirSync(CACHE_DIR, { recursive: true });
+  writeFileSync(cached, text);
+  return JSON.parse(text);
+}
+
 function run(code: string, opts: RenderOptions, json: boolean): string {
   const key = cacheKey([
     'inline',
