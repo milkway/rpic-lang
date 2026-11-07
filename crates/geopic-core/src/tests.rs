@@ -1175,3 +1175,102 @@ fn maplibre_title_layer_reads_the_title_points() {
     assert_eq!(title["layout"], text["layout"]);
     assert_eq!(title["paint"], text["paint"]);
 }
+
+/// Review of #436: the title point is the scene's `text_center` with the
+/// first line's compass — blank lines, valign and halign included — and
+/// arrowheads no longer carry the label.
+#[test]
+fn title_points_follow_text_center_for_blank_valign_and_halign_idioms() {
+    let src = "geo_lon = 0\ngeo_lat = 0\ngeo_scale = 100\n\
+               box \"\" \"below\" at (0,0)\n\
+               line from (0,0) to (2,0) \"mid\" above\n\
+               box \"a\" ljust at (4,0)\n\
+               arrow from (0,-1) to (2,-1) \"go\"";
+    let scene = scene_of(src);
+    let sv: Value = serde_json::from_str(&scene).unwrap();
+    let centre = |id: &str| {
+        let it = sv["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["id"] == id)
+            .unwrap();
+        let c = it["text_center"].as_array().unwrap();
+        [c[0].as_f64().unwrap(), c[1].as_f64().unwrap()]
+    };
+    let g = georeference(&scene, &GeoOptions::default()).unwrap();
+    let fs = &g.features.features;
+    let title = |id: &str| {
+        fs.iter()
+            .find(|f| f.properties["geopic:kind"] == "title" && f.properties["geopic:for"] == id)
+            .unwrap()
+    };
+    let at = |f: &crate::geojson::Feature| match &f.geometry {
+        Geometry::Point(p) => *p,
+        g => panic!("not a point: {g:?}"),
+    };
+    let check = |id: &str, want_canvas: [f64; 2], anchor: &str| {
+        let t = title(id);
+        let ll = g.registration.to_lonlat(centre(id));
+        let p = at(t);
+        assert!(
+            (p[0] - ll.lon).abs() < 1e-9 && (p[1] - ll.lat).abs() < 1e-9,
+            "{id}: {p:?} vs {ll:?}"
+        );
+        let c = centre(id);
+        assert!(
+            (c[0] - want_canvas[0]).abs() < 1e-9 && (c[1] - want_canvas[1]).abs() < 1e-9,
+            "{id}: text_center {c:?}"
+        );
+        assert_eq!(t.properties["geopic:anchor"], anchor, "{id}");
+    };
+    // blank first line: the stack's centre. The scene emits only the
+    // visible line, so the point carries "below" centred there while the
+    // SVG draws it half a line skip lower (G10 residual: blank lines are not in
+    // the scene's `text`)
+    check("s0", [0.0, 0.0], "c");
+    assert_eq!(title("s0").properties["geopic:text"], "below");
+    // `above`: the midpoint, not the shifted baseline; `s` puts it on top
+    check("s1", [1.0, 0.0], "s");
+    // `ljust`: the centre, `w` = the text extends right of it
+    check("s2", [4.0, 0.0], "w");
+    // the arrow's label is its title point; its heads carry no label
+    check("s3", [1.0, -1.0], "c");
+    let heads: Vec<_> = fs
+        .iter()
+        .filter(|f| f.properties["geopic:kind"] == "arrowhead")
+        .collect();
+    assert!(!heads.is_empty());
+    for h in heads {
+        for k in ["title", "geopic:text", "geopic:font_size"] {
+            assert!(h.properties.get(k).is_none(), "arrowhead keeps {k}");
+        }
+    }
+    // the arrow's own line keeps its title (simplestyle)
+    let arrow = fs
+        .iter()
+        .find(|f| f.properties["geopic:kind"] == "arrow")
+        .unwrap();
+    assert_eq!(arrow.properties["title"], "go");
+}
+
+/// A scene from an engine before `text_center` (S12): closed shapes fall
+/// back to their `at`, other kinds get no title point.
+#[test]
+fn scenes_without_text_center_fall_back_to_at() {
+    let scene =
+        scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"b\" at (1,1)\nline from (0,0) to (2,0) \"l\"");
+    let mut sv: Value = serde_json::from_str(&scene).unwrap();
+    for it in sv["items"].as_array_mut().unwrap() {
+        it.as_object_mut().unwrap().remove("text_center");
+    }
+    let g = georeference(&sv.to_string(), &GeoOptions::default()).unwrap();
+    let titles: Vec<_> = g
+        .features
+        .features
+        .iter()
+        .filter(|f| f.properties["geopic:kind"] == "title")
+        .collect();
+    assert_eq!(titles.len(), 1);
+    assert_eq!(titles[0].properties["geopic:for"], "s0");
+}

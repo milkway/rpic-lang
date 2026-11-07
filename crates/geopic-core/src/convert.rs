@@ -210,6 +210,10 @@ impl Ctx<'_> {
     fn heads(&mut self, item: &Item, heads: &[Head], base: &Props) {
         for h in heads {
             let mut props = base.clone();
+            // the label is the item's title point, not the heads' (G10)
+            for k in ["title", "geopic:text", "geopic:font_size"] {
+                props.remove(k);
+            }
             props.insert("geopic:kind".into(), json!("arrowhead"));
             props.insert("geopic:head".into(), json!(h.at));
             props.insert("geopic:filled".into(), json!(h.filled));
@@ -264,24 +268,32 @@ impl Ctx<'_> {
             return;
         }
         let props = self.base_props(item);
-        let before = self.out.len();
-        self.shape(item, props.clone());
         // a shape's attached text becomes its own Point (DECISIONS G10): a
         // label placed by a map renderer on the polygon itself is repeated
         // once per tile the polygon is clipped into
-        if item.kind != "text" && self.out.len() > before {
+        let titled = item.kind != "text" && item.text.as_ref().is_some_and(|l| !l.is_empty());
+        if !titled {
+            return self.shape(item, props);
+        }
+        let before = self.out.len();
+        self.shape(item, props.clone());
+        if self.out.len() > before {
             self.title_point(item, props);
         }
     }
 
     /// The `geopic:kind = "title"` Point of a shape that carries text: at
-    /// the point the SVG centres the label on, with the text properties of a
-    /// `text` item and the shape's id in `geopic:for`.
+    /// the scene's `text_center` (the centre the SVG lays the lines out
+    /// around), with the text properties of a `text` item — the first
+    /// line's compass as `geopic:anchor`, so `above`/`ljust`/… keep their
+    /// side — and the shape's id in `geopic:for`. A scene from an engine
+    /// older than `text_center` falls back to the item's `at` (closed
+    /// shapes); without either, no title point.
     fn title_point(&mut self, item: &Item, mut props: Props) {
         let Some(lines) = item.text.as_deref().filter(|l| !l.is_empty()) else {
             return;
         };
-        let Some(at) = label_centre(item, lines) else {
+        let Some(at) = item.text_center.or(item.at) else {
             return;
         };
         for k in [
@@ -415,24 +427,6 @@ impl Ctx<'_> {
             .on(item),
         );
     }
-}
-
-/// The canvas point a shape's attached text is centred on: the shape's
-/// centre when the scene gives one (`at`: box, circle, ellipse, dot), else
-/// the centre the SVG laid the lines out around (lines, splines, arcs,
-/// braces carry no `at`). The SVG stacks `n` lines one classic line skip `L`
-/// apart with their mean baseline `ratio·L/2` below that centre, so the
-/// centre is recovered from the emitted baselines.
-fn label_centre(item: &Item, lines: &[TextLine]) -> Option<[f64; 2]> {
-    /// `ir::DP_TEXT_RATIO` and `ir::FONT_PT_CLASSIC` of rpic-core.
-    const DP_TEXT_RATIO: f64 = 0.66;
-    const LINESKIP_IN: f64 = 11.0 / 72.0;
-    if let Some(at) = item.at {
-        return Some(at);
-    }
-    let first = lines.first()?;
-    let mean_y = lines.iter().map(|l| l.at[1]).sum::<f64>() / lines.len() as f64;
-    Some([first.at[0], mean_y + DP_TEXT_RATIO * LINESKIP_IN / 2.0])
 }
 
 /// Convert every item of `scene` under `reg`.

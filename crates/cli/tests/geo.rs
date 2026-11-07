@@ -182,15 +182,45 @@ fn committed_geojson_matches_current_output_and_validates() {
             let p = &f["properties"];
             if p["geopic:kind"] == "title" {
                 assert_eq!(f["geometry"]["type"], "Point", "{}", pic.display());
-                let owner = &feats[i - 1]["properties"];
-                assert_eq!(p["geopic:for"], owner["geopic:id"], "{}", pic.display());
+                let owner = feats
+                    .iter()
+                    .map(|f| &f["properties"])
+                    .find(|o| o["geopic:id"] == p["geopic:for"] && o["geopic:kind"] != "arrowhead")
+                    .unwrap_or_else(|| panic!("{}: title without its shape", pic.display()));
                 assert_eq!(p["geopic:text"], owner["title"], "{}", pic.display());
+                // right after the owner's own features, arrowheads included
+                let own: Vec<usize> = feats
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, o)| o["properties"]["geopic:id"] == p["geopic:for"])
+                    .map(|(j, _)| j)
+                    .collect();
+                assert_eq!(own.last().map(|j| j + 1), Some(i), "{}", pic.display());
+                assert!(
+                    own.windows(2).all(|w| w[1] == w[0] + 1),
+                    "{}",
+                    pic.display()
+                );
+            }
+            if p["geopic:kind"] == "arrowhead" {
+                for k in ["title", "geopic:text", "geopic:font_size"] {
+                    assert!(
+                        p.get(k).is_none(),
+                        "{}: arrowhead carries {k}",
+                        pic.display()
+                    );
+                }
             }
         }
         let shapes_with_titles: std::collections::BTreeSet<&str> = feats
             .iter()
             .map(|f| &f["properties"])
-            .filter(|p| p["geopic:kind"] != "text" && p["geopic:kind"] != "title")
+            .filter(|p| {
+                !matches!(
+                    p["geopic:kind"].as_str(),
+                    Some("text" | "title" | "arrowhead")
+                )
+            })
             .filter(|p| p.get("title").is_some())
             .map(|p| p["geopic:id"].as_str().unwrap())
             .collect();

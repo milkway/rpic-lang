@@ -286,22 +286,26 @@ its title twice (measured on rpic.dev: 2 rendered `pic-title` features at
 zoom 16.38 for the callout), shifted when partly clipped — and
 `text-allow-overlap`/`text-ignore-placement` keep both. No layer property
 fixes that, so the engine now emits, right after the features of every
-non-`text` item that carries text lines, a `Point` with `geopic:kind =
-"title"` at the canvas point the SVG centres the label on: the item's `at`
-when the scene gives one (box, circle, ellipse, dot), else the centre the
-label stack was laid out around, recovered from the emitted baselines (mean
-baseline + `DP_TEXT_RATIO · L / 2`, `L` the classic 11 pt line skip — lines,
-splines, arcs, braces carry no `at`; for a brace that is its label point,
-not a geometric centre). Its properties are a `text` item's (`geopic:text`,
-`geopic:anchor` and `geopic:rotation` from the first line — rotation minus
-the bearing —, `geopic:font_size`) plus the shape's `geopic:z`/`label`/
+non-`text` item that carries text lines (arrowheads included), a `Point`
+with `geopic:kind = "title"` at the scene's `text_center` (S12) — the
+centre the SVG lays the label stack out around: a box's centre, a line's
+path text point, an arc's centre, a brace's label point. Its properties
+are a `text` item's: `geopic:text`, `geopic:anchor` = the first line's
+compass (it encodes valign/halign, so `above` sits on top of the point,
+`ljust` extends right of it — the review of #436 found that inverting the
+baselines instead baked those offsets in twice), `geopic:rotation` (minus
+the bearing), `geopic:font_size`; plus the shape's `geopic:z`/`label`/
 `block`/`class`/`link`/`placement`; the stroke/fill keys are dropped.
 `geopic:id` is `<shape id>:title` (a scene id never contains `:`, so it
 cannot collide; arrowheads share their line's id because they *are* part
 of its drawing, a label point is a different object) and `geopic:for` names
-the shape. The shape keeps `title` (simplestyle popups, `geojson.io`).
+the shape. The shape keeps `title` (simplestyle popups, `geojson.io`);
+arrowheads no longer carry `title`/`geopic:text`/`geopic:font_size`.
+A scene from an engine before `text_center` falls back to the item's `at`
+(closed shapes keep their labels); without either, no title point.
+Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
+"below" at the centre where the SVG draws it half a line skip lower.
 `pic-title` now filters `geopic:kind == "title"` and is styled exactly like
 `pic-text` (anchor, rotation), still the sixth layer. Additive:
 `geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
-`:title` id suffix. The anchor is the first line's (so a `ljust` label
-keeps its side), not a forced `c`.
+`:title` id suffix.

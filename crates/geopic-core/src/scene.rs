@@ -109,6 +109,9 @@ pub struct Item {
     pub fill: Option<Fill>,
     pub opacity: Option<f64>,
     pub text: Option<Vec<TextLine>>,
+    /// The centre the text lines were laid out around (engine ≥ 0.15.1,
+    /// scene DECISIONS S12).
+    pub text_center: Option<[f64; 2]>,
     pub items: Option<Vec<String>>,
     pub span: Option<Span>,
     pub call: Option<serde_json::Value>,
