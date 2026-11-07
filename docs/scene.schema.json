@@ -59,7 +59,7 @@
     },
     "call": {
       "type": "object",
-      "required": ["name", "args"],
+      "required": ["name", "args", "raw_args"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -69,14 +69,14 @@
     },
     "raw_arg": {
       "type": "object",
-      "required": ["text", "line", "col", "end_line", "end_col"],
+      "required": ["text", "line", "col", "end_col", "end_line"],
       "additionalProperties": false,
       "properties": {
         "text": { "type": "string" },
-        "line": { "type": "integer", "minimum": 0 },
-        "col": { "type": "integer", "minimum": 0 },
-        "end_line": { "type": "integer", "minimum": 0 },
-        "end_col": { "type": "integer", "minimum": 0 },
+        "line": { "type": "integer", "minimum": 1 },
+        "col": { "type": "integer", "minimum": 1 },
+        "end_col": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
         "file": { "type": "string" }
       }
     },
