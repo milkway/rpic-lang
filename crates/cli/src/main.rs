@@ -207,6 +207,10 @@ fn main() -> ExitCode {
                 print_help();
                 return ExitCode::SUCCESS;
             }
+            "-V" | "--version" => {
+                println!("rpic {}", env!("CARGO_PKG_VERSION"));
+                return ExitCode::SUCCESS;
+            }
             s if s.starts_with('-') => {
                 eprintln!("rpic: unknown option `{s}`");
                 return ExitCode::FAILURE;
@@ -469,7 +473,8 @@ fn print_help() {
          --geo-feature N=LON,LAT geojson: a named feature (control point for the label N); repeatable\n    \
          --maplibre              geojson: emit {{\"geojson\": …, \"layers\": […]}} with the MapLibre layers\n    \
          --text-scale K          maplibre: multiply every label's font size by K (0 < K <= 16; default 1)\n    \
-         -h, --help          show this help\n"
+         -h, --help          show this help\n    \
+         -V, --version       print the version (`rpic X.Y.Z`) and exit\n"
     );
 }
 

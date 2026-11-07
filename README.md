@@ -128,6 +128,7 @@ rpic --scene diagram.pic               # the resolved draw list as versioned JSO
 rpic --json=all diagram.pic            # the compile bundle + the scene
 rpic --geojson map.pic                 # the drawing georeferenced: GeoJSON, WGS84 (docs/geopic.md)
 rpic --html -o page.html animated.pic  # self-contained page: SVG + GSAP player inline
+rpic --version                         # `rpic X.Y.Z` (also -V); -h / --help lists every flag
 ```
 
 `--html` writes a single page that plays the drawing's
