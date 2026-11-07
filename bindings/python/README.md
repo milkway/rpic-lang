@@ -31,6 +31,11 @@ bundle["objects"]      # per-object geometry: {"id": "s0", "kind": "box",
 
 # the scene: the resolved draw list as device-independent JSON
 # (inches, y-up, cubic curves, descriptor style — see docs/scene.md)
+# maps: the drawing georeferenced (docs/geopic.md)
+fc  = rpic.geo.to_geojson('geo_lon = -34.88\ngeo_lat = -8.05\ngeo_scale = 400\nB: box "hub"')
+out = rpic.geo.compile(src, anchor=(-34.88, -8.05), frame="mercator")  # geojson, warnings, registration
+gdf = rpic.geo.to_geodataframe(src)      # pip install "rpiclang[geo]"
+
 scene = rpic.scene('geo_lon = -34.88\nB: box "hub"\narrow right from B.e')
 scene["vars"]["geo_lon"]      # -34.88 — every variable's final value
 scene["items"][1]["kind"]     # "arrow", in draw order, ids matching the SVG

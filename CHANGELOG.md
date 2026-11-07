@@ -27,6 +27,16 @@ resolves to the latest version.
   and repeatable `--geo-feature NAME=LON,LAT` control points; warnings on
   stderr. `examples/geo/` holds four worked examples with their expected
   `.geojson`, guarded against drift by `crates/cli/tests/geo.rs`.
+- **Python `rpic.geo`** (`rpiclang`, now a mixed package wrapping the native
+  `rpic._native`): `compile(src, …)` → `{"geojson", "warnings",
+  "registration"}`, `to_geojson()` and `to_geodataframe()` (geopandas via the
+  `rpiclang[geo]` extra; an `ImportError` names it otherwise). Keyword
+  overrides mirror `GeoOptions`; `features` (dict, tuples or a GeoDataFrame)
+  are injected as places — or invisible boxes when they have a bbox — before
+  compiling, so a source can say `arrow from Recife to Olinda` without
+  defining them. Warnings are raised as `GeoWarning` and returned
+  structured; `animate` timelines raise an `ignored` warning. Site page
+  "Maps (GeoJSON)"; `examples/geo/folium.ipynb`.
 
 - Scene: a top-level `rescale` field — the uniform factor the whole-picture
   rescale (`.PS <width>`, `maxpswid`/`maxpsht`) applied to the geometry, `1`
@@ -34,6 +44,9 @@ resolves to the latest version.
   a variable to the geometry (metres per inch, for maps) multiply by it. Scene
   format stays 1 (additive); schema and golden-key test extended.
   `Drawing.rescale` carries it in Rust.
+- Scene: shape items carry their source `span` (as block items already did),
+  so a consumer can order definitions the way pic does — `geopic-core` uses
+  it to let a user's later `A: box` win over a host-prepended `A: (0,0)`.
 
 ## [0.13.0] — 2026-11-06
 

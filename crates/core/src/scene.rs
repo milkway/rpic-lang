@@ -753,6 +753,10 @@ impl<'a> Sc<'a> {
                 .push_str(&format!(",\"link\":\"{}\"", crate::json_str(l)));
         }
         let span = d.shape_spans.get(i).and_then(|s| s.clone());
+        // source provenance, as block items have (0.14, additive)
+        if let Some(sp) = &span {
+            self.out.push_str(&format!(",\"span\":{}", span_json(sp)));
+        }
         self.shape_body(sh, span);
         self.out.push('}');
     }

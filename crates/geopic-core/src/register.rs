@@ -10,7 +10,7 @@ use crate::{GeoError, GeoOptions, NamedFeature, Warning};
 pub const MAX_SCALE_M_PER_IN: f64 = 1e9;
 
 /// How the registration was obtained.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Method {
     /// `geo_lon`/`geo_lat` (+ `geo_scale`, `geo_bearing`), or a single
@@ -28,7 +28,7 @@ pub enum Method {
 /// `d = (p - origin) · scale_m_per_in`, then rotated so the canvas +y axis
 /// points to azimuth `bearing_deg`; the offsets are carried to the ellipsoid
 /// by the frame ([`Frame`]).
-#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Registration {
     pub frame: Frame,
     /// Geographic position of `origin`.
@@ -45,7 +45,7 @@ pub struct Registration {
     /// Control points used by the fit (0 for a declared anchor).
     pub control_points: usize,
     /// Root-mean-square residual of the fit, metres (fits only).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rms_m: Option<f64>,
 }
 

@@ -116,7 +116,8 @@ pub struct Warning {
 }
 
 impl Warning {
-    fn new(kind: &str, message: impl Into<String>) -> Self {
+    /// A warning with no item attached.
+    pub fn new(kind: &str, message: impl Into<String>) -> Self {
         Self {
             kind: kind.to_string(),
             message: message.into(),
@@ -129,6 +130,15 @@ impl Warning {
         self.id = Some(item.id.clone());
         self.span = item.span.clone();
         self
+    }
+
+    /// The warning every front end raises when the drawing carried `animate`
+    /// timelines: the scene has none, so GeoJSON cannot either (never silent).
+    pub fn animations_ignored(count: usize) -> Self {
+        Self::new(
+            "ignored",
+            format!("{count} animation timeline(s) are not representable in GeoJSON; ignored"),
+        )
     }
 }
 
@@ -144,7 +154,8 @@ pub struct GeoError {
 }
 
 impl GeoError {
-    fn new(kind: &str, message: impl Into<String>) -> Self {
+    /// A structured error.
+    pub fn new(kind: &str, message: impl Into<String>) -> Self {
         Self {
             kind: kind.to_string(),
             message: message.into(),

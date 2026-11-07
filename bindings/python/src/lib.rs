@@ -415,7 +415,184 @@ fn compile_json(
     Ok(rpic_core::compile_json_with_options(src, &opts))
 }
 
-#[pymodule]
+create_exception!(
+    rpic,
+    GeoError,
+    pyo3::exceptions::PyValueError,
+    "A georeferencing error (rpic.geo). `str(exc)` is the readable message; \
+     `exc.info` is a dict: kind, message, hint."
+);
+
+fn geo_err(py: Python<'_>, e: geopic_core::GeoError) -> PyErr {
+    let exc = GeoError::new_err(e.to_string());
+    if let Ok(info) = json_loads(py, &serde_json::to_string(&e).unwrap_or_default()) {
+        let _ = exc.value(py).setattr("info", info);
+    }
+    exc
+}
+
+/// A host feature as Python passes it: `(name, lon, lat, bbox)` with
+/// `bbox = (west, south, east, north)` or `None`.
+type PyFeature = (String, f64, f64, Option<(f64, f64, f64, f64)>);
+
+/// `features` as `[(name, lon, lat[, (w, s, e, n)]), …]`.
+fn geo_features(features: Option<Vec<PyFeature>>) -> Vec<geopic_core::NamedFeature> {
+    features
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(name, lon, lat, bbox)| geopic_core::NamedFeature {
+            name,
+            lon,
+            lat,
+            bbox: bbox.map(|(w, s, e, n)| [w, s, e, n]),
+        })
+        .collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn geo_options(
+    frame: Option<&str>,
+    anchor: Option<(f64, f64)>,
+    scale: Option<f64>,
+    bearing: Option<f64>,
+    features: Option<Vec<PyFeature>>,
+    flatten: f64,
+    view_scale: Option<f64>,
+    screen_classes: Option<Vec<String>>,
+) -> PyResult<geopic_core::GeoOptions> {
+    let frame = match frame {
+        None => None,
+        Some(f) => Some(
+            f.parse::<geopic_core::Frame>()
+                .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.message))?,
+        ),
+    };
+    let defaults = geopic_core::GeoOptions::default();
+    Ok(geopic_core::GeoOptions {
+        frame,
+        anchor: anchor.map(|(lon, lat)| geopic_core::LonLat { lon, lat }),
+        scale,
+        bearing,
+        features: geo_features(features),
+        flatten,
+        view_scale,
+        screen_classes: screen_classes.unwrap_or(defaults.screen_classes),
+    })
+}
+
+/// Georeference pic source (rpic.geo.compile's native half): returns
+/// `{"geojson": dict, "warnings": [dict], "registration": dict, "canvas":
+/// {"rescale", "scale"}}`. Raises
+/// `CompileError` on a pic error and `GeoError` on a registration error.
+/// Animations cannot ride into GeoJSON: a source with `animate` statements
+/// adds an `ignored` warning naming how many timelines were dropped.
+#[pyfunction]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, frame = None, anchor = None, scale = None, bearing = None, features = None, flatten = 1e-3, view_scale = None, screen_classes = None))]
+#[allow(clippy::too_many_arguments)]
+fn geo_compile<'py>(
+    py: Python<'py>,
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    base: Option<PathBuf>,
+    include_policy: Option<&str>,
+    max_loop_iterations: Option<u64>,
+    max_shapes: Option<usize>,
+    frame: Option<&str>,
+    anchor: Option<(f64, f64)>,
+    scale: Option<f64>,
+    bearing: Option<f64>,
+    features: Option<Vec<PyFeature>>,
+    flatten: f64,
+    view_scale: Option<f64>,
+    screen_classes: Option<Vec<String>>,
+) -> PyResult<Bound<'py, PyDict>> {
+    let d = compile_drawing(
+        py,
+        src,
+        circuits,
+        texlabels,
+        base,
+        include_policy,
+        max_loop_iterations,
+        max_shapes,
+    )?;
+    let gopts = geo_options(
+        frame,
+        anchor,
+        scale,
+        bearing,
+        features,
+        flatten,
+        view_scale,
+        screen_classes,
+    )?;
+    let scene = rpic_core::scene_json(&d, &rpic_core::SceneOptions::default());
+    let mut g = geopic_core::georeference(&scene.json, &gopts).map_err(|e| geo_err(py, e))?;
+    if !d.anims.is_empty() {
+        g.warnings
+            .push(geopic_core::Warning::animations_ignored(d.anims.len()));
+    }
+    let out = PyDict::new(py);
+    out.set_item("geojson", json_loads(py, &g.features.to_json())?)?;
+    let warnings = PyList::empty(py);
+    for w in &scene.warnings {
+        warnings.append(diagnostic_dict(py, w)?)?;
+    }
+    for w in &g.warnings {
+        warnings.append(json_loads(
+            py,
+            &serde_json::to_string(w).unwrap_or_default(),
+        )?)?;
+    }
+    out.set_item("warnings", warnings)?;
+    out.set_item(
+        "registration",
+        json_loads(
+            py,
+            &serde_json::to_string(&g.registration).unwrap_or_default(),
+        )?,
+    )?;
+    // what the host needs to write canvas positions back as source
+    // coordinates: pic `scale` units per inch and the whole-picture rescale
+    let canvas = PyDict::new(py);
+    canvas.set_item("rescale", d.rescale)?;
+    let scale_var = d
+        .vars
+        .iter()
+        .find(|(k, _)| k == "scale")
+        .map_or(1.0, |(_, v)| *v);
+    canvas.set_item("scale", scale_var)?;
+    out.set_item("canvas", canvas)?;
+    Ok(out)
+}
+
+/// Canvas positions (inches) of WGS84 points under a registration dict.
+#[pyfunction]
+fn geo_to_canvas_many(registration: &str, points: Vec<(f64, f64)>) -> PyResult<Vec<(f64, f64)>> {
+    let reg: geopic_core::Registration = serde_json::from_str(registration)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("bad registration: {e}")))?;
+    Ok(points
+        .into_iter()
+        .map(|(lon, lat)| {
+            let p = reg.to_canvas(geopic_core::LonLat { lon, lat });
+            (p[0], p[1])
+        })
+        .collect())
+}
+
+/// Canvas position (inches) of a WGS84 point under a registration dict (as
+/// returned by `geo_compile`) — the host uses it to place features before
+/// compiling (rpic.geo's two-pass feature injection).
+#[pyfunction]
+fn geo_to_canvas(registration: &str, lon: f64, lat: f64) -> PyResult<(f64, f64)> {
+    let reg: geopic_core::Registration = serde_json::from_str(registration)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("bad registration: {e}")))?;
+    let p = reg.to_canvas(geopic_core::LonLat { lon, lat });
+    Ok((p[0], p[1]))
+}
+
+#[pymodule(name = "_native")]
 fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     rpic_core::set_math_renderer(rpic_render::math::render_math);
     m.add_function(wrap_pyfunction!(render_svg, m)?)?;
@@ -424,7 +601,11 @@ fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile, m)?)?;
     m.add_function(wrap_pyfunction!(compile_json, m)?)?;
     m.add_function(wrap_pyfunction!(scene, m)?)?;
+    m.add_function(wrap_pyfunction!(geo_compile, m)?)?;
+    m.add_function(wrap_pyfunction!(geo_to_canvas, m)?)?;
+    m.add_function(wrap_pyfunction!(geo_to_canvas_many, m)?)?;
     m.add("CompileError", m.py().get_type::<CompileError>())?;
+    m.add("GeoError", m.py().get_type::<GeoError>())?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
 }
