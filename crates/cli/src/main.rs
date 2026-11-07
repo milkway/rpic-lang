@@ -109,6 +109,7 @@ fn main() -> ExitCode {
     let mut maplibre = false;
     let mut text_scale: Option<f64> = None;
     let mut geo = geopic_core::GeoOptions::default();
+    let mut preludes: Vec<rpic_core::Prelude> = Vec::new();
 
     let mut i = 1;
     while i < args.len() {
@@ -170,6 +171,14 @@ fn main() -> ExitCode {
                 }
                 Some(Err(e)) => return fail(&e),
                 None => return fail(&format!("rpic: `{a}` needs NAME=LON,LAT")),
+            },
+            "--prelude" => match args.get(i + 1).map(|v| read_prelude(v)) {
+                Some(Ok(p)) => {
+                    i += 1;
+                    preludes.push(p);
+                }
+                Some(Err(e)) => return fail(&e),
+                None => return fail(&format!("rpic: `{a}` needs NAME=FILE")),
             },
             "--outline" => outline = true,
             "--flatten" => match number_arg(&args, &mut i, a, "tolerance in inches", true) {
@@ -259,6 +268,8 @@ fn main() -> ExitCode {
             .map(|p| p.to_path_buf()),
         // the CLI keeps full filesystem access for includes
         includes: rpic_core::IncludePolicy::Unrestricted,
+        // `--prelude NAME=FILE` units, in command-line order
+        preludes,
         ..Default::default()
     };
     // the page title for `--html`: the input file's stem
@@ -341,13 +352,7 @@ fn run(
             Ok(Output::Text(s))
         }
         Mode::Ast => {
-            let pic = rpic_core::parse_with_prelude(
-                src,
-                rpic_core::IncludeCtx::with_policy(opts.base.clone(), opts.includes),
-                opts.circuits,
-                opts.texlabels,
-            )
-            .map_err(|e| e.to_string())?;
+            let pic = rpic_core::parse_with_options(src, opts).map_err(|e| e.message)?;
             Ok(Output::Text(format!("{pic:#?}\n")))
         }
         Mode::Svg => {
@@ -440,6 +445,7 @@ fn print_help() {
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
+         --prelude NAME=FILE load FILE as a named unit before the input (repeatable; positions in it report NAME)\n    \
          -o, --output FILE   write to FILE (default: stdout)\n    \
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
          --flatten TOL       scene: deliver curves as polylines within TOL inches\n    \
@@ -454,6 +460,20 @@ fn print_help() {
          --text-scale K          maplibre: multiply every label's font size by K (0 < K <= 16; default 1)\n    \
          -h, --help          show this help\n"
     );
+}
+
+/// `--prelude NAME=FILE`: the named unit, its text read here (the user named
+/// the file, so no include policy applies). Name validation is the core's.
+fn read_prelude(arg: &str) -> Result<rpic_core::Prelude, String> {
+    let Some((name, file)) = arg.split_once('=') else {
+        return Err(format!("rpic: `--prelude` needs NAME=FILE (got `{arg}`)"));
+    };
+    if file.is_empty() {
+        return Err(format!("rpic: `--prelude {arg}`: missing FILE"));
+    }
+    let text = std::fs::read_to_string(file)
+        .map_err(|e| format!("rpic: cannot read prelude `{file}`: {e}"))?;
+    Ok(rpic_core::Prelude::new(name, text))
 }
 
 #[cfg(test)]
