@@ -5,9 +5,7 @@
 // the npm package's geo wasm build. That build (~665 KB) and the map are
 // loaded lazily: only when the playground scrolls into view or the editor gets
 // focus. Until then the pane shows the build-time SVG of the first example.
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { renderPicFile } from '../lib/rpic';
+import { readPicFile, renderPicFile } from '../lib/rpic';
 import { studioUrl } from '../lib/studio';
 
 const EXAMPLES = [
@@ -15,7 +13,7 @@ const EXAMPLES = [
   { file: 'examples/geo/arrow-between-features.pic', name: 'arrow between two control points' },
   { file: 'examples/geo/radius.pic', name: 'radius — a geodesic circle' },
   { file: 'examples/geo/two-control-points.pic', name: 'site plan — two surveyed corners' },
-].map((e) => ({ ...e, source: readFileSync(resolve(process.cwd(), '..', e.file), 'utf8') }));
+].map((e) => ({ ...e, source: readPicFile(e.file) }));
 
 const first = EXAMPLES[0];
 const initialSvg = renderPicFile(first.file);
@@ -67,11 +65,11 @@ const initialStudio = studioUrl(first.source);
     </div>
     <div class="flex flex-col gap-4 min-w-0">
       <div
-        class="gp-svg rounded-lg border border-slate-200 dark:border-slate-700 bg-white grid place-items-center p-4 min-h-[10rem] [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:max-h-[16rem]"
+        class="gp-svg transition-opacity rounded-lg border border-slate-200 dark:border-slate-700 bg-white grid place-items-center p-4 min-h-[10rem] [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:max-h-[16rem]"
         set:html={initialSvg}
       />
       <div class="relative">
-        <div class="gp-map rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50" style="height:22rem"></div>
+        <div class="gp-map transition-opacity rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50" style="height:22rem"></div>
         <div class="gp-loading absolute inset-0 grid place-items-center rounded-lg text-[13px] text-slate-500 pointer-events-none">loading engine…</div>
       </div>
     </div>
@@ -115,6 +113,22 @@ const initialStudio = studioUrl(first.source);
       status.textContent = text;
       status.classList.toggle('text-red-700', tone === 'error');
       status.classList.toggle('dark:text-red-400', tone === 'error');
+      // on an error the panes still show the last good source: say so visually
+      for (const pane of [svgBox, mapEl]) pane.classList.toggle('opacity-40', tone === 'error');
+    };
+
+    /** One line for anything `compile`/`compileGeoJSON` can throw: a pic
+     *  error (`errorInfo`, positioned), a geo error (`info`, with a hint) or
+     *  a plain Error. */
+    const describe = (e: unknown): string => {
+      const pic = (e as { errorInfo?: Diag }).errorInfo;
+      if (pic) {
+        const where = pic.line != null ? `${pic.line}:${pic.col ?? 0} ` : '';
+        return `${where}${pic.message ?? ''}`;
+      }
+      const geo = (e as { info?: { kind: string; message: string; hint?: string } }).info;
+      if (geo) return `${geo.kind}: ${geo.message}${geo.hint ? ` — ${geo.hint}` : ''}`;
+      return e instanceof Error ? e.message : String(e);
     };
 
     const fmt = (n: number, digits: number) => Number(n.toFixed(digits)).toString();
@@ -135,9 +149,7 @@ const initialStudio = studioUrl(first.source);
         svgBox.innerHTML = out.svg;
         warnings = out.warnings as Diag[];
       } catch (e) {
-        const info = (e as { errorInfo?: Diag }).errorInfo;
-        const where = info?.line != null ? `${info.line}:${info.col ?? 0} ` : '';
-        say(`${where}${info?.message ?? (e as Error).message}`, 'error');
+        say(describe(e), 'error');
         return;
       }
       try {
@@ -156,11 +168,7 @@ const initialStudio = studioUrl(first.source);
         const lines = [`ok · ${fc.features.length} features · ${parts.join(' · ')}`, ...warningLines(out.warnings as Diag[])];
         say(lines.join('\n'), 'ok');
       } catch (e) {
-        const info = (e as { info?: { kind: string; message: string; hint?: string } }).info;
-        const text = info
-          ? `${info.kind}: ${info.message}${info.hint ? ` — ${info.hint}` : ''}`
-          : (e as Error).message;
-        say([text, ...warningLines(warnings)].join('\n'), 'error');
+        say([describe(e), ...warningLines(warnings)].join('\n'), 'error');
       }
     }
 
@@ -178,7 +186,7 @@ const initialStudio = studioUrl(first.source);
         } catch (e) {
           starting = null; // allow a retry on the next focus
           loading.textContent = 'engine failed to load';
-          say(`could not load the engine: ${(e as Error).message}`, 'error');
+          say(`could not load the engine: ${describe(e)}`, 'error');
         }
       })();
       return starting;
@@ -191,7 +199,7 @@ const initialStudio = studioUrl(first.source);
           void start();
         }
       },
-      { rootMargin: '200px' },
+      { rootMargin: '0px' },
     );
     io.observe(root);
     source.addEventListener('focus', () => void start());

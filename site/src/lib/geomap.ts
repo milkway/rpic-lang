@@ -125,7 +125,7 @@ export function createGeoMap(container: HTMLElement): GeoMapHandle {
 
   let loaded = false;
   let current: GeoFC = EMPTY;
-  let pendingFit: GeoFC | null = null;
+  let pendingFit = false; // fit `current` once the style has loaded
 
   // any: the style-spec expression types are far stricter than the arrays
   // built above, and every expression here is checked by MapLibre at runtime
@@ -210,25 +210,29 @@ export function createGeoMap(container: HTMLElement): GeoMapHandle {
       paint: { 'text-color': '#0f172a', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
     });
 
-    map.on('click', ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot'], (ev: MapLayerMouseEvent) => {
+    // the properties come from user-typed source in the playground: escape
+    const esc = (v: unknown) =>
+      String(v ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const CLICKABLE = ['pic-fill', ...STROKE_LAYERS, 'pic-dot'];
+    map.on('click', CLICKABLE, (ev: MapLayerMouseEvent) => {
       const f = ev.features?.[0];
       if (!f) return;
       const p = f.properties as Record<string, unknown>;
-      const title = p['title'] ? `<b>${String(p['title']).replace(/</g, '&lt;')}</b><br>` : '';
+      const title = p['title'] ? `<b>${esc(p['title'])}</b><br>` : '';
       new Popup({ closeButton: false })
         .setLngLat(ev.lngLat)
-        .setHTML(`${title}<code>${p['geopic:kind']}</code> · <code>${p['geopic:id']}</code>`)
+        .setHTML(`${title}<code>${esc(p['geopic:kind'])}</code> · <code>${esc(p['geopic:id'])}</code>`)
         .addTo(map);
     });
-    for (const id of ['pic-fill', 'pic-stroke', 'pic-dot']) {
+    for (const id of CLICKABLE) {
       map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'));
       map.on('mouseleave', id, () => (map.getCanvas().style.cursor = ''));
     }
 
     loaded = true;
     if (pendingFit) {
-      fitNow(pendingFit);
-      pendingFit = null;
+      fitNow(current);
+      pendingFit = false;
     }
   });
 
@@ -241,7 +245,7 @@ export function createGeoMap(container: HTMLElement): GeoMapHandle {
     },
     fitTo(fc) {
       if (loaded) fitNow(fc);
-      else pendingFit = fc;
+      else pendingFit = true; // `setGeoJSON` keeps `current` fresh meanwhile
     },
     destroy() {
       const i = registry.indexOf(map);

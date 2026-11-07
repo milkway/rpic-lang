@@ -83,11 +83,21 @@ export function renderPic(code: string, opts: RenderOptions = {}): string {
   return run(code, opts, false);
 }
 
+/** Absolute path of a repo file (paths here are relative to the repo root). */
+export function repoPath(relPath: string): string {
+  return resolve(process.cwd(), '..', relPath);
+}
+
+/** The source of a repo `.pic` file. */
+export function readPicFile(relPath: string): string {
+  return readFileSync(repoPath(relPath), 'utf8');
+}
+
 /** Render a corpus .pic file (path relative to the repo root) — `copy`
  *  resolves next to the file. Cached by file content + options + literal
  *  copy dependencies + the selected rpic binary signature. */
 export function renderPicFile(relPath: string, opts: RenderOptions = {}): string {
-  const abs = resolve(process.cwd(), '..', relPath);
+  const abs = repoPath(relPath);
   const code = readFileSync(abs, 'utf8');
   const key = cacheKey([
     'file',
@@ -119,7 +129,7 @@ export function renderPicFile(relPath: string, opts: RenderOptions = {}): string
  * control points) fails the build — only georeferenced examples belong here.
  */
 export function renderGeoFile(relPath: string, opts: RenderOptions = {}): unknown {
-  const abs = resolve(process.cwd(), '..', relPath);
+  const abs = repoPath(relPath);
   const code = readFileSync(abs, 'utf8');
   const key = cacheKey([
     'geo',
