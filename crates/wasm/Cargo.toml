@@ -16,11 +16,20 @@ crate-type = ["cdylib"]
 # out). Off by default: the math build ships as a second, lazily fetched npm
 # artifact so nobody pays its size unless they use `$…$` labels.
 math = ["dep:rpic-render"]
+# Opt-in geopic (`compile_geo` / `geo_to_canvas`: drawing → GeoJSON). Off by
+# default for the same reason as `math`: it adds ~180 KB to the module, so it
+# ships as a third, lazily fetched npm artifact (`rpic_wasm_geo`; DECISIONS.md G8).
+geo = ["dep:geopic-core", "dep:serde", "dep:serde_json"]
 
 [dependencies]
 rpic-core = { path = "../core" }
 rpic-render = { path = "../render", default-features = false, features = ["math"], optional = true }
 wasm-bindgen = "0.2"
+# `geo` feature: serde/serde_json are already in the tree through rpic-core
+# and geopic-core; here they parse the options JSON and assemble the result.
+geopic-core = { path = "../geopic-core", optional = true }
+serde = { version = "1.0.229", features = ["derive"], optional = true }
+serde_json = { version = "1.0.154", optional = true }
 
 [profile.release]
 opt-level = "z"
