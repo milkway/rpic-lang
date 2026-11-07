@@ -26,6 +26,12 @@ resolves to the latest version.
   `rpic_compile_json_opts` (options JSON), and Rust
   `CompileOptions::with_prelude` / `parse_with_options`. Byte-identical
   output when unused.
+### Docs
+
+- Math labels on wasm are documented as the sanctioned path (#449): `docs/tex-labels.md` § On wasm
+  covers the three npm artifacts and their measured sizes (math: 3.05 MB, 1.15 MB gzipped), the
+  one-build-per-module rule of `ready()`, lazy loading, the embedder recipe (`rpic-render`'s `math`
+  feature + `set_math_renderer` at init) and the literal-text fallback. The JS README matches.
 
 ## [0.16.1] — 2026-11-08
 
