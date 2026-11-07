@@ -253,8 +253,10 @@ def compile(
 
     ``layers=True`` adds ``"layers"``: the MapLibre style-spec layers that
     draw the collection with sizes true to the ground (see
-    :func:`maplibre_layers`); ``text_scale`` (only with ``layers=True``)
-    multiplies every label's font size.
+    :func:`maplibre_layers`); ``text_scale`` multiplies every label's font
+    size. It is validated before anything compiles: a bad value raises
+    :class:`GeoError` (``invalid_options``); passing it without
+    ``layers=True`` raises :class:`ValueError`.
 
     Keyword arguments: ``frame`` (``"enu"`` | ``"mercator"``), ``anchor``
     ``(lon, lat)``, ``scale`` (metres per inch), ``bearing`` (degrees,
@@ -273,8 +275,10 @@ def compile(
     is also raised as :class:`GeoWarning` unless ``warn=False``. Raises
     :class:`rpic.CompileError` or :class:`GeoError`.
     """
-    if text_scale is not None and not layers:
-        raise ValueError("text_scale only applies with layers=True")
+    if text_scale is not None:
+        if not layers:
+            raise ValueError("text_scale only applies with layers=True")
+        _native.validate_layer_options(_layer_options(text_scale))  # fail fast
     feats = _normalize_features(features)
     out = _compile_with_features(src, feats, kwargs) if feats else _native.geo_compile(src, **kwargs)
     if layers:
@@ -310,8 +314,13 @@ def maplibre_layers(fc: Mapping[str, Any] | str, text_scale: float = 1.0) -> lis
     range or not a number.
     """
     text = fc if isinstance(fc, str) else json.dumps(fc)
-    # the engine validates (NaN/inf serialise as non-JSON tokens it rejects)
-    return json.loads(_native.maplibre_layers(text, json.dumps({"text_scale": text_scale})))
+    return json.loads(_native.maplibre_layers(text, _layer_options(text_scale)))
+
+
+def _layer_options(text_scale: Any) -> str:
+    """The engine's layer-options JSON. The engine validates it (NaN/inf
+    serialise as non-JSON tokens it rejects as ``invalid_options``)."""
+    return json.dumps({"text_scale": text_scale})
 
 
 def to_geojson(src: str, **kwargs: Any) -> dict:

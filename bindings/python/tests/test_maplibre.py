@@ -109,3 +109,13 @@ def test_bad_text_scale_is_invalid_options(k):
 def test_text_scale_needs_layers():
     with pytest.raises(ValueError, match="layers=True"):
         rpic.geo.compile(SRC, text_scale=2)
+
+
+@pytest.mark.parametrize("k", [0, 17, float("nan"), "2"])
+def test_bad_text_scale_fails_before_compiling(k, monkeypatch):
+    called = []
+    monkeypatch.setattr(rpic.geo._native, "geo_compile", lambda *a, **kw: called.append(1))
+    with pytest.raises(rpic.GeoError) as e:
+        rpic.geo.compile(SRC, layers=True, text_scale=k)
+    assert e.value.info["kind"] == "invalid_options"
+    assert not called
