@@ -149,6 +149,23 @@ needs the centre plus the first line's compass. Additive under §7: `scene`
 stays **1**, the schema and the golden-key test gain the key, and it rides
 only on items that emit text. `--svg`/`--json` are untouched.
 
+### S13. Text lines carry their row; items carry the stack height
+
+pic lets a label stack hold blank lines (`box "" "below"` draws "below" one
+row under the centre, `box "above" ""` one row over it). The scene emits
+only the visible lines, so — even with `text_center` (S12) — a consumer
+that sets the label as one block could not tell where in the stack they
+sit (geopic's residual in G10). Each `text` entry now carries `row`, its
+0-based index in the author's stack (blank rows included), and the item
+carries `text_rows`, the stack's height — exactly the `n` the layout
+centres around (`text_json` and `Svg::write_text` both lay out every line,
+blank ones advance `y` by one line skip). Dropping the blank lines from
+`text` stays (removing it would be a breaking change of meaning); the two
+keys are the additive way to restore the information: `scene` stays **1**,
+the schema/golden-key test and the JS types gain them, they ride only on
+items that emit text. `--svg`/`--json` are untouched; the corpus `--scene`
+changes only by the two keys.
+
 ## geopic-core (2026-11-06)
 
 ### G1. Input is the scene *document*, not engine types — approved by the user
@@ -303,8 +320,19 @@ the shape. The shape keeps `title` (simplestyle popups, `geojson.io`);
 arrowheads no longer carry `title`/`geopic:text`/`geopic:font_size`.
 A scene from an engine before `text_center` falls back to the item's `at`
 (closed shapes keep their labels); without either, no title point.
-Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
-"below" at the centre where the SVG draws it half a line skip lower.
+~~Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
+"below" at the centre where the SVG draws it half a line skip lower.~~
+Resolved (addendum, after 0.15.1): the scene now gives each text line its `row`
+and the item its `text_rows` (S13), and `geopic:text` rebuilds the stack —
+`text_rows` rows joined by `\n`, blank rows as empty strings (`"\nbelow"`,
+`"above\n"`, `"a\n\nc"`) — on title points and free `text` items alike,
+so a block centred on `text_center` puts each line on its SVG row. The
+shape's `title` keeps only the visible lines (a popup has no use for blank
+rows). A scene without the keys keeps the visible-lines join. MapLibre
+caveat: its shaper honours leading and inner blank rows but drops the
+*last* trailing `\n` (a break is only taken before a following character),
+so `"above\n"` is still drawn centred there; the data stays the honest
+stack, a renderer-side fix belongs in the layer spec.
 `pic-title` now filters `geopic:kind == "title"` and is styled exactly like
 `pic-text` (anchor, rotation), still the sixth layer. Additive:
 `geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the

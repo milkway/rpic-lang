@@ -98,7 +98,12 @@ impl Ctx<'_> {
                 .collect::<Vec<_>>()
                 .join("\n");
             p.insert("title".into(), json!(text));
-            p.insert("geopic:text".into(), json!(text));
+            // the stack as drawn, blank rows included, so a renderer that
+            // centres the block on the point puts each line on its SVG row
+            p.insert(
+                "geopic:text".into(),
+                json!(stacked_text(lines, item.text_rows).unwrap_or(text)),
+            );
             // the first line's font size (points): with the registration's
             // metres per inch a consumer sizes the label true to the ground
             if let Some(size) = lines
@@ -456,4 +461,26 @@ pub fn convert(
         ));
     }
     FeatureCollection::new(ctx.out)
+}
+
+/// The label stack as the author wrote it (DECISIONS G10 addendum): the
+/// scene omits blank lines but gives each visible line its `row` and the
+/// item its `text_rows` (S13), so the stack is `text_rows` rows joined by
+/// `\n` with empty strings where the blank ones were (`box "" "below"` →
+/// `"\nbelow"`). `None` when the scene predates S13 or the rows are
+/// inconsistent — the caller then joins the visible lines, as before.
+fn stacked_text(lines: &[TextLine], text_rows: Option<usize>) -> Option<String> {
+    let n = text_rows?;
+    let mut rows = vec![""; n];
+    let mut last = None;
+    for l in lines {
+        let r = l.row?;
+        // rows are emitted in stack order, one line per row
+        if r >= n || last.is_some_and(|p| r <= p) {
+            return None;
+        }
+        rows[r] = l.text.as_str();
+        last = Some(r);
+    }
+    Some(rows.join("\n"))
 }

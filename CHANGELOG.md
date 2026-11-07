@@ -10,6 +10,19 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- Scene: each `text` line carries `row`, its 0-based row in the author's
+  label stack (blank rows included), and the item carries `text_rows`, the
+  stack's height — so a consumer can tell where the visible lines of
+  `box "" "below"` sit (additive; `scene` stays 1; DECISIONS S13).
+
+### Fixed
+
+- geopic: blank rows of a label stack are kept in `geopic:text` (`box ""
+  "below"` → `"\nbelow"`), so a map draws "below" one row under the centre
+  as the SVG does instead of on it (DECISIONS G10 addendum).
+
 ## [0.15.1] — 2026-11-07
 
 ### Fixed
