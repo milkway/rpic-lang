@@ -99,6 +99,16 @@ impl Ctx<'_> {
                 .join("\n");
             p.insert("title".into(), json!(text));
             p.insert("geopic:text".into(), json!(text));
+            // the first line's font size (points): with the registration's
+            // metres per inch a consumer sizes the label true to the ground
+            if let Some(size) = lines
+                .first()
+                .and_then(|l| l.font.as_ref())
+                .and_then(|f| f.get("size"))
+                .and_then(serde_json::Value::as_f64)
+            {
+                p.insert("geopic:font_size".into(), json!(size));
+            }
             for l in lines {
                 if l.math.is_some() {
                     self.warnings.push(

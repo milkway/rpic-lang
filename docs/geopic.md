@@ -115,12 +115,20 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `geopic:schema` | `1` — the version of this vocabulary |
 | `geopic:id`, `geopic:kind`, `geopic:z`, `geopic:label`, `geopic:block`, `geopic:class`, `geopic:link` | the scene item's fields |
 | `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement |
+| `geopic:font_size` | the first text line's font size, **points**; with the collection's `geopic.registration.scale_m_per_in`, `font_size / 72 × scale_m_per_in` is the letter height in metres — size labels true to the ground, in proportion to the shapes, at any zoom |
 | `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
 | `geopic:head`, `geopic:filled` | arrowhead features: which end, filled or open |
 | `geopic:part` | path index when an item yields several features |
 | `geopic:role` | `"fill"` on the polygon that carries an open stroke's fill |
 | `geopic:radius_in` | `dot` radius, canvas inches |
+
+The `FeatureCollection` itself carries a foreign member (RFC 7946 §6.1)
+`"geopic": {"schema": 1, "registration": {frame, anchor, origin,
+scale_m_per_in, bearing_deg, method, control_points, rms_m?}}` — the
+similarity that placed the drawing, so a consumer can convert any pic
+length (stroke widths in points, dot radii in inches, font sizes) into
+metres without re-deriving it.
 
 The machine-readable contract is [`geopic.schema.json`](geopic.schema.json).
 

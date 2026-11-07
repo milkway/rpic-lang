@@ -61,6 +61,12 @@ pub struct FeatureCollection {
     #[serde(rename = "type")]
     pub type_: &'static str,
     pub features: Vec<Feature>,
+    /// RFC 7946 §6.1 foreign member: `{"schema": 1, "registration": {…}}` —
+    /// the similarity that placed the drawing, so a consumer can turn
+    /// points into metres (`font_size` pt / 72 × `scale_m_per_in`) and
+    /// size labels and strokes true to the ground.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub geopic: Option<serde_json::Value>,
 }
 
 impl FeatureCollection {
@@ -68,6 +74,7 @@ impl FeatureCollection {
         Self {
             type_: "FeatureCollection",
             features,
+            geopic: None,
         }
     }
 

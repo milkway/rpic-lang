@@ -234,7 +234,12 @@ pub fn georeference_scene(scene: &Scene, opts: &GeoOptions) -> Result<GeoScene, 
     }
     let mut warnings = Vec::new();
     let registration = register::register(scene, opts, &mut warnings)?;
-    let features = convert::convert(scene, &registration, opts, &mut warnings);
+    let mut features = convert::convert(scene, &registration, opts, &mut warnings);
+    // the foreign member every consumer needs to size things in metres
+    features.geopic = Some(serde_json::json!({
+        "schema": GEOPIC_SCHEMA,
+        "registration": registration,
+    }));
     Ok(GeoScene {
         features,
         warnings,

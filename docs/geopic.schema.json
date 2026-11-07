@@ -25,6 +25,7 @@
     "geopic:link": { "type": "string" },
     "geopic:placement": { "enum": ["geo", "screen"] },
     "geopic:text": { "type": "string" },
+    "geopic:font_size": { "type": "number", "exclusiveMinimum": 0 },
     "geopic:rotation": { "type": "number" },
     "geopic:anchor": { "enum": ["c", "n", "s", "e", "w", "ne", "nw", "se", "sw"] },
     "geopic:dash": { "type": "object" },
