@@ -1,0 +1,87 @@
+---
+layout: ../../../layouts/MdxLayout.astro
+title: labelled calls
+description: Label a flat macro call — the label names the group of objects the call draws, like a block, without moving anything.
+---
+import PicExample from '../../../components/PicExample.astro';
+import Callout from '../../../components/Callout.astro';
+
+# Labelled macro calls
+
+**rpic extension.** pic expands macros as text, so a label in front of a
+call labels whatever the body *starts* with: `Z: twob()` with
+`define twob { box; box }` names the first box — and rpic keeps that, as
+dpic does. A **flat** macro, one that starts with assignments and then
+draws several objects (every two-terminal element of the circuit library
+is one), could not be labelled at all: `R1: resistor(A,B)` read as
+`R1: rsx = A.x; …`, a syntax error.
+
+rpic gives such a label to the **group of objects the call draws**, as if
+it were a block — but nothing moves:
+
+<PicExample code={`.PS
+margin = 0.15
+define glyph { gx = Here.x; box wid 0.5 "in"; T: circle rad 0.12; line right 0.5 }
+X1: glyph()
+box dashed wid X1.wid + 0.2 ht X1.ht + 0.2 at X1.c
+arrow from X1.T.s + (0,-0.5) to X1.T.s
+"X1.n" above at X1.n + (0,0.1)
+.PE`} />
+
+`X1.c`, `X1.n`, `X1.wid` and `X1.ht` come from the group's bounding box,
+`X1.T` is a label the body bound, and `Here` is where the unlabelled call
+leaves it.
+
+## Circuit elements
+
+The case that motivated it: name library elements directly, with no `[ ]`
+wrapper of your own.
+
+<PicExample circuits code={`.PS
+A: (0,0); B: (2,0); C: (3.2,0)
+R1: resistor(A,B)
+C1: capacitor(B,C)
+"R1" above at R1.n
+"C1" above at C1.n
+dot at A; dot at B; dot at C
+.PE`} />
+
+<Callout type="note" title=".start and .end are the first and last objects'">
+  `R1.start` is the start of the first object the call drew and `R1.end`
+  the end of the last. That is not always a terminal — `led` draws its
+  emission arrows last, so its `.end` is an arrow tip. Wire to the points
+  you passed (`A`, `B`) or to labels the body defines.
+</Callout>
+
+## Any statement can come first
+
+The rule is the parser's own: the group form applies whenever the label
+cannot take the body's first statement the classic way (an object or a
+position). A body may open with an assignment, a `canvas`, an `animate`,
+a `class` or `link` statement, a bare direction, a `%` comment…
+
+<PicExample code={`.PS
+define panel { canvas from (-0.2,-0.5) to (2.45,0.8); box "A"; arrow; box "B" }
+P: panel()
+"P" at P.n + (0,0.15)
+.PE`} />
+
+## Rules
+
+- **Classic first.** If the body starts with an object, a position or a
+  `[ … ]` block, the label takes it as in pic and dpic, byte for byte.
+- **Nothing moves.** Same objects, `Here`, direction and variables as the
+  unlabelled call; `--svg` is identical.
+- **Members.** Labels the call binds directly are members (`X1.T`,
+  `B.X1.T` inside a block); a nested labelled call keeps its own
+  (`H.G.T`). They are still global labels too, as in any flat expansion.
+- **Not counted.** `last []`, ordinals and untyped `last` skip the group.
+- **Scene.** `--scene` gets a block item with `label`, `span` and `call`
+  (the call and its raw arguments). The `--json` bundle is unchanged.
+- **Budget.** Each group counts toward the shape budget.
+- A labelled call that draws nothing is an error
+  (`label on a macro that draws nothing`), and so is text after the call
+  on its line.
+
+dpic rejects every source that takes the group form, so classic pictures
+never change. Design record: DECISIONS E3.
