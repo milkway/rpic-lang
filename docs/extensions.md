@@ -822,9 +822,11 @@ Rules:
 - **Resolves like a block.** `R1.c`, `R1.n`, `R1.wid`, `R1.ht` come from
   the bounding box of the group's geometry (invisible helpers included,
   as for a block); `R1.start`/`R1.end` are the first object's start and
-  the last object's end; labels the body defined are members (`R1.T`,
-  `B.R1.T` inside a block). Those labels are still defined globally too,
-  as in any flat expansion.
+  the last object's end; labels the call binds directly are members
+  (`R1.T`, `B.R1.T` inside a block). A nested labelled call keeps its own:
+  `H.G.T`, not `H.T`, exactly as for nested `[ ]` blocks. Those labels are
+  still defined globally too, as in any flat expansion.
+- **Budget.** Each group counts toward the shape budget (`max_shapes`).
 - **Not a block for counting.** `last []`, `2nd []` and untyped `last`
   skip the group, so ordinals mean what they did.
 - **Provenance.** `--scene` gets a `blk<N>` item with `label`, `span` and

@@ -3701,3 +3701,110 @@ fn labelled_calls_nest_in_blocks_loops_and_groups() {
     assert_eq!(d.blocks[idx("Q").unwrap()].parent, idx("W"));
     assert_eq!(d.blocks[idx("Y[2]").unwrap()].parent, None);
 }
+
+/// Evaluate `src` and hand back the evaluator state (for bookkeeping checks).
+fn state_after(src: &str) -> State {
+    let pic = parse(src).unwrap();
+    let mut st = State::new();
+    st.macros = pic.macros.clone();
+    st.includes = pic.includes.clone();
+    st.eval_stmts(&pic.stmts).unwrap();
+    st
+}
+
+/// `g1` … `g<depth>`: each level binds `k` labels of its own and calls the
+/// level below under the label `G`.
+fn nested_group_macros(depth: usize, k: usize) -> String {
+    let mut src = String::new();
+    for level in 1..=depth {
+        let mut body = format!("q{level} = 1; ");
+        if level > 1 {
+            body.push_str(&format!("G: g{}(); ", level - 1));
+        }
+        for j in 0..k {
+            body.push_str(&format!("L{level}x{j}: box wid 0.1; "));
+        }
+        src.push_str(&format!("define g{level} {{ {body}}}\n"));
+    }
+    src
+}
+
+#[test]
+fn labelled_group_members_are_direct_and_by_index() {
+    // members are the labels the call itself bound, as indices — a nested
+    // call's labels belong to that call only, like `[ ]` blocks
+    let (depth, k) = (8, 5);
+    let st = state_after(&format!("{}H: g{depth}()", nested_group_macros(depth, k)));
+    let mut pl = &st.placed[st.labels["H"]];
+    for level in (1..=depth).rev() {
+        assert!(pl.synthetic && pl.members.is_empty());
+        let own = if level > 1 { k + 1 } else { k };
+        assert_eq!(pl.group_members.len(), own, "level {level}");
+        assert!(
+            pl.group_members
+                .iter()
+                .all(|(n, _)| n == "G" || n.starts_with(&format!("L{level}x")))
+        );
+        if level > 1 {
+            let g = pl.group_members.iter().find(|(n, _)| n == "G").unwrap().1;
+            pl = &st.placed[g];
+        }
+    }
+    // reachable through the chain, not flattened into the outer group
+    let d = draw(&format!(
+        "{}H: g3()\nA: H.G.G.L1x0.c; B: H.L3x0.c",
+        nested_group_macros(3, 2)
+    ));
+    assert_eq!(d.places.len(), 2);
+    let e = eval(
+        &parse(&format!(
+            "{}H: g3()\nA: H.L1x0.c",
+            nested_group_macros(3, 2)
+        ))
+        .unwrap(),
+    )
+    .err()
+    .unwrap();
+    assert!(e.msg.contains("no sub-label `L1x0`"), "{e}");
+}
+
+#[test]
+fn nested_labelled_groups_stay_linear() {
+    // security review of #441: members used to be deep copies of every
+    // label bound below, re-copied at each level, plus a clone of the label
+    // map per call. Depth 8 × 40 labels per level, the whole tree 25 times
+    // in a loop and once inside a block (detached across the boundary).
+    let (depth, k) = (8, 40);
+    let src = format!(
+        "{}for i = 1 to 25 do {{ T[i]: g{depth}() }}\nW: [ H: g{depth}() ]\n\
+         A: W.H.G.G.G.G.G.G.G.L1x0.c; B: T[25].G.L7x3.c",
+        nested_group_macros(depth, k)
+    );
+    let t = std::time::Instant::now();
+    let st = state_after(&src);
+    let elapsed = t.elapsed();
+    // 26 trees × 8 levels × 40 boxes
+    assert_eq!(st.shapes.len(), 26 * depth * k);
+    assert_eq!(st.groups, 26 * depth);
+    // index members only: one entry per direct label, nothing deep-copied
+    let total: usize = st.placed.iter().map(|p| p.group_members.len()).sum();
+    assert_eq!(total, 25 * (depth * k + depth - 1));
+    assert!(elapsed.as_secs() < 10, "took {elapsed:?}");
+}
+
+#[test]
+fn labelled_groups_count_toward_the_shape_budget() {
+    let pic = parse("define g { q = 1; box }\nfor i = 1 to 3 do { X[i]: g() }").unwrap();
+    let limits = |max_shapes| EvalLimits {
+        max_shapes,
+        ..Default::default()
+    };
+    // 3 boxes + 3 groups
+    assert!(eval_with_limits(&pic, limits(6)).is_ok());
+    let e = eval_with_limits(&pic, limits(5)).unwrap_err();
+    assert!(
+        e.msg
+            .contains("drawing exceeded 5 shapes (labelled macro calls count"),
+        "{e}"
+    );
+}

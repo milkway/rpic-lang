@@ -29,7 +29,8 @@ resolves to the latest version.
   call whose body cannot take it the classic way (it starts with
   assignments, a label, a control statement, or is empty) names the group
   of objects the call draws, like a block (`R1.n`, `R1.wid`, `R1.start`,
-  inner labels as `R1.T`) without moving anything; `last []`/ordinals skip
+  labels it binds directly as `R1.T`) without moving anything (each group
+  counts toward `max_shapes`); `last []`/ordinals skip
   it, `--scene` gets a labelled block with the call's provenance, a call
   that draws nothing is an error. Bodies that start with an object or a
   position keep pic's textual reading, so every source dpic accepts is

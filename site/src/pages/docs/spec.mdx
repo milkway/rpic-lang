@@ -88,7 +88,7 @@ objects, `Here` and the direction are what the unlabelled call gives.
 |---|---|
 | `R1.n` · `R1.c` · `R1.wid` | Corners, centre and size of the group's bounding box |
 | `R1.start` · `R1.end` | Start of its first object, end of its last |
-| `R1.T` | A label the body defined (`T: …`), like a block's sub-label |
+| `R1.T` | A label the body bound directly (`T: …`), like a block's sub-label; a nested labelled call keeps its own (`R1.G.T`) |
 
 The group is reachable only through its label: `last []` and ordinals
 count the same objects as before. A labelled call that draws nothing is an

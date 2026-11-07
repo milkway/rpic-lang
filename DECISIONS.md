@@ -455,8 +455,23 @@ Semantics of the group (`Stmt::LabelledCall`, evaluated in place):
 
 - Objects, `Here`, the direction, variables and the inner labels are exactly
   the unlabelled call's — no sub-scope, no translation. The inner labels stay
-  global (as in any flat expansion) *and* become the group's members, so
-  `X1.T` and `B.X1.T` resolve like a block's sub-labels.
+  global (as in any flat expansion) *and* the ones the call binds
+  **directly** become the group's members, so `X1.T` and `B.X1.T` resolve
+  like a block's sub-labels; a nested labelled call's labels are that
+  call's (`H.G.T`, not `H.T`), the same scoping as nested `[ ]` blocks.
+- Members are **indices** into the evaluator's `placed`, collected from a
+  per-call frame that `bind_label` fills (no copy of the label map, no deep
+  copy of member records). Security review of #441: the first version
+  cloned the whole label map per call and deep-copied every label bound
+  below, again at each nesting level — super-linear in depth × labels.
+  Now the work per call is its own direct labels; a record is turned into
+  a self-contained copy (`State::detached`, cost = its own subtree) only
+  where it crosses a `[ ]` boundary, the same place blocks already copy
+  their members. Each group also counts toward `max_shapes` (structured
+  error "drawing exceeded N shapes (labelled macro calls count toward the
+  budget)"). Regression tests: `labelled_group_members_are_direct_and_by_index`
+  (depth 8, per-level member counts) and `nested_labelled_groups_stay_linear`
+  (26 depth-8 trees × 40 labels per level, 8 320 boxes: 0.05 s debug).
 - Geometry: the box is the union of the group's layout extent (invisible
   helpers included, as `[ ]` measures a block — the evaluator's
   `layout_bbox` is swapped out around the body), so `.c`/`.n`/`.wid`/`.ht`

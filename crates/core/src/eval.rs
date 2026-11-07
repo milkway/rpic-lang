@@ -425,6 +425,11 @@ struct Placed {
     /// E3): reachable through its label only — `last`/ordinals skip it, so
     /// `last []` and `2nd block` count exactly what they did before.
     synthetic: bool,
+    /// For such a group: its direct members (the labels its own statements
+    /// bound, nested groups' labels excluded) as indices into the `placed`
+    /// of the state that drew it — never copies. [`State::detached`] turns
+    /// them into `members` when the record leaves that state.
+    group_members: Vec<(String, usize)>,
 }
 
 impl Placed {
@@ -675,6 +680,12 @@ struct State {
     canvas: Option<Bbox>,
     placed: Vec<Placed>,
     labels: HashMap<String, usize>,
+    /// One frame per labelled call being evaluated (innermost last): the
+    /// labels bound directly in it, by name (DECISIONS E3).
+    group_frames: Vec<HashMap<String, usize>>,
+    /// Labelled-call groups recorded so far, sub-blocks included; they count
+    /// toward the `max_shapes` budget.
+    groups: usize,
     /// Visible geometry and text only; this becomes the final drawing/viewBox.
     bbox: Bbox,
     /// All evaluated geometry, including invisible helpers, for block sizing
@@ -827,6 +838,8 @@ impl State {
             canvas: None,
             placed: Vec::new(),
             labels: HashMap::new(),
+            group_frames: Vec::new(),
+            groups: 0,
             bbox: Bbox::new(),
             layout_bbox: Bbox::new(),
             anims: Vec::new(),
@@ -921,8 +934,9 @@ impl State {
                     block_shapes: None,
                     block: None,
                     synthetic: false,
+                    group_members: Vec::new(),
                 });
-                self.labels.insert(key, idx);
+                self.bind_label(key, idx);
             }
             Stmt::LabelledCall {
                 label,
@@ -954,7 +968,7 @@ impl State {
                     {
                         *slot = Some(key.clone());
                     }
-                    self.labels.insert(key, idx);
+                    self.bind_label(key, idx);
                 }
             }
             Stmt::Animate(a) => self.eval_animate(a)?,
