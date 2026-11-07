@@ -30,6 +30,7 @@ fn opts(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<rpic_core::CompileOptions> {
     let includes = match include_policy.unwrap_or("unrestricted") {
         "unrestricted" => rpic_core::IncludePolicy::Unrestricted,
@@ -48,8 +49,39 @@ fn opts(
         includes,
         max_loop_iterations,
         max_shapes,
+        preludes: preludes_from(preludes)?,
         ..Default::default()
     })
+}
+
+/// `preludes` as Python passes it: a list of `{"name": str, "text": str}`
+/// dicts or `(name, text)` pairs — named source units compiled before `src`
+/// (positions inside one carry `file` = its name; the engine validates the
+/// names and raises `CompileError` with kind `invalid_options`).
+fn preludes_from(items: Option<Vec<Bound<'_, PyAny>>>) -> PyResult<Vec<rpic_core::Prelude>> {
+    let bad = |i: usize| {
+        pyo3::exceptions::PyTypeError::new_err(format!(
+            "preludes[{i}] must be a {{'name': str, 'text': str}} dict or a (name, text) pair"
+        ))
+    };
+    items
+        .unwrap_or_default()
+        .into_iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let (name, text): (String, String) = if p.is_instance_of::<PyDict>() {
+                let field = |k: &str| -> PyResult<String> {
+                    p.get_item(k)
+                        .and_then(|v| v.extract::<String>())
+                        .map_err(|_| bad(i))
+                };
+                (field("name")?, field("text")?)
+            } else {
+                p.extract().map_err(|_| bad(i))?
+            };
+            Ok(rpic_core::Prelude::new(name, text))
+        })
+        .collect()
 }
 
 fn diagnostic_dict<'py>(
@@ -88,6 +120,7 @@ fn compile_drawing(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<rpic_core::Drawing> {
     let opts = opts(
         circuits,
@@ -96,13 +129,14 @@ fn compile_drawing(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?;
     rpic_core::compile_with_diagnostics(src, &opts).map_err(|e| err(py, e))
 }
 
 /// Render pic source to an SVG string.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None))]
 #[allow(clippy::too_many_arguments)]
 fn render_svg(
     py: Python<'_>,
@@ -113,6 +147,7 @@ fn render_svg(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<String> {
     Ok(rpic_core::to_svg(&compile_drawing(
         py,
@@ -123,12 +158,13 @@ fn render_svg(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?))
 }
 
 /// Render pic source to PNG bytes (scale 1.0 = 96 dpi).
 #[pyfunction]
-#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, scale = 1.0, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None))]
 #[allow(clippy::too_many_arguments)]
 fn render_png<'py>(
     py: Python<'py>,
@@ -140,6 +176,7 @@ fn render_png<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<Bound<'py, PyBytes>> {
     if !scale.is_finite() || scale <= 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
@@ -155,6 +192,7 @@ fn render_png<'py>(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?);
     let png = rpic_render::to_png(&svg, scale).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &png))
@@ -162,7 +200,7 @@ fn render_png<'py>(
 
 /// Render pic source to PDF bytes.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None))]
 #[allow(clippy::too_many_arguments)]
 fn render_pdf<'py>(
     py: Python<'py>,
@@ -173,6 +211,7 @@ fn render_pdf<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<Bound<'py, PyBytes>> {
     let svg = rpic_core::to_svg(&compile_drawing(
         py,
@@ -183,6 +222,7 @@ fn render_pdf<'py>(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?);
     let pdf = rpic_render::to_pdf(&svg).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(PyBytes::new(py, &pdf))
@@ -217,7 +257,7 @@ fn json_loads<'py>(py: Python<'py>, json: &str) -> PyResult<Bound<'py, PyAny>> {
 /// own `scene_unsupported` warnings are emitted via `warnings.warn`;
 /// `compile(..., scene=True)["warnings"]` carries them structured.
 #[pyfunction]
-#[pyo3(signature = (src, flatten = None, outline = false, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, flatten = None, outline = false, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None))]
 #[allow(clippy::too_many_arguments)]
 fn scene<'py>(
     py: Python<'py>,
@@ -230,6 +270,7 @@ fn scene<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<Bound<'py, PyAny>> {
     let d = compile_drawing(
         py,
@@ -240,6 +281,7 @@ fn scene<'py>(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?;
     let out = rpic_core::scene_json(&d, &scene_opts(flatten, outline)?);
     // "never silent": surface the scene's own warnings through Python's
@@ -269,8 +311,12 @@ fn scene<'py>(
 /// `scene=True` (or a `flatten` tolerance) the dict also carries the
 /// device-independent `"scene"` draw list and its `scene_unsupported`
 /// warnings join `"warnings"` — the default output is unchanged otherwise.
+/// `preludes` (`[{"name": str, "text": str}]` or `[(name, text)]`, here and
+/// in every compile entry point) are named source units compiled before
+/// `src`, after `circuits`/`texlabels`, in order: positions inside one carry
+/// `file` = its name and the caller's own positions never shift.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, scene = false, flatten = None, outline = false))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None, scene = false, flatten = None, outline = false))]
 #[allow(clippy::too_many_arguments)]
 fn compile<'py>(
     py: Python<'py>,
@@ -281,6 +327,7 @@ fn compile<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
     scene: bool,
     flatten: Option<f64>,
     outline: bool,
@@ -294,6 +341,7 @@ fn compile<'py>(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?;
     let scene_out = if scene || flatten.is_some() {
         Some(rpic_core::scene_json(&d, &scene_opts(flatten, outline)?))
@@ -429,7 +477,8 @@ fn compile<'py>(
 /// (or `{ "error": ..., "error_info": {...} }`). Parse with `json.loads`;
 /// prefer `compile` for an already-parsed dict.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None))]
+#[allow(clippy::too_many_arguments)]
 fn compile_json(
     src: &str,
     circuits: bool,
@@ -438,6 +487,7 @@ fn compile_json(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
 ) -> PyResult<String> {
     let opts = opts(
         circuits,
@@ -446,6 +496,7 @@ fn compile_json(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?;
     Ok(rpic_core::compile_json_with_options(src, &opts))
 }
@@ -522,7 +573,7 @@ fn geo_options(
 /// Animations cannot ride into GeoJSON: a source with `animate` statements
 /// adds an `ignored` warning naming how many timelines were dropped.
 #[pyfunction]
-#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, frame = None, anchor = None, scale = None, bearing = None, features = None, flatten = 1e-3, view_scale = None, screen_classes = None))]
+#[pyo3(signature = (src, circuits = false, texlabels = false, base = None, include_policy = None, max_loop_iterations = None, max_shapes = None, preludes = None, frame = None, anchor = None, scale = None, bearing = None, features = None, flatten = 1e-3, view_scale = None, screen_classes = None))]
 #[allow(clippy::too_many_arguments)]
 fn geo_compile<'py>(
     py: Python<'py>,
@@ -533,6 +584,7 @@ fn geo_compile<'py>(
     include_policy: Option<&str>,
     max_loop_iterations: Option<u64>,
     max_shapes: Option<usize>,
+    preludes: Option<Vec<Bound<'_, PyAny>>>,
     frame: Option<&str>,
     anchor: Option<(f64, f64)>,
     scale: Option<f64>,
@@ -551,6 +603,7 @@ fn geo_compile<'py>(
         include_policy,
         max_loop_iterations,
         max_shapes,
+        preludes,
     )?;
     let gopts = geo_options(
         frame,

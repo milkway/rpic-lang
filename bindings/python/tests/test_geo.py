@@ -193,3 +193,17 @@ def test_feature_names_are_validated_never_interpolated():
     out = rpic.geo.compile(src, features={"Marco_Zero_1": (0.0, 0.0)}, warn=False)
     assert out["registration"]["control_points"] == 1
 
+
+
+def test_preludes_reach_geo_compile_and_feature_injection():
+    pre = [("lib", "define spot { [ circle rad 0.1 ] }\nRecife: (0,0)\n")]
+    head = "geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 1000\n"
+    fc = rpic.geo.to_geojson(head + "spot()\n", preludes=pre, warn=False)
+    assert fc["features"]
+    out = rpic.geo.compile(
+        head + "arrow from Recife to Olinda\n",
+        preludes=pre,
+        features={"Olinda": (-34.8553, -8.0089)},
+        warn=False,
+    )
+    assert out["geojson"]["features"]
