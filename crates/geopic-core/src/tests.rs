@@ -1080,6 +1080,122 @@ fn maplibre_mercator_drops_cos_and_defaults_hold() {
     );
 }
 
+/// G11: `text_scale` multiplies the font inside the sizing — the metres
+/// factor of `text-size` scales and the upper zoom stop is recomputed from
+/// the scaled font (one zoom lower at ×2), so the largest label still fits
+/// in 255 px; nothing else moves. Scale 1 is the default output exactly.
+#[test]
+fn maplibre_text_scale_scales_the_font_and_lowers_the_text_stop() {
+    use crate::maplibre::{LayerOptions, layers, layers_json, layers_json_with, layers_with};
+    let g = georeference(
+        &scene_of(
+            "geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\nB: box \"hub\"\ndot at (2,0)",
+        ),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let fc = &g.features;
+    let base = layers(fc);
+    assert_eq!(layers_with(fc, &LayerOptions::default()).unwrap(), base);
+    // the documented construction idiom, future-proof as fields are added
+    #[allow(clippy::needless_update)]
+    let one = LayerOptions {
+        text_scale: 1.0,
+        ..Default::default()
+    };
+    assert_eq!(layers_with(fc, &one).unwrap(), base);
+
+    let s1 = crate::maplibre::sizing(fc);
+    let s2 =
+        crate::maplibre::sizing_with(fc, &LayerOptions::default().with_text_scale(2.0)).unwrap();
+    assert_eq!(s1.text_z_hi, 18);
+    assert_eq!(s2.text_z_hi, s1.text_z_hi - 1);
+    assert_eq!(s2.text_scale, 2.0);
+    assert_eq!(s2.px_per_metre_z0, s1.px_per_metre_z0);
+
+    let scaled = layers_with(fc, &LayerOptions::default().with_text_scale(2.0)).unwrap();
+    let factor = |ls: &[Value]| {
+        layer(ls, "pic-text")["layout"]["text-size"][4][2][1][2]
+            .as_f64()
+            .unwrap()
+    };
+    assert_eq!(factor(&base), 400.0 / 72.0);
+    assert_eq!(factor(&scaled), 2.0 * factor(&base));
+    // the px per metre at the stops: the same law, the upper stop one zoom lower
+    let p0 = s1.px_per_metre_z0;
+    let ts = &layer(&scaled, "pic-text")["layout"]["text-size"];
+    assert_eq!(stops(ts), [(0.0, p0), (17.0, p0 * 2f64.powi(17))]);
+    assert_eq!(layer(&scaled, "pic-title")["layout"]["text-size"], *ts);
+    // the evaluated size doubles at every zoom up to the new stop
+    let px = |ls: &[Value], z: i32| 11.0 * factor(ls) * p0 * 2f64.powi(z);
+    assert_eq!(px(&scaled, 10), 2.0 * px(&base, 10));
+    assert!(px(&scaled, 17) <= 255.0 && px(&scaled, 18) > 255.0);
+    // strokes and dots do not move
+    for (id, key, section) in [
+        ("pic-stroke", "line-width", "paint"),
+        ("pic-dot", "circle-radius", "paint"),
+    ] {
+        assert_eq!(
+            layer(&scaled, id)[section][key],
+            layer(&base, id)[section][key]
+        );
+    }
+
+    // the JSON entry point: same arrays, missing keys = default
+    let fc_json = fc.to_json();
+    let as_value = |s: String| serde_json::from_str::<Value>(&s).unwrap();
+    assert_eq!(
+        as_value(layers_json_with(&fc_json, "").unwrap()),
+        as_value(layers_json(&fc_json).unwrap())
+    );
+    assert_eq!(
+        as_value(layers_json_with(&fc_json, "{}").unwrap()),
+        Value::Array(base.clone())
+    );
+    assert_eq!(
+        as_value(layers_json_with(&fc_json, r#"{"text_scale": 2}"#).unwrap()),
+        Value::Array(scaled.clone())
+    );
+    // the bundle carries the same layers
+    let b: Value = serde_json::from_str(
+        &crate::maplibre::bundle_json_with(fc, &LayerOptions::default().with_text_scale(2.0))
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(b["layers"], Value::Array(scaled));
+    assert_eq!(
+        as_value(crate::maplibre::bundle_json(fc)),
+        as_value(crate::maplibre::bundle_json_with(fc, &LayerOptions::default()).unwrap())
+    );
+
+    // invalid scales and options are `invalid_options`
+    for k in [0.0, -1.0, f64::NAN, f64::INFINITY, 16.000_001, 100.0] {
+        let e = layers_with(fc, &LayerOptions::default().with_text_scale(k)).unwrap_err();
+        assert_eq!(e.kind, "invalid_options", "{k}");
+    }
+    assert!(layers_with(fc, &LayerOptions::default().with_text_scale(16.0)).is_ok());
+    for bad in [
+        r#"{"text_scale": 0}"#,
+        r#"{"text_scale": 17}"#,
+        r#"{"text_scale": "2"}"#,
+        r#"{"textScale": 2}"#,
+        r#"{"text_scale": 2, "before": "labels"}"#,
+        "[1]",
+        "nope",
+    ] {
+        assert_eq!(
+            layers_json_with(&fc_json, bad).unwrap_err().kind,
+            "invalid_options",
+            "{bad}"
+        );
+    }
+    // a bad collection is still `invalid_geojson`
+    assert_eq!(
+        layers_json_with("{}", "").unwrap_err().kind,
+        "invalid_geojson"
+    );
+}
+
 /// #435: a shape's attached text is its own Point (`geopic:kind = "title"`)
 /// at the point the SVG centres the label on — a renderer labelling the
 /// polygon itself repeats the label once per tile the polygon spans.

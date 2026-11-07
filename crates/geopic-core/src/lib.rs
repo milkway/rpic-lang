@@ -147,7 +147,9 @@ impl Warning {
 #[derive(Debug, Clone, PartialEq, serde::Serialize)]
 pub struct GeoError {
     /// `no_registration`, `invalid_scale`, `invalid_anchor`, `invalid_scene`,
-    /// `invalid_flatten`, `view_scale_required`, `degenerate_control_points`.
+    /// `invalid_flatten`, `view_scale_required`, `degenerate_control_points`;
+    /// `invalid_geojson` and `invalid_options` from the bindings and
+    /// [`maplibre`].
     pub kind: String,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]

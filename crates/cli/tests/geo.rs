@@ -353,14 +353,19 @@ fn geo_options_override_the_source_and_features_act_as_control_points() {
 }
 
 /// A pic source in the temp dir, removed on drop (also on a failed assertion).
+/// The name carries a process-wide counter: two tests running in parallel
+/// can read the same clock tick (that collision flaked twice).
 struct TempPic {
     path: PathBuf,
 }
 
+static TEMP_PICS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
 impl TempPic {
     fn new(src: &str) -> Self {
+        let n = TEMP_PICS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!(
-            "rpic_geo_{}_{}.pic",
+            "rpic_geo_{}_{n}_{}.pic",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -454,4 +459,73 @@ fn maplibre_bundle_carries_the_collection_and_the_snapshot_layers() {
     let bad = rpic(&["--maplibre"], &pic);
     assert!(!bad.status.success());
     assert!(String::from_utf8_lossy(&bad.stderr).contains("only applies to `--geojson`"));
+}
+
+/// `--text-scale K` (DECISIONS G11): the label sizes of the `--maplibre`
+/// layers scale by K and their upper zoom stop is recomputed from the scaled
+/// font; the collection itself and every other layer are untouched. K = 1 is
+/// the default output; the flag errors without `--maplibre` and out of
+/// `(0, 16]`.
+#[test]
+fn text_scale_scales_the_maplibre_labels() {
+    let pic = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/geo/callout.pic");
+    let run = |extra: &[&str]| {
+        let mut args = vec!["-c", "--geojson", "--maplibre"];
+        args.extend_from_slice(extra);
+        let out = rpic(&args, &pic);
+        assert!(
+            out.status.success(),
+            "{extra:?}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        serde_json::from_slice::<serde_json::Value>(&out.stdout).unwrap()
+    };
+    let base = run(&[]);
+    assert_eq!(run(&["--text-scale", "1"]), base);
+    let big = run(&["--text-scale", "2"]);
+    assert_eq!(big["geojson"], base["geojson"]);
+    let size = |v: &serde_json::Value, id: &str| {
+        v["layers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|l| l["id"] == id)
+            .unwrap()["layout"]["text-size"]
+            .clone()
+    };
+    for id in ["pic-text", "pic-title"] {
+        let (b, s) = (size(&base, id), size(&big, id));
+        // ["interpolate", …, 0, ["max", 1, ["*", ["*", font, F], p]], z, …]
+        let f = |t: &serde_json::Value| t[4][2][1][2].as_f64().unwrap();
+        assert_eq!(f(&s), 2.0 * f(&b), "{id}");
+        assert_eq!(
+            s[5].as_i64().unwrap(),
+            b[5].as_i64().unwrap() - 1,
+            "{id}: upper stop"
+        );
+    }
+    for (i, (b, s)) in base["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(big["layers"].as_array().unwrap())
+        .enumerate()
+    {
+        if b["type"] != "symbol" {
+            assert_eq!(b, s, "layer {i}");
+        }
+    }
+    for bad in ["0", "-1", "17", "nan", "x"] {
+        let out = rpic(&["--geojson", "--maplibre", "--text-scale", bad], &pic);
+        assert!(!out.status.success(), "{bad}");
+        assert!(
+            String::from_utf8_lossy(&out.stderr).contains("--text-scale"),
+            "{bad}"
+        );
+    }
+    let alone = rpic(&["--geojson", "--text-scale", "2"], &pic);
+    assert!(!alone.status.success());
+    assert!(
+        String::from_utf8_lossy(&alone.stderr).contains("only applies to `--geojson --maplibre`")
+    );
 }

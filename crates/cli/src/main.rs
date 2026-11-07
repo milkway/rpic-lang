@@ -21,9 +21,10 @@ enum Mode {
     Scene,
     /// `--geojson`: the scene georeferenced as a GeoJSON FeatureCollection
     /// (docs/geopic.md), via geopic-core. With `maplibre` (`--maplibre`):
-    /// `{"geojson": …, "layers": […]}`, the MapLibre layers that draw it.
+    /// `{"geojson": …, "layers": […]}`, the MapLibre layers that draw it,
+    /// built with these options (`--text-scale`).
     GeoJson {
-        maplibre: bool,
+        maplibre: Option<geopic_core::maplibre::LayerOptions>,
     },
     Html,
 }
@@ -106,6 +107,7 @@ fn main() -> ExitCode {
     let mut flatten: Option<f64> = None;
     let mut outline = false;
     let mut maplibre = false;
+    let mut text_scale: Option<f64> = None;
     let mut geo = geopic_core::GeoOptions::default();
 
     let mut i = 1;
@@ -122,8 +124,12 @@ fn main() -> ExitCode {
             "--json" => mode = Mode::Json,
             "--json=all" => mode = Mode::JsonAll,
             "--scene" => mode = Mode::Scene,
-            "--geojson" => mode = Mode::GeoJson { maplibre: false },
+            "--geojson" => mode = Mode::GeoJson { maplibre: None },
             "--maplibre" => maplibre = true,
+            "--text-scale" => match number_arg(&args, &mut i, a, "font-size factor", true) {
+                Ok(v) => text_scale = Some(v),
+                Err(e) => return fail(&e),
+            },
             "--geo-anchor" => match args.get(i + 1).map(|v| parse_lonlat(a, v)) {
                 Some(Ok(ll)) => {
                     i += 1;
@@ -209,9 +215,19 @@ fn main() -> ExitCode {
         i += 1;
     }
 
+    if text_scale.is_some() && !maplibre {
+        return fail("rpic: `--text-scale` only applies to `--geojson --maplibre`");
+    }
     if maplibre {
+        let mut layer_opts = geopic_core::maplibre::LayerOptions::default();
+        if let Some(k) = text_scale {
+            layer_opts = layer_opts.with_text_scale(k);
+        }
+        if let Err(e) = layer_opts.validate() {
+            return fail(&format!("rpic: `--text-scale`: {e}"));
+        }
         match &mut mode {
-            Mode::GeoJson { maplibre: m } => *m = true,
+            Mode::GeoJson { maplibre: m } => *m = Some(layer_opts),
             _ => {
                 return fail(
                     "rpic: `--maplibre` only applies to `--geojson` (another output mode was selected; the last mode flag wins)",
@@ -373,10 +389,10 @@ fn run(
             for w in &g.warnings {
                 emit_warning(&w.kind, w.id.as_deref(), &w.message);
             }
-            if *maplibre {
-                return Ok(Output::Text(geopic_core::maplibre::bundle_json(
-                    &g.features,
-                )));
+            if let Some(layer_opts) = maplibre {
+                return geopic_core::maplibre::bundle_json_with(&g.features, layer_opts)
+                    .map(Output::Text)
+                    .map_err(|e| e.to_string());
             }
             Ok(Output::Text(g.features.to_json()))
         }
@@ -435,6 +451,7 @@ fn print_help() {
          --geo-view-scale PX     geojson: pixels per inch when the source sets geo_px = 1\n    \
          --geo-feature N=LON,LAT geojson: a named feature (control point for the label N); repeatable\n    \
          --maplibre              geojson: emit {{\"geojson\": …, \"layers\": […]}} with the MapLibre layers\n    \
+         --text-scale K          maplibre: multiply every label's font size by K (0 < K <= 16; default 1)\n    \
          -h, --help          show this help\n"
     );
 }

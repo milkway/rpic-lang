@@ -141,32 +141,40 @@ import { ready, compileGeoJSON } from '@strategicprojects/rpic';
 import { attach } from '@strategicprojects/rpic/maplibre';
 
 await ready(undefined, { geo: true });
-const { geojson, layers } = compileGeoJSON(src, { layers: true });
+// textScale: every label 1.5× its ground-true size (default 1)
+const { geojson, layers } = compileGeoJSON(src, { layers: { textScale: 1.5 } });
 
 const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/positron' });
-const pic = attach(map, geojson, { layers, fit: true }); // source "pic" + six layers, once loaded
+// source "pic" + six layers, once loaded, under the basemap's labels
+const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 // on every edit: pic.setGeoJSON(next.geojson, next.layers); pic.fitTo();
 ```
+
+`layers: true` gives the ground-true sizes; `layers: { textScale }` multiplies
+every label's font size (up to 16×) and still keeps the largest one under
+MapLibre's 255 px symbol limit. `before` is where the layers go on *your*
+map: a layer id, or `'labels'` for the first symbol layer of the style, so
+city and street names stay on top of a filled shape — as on this page. Only
+the shapes go there; the drawing's own labels always stay on top.
 
 `@strategicprojects/rpic/maplibre` has no imports at all — no wasm, no
 maplibre-gl dependency — so it costs a few kilobytes on a page that already
 has MapLibre. `createGeoMap(maplibregl, container, { style, cooperativeGestures,
-navigation })` builds a ready map like the ones above. With a collection from
+navigation, before })` builds a ready map like the ones above. With a collection from
 elsewhere (the CLI, Python), `attach(map, fc)` without `layers` computes the
 same ones in JS. On the command line, `rpic --geojson --maplibre map.pic`
-prints `{ "geojson": …, "layers": […] }`; in Python,
-`rpic.geo.maplibre_layers(fc)` or `rpic.geo.compile(src, layers=True)`.
+prints `{ "geojson": …, "layers": […] }` (`--text-scale 1.5` for larger
+labels); in Python, `rpic.geo.maplibre_layers(fc, text_scale=1.5)` or
+`rpic.geo.compile(src, layers=True, text_scale=1.5)`.
 
-In R the same layers will ride on a [mapgl](https://walker-data.com/mapgl/)
-map — **coming in rpic-r** (`rpic_geojson()` and `rpic_maplibre_layers()` are
-not released yet):
+In R, rpic-r's `rpic_geojson()`, `rpic_sf()` and `rpic_mapgl()` put the same
+layers on a [mapgl](https://walker-data.com/mapgl/) map. The `before` and
+`text_scale` arguments arrive **with the next rpic-r release**:
 
 ```r
-fc <- rpic_geojson(src)                      # Prompt B
-mapgl::maplibre(style = carto_style("positron")) |>
-  mapgl::add_source("pic", fc) |>
-  purrr::reduce(rpic_maplibre_layers(fc), \(m, l) mapgl::add_layer(m, l), .init = _) |>
-  mapgl::fit_bounds(fc)
+library(mapgl)
+maplibre(style = carto_style("positron")) |>
+  rpic_mapgl(src, before = "labels", text_scale = 1.5)   # next rpic-r release
 ```
 
 The sizing formulas and the layer table are in

@@ -5,6 +5,8 @@
 // Math:     await ready(undefined, { math: true }); // texlabels typeset in-browser
 // Maps:     await ready(undefined, { geo: true });  // compileGeoJSON (drawing → GeoJSON)
 import * as leanModule from './pkg/rpic_wasm.js';
+// the one layer-options validator (maplibre.js itself stays zero-import)
+import { checkLayerOptions } from './maplibre.js';
 
 // display names of the three builds, keyed by ready()'s choice
 const BUILDS = { lean: 'lean', math: 'math-enabled', geo: 'geo-enabled' };
@@ -361,6 +363,16 @@ function checkGeoOptions(opts) {
 }
 
 /**
+ * MapLibre layer options (`{ textScale }`) in the engine's JSON spelling,
+ * validated by the maplibre module's own check (one validator, run before the
+ * wasm — `JSON.stringify` would also turn NaN/Infinity into `null`, i.e. the
+ * default).
+ */
+function layerOptions(o) {
+  return { text_scale: checkLayerOptions(o).textScale };
+}
+
+/**
  * Georeference pic source: `{ geojson, warnings, diagnostics, registration,
  * canvas }`.
  * Needs the geo build (`await ready(undefined, { geo: true })`).
@@ -379,7 +391,8 @@ function checkGeoOptions(opts) {
  *
  * `layers: true` adds `layers`: the MapLibre style-spec layers that draw the
  * collection with sizes true to the ground (source id `"pic"`; hand them to
- * `attach` from `@strategicprojects/rpic/maplibre`).
+ * `attach` from `@strategicprojects/rpic/maplibre`). `layers: { textScale }`
+ * does the same with every label's font size multiplied by `textScale`.
  *
  * Throws an `Error` with `.errorInfo` on a pic error (like `compile`) and a
  * `GeoError` (`.info = { kind, message, hint }`) on a georeferencing error.
@@ -387,6 +400,8 @@ function checkGeoOptions(opts) {
 export function compileGeoJSON(src, opts = {}) {
   geoWasm();
   checkGeoOptions(opts);
+  // validated once, here, before any compile_geo pass
+  const layers = !opts.layers ? undefined : typeof opts.layers === 'object' ? layerOptions(opts.layers) : true;
   const feats = normalizeFeatures(opts.features);
   const base = {
     frame: opts.frame,
@@ -397,7 +412,7 @@ export function compileGeoJSON(src, opts = {}) {
     view_scale: opts.viewScale,
     screen_classes: opts.screenClasses,
     // the MapLibre layers (docs/geopic.md § 6); absent unless asked for
-    layers: opts.layers ? true : undefined,
+    layers,
   };
   return feats.length
     ? compileWithFeatures(src, feats, base, opts)
@@ -423,11 +438,12 @@ export function geoToCanvas(registration, points) {
  * FeatureCollection — the engine's own output, as `compileGeoJSON(src,
  * { layers: true })` gives it. Needs the geo build.
  * @param {object | string} fc a FeatureCollection from `compileGeoJSON` (or its JSON text)
+ * @param {{ textScale?: number }} [opts] `textScale` multiplies every label's font size
  * @returns {object[]}
  */
-export function maplibreLayers(fc) {
+export function maplibreLayers(fc, opts = {}) {
   const text = typeof fc === 'string' ? fc : JSON.stringify(fc);
-  const out = JSON.parse(geoWasm().maplibre_layers(text));
+  const out = JSON.parse(geoWasm().maplibre_layers(text, JSON.stringify(layerOptions(opts))));
   if (!Array.isArray(out)) throw new GeoError(out.error, out.geo_error);
   return out;
 }

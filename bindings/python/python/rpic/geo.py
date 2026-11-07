@@ -10,6 +10,7 @@ Format, properties and warnings: ``docs/geopic.md`` in the repository.
     fc = rpic.geo.to_geojson(src)                 # dict (a FeatureCollection)
     out = rpic.geo.compile(src)                   # {"geojson", "warnings", "diagnostics", "registration", "canvas"}
     out = rpic.geo.compile(src, layers=True)      # … + "layers": the MapLibre layers that draw it
+    out = rpic.geo.compile(src, layers=True, text_scale=1.5)  # … with labels 1.5× larger
     layers = rpic.geo.maplibre_layers(fc)         # the same, for any geopic FeatureCollection
     gdf = rpic.geo.to_geodataframe(src)           # needs `pip install "rpiclang[geo]"`
 """
@@ -244,6 +245,7 @@ def compile(
     warn: bool = True,
     features: FeatureLike = None,
     layers: bool = False,
+    text_scale: float | None = None,
     _stacklevel: int = 2,
     **kwargs: Any,
 ) -> dict:
@@ -251,7 +253,10 @@ def compile(
 
     ``layers=True`` adds ``"layers"``: the MapLibre style-spec layers that
     draw the collection with sizes true to the ground (see
-    :func:`maplibre_layers`).
+    :func:`maplibre_layers`); ``text_scale`` multiplies every label's font
+    size. It is validated before anything compiles: a bad value raises
+    :class:`GeoError` (``invalid_options``); passing it without
+    ``layers=True`` raises :class:`ValueError`.
 
     Keyword arguments: ``frame`` (``"enu"`` | ``"mercator"``), ``anchor``
     ``(lon, lat)``, ``scale`` (metres per inch), ``bearing`` (degrees,
@@ -270,17 +275,21 @@ def compile(
     is also raised as :class:`GeoWarning` unless ``warn=False``. Raises
     :class:`rpic.CompileError` or :class:`GeoError`.
     """
+    if text_scale is not None:
+        if not layers:
+            raise ValueError("text_scale only applies with layers=True")
+        _native.validate_layer_options(_layer_options(text_scale))  # fail fast
     feats = _normalize_features(features)
     out = _compile_with_features(src, feats, kwargs) if feats else _native.geo_compile(src, **kwargs)
     if layers:
-        out["layers"] = maplibre_layers(out["geojson"])
+        out["layers"] = maplibre_layers(out["geojson"], text_scale=1.0 if text_scale is None else text_scale)
     if warn:
         for w in out["warnings"]:
             _warnings.warn(GeoWarning(w), stacklevel=_stacklevel)
     return out
 
 
-def maplibre_layers(fc: Mapping[str, Any] | str) -> list:
+def maplibre_layers(fc: Mapping[str, Any] | str, text_scale: float = 1.0) -> list:
     """The MapLibre style-spec layers that draw a geopic FeatureCollection.
 
     ``fc`` is the collection (a dict, as :func:`to_geojson` returns it, or its
@@ -292,11 +301,26 @@ def maplibre_layers(fc: Mapping[str, Any] | str) -> list:
     width, dot radius and font size is an ``interpolate`` on zoom that keeps
     it true to the ground, from the collection's ``geopic.registration``
     (``docs/geopic.md`` § 6). Only that member and the features'
-    ``geopic:font_size`` are read. Raises :class:`GeoError`
-    (``invalid_geojson``) when ``fc`` is not a FeatureCollection.
+    ``geopic:font_size`` are read.
+
+    ``text_scale`` multiplies every label's font size (a finite number in
+    ``(0, 16]``; 1 = true to the ground). The upper zoom stop of
+    ``text-size`` is chosen from the scaled font, so the largest label still
+    fits MapLibre's 255 px symbol limit; strokes and dots do not change
+    (DECISIONS G11).
+
+    Raises :class:`GeoError` (``invalid_geojson``) when ``fc`` is not a
+    FeatureCollection, (``invalid_options``) when ``text_scale`` is out of
+    range or not a number.
     """
     text = fc if isinstance(fc, str) else json.dumps(fc)
-    return json.loads(_native.maplibre_layers(text))
+    return json.loads(_native.maplibre_layers(text, _layer_options(text_scale)))
+
+
+def _layer_options(text_scale: Any) -> str:
+    """The engine's layer-options JSON. The engine validates it (NaN/inf
+    serialise as non-JSON tokens it rejects as ``invalid_options``)."""
+    return json.dumps({"text_scale": text_scale})
 
 
 def to_geojson(src: str, **kwargs: Any) -> dict:
