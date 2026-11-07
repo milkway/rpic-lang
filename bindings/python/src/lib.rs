@@ -256,7 +256,13 @@ fn scene<'py>(
 /// Compile to the parsed bundle: a dict `{"svg": str, "animations": [dict],
 /// "diagnostics": [str], "warnings": [dict], "objects": [dict]}` — plus
 /// `"places"` / `"passthrough"` when the source defines named places or
-/// carries troff lines. A passthrough entry's `"text"` may contain `\n`: a
+/// carries troff lines, `"interactions"` (`[{"id", "kind": "drag",
+/// "inertia"?, "bounds"?, "axis"?}]`) when it has `draggable` objects, and
+/// `"scroll": True` under `animate scroll`. An object carries `"link"` only
+/// when `link "<url>"` set one; an animation carries its optional GSAP keys
+/// (`repeat`, `yoyo`, `ease`, `path`, `color`, `out`, `from`, `morph`,
+/// `unit`, `chars`, `wiggles`, `drawFrom`, `drawTo`) only when set — the same
+/// keys as the CLI `--json` bundle. A passthrough entry's `"text"` may contain `\n`: a
 /// request continued by column-1 `+` lines is one entry, and only such a
 /// continued entry carries `"end_line"` (its last line). Raises `CompileError` (with
 /// the structured diagnostic on `exc.info`) on a pic error. With
@@ -328,6 +334,21 @@ fn compile<'py>(
         if let Some(morph) = a.morph {
             anim.set_item("morph", format!("s{morph}"))?;
         }
+        if a.type_word {
+            anim.set_item("unit", "word")?;
+        }
+        if let Some(chars) = &a.scramble_chars {
+            anim.set_item("chars", chars)?;
+        }
+        if let Some(wiggles) = a.wiggles {
+            anim.set_item("wiggles", wiggles)?;
+        }
+        if let Some(from) = a.draw_from {
+            anim.set_item("drawFrom", from)?;
+        }
+        if let Some(to) = a.draw_to {
+            anim.set_item("drawTo", to)?;
+        }
         anims.append(anim)?;
     }
     out.set_item("animations", anims)?;
@@ -358,6 +379,10 @@ fn compile<'py>(
             }
             None => obj.set_item("bbox", py.None())?,
         }
+        // `link "<url>"`: only when set (same key order as the CLI bundle)
+        if let Some(link) = d.shape_links.get(i).and_then(|l| l.as_deref()) {
+            obj.set_item("link", link)?;
+        }
         if let Some(span) = d.shape_spans.get(i).and_then(|s| s.as_ref()) {
             obj.set_item("line", span.line)?;
             obj.set_item("col", span.col)?;
@@ -379,6 +404,14 @@ fn compile<'py>(
         out.set_item(
             "passthrough",
             json_loads(py, &rpic_core::passthrough_json(&d))?,
+        )?;
+    }
+    // `draggable` targets: only when the source has some, from the core's
+    // own serializer (same shape as the CLI bundle and the JS binding)
+    if !d.interactions.is_empty() {
+        out.set_item(
+            "interactions",
+            json_loads(py, &rpic_core::interactions_json(&d))?,
         )?;
     }
     // rpic `animate scroll`: timeline-level scroll-scrub hint for the host.
