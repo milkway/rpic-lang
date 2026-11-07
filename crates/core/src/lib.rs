@@ -303,6 +303,88 @@ pub struct CompileOptions {
     /// Host ceiling for emitted drawing shapes. `None` uses the library
     /// default. Set this lower for untrusted source.
     pub max_shapes: Option<usize>,
+    /// Embedder-supplied named source units (a macro library, a house
+    /// style …), spliced after `circuits` and `texlabels`, in order, before
+    /// the user's source — each lexed as its own unit, exactly like the
+    /// `circuits` library: user lines never shift, positions inside a
+    /// prelude carry `file = name`, and objects drawn by a prelude macro
+    /// called from user code keep the user's call-site provenance. Names
+    /// must be non-empty, unique, free of `"` and line breaks, and not a
+    /// reserved unit (`circuits`, `<texlabels>`); a bad name is an
+    /// `invalid_options` compile error. [`IncludePolicy`] is unaffected:
+    /// the text is given, not read.
+    pub preludes: Vec<Prelude>,
+}
+
+/// A named source unit for [`CompileOptions::preludes`].
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Prelude {
+    /// The unit's name — what `Diagnostic::file` / span `file` report for
+    /// positions inside it.
+    pub name: String,
+    /// The pic text.
+    pub text: String,
+}
+
+impl Prelude {
+    pub fn new(name: impl Into<String>, text: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            text: text.into(),
+        }
+    }
+}
+
+impl CompileOptions {
+    /// Append a named prelude (builder style).
+    pub fn with_prelude(mut self, name: impl Into<String>, text: impl Into<String>) -> Self {
+        self.preludes.push(Prelude::new(name, text));
+        self
+    }
+
+    /// Check the prelude names: the `invalid_options` diagnostic for the
+    /// first bad one.
+    fn validate(&self) -> Result<(), CompileError> {
+        let bad = |msg: String| {
+            let info = Diagnostic::new("invalid_options", msg.clone()).hint(
+                "prelude names must be non-empty, unique, without `\"` or line breaks, \
+                 and not `circuits` or `<texlabels>`",
+            );
+            Err(CompileError {
+                message: msg,
+                info: Box::new(info),
+            })
+        };
+        let mut seen = std::collections::HashSet::new();
+        for p in &self.preludes {
+            let n = p.name.as_str();
+            if n.is_empty() {
+                return bad("invalid prelude name: empty".into());
+            }
+            if n.contains(['"', '\n', '\r']) {
+                return bad(format!(
+                    "invalid prelude name {n:?}: contains `\"` or a line break"
+                ));
+            }
+            if n == "circuits" || n == "<texlabels>" {
+                return bad(format!("invalid prelude name {n:?}: reserved"));
+            }
+            if !seen.insert(n) {
+                return bad(format!("invalid prelude name {n:?}: duplicate"));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Parse pic source with [`CompileOptions`] (circuits, texlabels, preludes,
+/// include policy) into the AST, without evaluating it — the CLI's `--ast`.
+pub fn parse_with_options(src: &str, opts: &CompileOptions) -> Result<ast::Picture, CompileError> {
+    opts.validate()?;
+    parse_options(src, opts).map_err(|e| CompileError {
+        message: e.to_string(),
+        info: Box::new(e.diagnostic()),
+    })
 }
 
 /// Compile pic source with [`CompileOptions`] into a [`Drawing`].
@@ -314,10 +396,7 @@ pub fn compile_with_options(src: &str, opts: &CompileOptions) -> Result<Drawing,
 /// [`CompileError`] (flat message + [`Diagnostic`]) instead of a bare string —
 /// for bindings that attach position data to exceptions/conditions.
 pub fn compile_with_diagnostics(src: &str, opts: &CompileOptions) -> Result<Drawing, CompileError> {
-    let picture = parse_options(src, opts).map_err(|e| CompileError {
-        message: e.to_string(),
-        info: Box::new(e.diagnostic()),
-    })?;
+    let picture = parse_with_options(src, opts)?;
     eval::eval_with_limits(&picture, opts.eval_limits()).map_err(|e| {
         // Eval errors carry their own diagnostic when the failure site had
         // one (deferred-parse errors, unknown labels, ordinals — with spans
@@ -339,11 +418,12 @@ pub fn render_svg_with_options(src: &str, opts: &CompileOptions) -> Result<Strin
 }
 
 fn parse_options(src: &str, opts: &CompileOptions) -> Result<ast::Picture, ParseError> {
-    parser::parse_with_prelude(
+    parser::parse_units(
         src,
         ast::IncludeCtx::with_policy(opts.base.clone(), opts.includes),
         opts.circuits,
         opts.texlabels,
+        &opts.preludes,
     )
 }
 
@@ -967,6 +1047,156 @@ mod tests {
         let via_opts = compile_with_options(body, &opts).unwrap();
         let via_prepend = compile(&format!("{CIRCUITS}\n{body}")).unwrap();
         assert_eq!(to_svg(&via_opts), to_svg(&via_prepend));
+    }
+
+    // ---- #450: embedder preludes as named units ----------------------------
+
+    const VSRC: &str = "define vsrc { [ line from $1 to $2; circle rad 0.1 at last line.c ] }\nPmark: (5,5)\n.ft B\n";
+
+    fn with_vsrc() -> CompileOptions {
+        CompileOptions::default().with_prelude("dune prelude", VSRC)
+    }
+
+    #[test]
+    fn prelude_macro_keeps_the_user_call_site() {
+        let src = "A: (0,0); B: (1,0)\n\nV1: vsrc(A,B)\n";
+        let d = compile_with_options(src, &with_vsrc()).unwrap();
+        // the block is the user's line 3, no file; its call records the
+        // arguments where the user wrote them
+        let b = &d.blocks[0];
+        assert_eq!(b.label.as_deref(), Some("V1"));
+        let span = b.span.as_ref().unwrap();
+        assert_eq!((span.line, span.col, span.file.as_deref()), (3, 5, None));
+        let call = b.call.as_ref().unwrap();
+        assert_eq!(call.name, "vsrc");
+        let raw: Vec<_> = call
+            .raw_args
+            .iter()
+            .map(|a| {
+                (
+                    a.text.as_str(),
+                    a.span.line,
+                    a.span.col,
+                    a.span.file.clone(),
+                )
+            })
+            .collect();
+        assert_eq!(raw, [("A", 3, 10, None), ("B", 3, 12, None)]);
+        // the shapes drawn by the body point into the prelude, by name
+        assert!(
+            d.shape_spans
+                .iter()
+                .flatten()
+                .all(|s| s.file.as_deref() == Some("dune prelude"))
+        );
+        // places and passthrough inside the prelude name it too; user
+        // places stay file-less
+        let pm = d.places.iter().find(|p| p.label == "Pmark").unwrap();
+        let ps = pm.span.as_ref().unwrap();
+        assert_eq!((ps.line, ps.file.as_deref()), (2, Some("dune prelude")));
+        let pa = d.places.iter().find(|p| p.label == "A").unwrap();
+        assert_eq!(pa.span.as_ref().unwrap().file, None);
+        assert_eq!(d.passthrough.len(), 1);
+        assert_eq!(d.passthrough[0].text, ".ft B");
+        assert_eq!(
+            (
+                d.passthrough[0].span.line,
+                d.passthrough[0].span.file.as_deref()
+            ),
+            (3, Some("dune prelude"))
+        );
+        // the JSON bundle says the same
+        let j = compile_json_with_options(src, &with_vsrc());
+        assert!(j.contains("\"file\":\"dune prelude\""), "{j}");
+    }
+
+    #[test]
+    fn prelude_does_not_shift_user_errors() {
+        let src = "box\nbxo\n";
+        let plain = compile_with_diagnostics(src, &CompileOptions::default()).unwrap_err();
+        let pre = compile_with_diagnostics(src, &with_vsrc()).unwrap_err();
+        assert_eq!(plain.message, pre.message);
+        assert_eq!(plain.info, pre.info);
+        assert_eq!((pre.info.line, pre.info.file.as_deref()), (Some(2), None));
+    }
+
+    #[test]
+    fn prelude_internal_errors_name_the_prelude() {
+        let opts = CompileOptions::default().with_prelude("house", "box\n\nbxo\n");
+        let e = compile_with_diagnostics("circle\n", &opts).unwrap_err();
+        assert_eq!(
+            (e.info.line, e.info.file.as_deref()),
+            (Some(3), Some("house"))
+        );
+        // an error in a prelude macro *body*, expanded from user code, also
+        // points into the prelude
+        let opts = CompileOptions::default().with_prelude("lib", "define m { box wid ) ht $1 }\n");
+        let e = compile_with_diagnostics("box\nm(1)\n", &opts).unwrap_err();
+        assert_eq!(e.info.file.as_deref(), Some("lib"), "{e:?}");
+    }
+
+    #[test]
+    fn preludes_splice_in_order_after_circuits() {
+        // the second prelude sees the first's definitions and the library
+        let opts = CompileOptions {
+            circuits: true,
+            ..Default::default()
+        }
+        .with_prelude("one", "define w { 2 }\n")
+        .with_prelude("two", "define r2 { resistor($1,$2) }\nwid2 = w\n");
+        let d = compile_with_options("A:(0,0); B:(wid2,0)\nr2(A,B)\n", &opts).unwrap();
+        assert!(!d.shapes.is_empty());
+        // the user's source is still sovereign: it can redefine a prelude macro
+        let opts = CompileOptions::default().with_prelude("one", "define w { 2 }\n");
+        let d = compile_with_options("define w { 3 }\nbox wid w\n", &opts).unwrap();
+        let plain = compile("box wid 3\n").unwrap();
+        assert_eq!(to_svg(&d), to_svg(&plain));
+        // and an empty preludes list is the plain compile, byte for byte
+        let src = "box \"x\"; arrow; circle\n";
+        assert_eq!(
+            compile_json_with_options(src, &CompileOptions::default()),
+            compile_json(src)
+        );
+    }
+
+    #[test]
+    fn prelude_names_are_validated() {
+        for (names, why) in [
+            (vec![""], "empty"),
+            (vec!["a\"b"], "contains"),
+            (vec!["a\nb"], "contains"),
+            (vec!["circuits"], "reserved"),
+            (vec!["<texlabels>"], "reserved"),
+            (vec!["x", "x"], "duplicate"),
+        ] {
+            let mut opts = CompileOptions::default();
+            for n in names {
+                opts = opts.with_prelude(n, "box\n");
+            }
+            let e = compile_with_diagnostics("box\n", &opts).unwrap_err();
+            assert_eq!(e.info.kind, "invalid_options", "{e:?}");
+            assert!(e.message.contains(why), "{}", e.message);
+            let j = compile_json_with_options("box\n", &opts);
+            assert!(j.contains("\"kind\":\"invalid_options\""), "{j}");
+        }
+    }
+
+    #[test]
+    fn prelude_scene_spans_carry_the_file() {
+        let src = "A: (0,0); B: (1,0)\nV1: vsrc(A,B)\n";
+        let out = compile_scene_with_options(src, &with_vsrc(), &SceneOptions::default()).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&out.json).unwrap();
+        let items = v["items"].as_array().unwrap();
+        let blk = items.iter().find(|i| i["kind"] == "block").unwrap();
+        assert_eq!(blk["span"]["line"], 2);
+        assert!(blk["span"].get("file").is_none(), "{blk}");
+        assert!(
+            items
+                .iter()
+                .filter(|i| i["kind"] != "block")
+                .all(|i| i["span"]["file"] == "dune prelude"),
+            "{items:?}"
+        );
     }
 
     #[test]
