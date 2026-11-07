@@ -37,3 +37,7 @@ bindings/python/dist/
 # local secrets (e.g. WINGET_TOKEN for the one-time Komac submission)
 .env
 .env.*
+
+# maturin develop (editable) drops the extension next to the package
+bindings/python/python/rpic/*.so
+bindings/python/python/rpic/*.pyd
