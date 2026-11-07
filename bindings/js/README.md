@@ -129,8 +129,8 @@ import { attach, createGeoMap } from '@strategicprojects/rpic/maplibre';
 const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 
 // your own map: adds/updates source "pic" + the six layers (waits for `load`);
-// before: 'labels' puts them under the basemap's labels (first symbol layer),
-// or pass a layer id
+// before: 'labels' puts the shapes under the basemap's labels (first symbol
+// layer), or pass a layer id; the drawing's own labels always stay on top
 const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits
 pic.fitTo();                                // re-frame
@@ -165,7 +165,7 @@ labels).
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, layers?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas, layers? }`; `layers: true` adds the MapLibre layers. Throws `GeoError` (`info.kind`) or a pic error. |
 | `maplibreLayers(fc, {textScale?})` | Geo build only. The engine's MapLibre layers for a geopic FeatureCollection; `textScale` multiplies every label's font size. |
-| `attach(map, fc, {layers?, fit?, before?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map (under layer `before`, or under the basemap's labels with `'labels'`) → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc, {textScale?})`, `sizing(fc, {textScale?})`, `bounds(fc)`. |
+| `attach(map, fc, {layers?, fit?, before?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map (shapes under layer `before`, or under the basemap's labels with `'labels'`; the drawing's own labels stay on top) → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc, {textScale?})`, `sizing(fc, {textScale?})`, `bounds(fc)`. |
 | `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

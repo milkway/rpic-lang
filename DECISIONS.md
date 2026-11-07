@@ -376,7 +376,12 @@ where every consumer gets them the same way:
   the options. The zero-import JS module takes it: `attach(map, fc,
   { before })` / `createGeoMap(…, { before })`, a layer id or `'labels'` =
   the first `symbol` layer of `map.getStyle().layers` that is not one of
-  ours, resolved when the layers are added (a style without symbol layers,
+  ours, resolved when the layers are added. Only the geometry layers
+  (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) go before it;
+  `pic-text`/`pic-title` are appended on top — the first cut moved all six,
+  and review saw the basemap's "Olinda" drawn over the drawing's own
+  "Olinda": the point is shapes under the place names, never the drawing's
+  labels under the basemap's (a style without symbol layers,
   or a missing id, appends on top — the latter with a console warning,
   since MapLibre would otherwise refuse the layer). rpic.dev passes
   `'labels'`; rpic-r's planned `rpic_mapgl(…, before = "labels",

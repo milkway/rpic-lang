@@ -250,9 +250,12 @@ is the default); `bundle_json_with` is the CLI's bundle under options.
 consumer's style — `map.addLayer(spec, beforeId)` — belongs to the map, not
 to the layer objects: the JS `attach(map, fc, { before })` takes a layer id
 or `'labels'`, the first `symbol` layer of the map's current style (resolved
-when the layers are added; on top when the style has none), so the
-basemap's place names stay above the drawing. rpic.dev uses `before:
-'labels'`.
+when the layers are added; on top when the style has none). Only the
+geometry layers (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`)
+go there, so the basemap's place names stay above the shapes; the
+drawing's own labels (`pic-text`, `pic-title`) are always appended on top —
+a basemap "Olinda" must not cover the drawing's "Olinda". rpic.dev uses
+`before: 'labels'`.
 
 Exposed everywhere the collection is:
 

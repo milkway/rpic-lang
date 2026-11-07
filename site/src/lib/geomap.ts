@@ -8,8 +8,9 @@
 // (GeoPlayground.astro) `compileGeoJSON(src, { layers: true }).layers`.
 // What stays here is the site's own glue: the worker URL, the CSS, popups
 // and the hover cursor, and the `window.__rpicGeoMaps` registry for QA. The
-// drawings sit under the basemap's labels (`before: 'labels'`, DECISIONS
-// G11), so place names stay readable over a filled shape.
+// drawings' shapes sit under the basemap's labels (`before: 'labels'`,
+// DECISIONS G11), so place names stay readable over a filled shape; the
+// drawings' own labels stay on top.
 // (`geopic:placement = "screen"` is a hint for consumers that implement
 // pixel-anchored callouts; this module does not, on purpose: a fixed-size
 // marker made the arrow look detached.)

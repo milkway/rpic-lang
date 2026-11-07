@@ -22,9 +22,10 @@ resolves to the latest version.
   { textScale })`; Python `geo.maplibre_layers(fc, text_scale=)` and
   `geo.compile(…, layers=True, text_scale=)` (DECISIONS G11).
 - JS `attach(map, fc, { before })` / `createGeoMap(…, { before })`: add the
-  pic layers under a given layer, or under the basemap's labels with
-  `'labels'` (the first `symbol` layer of the style). rpic.dev's maps now sit
-  under the basemap's place names.
+  pic geometry layers under a given layer, or under the basemap's labels
+  with `'labels'` (the first `symbol` layer of the style); the drawing's own
+  labels (`pic-text`, `pic-title`) always stay on top. rpic.dev's shapes now
+  sit under the basemap's place names.
 
 - Scene: each `text` line carries `row`, its 0-based row in the author's
   label stack (blank rows included), and the item carries `text_rows`, the

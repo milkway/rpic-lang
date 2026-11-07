@@ -15,6 +15,9 @@ export const SOURCE = 'pic';
 /** The layer ids, in draw order. */
 export const LAYER_IDS = ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot', 'pic-text', 'pic-title'];
 
+/** The drawing's own label layers: `before` never buries them (they stay on top). */
+const TEXT_LAYER_IDS = ['pic-text', 'pic-title'];
+
 /** pic compass anchor → MapLibre text-anchor (the reference point sits at
  *  that side of the text: `w` = text extends right of it, `n` = below). */
 const ANCHORS = {
@@ -191,10 +194,13 @@ function beforeId(map, before) {
  * Draw `fc` on a MapLibre `map`: adds (or updates) the GeoJSON source `"pic"`
  * and the six layers. `layers` are the engine's (`compileGeoJSON(src,
  * { layers: true }).layers`); omitted, they are computed by `layers(fc)`.
- * `fit: true` frames the drawing. `before` places the layers under another
+ * `fit: true` frames the drawing. `before` places the *geometry* layers
+ * (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) under another
  * one: a layer id, or `'labels'` for the first `symbol` layer of the map's
- * style (so the basemap's labels stay on top); resolved each time the layers
- * are added, appended on top when there is no such layer. Waits for the map's
+ * style (so the basemap's labels stay above the shapes); resolved each time
+ * the layers are added, on top when there is no such layer. The drawing's
+ * own labels (`pic-text`, `pic-title`) are always appended on top, so a
+ * basemap label never covers them. Waits for the map's
  * `load` when the style is not loaded yet; calls made meanwhile are applied
  * then.
  * @returns {{ setGeoJSON(fc, layers?): void, fitTo(fc?): void, detach(): void }}
@@ -214,6 +220,10 @@ export function attach(map, fc = EMPTY, opts = {}) {
     let below; // resolved once per pass, only when a layer is added
     for (const spec of specs) {
       if (!map.getLayer(spec.id)) {
+        if (TEXT_LAYER_IDS.includes(spec.id)) {
+          map.addLayer(spec); // the drawing's labels: on top, never buried
+          continue;
+        }
         if (below === undefined) below = { id: beforeId(map, opts.before) };
         map.addLayer(spec, below.id);
         continue;

@@ -154,7 +154,8 @@ const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 every label's font size (up to 16×) and still keeps the largest one under
 MapLibre's 255 px symbol limit. `before` is where the layers go on *your*
 map: a layer id, or `'labels'` for the first symbol layer of the style, so
-city and street names stay on top of a filled shape — as on this page.
+city and street names stay on top of a filled shape — as on this page. Only
+the shapes go there; the drawing's own labels always stay on top.
 
 `@strategicprojects/rpic/maplibre` has no imports at all — no wasm, no
 maplibre-gl dependency — so it costs a few kilobytes on a page that already

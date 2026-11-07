@@ -213,22 +213,28 @@ const basemap = [
   { id: 'road-names', type: 'symbol' },
   { id: 'place-names', type: 'symbol' },
 ];
+// only the geometry goes under; the drawing's own labels stay on top
+const GEOM = LAYER_IDS.slice(0, 4);
+const TEXT = LAYER_IDS.slice(4);
+assert.deepEqual(TEXT, ['pic-text', 'pic-title']);
+const split = (id) => [...GEOM.map(() => id), ...TEXT.map(() => undefined)];
 m = fakeMap({ loaded: true, style: basemap });
 h = attach(m, callout, { layers: engine, before: 'labels' });
-assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
-assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS, 'road-names', 'place-names']);
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), split('road-names'));
+const under = ['background', 'water', 'roads', ...GEOM, 'road-names', 'place-names', ...TEXT];
+assert.deepEqual(m.order(), under);
 // an update moves nothing; detach + re-attach resolves again (our own
 // symbol layers never count as "the labels")
 h.setGeoJSON(cases.radius);
 assert.equal(ops(m, 'addLayer').length, 6);
 h.detach();
 h = attach(m, callout, { before: 'labels' });
-assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS, 'road-names', 'place-names']);
+assert.deepEqual(m.order(), under);
 h.detach();
 // a layer id
 m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout, { before: 'roads' });
-assert.deepEqual(m.order(), ['background', 'water', ...LAYER_IDS, 'roads', 'road-names', 'place-names']);
+assert.deepEqual(m.order(), ['background', 'water', ...GEOM, 'roads', 'road-names', 'place-names', ...TEXT]);
 // a style without symbol layers, or a missing id: on top
 m = fakeMap({ loaded: true, style: basemap.slice(0, 3) });
 attach(m, callout, { before: 'labels' });
@@ -251,7 +257,7 @@ assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS]);
 m = fakeMap({ loaded: false, style: basemap });
 attach(m, callout, { before: 'labels' });
 m.fire('load');
-assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), split('road-names'));
 // no `before`: appended, beforeId undefined (the previous behaviour)
 m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout);
@@ -295,7 +301,7 @@ assert.equal(made.controls.length, 0);
   made.map.calls.length = 0;
   g2.setGeoJSON(callout, engine);
   made.map.fire('load');
-  assert.deepEqual(ops(made.map, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
+  assert.deepEqual(ops(made.map, 'addLayer').map((c) => c[2]), split('road-names'));
 }
 
 console.log('smoke-maplibre: ok');
