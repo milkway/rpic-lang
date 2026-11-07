@@ -14,6 +14,10 @@
 //! which reproduces the 2^z law exactly. Under the `mercator` frame the scale
 //! is already in EPSG:3857 metres, so `cos φ` drops out.
 //!
+//! [`LayerOptions`] carries the consumer's knobs ([`LayerOptions::text_scale`]
+//! enlarges every label, DECISIONS G11); the default reproduces the
+//! ground-true layers exactly.
+//!
 //! The JS port in `bindings/js/maplibre.js` mirrors this module line for
 //! line; a test there pins it against this output.
 
@@ -36,6 +40,85 @@ const DEFAULT_STROKE_PT: f64 = 0.8;
 const DEFAULT_RADIUS_IN: f64 = 0.04;
 const DEFAULT_FONT_PT: f64 = 11.0;
 
+/// Options of the emitted layers (`docs/geopic.md` § 6). Build with
+/// `LayerOptions { text_scale: 1.5, ..Default::default() }` or
+/// [`LayerOptions::with_text_scale`]; [`Default`] gives the ground-true
+/// layers, identical to [`layers`].
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct LayerOptions {
+    /// Multiplies every label's font size (1 = true to the ground). Applied
+    /// inside [`sizing_with`], so the upper `text-size` zoom stop is computed
+    /// from the scaled font and the largest label still fits in 255 px.
+    /// Finite, in `(0, MAX_TEXT_SCALE]`.
+    pub text_scale: f64,
+}
+
+impl Default for LayerOptions {
+    fn default() -> Self {
+        Self { text_scale: 1.0 }
+    }
+}
+
+impl LayerOptions {
+    /// The largest accepted [`LayerOptions::text_scale`].
+    pub const MAX_TEXT_SCALE: f64 = 16.0;
+
+    /// These options with `text_scale` set.
+    pub fn with_text_scale(mut self, text_scale: f64) -> Self {
+        self.text_scale = text_scale;
+        self
+    }
+
+    /// `Err(invalid_options)` unless `text_scale` is finite, > 0 and
+    /// ≤ [`LayerOptions::MAX_TEXT_SCALE`].
+    pub fn validate(&self) -> Result<(), GeoError> {
+        let k = self.text_scale;
+        if k.is_finite() && k > 0.0 && k <= Self::MAX_TEXT_SCALE {
+            Ok(())
+        } else {
+            Err(GeoError::new(
+                "invalid_options",
+                format!(
+                    "text_scale must be a finite number in (0, {}], got {k}",
+                    Self::MAX_TEXT_SCALE
+                ),
+            ))
+        }
+    }
+
+    /// Options as JSON text, e.g. `{"text_scale": 1.5}`: every key optional
+    /// (an empty string is the default), unknown keys rejected, values
+    /// validated — `Err(invalid_options)` otherwise.
+    pub fn from_json(opts_json: &str) -> Result<Self, GeoError> {
+        if opts_json.trim().is_empty() {
+            return Ok(Self::default());
+        }
+        let v: Value = serde_json::from_str(opts_json).map_err(options_error)?;
+        Self::from_value(v)
+    }
+
+    /// Options as a JSON value — an object (see [`LayerOptions::from_json`];
+    /// `null` is the default). The bindings' `layers: {…}` goes through here.
+    pub fn from_value(v: Value) -> Result<Self, GeoError> {
+        let o: Self = match v {
+            Value::Null => Self::default(),
+            // serde would also read a struct from an array: objects only
+            Value::Object(_) => serde_json::from_value(v).map_err(options_error)?,
+            other => return Err(options_error(format!("expected an object, got {other}"))),
+        };
+        o.validate()?;
+        Ok(o)
+    }
+}
+
+fn options_error(e: impl std::fmt::Display) -> GeoError {
+    GeoError::new(
+        "invalid_options",
+        format!("MapLibre layer options do not parse: {e}"),
+    )
+}
+
 /// pic compass anchor → MapLibre `text-anchor` (the reference point sits at
 /// that side of the text: `w` = text extends right of it, `n` = below).
 pub const ANCHORS: [(&str, &str); 9] = [
@@ -50,8 +133,11 @@ pub const ANCHORS: [(&str, &str); 9] = [
     ("sw", "bottom-left"),
 ];
 
-/// The per-collection numbers the size expressions are built from.
+/// The per-collection numbers the size expressions are built from. Built
+/// only by [`sizing`] / [`sizing_with`] (`#[non_exhaustive]`: fields may be
+/// added, as `text_scale` was).
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
 pub struct Sizing {
     /// `registration.scale_m_per_in` (100 when absent).
     pub m_per_in: f64,
@@ -61,8 +147,11 @@ pub struct Sizing {
     /// Pixels per ground metre at zoom 0: `1 / (78271.517 · cos lat)`.
     pub px_per_metre_z0: f64,
     /// Upper zoom stop of `text-size`: the last zoom at which the largest
-    /// font of the collection still fits in 255 px, clamped to `1..=24`.
+    /// (scaled) font of the collection still fits in 255 px, clamped to
+    /// `1..=24`.
     pub text_z_hi: i32,
+    /// [`LayerOptions::text_scale`]: multiplies every font size.
+    pub text_scale: f64,
 }
 
 /// A JSON value read as a number the way JavaScript's `Number(v) || 0` does
@@ -90,7 +179,11 @@ fn num_opt(v: Option<&Value>) -> Option<f64> {
     .filter(|x| x.is_finite())
 }
 
-fn sizing_from<'a>(geopic: Option<&Value>, font_sizes: impl Iterator<Item = &'a Value>) -> Sizing {
+fn sizing_from<'a>(
+    geopic: Option<&Value>,
+    font_sizes: impl Iterator<Item = &'a Value>,
+    text_scale: f64,
+) -> Sizing {
     let reg = geopic.and_then(|g| g.get("registration"));
     let m_per_in = num_opt(reg.and_then(|r| r.get("scale_m_per_in"))).unwrap_or(DEFAULT_M_PER_IN);
     let mercator = reg.and_then(|r| r.get("frame")).and_then(Value::as_str) == Some("mercator");
@@ -102,7 +195,7 @@ fn sizing_from<'a>(geopic: Option<&Value>, font_sizes: impl Iterator<Item = &'a 
     let d = METRES_PER_PX_Z0 * (lat * std::f64::consts::PI / 180.0).cos();
     let px_per_metre_z0 = 1.0 / if d == 0.0 || d.is_nan() { 1.0 } else { d };
     let max_font_m = font_sizes
-        .map(|v| num_or_zero(Some(v)) * (m_per_in / 72.0))
+        .map(|v| num_or_zero(Some(v)) * (m_per_in / 72.0) * text_scale)
         .fold(1e-6, f64::max);
     let z = (MAX_TEXT_PX / (max_font_m * px_per_metre_z0))
         .log2()
@@ -118,18 +211,34 @@ fn sizing_from<'a>(geopic: Option<&Value>, font_sizes: impl Iterator<Item = &'a 
         lat,
         px_per_metre_z0,
         text_z_hi,
+        text_scale,
     }
 }
 
 /// The sizing numbers of a collection (its `geopic.registration` and the
-/// largest `geopic:font_size` among its features).
+/// largest `geopic:font_size` among its features) under the default options.
 pub fn sizing(fc: &FeatureCollection) -> Sizing {
     sizing_from(
         fc.geopic.as_ref(),
         fc.features
             .iter()
             .filter_map(|f| f.properties.get("geopic:font_size")),
+        1.0,
     )
+}
+
+/// [`sizing`] under `opts`: the font sizes are scaled by `text_scale` before
+/// the upper text zoom stop is chosen. `Err(invalid_options)` when the
+/// options do not validate.
+pub fn sizing_with(fc: &FeatureCollection, opts: &LayerOptions) -> Result<Sizing, GeoError> {
+    opts.validate()?;
+    Ok(sizing_from(
+        fc.geopic.as_ref(),
+        fc.features
+            .iter()
+            .filter_map(|f| f.properties.get("geopic:font_size")),
+        opts.text_scale,
+    ))
 }
 
 /// `2^z` as a float.
@@ -171,6 +280,12 @@ impl Sizing {
         json!(["*", expr, self.m_per_in / 72.0])
     }
 
+    /// Font points → metres, scaled by `text_scale` (folded into the
+    /// constant: at 1 the factor is `m_per_in / 72` to the bit).
+    fn font_to_m(&self, expr: Value) -> Value {
+        json!(["*", expr, self.m_per_in / 72.0 * self.text_scale])
+    }
+
     fn in_to_m(&self, expr: Value) -> Value {
         json!(["*", expr, self.m_per_in])
     }
@@ -199,9 +314,10 @@ impl Sizing {
         )
     }
 
-    /// `text-size`: font points → metres → pixels (1..=255 px).
+    /// `text-size`: font points → metres (× `text_scale`) → pixels
+    /// (1..=255 px).
     pub fn text_size(&self) -> Value {
-        self.ground_text_px(self.pt_to_m(json!([
+        self.ground_text_px(self.font_to_m(json!([
             "coalesce",
             ["get", "geopic:font_size"],
             DEFAULT_FONT_PT as i64
@@ -322,10 +438,29 @@ pub fn layers(fc: &FeatureCollection) -> Vec<Value> {
     sizing(fc).layers()
 }
 
+/// [`layers`] under `opts` (`layers_with(fc, &LayerOptions::default())` ==
+/// `layers(fc)`). `Err(invalid_options)` when the options do not validate.
+pub fn layers_with(fc: &FeatureCollection, opts: &LayerOptions) -> Result<Vec<Value>, GeoError> {
+    Ok(sizing_with(fc, opts)?.layers())
+}
+
 /// [`layers`] for a FeatureCollection given as JSON text (bindings): returns
 /// the layers array as JSON text. Only the `geopic.registration` foreign
 /// member and the features' `geopic:font_size` are read.
 pub fn layers_json(fc_json: &str) -> Result<String, GeoError> {
+    layers_json_from(fc_json, &LayerOptions::default())
+}
+
+/// [`layers_json`] with options as JSON text (`{"text_scale": 1.5}`; every
+/// key optional, an empty string is the default, unknown keys are an
+/// `invalid_options` error — see [`LayerOptions::from_json`]).
+pub fn layers_json_with(fc_json: &str, opts_json: &str) -> Result<String, GeoError> {
+    let opts = LayerOptions::from_json(opts_json)?;
+    layers_json_from(fc_json, &opts)
+}
+
+/// `opts` is already valid (the default, or [`LayerOptions::from_json`]'s).
+fn layers_json_from(fc_json: &str, opts: &LayerOptions) -> Result<String, GeoError> {
     let v: Value = serde_json::from_str(fc_json).map_err(|e| {
         GeoError::new(
             "invalid_geojson",
@@ -347,6 +482,7 @@ pub fn layers_json(fc_json: &str) -> Result<String, GeoError> {
         features
             .iter()
             .filter_map(|f| f.get("properties").and_then(|p| p.get("geopic:font_size"))),
+        opts.text_scale,
     );
     Ok(Value::Array(s.layers()).to_string())
 }
@@ -355,9 +491,20 @@ pub fn layers_json(fc_json: &str) -> Result<String, GeoError> {
 /// `rpic --geojson --maplibre` prints. The collection's own text is spliced
 /// in (no re-parse).
 pub fn bundle_json(fc: &FeatureCollection) -> String {
+    bundle_text(fc, layers(fc))
+}
+
+/// [`bundle_json`] with the layers under `opts` (`rpic --geojson --maplibre
+/// --text-scale k`). `Err(invalid_options)` when the options do not validate.
+pub fn bundle_json_with(fc: &FeatureCollection, opts: &LayerOptions) -> Result<String, GeoError> {
+    Ok(bundle_text(fc, layers_with(fc, opts)?))
+}
+
+/// The one bundle format: the collection's own text spliced in (no re-parse).
+fn bundle_text(fc: &FeatureCollection, layers: Vec<Value>) -> String {
     format!(
         "{{\"geojson\":{},\"layers\":{}}}",
         fc.to_json(),
-        Value::Array(layers(fc))
+        Value::Array(layers)
     )
 }

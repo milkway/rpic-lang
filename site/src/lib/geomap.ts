@@ -7,7 +7,10 @@
 // `rpic --geojson --maplibre`'s layers, the live playground
 // (GeoPlayground.astro) `compileGeoJSON(src, { layers: true }).layers`.
 // What stays here is the site's own glue: the worker URL, the CSS, popups
-// and the hover cursor, and the `window.__rpicGeoMaps` registry for QA.
+// and the hover cursor, and the `window.__rpicGeoMaps` registry for QA. The
+// drawings' shapes sit under the basemap's labels (`before: 'labels'`,
+// DECISIONS G11), so place names stay readable over a filled shape; the
+// drawings' own labels stay on top.
 // (`geopic:placement = "screen"` is a hint for consumers that implement
 // pixel-anchored callouts; this module does not, on purpose: a fixed-size
 // marker made the arrow look detached.)
@@ -36,7 +39,9 @@ export interface GeoMapHandle {
 const CLICKABLE = ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot'];
 
 export function createGeoMap(container: HTMLElement): GeoMapHandle {
-  const pic = createPicMap<MapLibreMap>({ Map: MapLibreMap, NavigationControl }, container);
+  const pic = createPicMap<MapLibreMap>({ Map: MapLibreMap, NavigationControl }, container, {
+    before: 'labels',
+  });
   const map = pic.map;
   // expose the maps for debugging / QA scripts
   const registry = ((window as unknown as { __rpicGeoMaps?: unknown[] }).__rpicGeoMaps ??= []);

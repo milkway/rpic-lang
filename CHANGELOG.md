@@ -12,6 +12,20 @@ resolves to the latest version.
 
 ### Added
 
+- geopic → MapLibre: a `text_scale` layer option multiplies every label's
+  font size (finite, in (0, 16]; default 1 = today's output to the bit); the
+  upper `text-size` zoom stop is chosen from the scaled font, so labels still
+  fit MapLibre's 255 px limit. Engine `LayerOptions` + `layers_with` /
+  `layers_json_with` / `bundle_json_with`; CLI `--text-scale K` (with
+  `--geojson --maplibre`); JS `compileGeoJSON(src, { layers: { textScale } })`,
+  `maplibreLayers(fc, { textScale })` and the port's `layers`/`sizing(fc,
+  { textScale })`; Python `geo.maplibre_layers(fc, text_scale=)` and
+  `geo.compile(…, layers=True, text_scale=)` (DECISIONS G11).
+- JS `attach(map, fc, { before })` / `createGeoMap(…, { before })`: add the
+  pic geometry layers under a given layer, or under the basemap's labels
+  with `'labels'` (the first `symbol` layer of the style); the drawing's own
+  labels (`pic-text`, `pic-title`) always stay on top. rpic.dev's shapes now
+  sit under the basemap's place names.
 - Scene: each `text` line carries `row`, its 0-based row in the author's
   label stack (blank rows included), and the item carries `text_rows`, the
   stack's height — so a consumer can tell where the visible lines of
@@ -39,6 +53,10 @@ resolves to the latest version.
   growing (#425 item 3 extends them again), so code outside rpic-core can
   read their fields but no longer build them with a struct literal or
   match them exhaustively. Nothing in rpic or rpic-r builds them.
+- geopic-core: `maplibre::Sizing` gained a `text_scale` field and is now
+  `#[non_exhaustive]` — read its fields freely, but build it only through
+  `sizing()` / `sizing_with()` (a struct literal outside the crate no longer
+  compiles).
 
 ### Fixed
 

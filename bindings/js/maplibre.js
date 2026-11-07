@@ -15,6 +15,9 @@ export const SOURCE = 'pic';
 /** The layer ids, in draw order. */
 export const LAYER_IDS = ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot', 'pic-text', 'pic-title'];
 
+/** The drawing's own label layers: `before` never buries them (they stay on top). */
+const TEXT_LAYER_IDS = ['pic-text', 'pic-title'];
+
 /** pic compass anchor → MapLibre text-anchor (the reference point sits at
  *  that side of the text: `w` = text extends right of it, `n` = below). */
 const ANCHORS = {
@@ -22,35 +25,63 @@ const ANCHORS = {
   ne: 'top-right', nw: 'top-left', se: 'bottom-right', sw: 'bottom-left',
 };
 
+/** The largest accepted `textScale` (the engine's `LayerOptions::MAX_TEXT_SCALE`). */
+export const MAX_TEXT_SCALE = 16;
+
+/**
+ * Layer options (`{ textScale }`) validated as the engine does (DECISIONS
+ * G11) — the one check every JS entry point uses (`layers`, `sizing`, and
+ * `compileGeoJSON`/`maplibreLayers` in index.js, before the wasm runs):
+ * an object (or null/undefined = defaults), no unknown keys, `textScale` a
+ * finite number in (0, 16]. Returns `{ textScale }` with the default filled.
+ */
+export function checkLayerOptions(opts) {
+  if (opts == null) return { textScale: 1 };
+  if (typeof opts !== 'object' || Array.isArray(opts)) {
+    throw new Error('rpic: layer options must be an object ({ textScale })');
+  }
+  for (const k of Object.keys(opts)) {
+    if (k !== 'textScale') throw new Error(`rpic: unknown layer option \`${k}\` (expected textScale)`);
+  }
+  const k = opts.textScale ?? 1;
+  if (!(typeof k === 'number' && Number.isFinite(k) && k > 0 && k <= MAX_TEXT_SCALE)) {
+    throw new Error(`rpic: textScale must be a finite number in (0, ${MAX_TEXT_SCALE}], got ${k}`);
+  }
+  return { textScale: k };
+}
+
 /**
  * The numbers the size expressions are built from: metres per inch and the
  * latitude from the collection's `geopic.registration` (cos φ drops out under
  * `mercator`), pixels per ground metre at zoom 0 (MapLibre's 512 px tiles:
  * 1 / (78271.517 · cos φ)), and the upper zoom stop of `text-size` — the last
- * zoom at which the largest font still fits in MapLibre's 255 px symbol limit.
+ * zoom at which the largest font, multiplied by `opts.textScale` (default 1),
+ * still fits in MapLibre's 255 px symbol limit.
  */
-export function sizing(fc) {
+export function sizing(fc, opts = {}) {
+  const { textScale } = checkLayerOptions(opts);
   const reg = fc?.geopic?.registration;
   const mPerIn = reg?.scale_m_per_in ?? 100;
   const lat = reg?.frame === 'mercator' ? 0 : (reg?.anchor?.lat ?? 0);
   const pxPerMetreAtZ0 = 1 / ((78271.517 * Math.cos((lat * Math.PI) / 180)) || 1);
   let maxFontM = 1e-6; // a loop, not a spread: collections can hold 10^5+ features
   for (const f of fc?.features ?? []) {
-    maxFontM = Math.max(maxFontM, (Number(f.properties?.['geopic:font_size']) || 0) * (mPerIn / 72));
+    maxFontM = Math.max(maxFontM, (Number(f.properties?.['geopic:font_size']) || 0) * (mPerIn / 72) * textScale);
   }
   const z = Math.floor(Math.log2(255 / (maxFontM * pxPerMetreAtZ0)));
   const textZHi = Number.isNaN(z) ? 1 : Math.min(24, Math.max(1, z));
-  return { mPerIn, lat, pxPerMetreAtZ0, textZHi };
+  return { mPerIn, lat, pxPerMetreAtZ0, textZHi, textScale };
 }
 
 /**
  * The six MapLibre style-spec layers (source `"pic"`) that draw `fc` with
  * sizes true to the ground, in draw order: pic-fill, pic-stroke,
- * pic-stroke-dashed, pic-dot, pic-text, pic-title. Same output as the
- * engine's `geopic_core::maplibre::layers`.
+ * pic-stroke-dashed, pic-dot, pic-text, pic-title. `opts.textScale`
+ * multiplies every label's font size. Same output as the engine's
+ * `geopic_core::maplibre::layers_with`.
  */
-export function layers(fc) {
-  const { mPerIn, pxPerMetreAtZ0, textZHi } = sizing(fc);
+export function layers(fc, opts = {}) {
+  const { mPerIn, pxPerMetreAtZ0, textZHi, textScale } = sizing(fc, opts);
   // only a top-level interpolate may read zoom; exponential base 2 between
   // two stops reproduces the 2^z law exactly
   const groundPx = (metres, floorPx) => [
@@ -64,11 +95,13 @@ export function layers(fc) {
     textZHi, ['min', 255, ['max', 1, ['*', metres, pxPerMetreAtZ0 * 2 ** textZHi]]],
   ];
   const ptToM = (expr) => ['*', expr, mPerIn / 72];
+  // font points → metres, × textScale folded into the constant (exact at 1)
+  const fontToM = (expr) => ['*', expr, (mPerIn / 72) * textScale];
   const inToM = (expr) => ['*', expr, mPerIn];
   // pic strokes are hairlines: ground-true width, never thinner than 1 px
   const lineWidth = () => groundPx(ptToM(['coalesce', ['get', 'stroke-width'], 0.8]), 1);
   const dotRadius = groundPx(inToM(['coalesce', ['get', 'geopic:radius_in'], 0.04]), 2);
-  const textSize = () => groundTextPx(ptToM(['coalesce', ['get', 'geopic:font_size'], 11]));
+  const textSize = () => groundTextPx(fontToM(['coalesce', ['get', 'geopic:font_size'], 11]));
 
   const isPolygon = () => ['==', ['geometry-type'], 'Polygon'];
   const isLine = ['==', ['geometry-type'], 'LineString'];
@@ -153,11 +186,38 @@ export function bounds(fc) {
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
 /**
+ * The layer id the pic geometry layers are inserted before, resolved now from
+ * the map's current style: `'labels'` = a layer whose id really is `labels`
+ * when the style has one, else the first `symbol` layer that is not one of
+ * ours (the basemap's place names, road labels…); any other string = that
+ * layer, when the map has it. `undefined` (append on top) otherwise.
+ */
+function beforeId(map, before) {
+  if (before == null) return undefined;
+  if (before === 'labels') {
+    if (map.getLayer('labels')) return 'labels'; // a style with a real `labels` layer
+    const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
+    const first = (style?.layers ?? []).find((l) => l.type === 'symbol' && !LAYER_IDS.includes(l.id));
+    return first?.id;
+  }
+  if (map.getLayer(before)) return before;
+  console.warn(`rpic: attach: no layer "${before}" on the map; the pic layers go on top`);
+  return undefined;
+}
+
+/**
  * Draw `fc` on a MapLibre `map`: adds (or updates) the GeoJSON source `"pic"`
  * and the six layers. `layers` are the engine's (`compileGeoJSON(src,
  * { layers: true }).layers`); omitted, they are computed by `layers(fc)`.
- * `fit: true` frames the drawing. Waits for the map's `load` when the style is
- * not loaded yet; calls made meanwhile are applied then.
+ * `fit: true` frames the drawing. `before` places the *geometry* layers
+ * (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) under another
+ * one: a layer id, or `'labels'` for the first `symbol` layer of the map's
+ * style (so the basemap's labels stay above the shapes); resolved each time
+ * the layers are added, on top when there is no such layer. The drawing's
+ * own labels (`pic-text`, `pic-title`) are always appended on top, so a
+ * basemap label never covers them. Waits for the map's
+ * `load` when the style is not loaded yet; calls made meanwhile are applied
+ * then.
  * @returns {{ setGeoJSON(fc, layers?): void, fitTo(fc?): void, detach(): void }}
  */
 export function attach(map, fc = EMPTY, opts = {}) {
@@ -172,9 +232,15 @@ export function attach(map, fc = EMPTY, opts = {}) {
   const SIZE_PAINT = ['line-width', 'circle-radius'];
   const SIZE_LAYOUT = ['text-size'];
   function applyLayers(specs) {
+    let below; // resolved once per pass, only when a layer is added
     for (const spec of specs) {
       if (!map.getLayer(spec.id)) {
-        map.addLayer(spec);
+        if (TEXT_LAYER_IDS.includes(spec.id)) {
+          map.addLayer(spec); // the drawing's labels: on top, never buried
+          continue;
+        }
+        if (below === undefined) below = { id: beforeId(map, opts.before) };
+        map.addLayer(spec, below.id);
         continue;
       }
       for (const k of SIZE_PAINT) if (spec.paint && k in spec.paint) map.setPaintProperty(spec.id, k, spec.paint[k]);
@@ -247,7 +313,8 @@ export const DEFAULT_STYLE = 'https://tiles.openfreemap.org/styles/positron';
  * namespace (`import * as maplibregl from 'maplibre-gl'`; set its worker URL
  * yourself if your bundler needs it). Options: `style` (default the
  * OpenFreeMap positron basemap), `cooperativeGestures` (default true: the
- * page scrolls past the map), `navigation` (zoom buttons, default true).
+ * page scrolls past the map), `navigation` (zoom buttons, default true),
+ * `before` (as in `attach`: `'labels'` keeps the basemap's labels on top).
  * Returns the `attach` handle plus `map` and `destroy()`.
  */
 export function createGeoMap(maplibregl, container, opts = {}) {
@@ -258,7 +325,7 @@ export function createGeoMap(maplibregl, container, opts = {}) {
     cooperativeGestures: opts.cooperativeGestures ?? true,
   });
   if (opts.navigation ?? true) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-  const handle = attach(map, EMPTY);
+  const handle = attach(map, EMPTY, { before: opts.before });
   return {
     map,
     setGeoJSON: handle.setGeoJSON,

@@ -38,6 +38,16 @@ function close(a, b, path) {
   }
 }
 
+function validLayers(ls, what) {
+  const style = {
+    version: 8,
+    glyphs: 'https://example.invalid/{fontstack}/{range}.pbf',
+    sources: { pic: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } },
+    layers: ls,
+  };
+  assert.deepEqual(validateStyleMin(style).map((e) => e.message), [], what);
+}
+
 const snap = (name) => JSON.parse(readFileSync(join(snapDir, `${name}.layers.json`), 'utf8'));
 const pics = readdirSync(geoDir).filter((f) => f.endsWith('.pic')).sort();
 assert.ok(pics.length >= 4, 'the four geo examples');
@@ -48,6 +58,14 @@ for (const pic of pics) {
   );
   close(out.layers, snap(name), `${name}: engine`);
   close(layers(out.geojson), snap(name), `${name}: JS port`);
+  // G11: --text-scale agrees with the port's textScale, and stays valid
+  const big = JSON.parse(
+    execFileSync(bin, ['-c', '--geojson', '--maplibre', '--text-scale', '1.5', pic], {
+      cwd: geoDir, encoding: 'utf8', maxBuffer: 16 << 20,
+    }),
+  );
+  close(big.layers, layers(out.geojson, { textScale: 1.5 }), `${name}: engine vs JS port at textScale 1.5`);
+  validLayers(big.layers, `${name} at textScale 1.5`);
   console.log(`ok ${name}`);
 }
 // the playground's frame switch: the callout under mercator, and an empty map
@@ -69,12 +87,6 @@ close(layers({ type: 'FeatureCollection', features: [] }), snap('empty'), 'empty
 }
 // every snapshot is a valid style-spec layer list (text-line-height included)
 for (const f of readdirSync(snapDir).filter((f) => f.endsWith('.layers.json'))) {
-  const style = {
-    version: 8,
-    glyphs: 'https://example.invalid/{fontstack}/{range}.pbf',
-    sources: { pic: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } },
-    layers: JSON.parse(readFileSync(join(snapDir, f), 'utf8')),
-  };
-  assert.deepEqual(validateStyleMin(style).map((e) => e.message), [], f);
+  validLayers(JSON.parse(readFileSync(join(snapDir, f), 'utf8')), f);
 }
 console.log('check-maplibre-layers: ok');
