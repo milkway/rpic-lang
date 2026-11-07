@@ -24,9 +24,22 @@ jobs:
         with:
           node-version: 22
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
+        with:
+          # crates/wasm is a standalone workspace with its own target dir
+          workspaces: |
+            . -> target
+            crates/wasm -> target
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
       - name: Build rpic
         run: cargo build --release -p rpic-cli
+      - name: Build the JS binding's wasm (the Maps playground bundles it)
+        working-directory: bindings/js
+        run: npm run build:wasm
       - name: Build site (renders every example with the branch engine)
         working-directory: site
         env:
