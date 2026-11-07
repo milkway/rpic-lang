@@ -70,11 +70,32 @@ await rpic.ready(undefined, { math: true }); // browser: fetches pkg/rpic_wasm_m
 rpic.renderSvg('box "$-\\frac{T}{2}$" fit', { texlabels: true });
 ```
 
-Apps can keep the fast path untouched and lazy-load math only when the source
-contains `$…$`. The build choice is fixed by the first `ready()` call; a later
-call that asks for the other build rejects instead of silently reusing the
-first build. In Node, pass the math artifact's bytes:
+| Build | `.wasm` | raw | gzip -9 |
+| --- | --- | --- | --- |
+| lean (default) | `pkg/rpic_wasm_bg.wasm` | 495 KB | 200 KB |
+| math | `pkg/rpic_wasm_math_bg.wasm` | 3.05 MB | 1.15 MB |
+| geo | `pkg/rpic_wasm_geo_bg.wasm` | 716 KB | 296 KB |
+
+(v0.16.1; the math build is +2.55 MB raw, +0.95 MB gzipped, almost all of it
+RaTeX and the KaTeX glyph outlines.)
+
+**One build per module instance.** The first `ready()` call fixes the build.
+A later call for the same build returns the same promise. A call for a
+different build rejects (`already initialized the lean build; cannot switch to
+math-enabled`) instead of silently reusing the first one, and
+`{ math: true, geo: true }` always rejects. Only a *failed* init clears the
+slot. So decide before the first call: lazy-load math when the source has a
+`$…$` label, and keep the lean fast path otherwise. Switching builds later
+takes a fresh module instance (a page reload). In Node, pass the math
+artifact's bytes:
 `ready(readFileSync(new URL('…/pkg/rpic_wasm_math_bg.wasm', import.meta.url)), { math: true })`.
+
+Without the renderer (lean/geo builds), a `$…$` label is drawn literally and
+`diagnostics` gains `texlabels: no math renderer in this build; … kept
+literal`. If you build your own wasm on `rpic-core`, enable `rpic-render`'s
+`math` feature and call `rpic_core::set_math_renderer` at module init. The
+recipe and full rules are in
+[docs/tex-labels.md § On wasm](https://github.com/milkway/rpic-lang/blob/main/docs/tex-labels.md#on-wasm).
 
 ### Maps (geopic: drawings as GeoJSON)
 
