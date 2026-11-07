@@ -18,7 +18,14 @@ resolves to the latest version.
   `geopic:kind = "title"` at the label's centre (`geopic:for` = the shape's id,
   `geopic:id` = `<id>:title`), and the `pic-title` layer draws those points,
   styled like `pic-text` (anchor and rotation now honoured). Additive:
-  `geopic:schema` stays 1; the polygon keeps its `title`. DECISIONS G10 (#435).
+  `geopic:schema` stays 1; the polygon keeps its `title`, arrowheads no longer
+  carry the label. DECISIONS G10 (#435).
+
+### Added
+
+- Scene: items that carry `text` also carry `text_center`, the centre the
+  lines are laid out around (additive; `scene` stays 1; DECISIONS S12). The
+  geopic title points are placed there.
 
 ## [0.15.0] — 2026-11-07
 
