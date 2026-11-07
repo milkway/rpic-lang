@@ -14,9 +14,9 @@ name = "rpic"
 path = "src/main.rs"
 
 [dependencies]
-rpic-core = { version = "0.16.1", path = "../core" }
-rpic-render = { version = "0.16.1", path = "../render" }
-geopic-core = { version = "0.16.1", path = "../geopic-core" }
+rpic-core = { version = "0.17.0", path = "../core" }
+rpic-render = { version = "0.17.0", path = "../render" }
+geopic-core = { version = "0.17.0", path = "../geopic-core" }
 
 [dev-dependencies]
 jsonschema = "0.60.2"
