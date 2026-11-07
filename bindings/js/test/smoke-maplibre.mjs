@@ -59,6 +59,13 @@ for (const [name, fc] of Object.entries(cases)) {
   assert.deepEqual(title.filter, ['==', ['get', 'geopic:kind'], 'title']);
   assert.deepEqual(title.layout, text.layout);
   assert.deepEqual(title.paint, text.paint);
+  // G10 addendum: a trailing blank row is padded with a no-break space
+  // (MapLibre drops a final "\n"); the data stays pure
+  const t = ['get', 'geopic:text'];
+  assert.deepEqual(text.layout['text-field'],
+    ['case', ['==', ['slice', t, ['max', 0, ['-', ['length', t], 1]]], '\n'], ['concat', t, '\u00a0'], t]);
+  // pic's line skip is the font size, not MapLibre's default 1.2 em
+  assert.equal(text.layout['text-line-height'], 1);
   assert.equal(cases.callout.features.filter((f) => f.properties['geopic:kind'] === 'title').length, 1);
 }
 

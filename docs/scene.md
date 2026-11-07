@@ -123,7 +123,7 @@ All coordinates are absolute model inches, y-up. `fit`, `rotated`, `close`,
 | `block` | `items`: the child item ids, in id order; no geometry (a block is a grouping, its frame — if drawn — is a child `box`) |
 
 Any kind may carry `text` (attached labels) — always with `text_center`
-([§5](#5-text)) —, `stroke`, `fill`, `opacity`
+and `text_rows` ([§5](#5-text)) —, `stroke`, `fill`, `opacity`
 ([§4](#4-style)) and — for `line`/`arrow`/`spline`/`arc` — `heads`
 ([§3.3](#33-arrowheads)).
 
@@ -208,7 +208,7 @@ Text stays text. Each line of an item's `text` array:
 ```json
 { "text": "label", "at": [x, y], "anchor": "c",
   "font": { "size": 11, "family": "monospace", "bold": true, "italic": true },
-  "rotation": 30 }
+  "rotation": 30, "row": 0 }
 ```
 
 - `at` is the line's **baseline anchor point** — exactly the point the SVG
@@ -226,6 +226,15 @@ Text stays text. Each line of an item's `text` array:
   but still take a line, `above`/`below`/`ljust`/`rjust` offset them); a
   consumer that places the label as one block (a map symbol) anchors it
   there with the first line's `anchor`.
+- Blank lines of the author's stack (`box "" "below"`) are **not** emitted,
+  but they still take a row. Each line's `row` is its 0-based index in the
+  stack as written (blank rows included), and the item's `text_rows`
+  (present whenever `text` is) is the stack's height in rows: `box "" "below"`
+  gives one line with `row: 1` and `text_rows: 2`; `box "a" "" "c"` gives
+  rows 0 and 2 with `text_rows: 3`. A consumer that sets the label as one
+  block rebuilds the stack from them — `text_rows` rows around `text_center`,
+  empty strings for the missing rows — and lands each visible line on the
+  row the SVG draws it on (DECISIONS S13).
 - `font.size` is always present, in points, fully resolved (classic 11 pt for
   attached labels, height-derived for standalone text objects, or the explicit
   `fontsize`). `family` appears for `mono`/`font "…"`; `bold`/`italic` only
@@ -273,8 +282,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
       "fill": { "color": "#90ee90" },
       "stroke": { "color": "#000000", "width": 0.8 },
       "text": [ { "text": "hub", "at": [0, -0.0504], "anchor": "c",
-                  "font": { "size": 11 } } ],
-      "text_center": [0, 0] },
+                  "font": { "size": 11 }, "row": 0 } ],
+      "text_center": [0, 0], "text_rows": 1 },
     { "id": "s1", "kind": "arrow", "z": 1,
       "points": [[0.178, 0], [0.693, 0]],
       "stroke": { "color": "#000000", "width": 0.8 },
@@ -308,8 +317,10 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
 - Additive history within version 1: **0.13.0** added the top-level `places`
   array and the block items' `span`/`call` provenance fields; **0.14.0** added
   the top-level `rescale` factor and `span` on shape items; **0.15.1** added
-  `text_center` on items that carry `text` (DECISIONS S12); the block `call`
-  gained `raw_args`, the arguments as written (#425, DECISIONS E1).
+  `text_center` on items that carry `text` (DECISIONS S12); the release
+  after 0.15.1 added the per-line `row` and the item's `text_rows`, so blank
+  rows of a label stack can be recovered (DECISIONS S13), and the block
+  `call`'s `raw_args`, the arguments as written (#425, DECISIONS E1).
 
 ## 8. Color resolution
 

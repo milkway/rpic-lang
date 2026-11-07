@@ -187,7 +187,21 @@ fn committed_geojson_matches_current_output_and_validates() {
                     .map(|f| &f["properties"])
                     .find(|o| o["geopic:id"] == p["geopic:for"] && o["geopic:kind"] != "arrowhead")
                     .unwrap_or_else(|| panic!("{}: title without its shape", pic.display()));
-                assert_eq!(p["geopic:text"], owner["title"], "{}", pic.display());
+                // `title` = the visible lines; `geopic:text` = the whole
+                // stack, blank rows as empty strings (G10 addendum)
+                assert_eq!(p["title"], owner["title"], "{}", pic.display());
+                let visible: Vec<&str> = p["geopic:text"]
+                    .as_str()
+                    .unwrap()
+                    .split('\n')
+                    .filter(|r| !r.is_empty())
+                    .collect();
+                assert_eq!(
+                    visible.join("\n"),
+                    owner["title"].as_str().unwrap(),
+                    "{}",
+                    pic.display()
+                );
                 // right after the owner's own features, arrowheads included
                 let own: Vec<usize> = feats
                     .iter()

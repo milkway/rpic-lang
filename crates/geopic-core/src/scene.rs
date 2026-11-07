@@ -112,6 +112,9 @@ pub struct Item {
     /// The centre the text lines were laid out around (engine ≥ 0.15.1,
     /// scene DECISIONS S12).
     pub text_center: Option<[f64; 2]>,
+    /// The label stack's height in rows, blank rows included (engine after
+    /// 0.15.1, scene DECISIONS S13).
+    pub text_rows: Option<usize>,
     pub items: Option<Vec<String>>,
     pub span: Option<Span>,
     pub call: Option<serde_json::Value>,
@@ -178,6 +181,9 @@ pub struct TextLine {
     pub rotation: Option<f64>,
     pub math: Option<serde_json::Value>,
     pub outline: Option<String>,
+    /// 0-based row of the line in the author's stack, blank rows included
+    /// (engine after 0.15.1, scene DECISIONS S13).
+    pub row: Option<usize>,
 }
 
 impl Item {

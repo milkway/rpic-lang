@@ -106,9 +106,13 @@ export interface SceneItem {
     rotation?: number;
     math?: { width: number; height: number; depth: number };
     outline?: string;
+    /** 0-based row of this line in the author's stack, blank rows included (docs/scene.md §5) */
+    row?: number;
   }[];
   /** present with `text`: the centre the lines are laid out around (docs/scene.md §5) */
   text_center?: [number, number];
+  /** present with `text`: the stack's height in rows, blank ones included (docs/scene.md §5) */
+  text_rows?: number;
   /** block items: the child item ids */
   items?: string[];
   /**
@@ -371,6 +375,7 @@ export interface GeoWarning {
    * `unsupported_style`, `ignored`, `registration_residual`,
    * `ignored_with_control_points`, `control_point_unresolved`,
    * `control_point_overridden`, `unsupported_kind`, `densification_budget`,
+   * `scene_inconsistent`,
    * …; engine `scene_unsupported` diagnostics ride here too (with the
    * `Diagnostic` keys instead of `id`/`span`).
    */

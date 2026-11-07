@@ -105,7 +105,7 @@ pub struct Warning {
     /// Stable machine-readable kind (`unsupported_style`, `ignored`,
     /// `registration_residual`, `ignored_with_control_points`,
     /// `control_point_unresolved`, `control_point_overridden`,
-    /// `unsupported_kind`, `densification_budget`, …).
+    /// `unsupported_kind`, `densification_budget`, `scene_inconsistent`, …).
     pub kind: String,
     pub message: String,
     /// The scene item concerned, when there is one (`s<N>`).

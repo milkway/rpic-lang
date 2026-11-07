@@ -12,16 +12,19 @@ resolves to the latest version.
 
 ### Added
 
+- Scene: each `text` line carries `row`, its 0-based row in the author's
+  label stack (blank rows included), and the item carries `text_rows`, the
+  stack's height — so a consumer can tell where the visible lines of
+  `box "" "below"` sit (additive; `scene` stays 1; DECISIONS S13).
 - Macro calls keep their arguments as written: `MacroCall.raw_args`
   (`Vec<RawArg>`, index-aligned with the normalized `args`) gives each
   argument's source text from its first token to its last — `1e-9` stays
   `1e-9`, spacing, quotes and `\` continuations kept — with its `span`
   (start, `end_col`, the source unit's `file`) and `end_line`, the shape
-  of `PassLine`. Sliced
-  from the lexed text, not rebuilt from tokens; nested calls carry the
-  outermost call's, like `args`. The scene's block `call` gains `raw_args`
-  (additive; `scene` stays 1). `--svg`/`--json` unchanged. DECISIONS E1
-  (#425).
+  of `PassLine`. Sliced from the lexed text, not rebuilt from tokens;
+  nested calls carry the outermost call's, like `args`. The scene's block
+  `call` gains `raw_args` (additive; `scene` stays 1). `--svg`/`--json`
+  unchanged. DECISIONS E1 (#425).
 
 ### Changed
 
@@ -36,6 +39,12 @@ resolves to the latest version.
   growing (#425 item 3 extends them again), so code outside rpic-core can
   read their fields but no longer build them with a struct literal or
   match them exhaustively. Nothing in rpic or rpic-r builds them.
+
+### Fixed
+
+- geopic: blank rows of a label stack are kept in `geopic:text` (`box ""
+  "below"` → `"\nbelow"`), so a map draws "below" one row under the centre
+  as the SVG does instead of on it (DECISIONS G10 addendum).
 
 ## [0.15.1] — 2026-11-07
 

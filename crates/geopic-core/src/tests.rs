@@ -1224,12 +1224,13 @@ fn title_points_follow_text_center_for_blank_valign_and_halign_idioms() {
         );
         assert_eq!(t.properties["geopic:anchor"], anchor, "{id}");
     };
-    // blank first line: the stack's centre. The scene emits only the
-    // visible line, so the point carries "below" centred there while the
-    // SVG draws it half a line skip lower (G10 residual: blank lines are not in
-    // the scene's `text`)
+    // blank first line: the stack's centre, and the text keeps the blank
+    // row (S13), so a centred block puts "below" one row under it, as the
+    // SVG does
     check("s0", [0.0, 0.0], "c");
-    assert_eq!(title("s0").properties["geopic:text"], "below");
+    assert_eq!(title("s0").properties["geopic:text"], "\nbelow");
+    // the popup title keeps only the visible lines
+    assert_eq!(title("s0").properties["title"], "below");
     // `above`: the midpoint, not the shifted baseline; `s` puts it on top
     check("s1", [1.0, 0.0], "s");
     // `ljust`: the centre, `w` = the text extends right of it
@@ -1273,4 +1274,140 @@ fn scenes_without_text_center_fall_back_to_at() {
         .collect();
     assert_eq!(titles.len(), 1);
     assert_eq!(titles[0].properties["geopic:for"], "s0");
+}
+
+/// G10 addendum (S13): `geopic:text` rebuilds the author's stack from the
+/// scene's `row`/`text_rows` — blank rows as empty strings — for shape
+/// titles and free text alike; single-line labels are unchanged.
+#[test]
+fn geopic_text_keeps_blank_rows_of_the_stack() {
+    let src = "geo_lon = 0\ngeo_lat = 0\ngeo_scale = 100\n\
+               box \"\" \"below\" at (0,0)\n\
+               box \"above\" \"\" at (2,0)\n\
+               box \"a\" \"\" \"c\" at (4,0)\n\
+               box \"one\" at (6,0)\n\
+               \"\" \"free\" at (8,0)";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let text_of = |id: &str| {
+        g.features
+            .features
+            .iter()
+            .find(|f| f.properties["geopic:id"] == id)
+            .unwrap()
+            .properties["geopic:text"]
+            .clone()
+    };
+    assert_eq!(text_of("s0:title"), "\nbelow");
+    assert_eq!(text_of("s1:title"), "above\n");
+    assert_eq!(text_of("s2:title"), "a\n\nc");
+    assert_eq!(text_of("s3:title"), "one");
+    assert_eq!(text_of("s4"), "\nfree");
+}
+
+/// A scene from an engine before S13 (no `row`/`text_rows`) keeps the old
+/// behaviour: the visible lines joined.
+#[test]
+fn scenes_without_text_rows_join_the_visible_lines() {
+    let scene = scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"a\" \"\" \"c\" at (1,1)");
+    let mut sv: Value = serde_json::from_str(&scene).unwrap();
+    for it in sv["items"].as_array_mut().unwrap() {
+        let o = it.as_object_mut().unwrap();
+        o.remove("text_rows");
+        if let Some(t) = o.get_mut("text") {
+            for l in t.as_array_mut().unwrap() {
+                l.as_object_mut().unwrap().remove("row");
+            }
+        }
+    }
+    let g = georeference(&sv.to_string(), &GeoOptions::default()).unwrap();
+    let t = g
+        .features
+        .features
+        .iter()
+        .find(|f| f.properties["geopic:kind"] == "title")
+        .unwrap();
+    assert_eq!(t.properties["geopic:text"], "a\nc");
+    // absent keys (an older engine) are not an inconsistency: no warning
+    assert!(
+        g.warnings.iter().all(|w| w.kind != "scene_inconsistent"),
+        "{:?}",
+        g.warnings
+    );
+}
+
+/// `row`/`text_rows` present but contradictory: the visible lines are
+/// joined (as for an older scene) and the item gets `scene_inconsistent`.
+#[test]
+fn inconsistent_text_rows_warn_and_join_the_visible_lines() {
+    let scene = scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"a\" \"\" \"c\" at (1,1)");
+    let base: Value = serde_json::from_str(&scene).unwrap();
+    type Edit = fn(&mut serde_json::Map<String, Value>);
+    let cases: [(&str, Edit); 4] = [
+        ("row outside", |o| {
+            o.insert("text_rows".into(), 2.into());
+        }),
+        ("rows out of order", |o| {
+            o["text"][1]["row"] = 0.into();
+        }),
+        ("row without text_rows", |o| {
+            o.remove("text_rows");
+        }),
+        ("a line without row", |o| {
+            o["text"][0].as_object_mut().unwrap().remove("row");
+        }),
+    ];
+    for (name, edit) in cases {
+        let mut sv = base.clone();
+        edit(sv["items"][0].as_object_mut().unwrap());
+        let g = georeference(&sv.to_string(), &GeoOptions::default()).unwrap();
+        let t = g
+            .features
+            .features
+            .iter()
+            .find(|f| f.properties["geopic:kind"] == "title")
+            .unwrap();
+        assert_eq!(t.properties["geopic:text"], "a\nc", "{name}");
+        let w: Vec<_> = g
+            .warnings
+            .iter()
+            .filter(|w| w.kind == "scene_inconsistent")
+            .collect();
+        assert_eq!(w.len(), 1, "{name}: {:?}", g.warnings);
+        assert_eq!(w[0].id.as_deref(), Some("s0"), "{name}");
+    }
+}
+
+/// G10 addendum: MapLibre drops a final "\n", so the symbol layers pad a
+/// trailing newline with a no-break space; `geopic:text` itself stays pure.
+#[test]
+fn maplibre_text_field_pads_a_trailing_blank_row() {
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"above\" \"\""),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let ls = crate::maplibre::layers(&g.features);
+    let t = serde_json::json!(["get", "geopic:text"]);
+    let want = serde_json::json!([
+        "case",
+        [
+            "==",
+            ["slice", t, ["max", 0, ["-", ["length", t], 1]]],
+            "\n"
+        ],
+        ["concat", t, "\u{a0}"],
+        t
+    ]);
+    for id in ["pic-text", "pic-title"] {
+        assert_eq!(layer(&ls, id)["layout"]["text-field"], want, "{id}");
+        // pic's line skip = the font size (MapLibre's default is 1.2 em)
+        assert_eq!(layer(&ls, id)["layout"]["text-line-height"], 1, "{id}");
+    }
+    let title = g
+        .features
+        .features
+        .iter()
+        .find(|f| f.properties["geopic:kind"] == "title")
+        .unwrap();
+    assert_eq!(title.properties["geopic:text"], "above\n");
 }

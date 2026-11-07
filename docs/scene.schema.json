@@ -226,6 +226,7 @@
         "anchor": { "enum": ["c", "n", "s", "e", "w", "ne", "nw", "se", "sw"] },
         "font": { "$ref": "#/$defs/font" },
         "rotation": { "type": "number" },
+        "row": { "type": "integer", "minimum": 0 },
         "math": {
           "type": "object",
           "required": ["width", "height", "depth"],
@@ -271,6 +272,7 @@
         "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
         "text": { "type": "array", "items": { "$ref": "#/$defs/textline" } },
         "text_center": { "$ref": "#/$defs/point" },
+        "text_rows": { "type": "integer", "minimum": 1 },
         "items": { "type": "array", "items": { "type": "string" } },
         "span": { "$ref": "#/$defs/span" },
         "call": { "$ref": "#/$defs/call" }
