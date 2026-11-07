@@ -10,6 +10,27 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- **geopic → MapLibre: the layer spec as data** (#432). `geopic_core::maplibre`
+  emits the six MapLibre style-spec layers (`pic-fill`, `pic-stroke`,
+  `pic-stroke-dashed`, `pic-dot`, `pic-text`, `pic-title`, source `pic`) that
+  draw a collection with every size true to the ground — the styling that
+  lived only in the site's `geomap.ts`, ported verbatim (docs/geopic.md § 6,
+  DECISIONS G9). Exposed as `rpic --geojson --maplibre` (`{geojson, layers}`;
+  plain `--geojson` unchanged), `compileGeoJSON(src, { layers: true })` and
+  `maplibreLayers(fc)` in JS, `rpic.geo.maplibre_layers(fc)` and
+  `rpic.geo.compile(…, layers=True)` in Python.
+- **`@strategicprojects/rpic/maplibre`**: a zero-import subpath module with
+  `attach(map, fc, { layers, fit })` (source + layers on any MapLibre map →
+  `{ setGeoJSON, fitTo, detach }`), `createGeoMap(maplibregl, container,
+  opts)` and a JS port of the layers, pinned to the engine by the tests.
+- Site: the Maps page draws through that module (build-time maps take the
+  engine's layers from `rpic --geojson --maplibre`, the playground from
+  `compileGeoJSON(…, { layers: true })`), checked against snapshots of the
+  previous layer specs (`examples/geo/maplibre/`, `npm test` in `site`); new
+  section "Use it on your own map".
+
 ## [0.14.0] — 2026-11-07
 
 ### Added

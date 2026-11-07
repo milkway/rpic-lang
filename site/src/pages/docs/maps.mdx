@@ -123,6 +123,51 @@ can carry that into the ninth decimal of a coordinate. The repository's own
 example guard compares within 1e-8°.
 </Callout>
 
+## Use it on your own map
+
+The maps on this page are not styled by hand: the engine emits the MapLibre
+style-spec layers that draw a collection — fills, solid and dashed strokes,
+dots, labels and shape titles, every size **true to the ground** from the
+collection's registration — and the site just adds them. Any MapLibre map can
+do the same. The layers read one GeoJSON source named `pic`:
+
+```js
+import maplibregl from 'maplibre-gl';
+import { ready, compileGeoJSON } from '@strategicprojects/rpic';
+import { attach } from '@strategicprojects/rpic/maplibre';
+
+await ready(undefined, { geo: true });
+const { geojson, layers } = compileGeoJSON(src, { layers: true });
+
+const map = new maplibregl.Map({ container: 'map', style: 'https://tiles.openfreemap.org/styles/positron' });
+const pic = attach(map, geojson, { layers, fit: true }); // source "pic" + six layers, once loaded
+// on every edit: pic.setGeoJSON(next.geojson, next.layers); pic.fitTo();
+```
+
+`@strategicprojects/rpic/maplibre` has no imports at all — no wasm, no
+maplibre-gl dependency — so it costs a few kilobytes on a page that already
+has MapLibre. `createGeoMap(maplibregl, container, { style, cooperativeGestures,
+navigation })` builds a ready map like the ones above. With a collection from
+elsewhere (the CLI, Python), `attach(map, fc)` without `layers` computes the
+same ones in JS. On the command line, `rpic --geojson --maplibre map.pic`
+prints `{ "geojson": …, "layers": […] }`; in Python,
+`rpic.geo.maplibre_layers(fc)` or `rpic.geo.compile(src, layers=True)`.
+
+In R the same layers will ride on a [mapgl](https://walker-data.com/mapgl/)
+map — **coming in rpic-r** (`rpic_geojson()` and `rpic_maplibre_layers()` are
+not released yet):
+
+```r
+fc <- rpic_geojson(src)                      # Prompt B
+mapgl::maplibre(style = carto_style("positron")) |>
+  mapgl::add_source("pic", fc) |>
+  purrr::reduce(rpic_maplibre_layers(fc), \(m, l) mapgl::add_layer(m, l), .init = _) |>
+  mapgl::fit_bounds(fc)
+```
+
+The sizing formulas and the layer table are in
+[docs/geopic.md § 6](https://github.com/milkway/rpic-lang/blob/main/docs/geopic.md#6-rendering-on-maplibre).
+
 ## Frames, caps and the contract
 
 - `geo_frame = 0` (default) is **`enu`**: a local tangent plane at the anchor,
