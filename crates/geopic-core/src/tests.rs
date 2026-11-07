@@ -1328,3 +1328,36 @@ fn scenes_without_text_rows_join_the_visible_lines() {
         .unwrap();
     assert_eq!(t.properties["geopic:text"], "a\nc");
 }
+
+/// G10 addendum: MapLibre drops a final "\n", so the symbol layers pad a
+/// trailing newline with a no-break space; `geopic:text` itself stays pure.
+#[test]
+fn maplibre_text_field_pads_a_trailing_blank_row() {
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"above\" \"\""),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let ls = crate::maplibre::layers(&g.features);
+    let t = serde_json::json!(["get", "geopic:text"]);
+    let want = serde_json::json!([
+        "case",
+        [
+            "==",
+            ["slice", t, ["max", 0, ["-", ["length", t], 1]]],
+            "\n"
+        ],
+        ["concat", t, "\u{a0}"],
+        t
+    ]);
+    for id in ["pic-text", "pic-title"] {
+        assert_eq!(layer(&ls, id)["layout"]["text-field"], want, "{id}");
+    }
+    let title = g
+        .features
+        .features
+        .iter()
+        .find(|f| f.properties["geopic:kind"] == "title")
+        .unwrap();
+    assert_eq!(title.properties["geopic:text"], "above\n");
+}

@@ -249,12 +249,28 @@ impl Sizing {
             })
         };
 
+        // geopic:text keeps the author's blank rows (G10 addendum), but
+        // MapLibre's shaper only breaks *before* a following character, so a
+        // final "\n" is dropped and `box "above" ""` would render centred:
+        // a trailing newline is padded with a no-break space (trimmed by the
+        // shaper, so the row stays empty but is kept)
+        let text = json!(["get", "geopic:text"]);
+        let text_field = json!([
+            "case",
+            [
+                "==",
+                ["slice", text, ["max", 0, ["-", ["length", text], 1]]],
+                "\n"
+            ],
+            ["concat", text, "\u{a0}"],
+            text
+        ]);
         let symbol = |id: &str, k: &str| {
             json!({
                 "id": id, "type": "symbol", "source": SOURCE,
                 "filter": ["==", kind.clone(), k],
                 "layout": {
-                    "text-field": ["get", "geopic:text"],
+                    "text-field": text_field.clone(),
                     "text-font": ["Noto Sans Regular"],
                     "text-size": text_size.clone(),
                     "text-anchor": anchor.clone(),

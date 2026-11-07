@@ -85,10 +85,19 @@ export function layers(fc) {
       ...(dashed ? { 'line-dasharray': [3, 2] } : {}),
     },
   });
+  // geopic:text keeps the author's blank rows (G10 addendum), but MapLibre's
+  // shaper only breaks *before* a following character, so a final "\n" is
+  // dropped and `box "above" ""` would render centred: a trailing newline is
+  // padded with a no-break space (trimmed by the shaper, so the row stays
+  // empty but is kept)
+  const textField = () => {
+    const t = ['get', 'geopic:text'];
+    return ['case', ['==', ['slice', t, ['max', 0, ['-', ['length', t], 1]]], '\n'], ['concat', t, '\u00a0'], t];
+  };
   const symbol = (id, k) => ({
     id, type: 'symbol', source: SOURCE, filter: ['==', kind(), k],
     layout: {
-      'text-field': ['get', 'geopic:text'],
+      'text-field': textField(),
       'text-font': ['Noto Sans Regular'],
       'text-size': textSize(),
       'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],

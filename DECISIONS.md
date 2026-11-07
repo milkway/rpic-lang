@@ -329,10 +329,17 @@ and the item its `text_rows` (S13), and `geopic:text` rebuilds the stack —
 so a block centred on `text_center` puts each line on its SVG row. The
 shape's `title` keeps only the visible lines (a popup has no use for blank
 rows). A scene without the keys keeps the visible-lines join. MapLibre
-caveat: its shaper honours leading and inner blank rows but drops the
-*last* trailing `\n` (a break is only taken before a following character),
-so `"above\n"` is still drawn centred there; the data stays the honest
-stack, a renderer-side fix belongs in the layer spec.
+caveat, fixed in the layer spec: its shaper (maplibre-gl 6.16,
+`symbol/tagged_string.ts`) honours leading and inner blank rows but drops
+the *last* trailing `\n` — a break is only taken before a following
+character — so `"above\n"` would be drawn centred. `pic-text`/`pic-title`
+therefore set `text-field` to `["case", ["==", ["slice", T, ["max", 0,
+["-", ["length", T], 1]]], "\n"], ["concat", T, "\u00a0"], T]` (`T` =
+`["get", "geopic:text"]`): the no-break space gives the shaper a character
+to break before, and its per-line trim (`/^\s+$/u` includes U+00A0)
+leaves that row empty. The data (`geopic:text`) stays the pure stack; the
+site's `npm test` evaluates the expression with maplibre-gl's own
+style-spec (`createExpression`) on the three idioms.
 `pic-title` now filters `geopic:kind == "title"` and is styled exactly like
 `pic-text` (anchor, rotation), still the sixth layer. Additive:
 `geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
