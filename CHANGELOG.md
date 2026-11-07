@@ -49,6 +49,14 @@ resolves to the latest version.
   block — the first layer after the last non-`symbol` layer (index 68 on
   CARTO); on top when there is none; a layer named `labels` still wins
   (DECISIONS G11 addendum, `docs/geopic.md` § 6).
+- JS `@strategicprojects/rpic/maplibre`: the drawing's labels used the specs'
+  placeholder font `["Noto Sans Regular"]`; CARTO's glyph server serves a Noto
+  with other vertical metrics, so a label sat centred on the line it annotates
+  instead of beside it. `attach`/`createGeoMap` take `font`: `'style'`
+  (default) = the most common `text-font` stack of the style's own symbol
+  layers (the spec's when there is none), `'spec'` = the placeholder, or an
+  explicit stack; applied to copies of `pic-text`/`pic-title` (DECISIONS G11
+  second addendum, `docs/geopic.md` § 6).
 
 ## [0.16.1] — 2026-11-08
 

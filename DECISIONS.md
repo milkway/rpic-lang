@@ -453,6 +453,21 @@ named `labels` still wins. Labels interleaved below the last geometry
 layer stay under the shapes — the price of keeping the basemap's roads
 and buildings below them.
 
+Second addendum (same fix): a `pic-text` label drawn on CARTO sat centred on
+the line it annotates. The anchor was right; the font was not. Rendered on
+MapLibre 5.22 with CARTO positron, the specs' `text-font ["Noto Sans
+Regular"]` (CARTO's glyph server serves a Noto with different vertical
+metrics) centres the text box on the anchor; the style's own `["Montserrat
+Regular"]` puts it above with the right gap. OpenFreeMap's Noto behaves.
+The specs keep Noto (they stay a pure function of the collection, and any
+fixed name is someone's wrong font); placement-like, the font belongs to
+the consumer's map: `attach(…, { font })`, `'style'` by default = the most
+common `text-font` stack among the style's own symbol layers (counted by
+the whole stack; ties to a Regular/Medium first face over Bold/Italic;
+the spec's when the style has none), `'spec'` = the placeholder, or an
+explicit stack — set on copies of `pic-text`/`pic-title` when added;
+`createGeoMap` forwards it. rpic.dev needs no change.
+
 ## Embedder API (2026-11-07, #425)
 
 ### E1. Raw call-site arguments are sliced from the lexed text (side table)

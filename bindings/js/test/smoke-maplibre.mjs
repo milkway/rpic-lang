@@ -146,7 +146,7 @@ function fakeMap({ loaded, style }) {
       for (const x of all) layersById.set(x.id, x);
     },
     getLayer: (id) => layersById.get(id),
-    getStyle: () => ({ layers: [...layersById.values()].map(({ id, type }) => ({ id, type })) }),
+    getStyle: () => ({ layers: [...layersById.values()].map(({ id, type, layout }) => ({ id, type, ...(layout ? { layout } : {}) })) }),
     order: () => [...layersById.keys()],
     removeLayer(id) { calls.push(['removeLayer', id]); layersById.delete(id); },
     setFilter(id) { calls.push(['setFilter', id]); },
@@ -312,6 +312,70 @@ m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout);
 assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => undefined));
 
+// ---- font: the drawing's labels follow the style's glyphs -------------------
+// CARTO's glyph server serves a Noto with other vertical metrics: the spec's
+// placeholder font put a label's box centred on its line there
+const NOTO = ['Noto Sans Regular'];
+const MONT = ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'];
+const MONT_B = ['Montserrat Bold', 'Open Sans Bold', 'Noto Sans Regular'];
+const OPEN = ['Open Sans Regular'];
+const sym = (id, f) => ({ id, type: 'symbol', layout: { 'text-font': f } });
+const cartoFonts = [
+  { id: 'bg', type: 'background' },
+  { id: 'road', type: 'line', layout: { 'line-cap': 'round' } },
+  sym('waterway_label', MONT),
+  sym('place_city', MONT),
+  sym('place_country', MONT_B),
+  sym('roadname', ['literal', OPEN]), // an expression wrapping a plain stack counts
+  sym('poi', ['step', ['zoom'], ['literal', OPEN], 12, ['literal', MONT_B]]), // not a plain stack: skipped
+  { id: 'shield', type: 'symbol', layout: {} }, // no text-font: skipped
+];
+const fontOf = (map, id) => map.getLayer(id).layout['text-font'];
+const engineCopy = JSON.stringify(engine);
+assert.deepEqual(engine.find((l) => l.id === 'pic-text').layout['text-font'], NOTO);
+// default 'style': the most common stack, on both label layers only
+m = fakeMap({ loaded: true, style: cartoFonts });
+h = attach(m, callout, { layers: engine, before: 'labels' });
+assert.deepEqual(fontOf(m, 'pic-text'), MONT);
+assert.deepEqual(fontOf(m, 'pic-title'), MONT);
+assert.equal(JSON.stringify(engine), engineCopy); // the caller's specs are copied, never changed
+// an update keeps the font (only the sizes move) and needs no new resolution
+m.calls.length = 0;
+h.setGeoJSON(cases.radius);
+assert.deepEqual(ops(m, 'setLayout').map((c) => c[2]), ['text-size', 'text-size']);
+assert.deepEqual(fontOf(m, 'pic-text'), MONT);
+// the port's layers get the same treatment
+m = fakeMap({ loaded: true, style: cartoFonts });
+attach(m, callout);
+assert.deepEqual(fontOf(m, 'pic-title'), MONT);
+// ties go to a Regular/Medium face over Bold/Italic, whatever the order
+m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Medium']), sym('d', ['Roboto Bold'])] });
+attach(m, callout);
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Bold']); // 2 beats 1, Bold or not
+m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Medium'])] });
+attach(m, callout);
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']);
+// 'spec' keeps the engine's Noto
+m = fakeMap({ loaded: true, style: cartoFonts });
+attach(m, callout, { layers: engine, font: 'spec' });
+assert.deepEqual(fontOf(m, 'pic-text'), NOTO);
+assert.deepEqual(fontOf(m, 'pic-title'), NOTO);
+// an explicit stack wins
+m = fakeMap({ loaded: true, style: cartoFonts });
+attach(m, callout, { layers: engine, font: ['Inter Regular'] });
+assert.deepEqual(fontOf(m, 'pic-text'), ['Inter Regular']);
+assert.deepEqual(fontOf(m, 'pic-title'), ['Inter Regular']);
+// no symbol layer with a text-font: the spec's
+m = fakeMap({ loaded: true, style: basemap });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), NOTO);
+m = fakeMap({ loaded: true });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-title'), NOTO);
+// a bad value throws up front
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: 'Montserrat' }), /font must be/);
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: [] }), /font must be/);
+
 // ---- createGeoMap with a fake maplibre-gl namespace -------------------------
 let made;
 const fakeGl = {
@@ -338,6 +402,14 @@ assert.equal(ops(made.map, 'addLayer').length, 6);
 assert.equal(ops(made.map, 'fitBounds').length, 1);
 g.destroy();
 assert.ok(made.removed);
+// `font` is forwarded to attach
+{
+  const g3 = createGeoMap(fakeGl, 'el4', { font: ['Inter Regular'] });
+  g3.setGeoJSON(callout, engine);
+  made.map.fire('load');
+  assert.deepEqual(made.map.getLayer('pic-text').layout['text-font'], ['Inter Regular']);
+  g3.destroy();
+}
 assert.equal(ops(made.map, 'removeSource').length, 1);
 createGeoMap(fakeGl, 'el2', { style: 'x', cooperativeGestures: false, navigation: false });
 assert.equal(made.opts.style, 'x');

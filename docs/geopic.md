@@ -271,6 +271,19 @@ drawing's own labels (`pic-text`, `pic-title`) are always appended on top —
 a basemap "Olinda" must not cover the drawing's "Olinda". rpic.dev uses
 `before: 'labels'`.
 
+*Font.* The specs' `text-font ["Noto Sans Regular"]` is a placeholder, not a
+requirement: the glyphs come from the consumer style's server, and the same
+name can carry other vertical metrics there — on CARTO's positron (MapLibre
+5.22) a Noto label's box sat centred on its anchor, a `pic-text` label on the
+line it annotates; the style's own Montserrat put it beside, with the right
+gap (OpenFreeMap's Noto behaves, which hid it on rpic.dev). Consumers should
+follow the style's font. `attach(map, fc, { font })` does: `'style'`
+(default) = the most common `text-font` stack among the style's own symbol
+layers (stacks compared whole, `["literal", […]]` unwrapped, other
+expressions skipped; ties to a Regular/Medium first face), set on copies of
+`pic-text`/`pic-title` when they are added — the spec's when the style has
+no such layer; `'spec'` keeps the placeholder; a stack is used as given.
+
 Exposed everywhere the collection is:
 
 ```sh

@@ -152,7 +152,9 @@ const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 // your own map: adds/updates source "pic" + the six layers (waits for `load`);
 // before: 'labels' puts the shapes under the basemap's labels (the style's
 // trailing block of symbol layers, above its roads and buildings), or pass a
-// layer id; the drawing's own labels always stay on top
+// layer id; the drawing's own labels always stay on top, in the style's own
+// font (font: 'style', the default: its most common text-font stack — or
+// 'spec' for the engine's Noto placeholder, or an explicit stack)
 const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits
 pic.fitTo();                                // re-frame
@@ -160,7 +162,7 @@ pic.detach();                               // remove layers + source
 
 // …or a ready map (OpenFreeMap positron basemap, zoom buttons, cooperative
 // gestures); the maplibre-gl namespace is a parameter, not a dependency
-const g = createGeoMap(maplibregl, 'map', { style, cooperativeGestures, navigation, before });
+const g = createGeoMap(maplibregl, 'map', { style, cooperativeGestures, navigation, before, font });
 g.setGeoJSON(geojson, layers);
 g.fitTo();
 ```
@@ -178,6 +180,12 @@ test suite. The CLI prints both at once: `rpic --geojson --maplibre map.pic`
 → `{ "geojson": …, "layers": […] }` (add `--text-scale 1.5` for larger
 labels).
 
+The specs' `text-font` (`["Noto Sans Regular"]`) is a placeholder: a glyph
+server may serve a Noto with other vertical metrics (CARTO's does, and its
+labels sat centred on their lines instead of beside them). `attach` therefore
+gives `pic-text`/`pic-title` the style's own font by default; if you add the
+layers yourself, set `layout['text-font']` to a stack your style uses.
+
 ## API
 
 | Function | Description |
@@ -187,7 +195,7 @@ labels).
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, layers?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas, layers? }`; `layers: true` adds the MapLibre layers. Throws `GeoError` (`info.kind`) or a pic error. |
 | `maplibreLayers(fc, {textScale?})` | Geo build only. The engine's MapLibre layers for a geopic FeatureCollection; `textScale` multiplies every label's font size. |
-| `attach(map, fc, {layers?, fit?, before?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map (shapes under layer `before`, or under the basemap's labels with `'labels'`; the drawing's own labels stay on top) → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc, {textScale?})`, `sizing(fc, {textScale?})`, `bounds(fc)`. |
+| `attach(map, fc, {layers?, fit?, before?, font?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map (shapes under layer `before`, or under the basemap's labels with `'labels'`; the drawing's own labels stay on top, in the style's font unless `font: 'spec'` or a stack) → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc, {textScale?})`, `sizing(fc, {textScale?})`, `bounds(fc)`. |
 | `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

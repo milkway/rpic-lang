@@ -71,8 +71,8 @@ export interface MapLike {
   removeSource(id: string): unknown;
   addLayer(layer: unknown, beforeId?: string): unknown;
   getLayer(id: string): unknown;
-  /** read for `before: 'labels'` (the start of the trailing `symbol` block) */
-  getStyle?(): { layers?: { id: string; type: string }[] } | undefined | null;
+  /** read for `before: 'labels'` (the start of the trailing `symbol` block) and `font: 'style'` */
+  getStyle?(): { layers?: { id: string; type: string; layout?: Record<string, unknown> }[] } | undefined | null;
   removeLayer(id: string): unknown;
   setFilter(id: string, filter: unknown): unknown;
   setPaintProperty(id: string, name: string, value: unknown): unknown;
@@ -100,6 +100,16 @@ export interface AttachOptions {
    * A placement on the consumer's map, not part of the layer specs.
    */
   before?: 'labels' | (string & {});
+  /**
+   * the `text-font` of the drawing's labels (`pic-text`, `pic-title`):
+   * `'style'` (default) = the most common stack among the style's own
+   * symbol layers (ties: a Regular/Medium face), the spec's when the style
+   * has none — the glyph server serves the style's fonts, and one it serves
+   * with other metrics (CARTO's Noto) centres a label on its anchor;
+   * `'spec'` = the engine's `["Noto Sans Regular"]` (a placeholder); or an
+   * explicit stack. Applied to a copy when the layers are added.
+   */
+  font?: 'style' | 'spec' | string[];
 }
 
 export interface GeoMapAttachment {
@@ -123,6 +133,8 @@ export interface CreateGeoMapOptions {
   navigation?: boolean;
   /** as in `attach`: a layer id, or `'labels'` to keep the basemap's labels on top */
   before?: 'labels' | (string & {});
+  /** as in `attach`: `'style'` (default), `'spec'` or a font stack */
+  font?: 'style' | 'spec' | string[];
 }
 
 export interface GeoMap<M = unknown> extends GeoMapAttachment {
