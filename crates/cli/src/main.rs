@@ -212,7 +212,11 @@ fn main() -> ExitCode {
     if maplibre {
         match &mut mode {
             Mode::GeoJson { maplibre: m } => *m = true,
-            _ => return fail("rpic: `--maplibre` needs `--geojson`"),
+            _ => {
+                return fail(
+                    "rpic: `--maplibre` only applies to `--geojson` (another output mode was selected; the last mode flag wins)",
+                );
+            }
         }
     }
 

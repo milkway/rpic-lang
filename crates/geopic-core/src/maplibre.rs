@@ -78,20 +78,26 @@ fn num_or_zero(v: Option<&Value>) -> f64 {
     if x.is_nan() { 0.0 } else { x }
 }
 
+/// A registration field as a number: a JSON number, or a numeric string (a
+/// collection re-serialised by a loosely typed host) — the same coercion the
+/// JS port's arithmetic applies, so the two emit the same sizes.
+fn num_opt(v: Option<&Value>) -> Option<f64> {
+    match v {
+        Some(Value::Number(n)) => n.as_f64(),
+        Some(Value::String(s)) => s.trim().parse::<f64>().ok(),
+        _ => None,
+    }
+    .filter(|x| x.is_finite())
+}
+
 fn sizing_from<'a>(geopic: Option<&Value>, font_sizes: impl Iterator<Item = &'a Value>) -> Sizing {
     let reg = geopic.and_then(|g| g.get("registration"));
-    let m_per_in = reg
-        .and_then(|r| r.get("scale_m_per_in"))
-        .and_then(Value::as_f64)
-        .unwrap_or(DEFAULT_M_PER_IN);
+    let m_per_in = num_opt(reg.and_then(|r| r.get("scale_m_per_in"))).unwrap_or(DEFAULT_M_PER_IN);
     let mercator = reg.and_then(|r| r.get("frame")).and_then(Value::as_str) == Some("mercator");
     let lat = if mercator {
         0.0
     } else {
-        reg.and_then(|r| r.get("anchor"))
-            .and_then(|a| a.get("lat"))
-            .and_then(Value::as_f64)
-            .unwrap_or(0.0)
+        num_opt(reg.and_then(|r| r.get("anchor")).and_then(|a| a.get("lat"))).unwrap_or(0.0)
     };
     let d = METRES_PER_PX_Z0 * (lat * std::f64::consts::PI / 180.0).cos();
     let px_per_metre_z0 = 1.0 / if d == 0.0 || d.is_nan() { 1.0 } else { d };

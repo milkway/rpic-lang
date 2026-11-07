@@ -34,10 +34,10 @@ export function sizing(fc) {
   const mPerIn = reg?.scale_m_per_in ?? 100;
   const lat = reg?.frame === 'mercator' ? 0 : (reg?.anchor?.lat ?? 0);
   const pxPerMetreAtZ0 = 1 / ((78271.517 * Math.cos((lat * Math.PI) / 180)) || 1);
-  const maxFontM = Math.max(
-    1e-6,
-    ...(fc?.features ?? []).map((f) => (Number(f.properties?.['geopic:font_size']) || 0) * (mPerIn / 72)),
-  );
+  let maxFontM = 1e-6; // a loop, not a spread: collections can hold 10^5+ features
+  for (const f of fc?.features ?? []) {
+    maxFontM = Math.max(maxFontM, (Number(f.properties?.['geopic:font_size']) || 0) * (mPerIn / 72));
+  }
   const z = Math.floor(Math.log2(255 / (maxFontM * pxPerMetreAtZ0)));
   const textZHi = Number.isNaN(z) ? 1 : Math.min(24, Math.max(1, z));
   return { mPerIn, lat, pxPerMetreAtZ0, textZHi };
@@ -162,20 +162,22 @@ const EMPTY = { type: 'FeatureCollection', features: [] };
 export function attach(map, fc = EMPTY, opts = {}) {
   let current = fc ?? EMPTY;
   let currentLayers = opts.layers ?? null;
-  let pendingFit = !!opts.fit;
+  let pendingFit = opts.fit ? true : null; // true = frame `current`, or a collection
   let ready = false;
   let detached = false;
 
+  // the only properties that depend on the collection (its registration and
+  // largest font): everything else in a spec is constant across collections
+  const SIZE_PAINT = ['line-width', 'circle-radius'];
+  const SIZE_LAYOUT = ['text-size'];
   function applyLayers(specs) {
     for (const spec of specs) {
       if (!map.getLayer(spec.id)) {
         map.addLayer(spec);
         continue;
       }
-      // same layer, new collection: only the data-dependent parts move
-      map.setFilter(spec.id, spec.filter ?? null);
-      for (const [k, v] of Object.entries(spec.paint ?? {})) map.setPaintProperty(spec.id, k, v);
-      for (const [k, v] of Object.entries(spec.layout ?? {})) map.setLayoutProperty(spec.id, k, v);
+      for (const k of SIZE_PAINT) if (spec.paint && k in spec.paint) map.setPaintProperty(spec.id, k, spec.paint[k]);
+      for (const k of SIZE_LAYOUT) if (spec.layout && k in spec.layout) map.setLayoutProperty(spec.id, k, spec.layout[k]);
     }
   }
 
@@ -196,14 +198,21 @@ export function attach(map, fc = EMPTY, opts = {}) {
     ready = true;
     apply();
     if (pendingFit) {
-      pendingFit = false;
-      fitNow(current);
+      const target = pendingFit === true ? current : pendingFit;
+      pendingFit = null;
+      fitNow(target);
     }
   }
 
+  // `isStyleLoaded()` is also false while any tile is still loading, and
+  // `load` fires only once per map — so on a map that is already up, `idle`
+  // (which needs the style loaded) is what brings us in. `start` runs once.
   const loaded = typeof map.isStyleLoaded === 'function' ? map.isStyleLoaded() : map.loaded?.();
   if (loaded) start();
-  else map.once('load', start);
+  else {
+    map.once('load', start);
+    map.once('idle', start);
+  }
 
   return {
     setGeoJSON(next, nextLayers) {
@@ -213,13 +222,14 @@ export function attach(map, fc = EMPTY, opts = {}) {
     },
     fitTo(target) {
       if (ready) fitNow(target ?? current);
-      else pendingFit = true; // `current` is framed once the style has loaded
+      else pendingFit = target ?? true; // framed once the style has loaded
     },
     detach() {
       if (detached) return;
       detached = true;
       if (!ready) {
         map.off?.('load', start);
+        map.off?.('idle', start);
         return;
       }
       for (const id of [...LAYER_IDS].reverse()) if (map.getLayer(id)) map.removeLayer(id);

@@ -91,12 +91,15 @@ const callout = cases.callout;
 const engine = maplibreLayers(callout);
 let m = fakeMap({ loaded: false });
 let h = attach(m, callout, { layers: engine, fit: true });
-assert.deepEqual(m.calls, [['once', 'load']]);
+assert.deepEqual(m.calls, [['once', 'load'], ['once', 'idle']]);
 h.setGeoJSON(cases.radius); // before load: picked up by the load handler
+h.fitTo(cases.callout); // a pending fit keeps its own target
 m.fire('load');
+m.fire('idle'); // a second start is a no-op
 assert.deepEqual(ops(m, 'addSource'), [['addSource', SOURCE, 'geojson']]);
 assert.deepEqual(ops(m, 'addLayer').map((c) => c[1]), LAYER_IDS);
-assert.deepEqual(ops(m, 'fitBounds')[0][1], bounds(cases.radius));
+assert.deepEqual(ops(m, 'fitBounds'), [ops(m, 'fitBounds')[0]]); // once, not twice
+assert.deepEqual(ops(m, 'fitBounds')[0][1], bounds(cases.callout));
 assert.deepEqual(ops(m, 'fitBounds')[0][2], { padding: 48, maxZoom: 19, duration: 0 });
 
 // already loaded: drawn at once; setGeoJSON re-uses the source and layers
@@ -110,7 +113,8 @@ assert.deepEqual(ops(m, 'setData'), [['setData', cases.radius.features.length]])
 assert.equal(ops(m, 'addLayer').length + ops(m, 'addSource').length, 0);
 const lw = ops(m, 'setPaint').find((c) => c[1] === 'pic-stroke' && c[2] === 'line-width');
 close(lw[3], layers(cases.radius)[1].paint['line-width'], 'updated line-width');
-assert.equal(ops(m, 'setFilter').length, 6);
+assert.equal(ops(m, 'setFilter').length, 0); // only the sizes move on an update
+assert.deepEqual(ops(m, 'setLayout').map((c) => c[2]), ['text-size', 'text-size']);
 h.fitTo();
 assert.deepEqual(ops(m, 'fitBounds')[0][1], bounds(cases.radius));
 h.detach();
@@ -119,10 +123,20 @@ assert.deepEqual(ops(m, 'removeSource'), [['removeSource', SOURCE]]);
 h.detach(); // idempotent
 assert.equal(ops(m, 'removeSource').length, 1);
 
+// a map that is up but fetching tiles: isStyleLoaded() is false, `load` is
+// long gone — `idle` draws it
+m = fakeMap({ loaded: false });
+h = attach(m, callout, { layers: engine, fit: true });
+m.fire('idle');
+assert.equal(ops(m, 'addLayer').length, 6);
+assert.equal(ops(m, 'fitBounds').length, 1);
+
 // detached before load: the pending load does nothing
 m = fakeMap({ loaded: false });
 attach(m, callout).detach();
+assert.deepEqual(ops(m, 'off').map((c) => c[1]), ['load', 'idle']);
 m.fire('load');
+m.fire('idle');
 assert.equal(ops(m, 'addSource').length, 0);
 
 // ---- createGeoMap with a fake maplibre-gl namespace -------------------------

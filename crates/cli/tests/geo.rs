@@ -375,5 +375,5 @@ fn maplibre_bundle_carries_the_collection_and_the_snapshot_layers() {
     let pic = examples().remove(0);
     let bad = rpic(&["--maplibre"], &pic);
     assert!(!bad.status.success());
-    assert!(String::from_utf8_lossy(&bad.stderr).contains("needs `--geojson`"));
+    assert!(String::from_utf8_lossy(&bad.stderr).contains("only applies to `--geojson`"));
 }
