@@ -481,8 +481,8 @@ fn geo_options(
 }
 
 /// Georeference pic source (rpic.geo.compile's native half): returns
-/// `{"geojson": dict, "warnings": [dict], "registration": dict, "canvas":
-/// {"rescale", "scale"}}`. Raises
+/// `{"geojson": dict, "warnings": [dict], "diagnostics": [str],
+/// "registration": dict, "canvas": {"rescale", "scale"}}`. Raises
 /// `CompileError` on a pic error and `GeoError` on a registration error.
 /// Animations cannot ride into GeoJSON: a source with `animate` statements
 /// adds an `ignored` warning naming how many timelines were dropped.
@@ -536,7 +536,8 @@ fn geo_compile<'py>(
     let out = PyDict::new(py);
     out.set_item("geojson", json_loads(py, &g.features.to_json())?)?;
     let warnings = PyList::empty(py);
-    for w in &scene.warnings {
+    // engine warnings first, then the scene's, then geopic's
+    for w in d.warnings.iter().chain(scene.warnings.iter()) {
         warnings.append(diagnostic_dict(py, w)?)?;
     }
     for w in &g.warnings {
@@ -546,6 +547,8 @@ fn geo_compile<'py>(
         )?)?;
     }
     out.set_item("warnings", warnings)?;
+    // pic `print` lines and engine notices, as in `compile`'s bundle
+    out.set_item("diagnostics", d.diagnostics.clone())?;
     out.set_item(
         "registration",
         json_loads(

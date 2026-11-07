@@ -69,23 +69,14 @@ fn geo_error_json(e: &geopic_core::GeoError) -> String {
 }
 
 /// An engine diagnostic as the bundle's `warnings`/`error_info` carry it
-/// (same keys as `compile_json`).
+/// (rpic-core's own serializer, so the keys never drift).
 fn diagnostic_value(d: &rpic_core::Diagnostic) -> serde_json::Value {
-    serde_json::json!({
-        "message": d.message,
-        "line": d.line,
-        "col": d.col,
-        "end_col": d.end_col,
-        "file": d.file.as_deref(),
-        "kind": d.kind,
-        "found": d.found,
-        "expected": d.expected,
-        "hint": d.hint,
-    })
+    serde_json::from_str(&rpic_core::diagnostic_json(d)).unwrap_or(serde_json::Value::Null)
 }
 
 /// Georeference pic source: `{"geojson": FeatureCollection, "warnings":
-/// [...], "registration": {...}, "canvas": {"rescale", "scale"}}`, or
+/// [...], "diagnostics": [...], "registration": {...}, "canvas": {"rescale",
+/// "scale"}}`, or
 /// `{"error", "error_info"}` on a pic error, or `{"error", "geo_error":
 /// {kind, message, hint}}` on a georeferencing error (bad options included).
 ///
@@ -136,8 +127,14 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
         g.warnings
             .push(geopic_core::Warning::animations_ignored(d.anims.len()));
     }
-    let mut warnings: Vec<serde_json::Value> =
-        scene.warnings.iter().map(diagnostic_value).collect();
+    // engine warnings first, then the scene's, then geopic's (the order
+    // `compile_json_all` uses)
+    let mut warnings: Vec<serde_json::Value> = d
+        .warnings
+        .iter()
+        .chain(scene.warnings.iter())
+        .map(diagnostic_value)
+        .collect();
     warnings.extend(
         g.warnings
             .iter()
@@ -150,6 +147,9 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
         .map_or(1.0, |(_, v)| *v);
     let rest = serde_json::json!({
         "warnings": warnings,
+        // pic `print` lines and engine notices (e.g. texlabels without a
+        // math renderer), as in `compile`'s bundle
+        "diagnostics": d.diagnostics,
         "registration": g.registration,
         "canvas": { "rescale": d.rescale, "scale": scale },
     })

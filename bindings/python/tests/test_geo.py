@@ -24,7 +24,7 @@ def test_to_geojson_is_a_feature_collection_in_wgs84():
 
 def test_compile_returns_registration_and_structured_warnings():
     out = rpic.geo.compile("geo_lon = 0\ngeo_lat = 0\nbox gradient \"red\" \"blue\"", warn=False)
-    assert set(out) == {"geojson", "warnings", "registration", "canvas"}
+    assert set(out) == {"geojson", "warnings", "diagnostics", "registration", "canvas"}
     assert out["canvas"] == {"rescale": 1.0, "scale": 1.0}
     r = out["registration"]
     assert r["method"] == "anchor" and r["frame"] == "enu"
@@ -55,6 +55,12 @@ def test_errors_are_structured():
     assert isinstance(e.value, ValueError)
     with pytest.raises(rpic.CompileError):
         rpic.geo.to_geojson("geo_lon = 0\ngeo_lat = 0\nbox )")
+
+
+def test_engine_warnings_and_print_lines_ride_along():
+    out = rpic.geo.compile('geo_lon = 0\ngeo_lat = 0\nbox color "nocolour"\nprint "hi"', warn=False)
+    assert out["diagnostics"] == ["hi"]
+    assert any(w["kind"] == "invalid_color" and w["line"] == 3 for w in out["warnings"]), out["warnings"]
 
 
 def test_animate_is_warned_not_silently_dropped():
