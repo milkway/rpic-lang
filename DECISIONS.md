@@ -429,20 +429,34 @@ one restriction found at the oracle: pic expands textually, and dpic
 2025.08.01 *accepts* `Z: twob()` with `define twob { box; box }` — the label
 names the first box. So a labelled call is not always a group:
 
-- **Classic first.** The preprocessor brackets a labelled call's expansion
-  (`Label:` or `Label[i]:` directly before the call) with two synthetic
-  tokens, `Token::CallOpen`/`CallClose`. If the expansion starts with what a
-  label takes today — an object (`at_object_start`, incl. strings and
-  `[ … ]`) or anything else that parses as a position — the parser removes
-  the pair and the statement is exactly what it was. That covers every
+- **Classic first.** For a labelled call (`Label:` or `Label[i]:` directly
+  before it), the preprocessor asks the parser's own statement dispatch
+  (`Parser::statement_form`, which `parse_element` itself matches on) what
+  the expansion's first statement is. If it is the object form — what a
+  label takes today: an object (incl. strings and `[ … ]`) or anything that
+  parses as a position — the tokens are left exactly as the unlabelled
+  expansion's, and the statement is what it always was. That covers every
   `[ ]`-bodied library macro (the label is the block's, no new machinery)
   and the style-macro idiom `B: mybox ht 1`.
-- **Group otherwise:** the expansion starts with an assignment, another
-  label (`define pair { A: box; B: box }`), `if`/`for`/`print`/`exec`/
-  `reset`/`{`/`copy`/`command`/`sh`, a bare direction, or nothing. Each of
-  these was a syntax error in rpic, and dpic rejects them ("Syntax error,
-  unexpected =", "Variable not found", "Place name not found") — so the
-  extension is inert for every source dpic accepts. Corpus proof, main vs
+- **Group otherwise:** the first statement is empty or any other form —
+  an assignment (env vars too: `margin = 0.5`), another label (`define pair
+  { A: box; B: box }`), a control or keyword statement, `{ … }`, a bare
+  direction, a `%` comment, or an rpic statement (`canvas from`, `animate`,
+  `class`/`link`/`draggable` statements). Only then is the expansion
+  bracketed with two synthetic tokens, `Token::CallOpen`/`CallClose`, which
+  the parser turns into `Stmt::LabelledCall`. Because the rule *is* the
+  dispatch, a future statement form is covered without a list to update
+  (review of #441: the first version used a keyword allowlist and missed
+  `canvas`/`animate`/…, and removed the brackets of every classic call
+  from the whole token stream — two `Vec::remove`s, O(n·k) over a `-c`
+  stream with many `Q1: bi_tr(…)`; now classification costs the first
+  statement's length and classic calls are never bracketed; test
+  `many_classic_labelled_calls_parse_in_linear_time`). A bare direction at
+  the group's end ends its statement like a newline (`at_stmt_end`:
+  `Newline | Eof | CallClose`). Each group form was a syntax error in rpic,
+  and dpic rejects them ("Syntax error, unexpected =", "Variable not
+  found", "Place name not found") — so the extension is inert for every
+  source dpic accepts. Corpus proof, main vs
   branch binaries (isolated target dirs, `cmp` differ), `-c -t`: `--svg`,
   `--json` and `--scene` 128/128 identical.
 - Rejected: always grouping a labelled multi-statement call. It is the more
@@ -475,8 +489,12 @@ Semantics of the group (`Stmt::LabelledCall`, evaluated in place):
 - Geometry: the box is the union of the group's layout extent (invisible
   helpers included, as `[ ]` measures a block — the evaluator's
   `layout_bbox` is swapped out around the body), so `.c`/`.n`/`.wid`/`.ht`
-  read like a block's; `.start`/`.end` are the first object's start and the
-  last object's end (for a two-terminal element: its two points).
+  read like a block's; `.start`/`.end` are exactly the first drawn object's
+  start and the last drawn object's end. That is **not** "the terminals" in
+  general: an element that draws decorations last ends elsewhere (`led`'s
+  last object is its emission arrow, so `X.end` is the arrow tip, not its
+  second point). Library bodies are not reordered (corpus byte-freeze);
+  wire to the element's own point arguments or to labels it defines.
 - Counting: a synthetic `Placed` (`kind` Block, `synthetic: true`) that
   `nth_index` skips — `last []`, `2nd []` and untyped `last` count exactly
   the objects they counted before. (Named places stay in `placed` as they
