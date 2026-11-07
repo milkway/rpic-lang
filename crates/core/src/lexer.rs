@@ -59,10 +59,21 @@ pub(crate) struct SrcRange {
 pub(crate) struct SourceTable(Arc<std::sync::Mutex<Vec<Arc<[char]>>>>);
 
 impl SourceTable {
+    /// The unit number for `text`, registering it unless an identical text
+    /// already is: a `copy` re-run in a loop body re-lexes the same file
+    /// each iteration and must not grow the table.
     fn register(&self, text: &Arc<[char]>) -> u32 {
         let mut t = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(k) = t.iter().position(|u| **u == **text) {
+            return u32::try_from(k + 1).unwrap_or(0);
+        }
         t.push(Arc::clone(text));
         u32::try_from(t.len()).unwrap_or(0)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
 
     /// The text spanning `first` through `last`, when both lie in one

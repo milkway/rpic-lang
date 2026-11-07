@@ -236,7 +236,11 @@ pub(crate) fn parse_exec_source(
     arg_frame: Option<&[Vec<Spanned>]>,
     vars: &std::collections::HashMap<String, f64>,
 ) -> Result<Vec<Stmt>, ParseError> {
-    let mut toks = lex_in(src, None, &includes.sources)?;
+    // Not registered in the compilation's SourceTable: exec text is built
+    // at run time (possibly a fresh string per loop iteration), so keeping
+    // every one alive would grow without bound. Its tokens carry no raw
+    // source; raw args are promised only for the author's own units.
+    let mut toks = lex(src)?;
     if let Some(args) = arg_frame {
         toks = substitute(&toks, args);
     }

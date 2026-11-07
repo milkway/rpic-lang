@@ -3569,3 +3569,19 @@ fn a_plus_line_not_after_passthrough_is_still_an_error() {
     // an indented `+` after a request is not a continuation either
     assert!(parse(".ft B\n + more\n").is_err());
 }
+
+#[test]
+fn re_lexed_text_does_not_grow_the_source_table() {
+    // exec strings (a fresh one per iteration here) are never registered,
+    // and a `copy` re-run in a loop re-registers nothing: the table holds
+    // the user's input and the include, whatever the iteration count
+    let dir = std::env::temp_dir().join(format!("rpic_srctable_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("inc.pic"), "circle rad 0.1\n").unwrap();
+    let src = "for i = 1 to 200 do { exec sprintf(\"box wid %g\", i/100); copy \"inc.pic\" }";
+    let pic = parse_in_dir(src, Some(dir.as_path())).unwrap();
+    let d = eval(&pic).unwrap();
+    assert_eq!(d.shapes.len(), 400);
+    assert_eq!(pic.includes.sources.len(), 2);
+    let _ = std::fs::remove_dir_all(&dir);
+}

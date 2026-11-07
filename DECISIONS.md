@@ -350,6 +350,16 @@ Below the ~10 % budget, so the side table stays. Consequences:
 - User input is lexed after the backend-preamble filter, which blanks lines
   but keeps line structure, so positions match the original source; a
   blanked troff line inside an argument would read as empty there.
+- Bounded retention (security review of #439): `exec` text is built at run
+  time — possibly a fresh string per loop iteration — so it is lexed
+  *without* registering (unit 0); keeping each one alive for the whole
+  compile would grow memory linearly past the loop caps. Its tokens carry
+  no raw source (raw args then fall back to the normalized text), which is
+  fine: raw args are promised for the author's own units. Registration also
+  de-duplicates identical texts, so a `copy` re-run in a loop body reuses
+  its unit; the table grows only with *distinct* source texts. Test:
+  `re_lexed_text_does_not_grow_the_source_table` (200 iterations of `exec` +
+  `copy` → 2 units).
 - An empty argument (`m(a,,b)`) has `text` `""` placed just past its
   `(`/`,` (`read_args` returns one separator per argument; asserted). Tokens
   without one registered lexed text (synthesized, or `exec`
