@@ -121,7 +121,32 @@ export interface SceneItem {
    */
   span?: SourceSpan;
   /** block items made by a macro: that outermost call */
-  call?: { name: string; args: string[] };
+  call?: MacroCall;
+}
+
+/**
+ * A macro call (scene block items). `args` is rpic's normalized text;
+ * `raw_args` the same arguments exactly as written, index-aligned.
+ */
+export interface MacroCall {
+  name: string;
+  args: string[];
+  raw_args: RawArg[];
+}
+
+/**
+ * One macro-call argument as written: the source text from its first token
+ * to its last (spacing, `\` continuations, quotes kept), from
+ * `line`/`col` to `end_line`/`end_col` (exclusive), relative to its own
+ * source unit (`file` absent = the user's input, like diagnostics).
+ */
+export interface RawArg {
+  text: string;
+  line: number;
+  col: number;
+  end_line: number;
+  end_col: number;
+  file?: string;
 }
 
 /** A source position, relative to its own source unit (like diagnostics). */
@@ -157,11 +182,17 @@ export interface Place {
 
 /** A troff request line (`.` in column 1) set aside before lexing. */
 export interface Passthrough {
-  /** the line as written, leading `.` included */
+  /**
+   * the line as written, leading `.` included; a request continued by
+   * column-1 `+` lines holds all of them, joined by `\n`
+   */
   text: string;
   line: number;
   col: number;
+  /** end of the entry's last line */
   end_col: number;
+  /** the entry's last line; present only when `+` continuation lines follow it */
+  end_line?: number;
   file?: string;
 }
 

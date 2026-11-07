@@ -93,7 +93,11 @@ def test_scene_places_and_block_provenance():
     assert q["label"] == "Q" and q["block"] == ["blk1"]
     blocks = [i for i in v["items"] if i["kind"] == "block"]
     k = next(b for b in blocks if b.get("label") == "K")
-    assert k["call"] == {"name": "cell", "args": ['"a"']}
+    assert k["call"] == {
+        "name": "cell",
+        "args": ['"a"'],
+        "raw_args": [{"text": '"a"', "line": 2, "col": 9, "end_line": 2, "end_col": 12}],
+    }
     assert k["span"] == {"line": 2, "col": 4, "end_col": 13}
     inline = next(b for b in blocks if "label" not in b)
     assert inline["span"]["line"] == 4 and "call" not in inline
@@ -107,3 +111,12 @@ def test_scene_rescale_factor():
     assert abs(v["items"][0]["w"] - 1.5 * v["rescale"]) < 1e-5
     assert v["vars"]["boxwid"] == 0.75  # pre-rescale, by design
 
+
+
+def test_scene_block_call_keeps_raw_args():
+    # the normalized value and the author's spelling, side by side (#425)
+    v = rpic.scene("define r { [ box ] }\nr(1e-9, 2 * \\\n 3)")
+    (blk,) = [i for i in v["items"] if i["kind"] == "block"]
+    assert blk["call"]["args"] == ["0.000000001", "2 * 3"]
+    assert [a["text"] for a in blk["call"]["raw_args"]] == ["1e-9", "2 * \\\n 3"]
+    assert (blk["call"]["raw_args"][1]["end_line"], blk["call"]["raw_args"][1]["end_col"]) == (3, 3)
