@@ -629,7 +629,9 @@ a prelude obeys the policy like any other.
 
 Surfaces: Rust (`CompileOptions::with_prelude`, `parse_with_options`), CLI
 `--prelude NAME=FILE` (repeatable; the CLI reads the file — the user named
-it, so it is policy-free), JS `compile(src, { preludes })` /
+it, so it is policy-free — and a relative FILE resolves against the input
+file's directory, the rule `copy "file"` follows, so a figure and its
+prelude travel together), JS `compile(src, { preludes })` /
 `compileGeoJSON(src, { preludes })` (new wasm `compile_preludes`; the
 `compile_geo` options JSON gains `preludes`), Python `preludes=` on every
 entry point and `rpic.geo`, C `rpic_compile_json_opts(src, opts,

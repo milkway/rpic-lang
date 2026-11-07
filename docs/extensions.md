@@ -891,6 +891,9 @@ order, before the user's source:
 rpic --prelude dune=dune.pic --json fig.pic
 ```
 
+(`--prelude` is repeatable; a relative file resolves against the input
+file's directory, as `copy "file"` does.)
+
 ```rust
 let opts = rpic_core::CompileOptions::default().with_prelude("dune", DUNE_PIC);
 let json = rpic_core::compile_json_with_options(src, &opts);

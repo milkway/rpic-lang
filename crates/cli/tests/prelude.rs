@@ -126,3 +126,34 @@ fn prelude_flag_is_validated() {
         stdout(t.rpic(&["--svg"], "order-plain", "box wid 2\n"))
     );
 }
+
+#[test]
+fn relative_prelude_paths_resolve_against_the_input_directory() {
+    // like `copy "file"`: run from elsewhere, `lib.pic` is the one beside
+    // the input, not one in the working directory
+    let t = Scratch::new("relative");
+    let elsewhere = Scratch::new("relative-cwd");
+    elsewhere.write("lib.pic", "this is not pic\n");
+    let out = stdout(t.rpic_in(
+        &elsewhere.0,
+        &["--prelude", "dune=lib.pic", "--svg"],
+        "rel",
+        "V1: vsrc((0,0),(1,0))\n",
+    ));
+    assert!(out.contains("<svg"), "{out}");
+    // an absolute path is taken as written
+    let abs = format!("dune={}", t.0.join("lib.pic").display());
+    let out2 = stdout(t.rpic_in(
+        &elsewhere.0,
+        &["--prelude", &abs, "--svg"],
+        "abs",
+        "V1: vsrc((0,0),(1,0))\n",
+    ));
+    assert_eq!(out, out2);
+    // `--help` never reads a prelude
+    let o = Command::new(env!("CARGO_BIN_EXE_rpic"))
+        .args(["--prelude", "x=does-not-exist.pic", "--help"])
+        .output()
+        .expect("run rpic");
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
+}

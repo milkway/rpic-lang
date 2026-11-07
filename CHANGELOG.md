@@ -20,7 +20,7 @@ resolves to the latest version.
   macro called from user code keeps the user's call-site provenance. Bad
   names (empty, duplicate, with `"` or a line break, or the reserved
   `circuits`, `<texlabels>`, `features`) are `invalid_options` errors. Exposed as CLI `--prelude NAME=FILE`
-  (repeatable), JS `compile(src, { preludes })` and `compileGeoJSON`
+  (repeatable; a relative FILE resolves against the input's directory), JS `compile(src, { preludes })` and `compileGeoJSON`
   (wasm `compile_preludes`, `compile_geo` options key `preludes`), Python
   `preludes=` on every compile function and `rpic.geo`, C
   `rpic_compile_json_opts` (options JSON), and Rust

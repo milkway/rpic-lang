@@ -145,7 +145,8 @@ char *json = rpic_compile_json_opts(src, NULL,
 rpic_free_string(json);
 ```
 
-On the CLI: `rpic --prelude dune=dune.pic --json fig.pic` (repeatable). A
+On the CLI: `rpic --prelude dune=dune.pic --json fig.pic` (repeatable; a
+relative file resolves against the input file's directory, like `copy`). A
 bad name (empty, duplicate, containing `"` or a line break, or one of the reserved `circuits`,
 `<texlabels>` and `features`)
 is an error with `kind: "invalid_options"`.
