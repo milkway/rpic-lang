@@ -10,6 +10,15 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- geopic: `geo_*` assigned with `=` inside a `[ … ]` block gave a bare
+  `no_registration`. That is pic scoping (a `=` inside a block is local, as in
+  dpic — verified against the oracle), so the engine is unchanged; the
+  `no_registration` hint, docs/geopic.md, docs/scene.md (`vars` = the
+  top-level table) and the Maps page now say to assign them at top level, or
+  with `:=` onto an existing top-level variable (DECISIONS S14, #443).
+
 ## [0.16.0] — 2026-11-08
 
 ### Added

@@ -59,6 +59,14 @@ and a **frame** carries plane points to the ellipsoid.
 | `geo_px` | `1` = lengths are pixels at the caller's `view_scale` (px per inch); `geo_scale` is then metres per pixel |
 | `<Label>_lon`, `<Label>_lat` | a **control point**: the place `Label: …` (or the object labelled `Label`) sits at that position |
 
+These are read from the scene's top-level `vars`, so assign them **at the top
+level** of the source. As in dpic, a `=` inside `[ … ]` creates a variable local
+to the block: `[ geo_lon = -34.87; geo_lat = -8.06; box ]` registers nothing
+(error `no_registration`, whose hint says so). `:=` inside a block assigns an
+existing top-level variable and does propagate (`geo_lon = 0` … `[ geo_lon :=
+-34.87 ]`). `if`/`for` bodies are not scopes; assignments there count
+(DECISIONS S14).
+
 Caller options (`GeoOptions`; `anchor=`, `scale=`, `bearing=`, `frame=`, …)
 override the variables, like `-D` in troff. Host-provided **features**
 (`name, lon, lat[, bbox]`) whose name matches a label are control points too,

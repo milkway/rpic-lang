@@ -67,7 +67,7 @@ Library/bindings:
 | `canvas.origin` | `[ox, oy]`: where the pic origin `(0,0)` sits, measured from the canvas **lower-left** corner |
 | `rescale` | the uniform factor the whole-picture rescale (`.PS <width> [<height>]`, then the `maxpswid`/`maxpsht` clamp) applied to the geometry; `1` when none acted. `vars` are **pre**-rescale (see the caveat below), so a consumer relating a variable to the geometry — metres per inch, say — multiplies by this |
 | `source` | the input's base name, when the caller provided one (the CLI does); absent otherwise |
-| `vars` | every user variable and every pic built-in (by its pic name: `boxwid`, `scale`, …) with its **final** value, full `f64` precision |
+| `vars` | the **top-level** variable table: every user variable and every pic built-in (by its pic name: `boxwid`, `scale`, …) with its **final** value, full `f64` precision. A variable created by `=` inside `[ … ]` is local to that block (as in dpic) and is not listed; `:=` inside a block onto an existing top-level variable updates it here; `if`/`for` bodies are not scopes (DECISIONS S14) |
 | `places` | the named places — every `Label: position` statement, one entry per evaluation (a loop body contributes one per iteration; a redefined label appears again), in evaluation order. `label` is the resolved key, subscripts included (`R[2]`); `at` is in scene units, the same frame as the items (block placement and the whole-picture rescale applied); `block`, when the statement ran inside `[ … ]`, is the enclosing block path as in items; `span` is the label's source position. Empty array when the source defines none |
 | `items` | the draw list, in draw order ([§3](#3-items)) |
 
