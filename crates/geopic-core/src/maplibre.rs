@@ -249,6 +249,26 @@ impl Sizing {
             })
         };
 
+        let symbol = |id: &str, k: &str| {
+            json!({
+                "id": id, "type": "symbol", "source": SOURCE,
+                "filter": ["==", kind.clone(), k],
+                "layout": {
+                    "text-field": ["get", "geopic:text"],
+                    "text-font": ["Noto Sans Regular"],
+                    "text-size": text_size.clone(),
+                    "text-anchor": anchor.clone(),
+                    // geopic:rotation is CCW from east; MapLibre rotates clockwise
+                    "text-rotate": ["*", -1, ["coalesce", ["get", "geopic:rotation"], 0]],
+                    "text-rotation-alignment": "map",
+                    "text-pitch-alignment": "map",
+                    "text-allow-overlap": true,
+                    "text-ignore-placement": true,
+                },
+                "paint": text_paint.clone(),
+            })
+        };
+
         vec![
             json!({
                 "id": "pic-fill", "type": "fill", "source": SOURCE,
@@ -268,38 +288,10 @@ impl Sizing {
                     "circle-color": ["coalesce", ["get", "fill"], "#000000"],
                 },
             }),
-            json!({
-                "id": "pic-text", "type": "symbol", "source": SOURCE,
-                "filter": ["==", kind.clone(), "text"],
-                "layout": {
-                    "text-field": ["get", "geopic:text"],
-                    "text-font": ["Noto Sans Regular"],
-                    "text-size": text_size.clone(),
-                    "text-anchor": anchor,
-                    // geopic:rotation is CCW from east; MapLibre rotates clockwise
-                    "text-rotate": ["*", -1, ["coalesce", ["get", "geopic:rotation"], 0]],
-                    "text-rotation-alignment": "map",
-                    "text-pitch-alignment": "map",
-                    "text-allow-overlap": true,
-                    "text-ignore-placement": true,
-                },
-                "paint": text_paint.clone(),
-            }),
-            // text attached to a shape (a box's label) sits at its centre
-            json!({
-                "id": "pic-title", "type": "symbol", "source": SOURCE,
-                "filter": ["all", is_polygon, ["has", "title"], ["!=", kind, "arrowhead"]],
-                "layout": {
-                    "text-field": ["get", "title"],
-                    "text-font": ["Noto Sans Regular"],
-                    "text-size": text_size,
-                    "text-rotation-alignment": "map",
-                    "text-pitch-alignment": "map",
-                    "text-allow-overlap": true,
-                    "text-ignore-placement": true,
-                },
-                "paint": text_paint,
-            }),
+            symbol("pic-text", "text"),
+            // text attached to a shape (a box's label): its own Point at the
+            // shape's centre (DECISIONS G10), styled like free text
+            symbol("pic-title", "title"),
         ]
     }
 }

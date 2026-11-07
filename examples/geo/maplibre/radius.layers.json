@@ -455,31 +455,17 @@
   "type": "symbol",
   "source": "pic",
   "filter": [
-   "all",
+   "==",
    [
-    "==",
-    [
-     "geometry-type"
-    ],
-    "Polygon"
+    "get",
+    "geopic:kind"
    ],
-   [
-    "has",
-    "title"
-   ],
-   [
-    "!=",
-    [
-     "get",
-     "geopic:kind"
-    ],
-    "arrowhead"
-   ]
+   "title"
   ],
   "layout": {
    "text-field": [
     "get",
-    "title"
+    "geopic:text"
    ],
    "text-font": [
     "Noto Sans Regular"
@@ -538,6 +524,44 @@
        0.8456504649109874
       ]
      ]
+    ]
+   ],
+   "text-anchor": [
+    "match",
+    [
+     "get",
+     "geopic:anchor"
+    ],
+    "c",
+    "center",
+    "n",
+    "top",
+    "s",
+    "bottom",
+    "e",
+    "right",
+    "w",
+    "left",
+    "ne",
+    "top-right",
+    "nw",
+    "top-left",
+    "se",
+    "bottom-right",
+    "sw",
+    "bottom-left",
+    "center"
+   ],
+   "text-rotate": [
+    "*",
+    -1,
+    [
+     "coalesce",
+     [
+      "get",
+      "geopic:rotation"
+     ],
+     0
     ]
    ],
    "text-rotation-alignment": "map",

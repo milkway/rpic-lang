@@ -52,6 +52,16 @@ for (const [name, fc] of Object.entries(cases)) {
   close(port, maplibreLayers(fc), `${name} vs engine`);
 }
 
+// pic-title draws the title Points (#435), styled exactly as pic-text
+{
+  const ls = layers(cases.callout);
+  const [text, title] = ['pic-text', 'pic-title'].map((id) => ls.find((l) => l.id === id));
+  assert.deepEqual(title.filter, ['==', ['get', 'geopic:kind'], 'title']);
+  assert.deepEqual(title.layout, text.layout);
+  assert.deepEqual(title.paint, text.paint);
+  assert.equal(cases.callout.features.filter((f) => f.properties['geopic:kind'] === 'title').length, 1);
+}
+
 // sizing: 400 m/in at lat −8.0631 → p₀ = 1/(78271.517·cos φ), 11 pt → stop 18
 const s = sizing(cases.callout);
 assert.equal(s.mPerIn, 400);

@@ -85,6 +85,22 @@ export function layers(fc) {
       ...(dashed ? { 'line-dasharray': [3, 2] } : {}),
     },
   });
+  const symbol = (id, k) => ({
+    id, type: 'symbol', source: SOURCE, filter: ['==', kind(), k],
+    layout: {
+      'text-field': ['get', 'geopic:text'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': textSize(),
+      'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],
+      // geopic:rotation is CCW from east; MapLibre rotates clockwise
+      'text-rotate': ['*', -1, ['coalesce', ['get', 'geopic:rotation'], 0]],
+      'text-rotation-alignment': 'map',
+      'text-pitch-alignment': 'map',
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: textPaint(),
+  });
   return [
     {
       id: 'pic-fill', type: 'fill', source: SOURCE, filter: isPolygon(),
@@ -99,37 +115,10 @@ export function layers(fc) {
       id: 'pic-dot', type: 'circle', source: SOURCE, filter: ['==', kind(), 'dot'],
       paint: { 'circle-radius': dotRadius, 'circle-color': ['coalesce', ['get', 'fill'], '#000000'] },
     },
-    {
-      id: 'pic-text', type: 'symbol', source: SOURCE, filter: ['==', kind(), 'text'],
-      layout: {
-        'text-field': ['get', 'geopic:text'],
-        'text-font': ['Noto Sans Regular'],
-        'text-size': textSize(),
-        'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],
-        // geopic:rotation is CCW from east; MapLibre rotates clockwise
-        'text-rotate': ['*', -1, ['coalesce', ['get', 'geopic:rotation'], 0]],
-        'text-rotation-alignment': 'map',
-        'text-pitch-alignment': 'map',
-        'text-allow-overlap': true,
-        'text-ignore-placement': true,
-      },
-      paint: textPaint(),
-    },
-    // text attached to a shape (a box's label) sits at the shape's centre
-    {
-      id: 'pic-title', type: 'symbol', source: SOURCE,
-      filter: ['all', isPolygon(), ['has', 'title'], ['!=', kind(), 'arrowhead']],
-      layout: {
-        'text-field': ['get', 'title'],
-        'text-font': ['Noto Sans Regular'],
-        'text-size': textSize(),
-        'text-rotation-alignment': 'map',
-        'text-pitch-alignment': 'map',
-        'text-allow-overlap': true,
-        'text-ignore-placement': true,
-      },
-      paint: textPaint(),
-    },
+    symbol('pic-text', 'text'),
+    // text attached to a shape (a box's label): its own Point at the shape's
+    // centre (DECISIONS G10), styled like free text
+    symbol('pic-title', 'title'),
   ];
 }
 
