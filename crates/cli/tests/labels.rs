@@ -7,7 +7,8 @@
 use std::process::Command;
 
 fn run(name: &str, src: &str, mode: &str) -> String {
-    let dir = std::env::temp_dir().join("rpic-label-tests");
+    // per process: two checkouts running `cargo test` must not race
+    let dir = std::env::temp_dir().join(format!("rpic-label-tests-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("mk temp dir");
     let pic = dir.join(format!("{name}.pic"));
     std::fs::write(&pic, src).expect("write pic");
