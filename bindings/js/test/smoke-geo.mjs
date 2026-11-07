@@ -3,7 +3,7 @@
 // own process — ready() fixes the build choice per module instance.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { compile, compileGeoJSON, GeoError, geoToCanvas, ready, renderSvg } from '../index.js';
+import { compile, compileGeoJSON, GeoError, geoToCanvas, maplibreLayers, ready, renderSvg } from '../index.js';
 
 const close = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
 const kinds = (fc) => fc.features.map((f) => f.properties['geopic:kind']);
@@ -163,6 +163,25 @@ assert.throws(
   () => compileGeoJSON(plain, { features: [['A', 0, 0], { name: 'A', lon: 1, lat: 1 }] }),
   /feature "A" is given more than once/
 );
+
+// layers: true adds the MapLibre layers (docs/geopic.md § 6); absent by default
+const withLayers = compileGeoJSON(SRC, { layers: true });
+assert.deepEqual(Object.keys(withLayers).sort(), ['canvas', 'diagnostics', 'geojson', 'layers', 'registration', 'warnings']);
+assert.deepEqual(
+  withLayers.layers.map((l) => l.id),
+  ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot', 'pic-text', 'pic-title'],
+);
+assert.ok(withLayers.layers.every((l) => l.source === 'pic'));
+assert.deepEqual(withLayers.geojson, out.geojson);
+assert.deepEqual(maplibreLayers(withLayers.geojson), withLayers.layers);
+assert.deepEqual(maplibreLayers(JSON.stringify(withLayers.geojson)), withLayers.layers);
+assert.throws(() => maplibreLayers({ type: 'Feature' }), (e) => e instanceof GeoError && e.info.kind === 'invalid_geojson');
+// …through the two-pass feature injection too
+const injLayers = compileGeoJSON('geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 1000\narrow from Recife to Olinda', {
+  features: { Recife: [-34.8711, -8.0631], Olinda: [-34.8553, -8.0089] },
+  layers: true,
+});
+assert.equal(injLayers.layers.length, 6);
 
 // the regular compile surface still carries scenes
 assert.ok(compile('box', { scene: true }).scene.items.length === 1);

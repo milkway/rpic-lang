@@ -9,6 +9,8 @@ Format, properties and warnings: ``docs/geopic.md`` in the repository.
     import rpic
     fc = rpic.geo.to_geojson(src)                 # dict (a FeatureCollection)
     out = rpic.geo.compile(src)                   # {"geojson", "warnings", "diagnostics", "registration", "canvas"}
+    out = rpic.geo.compile(src, layers=True)      # … + "layers": the MapLibre layers that draw it
+    layers = rpic.geo.maplibre_layers(fc)         # the same, for any geopic FeatureCollection
     gdf = rpic.geo.to_geodataframe(src)           # needs `pip install "rpiclang[geo]"`
 """
 
@@ -28,6 +30,7 @@ __all__ = [
     "GeoError",
     "GeoWarning",
     "compile",
+    "maplibre_layers",
     "to_geojson",
     "to_geodataframe",
 ]
@@ -235,8 +238,20 @@ def _compile_with_features(src: str, feats: list[_Feature], kwargs: dict) -> dic
     return out
 
 
-def compile(src: str, *, warn: bool = True, features: FeatureLike = None, _stacklevel: int = 2, **kwargs: Any) -> dict:
+def compile(
+    src: str,
+    *,
+    warn: bool = True,
+    features: FeatureLike = None,
+    layers: bool = False,
+    _stacklevel: int = 2,
+    **kwargs: Any,
+) -> dict:
     """Georeference ``src``: ``{"geojson": dict, "warnings": [dict], "diagnostics": [str], "registration": dict, "canvas": dict}``.
+
+    ``layers=True`` adds ``"layers"``: the MapLibre style-spec layers that
+    draw the collection with sizes true to the ground (see
+    :func:`maplibre_layers`).
 
     Keyword arguments: ``frame`` (``"enu"`` | ``"mercator"``), ``anchor``
     ``(lon, lat)``, ``scale`` (metres per inch), ``bearing`` (degrees,
@@ -257,10 +272,31 @@ def compile(src: str, *, warn: bool = True, features: FeatureLike = None, _stack
     """
     feats = _normalize_features(features)
     out = _compile_with_features(src, feats, kwargs) if feats else _native.geo_compile(src, **kwargs)
+    if layers:
+        out["layers"] = maplibre_layers(out["geojson"])
     if warn:
         for w in out["warnings"]:
             _warnings.warn(GeoWarning(w), stacklevel=_stacklevel)
     return out
+
+
+def maplibre_layers(fc: Mapping[str, Any] | str) -> list:
+    """The MapLibre style-spec layers that draw a geopic FeatureCollection.
+
+    ``fc`` is the collection (a dict, as :func:`to_geojson` returns it, or its
+    JSON text). The result is a list of six layer dicts — ``pic-fill``,
+    ``pic-stroke``, ``pic-stroke-dashed``, ``pic-dot``, ``pic-text``,
+    ``pic-title``, in draw order — that all read one GeoJSON source named
+    ``"pic"``: add the collection as that source and the layers as they are
+    (MapLibre GL JS, ``mapgl`` in R, ``maplibre`` for Python…). Every stroke
+    width, dot radius and font size is an ``interpolate`` on zoom that keeps
+    it true to the ground, from the collection's ``geopic.registration``
+    (``docs/geopic.md`` § 6). Only that member and the features'
+    ``geopic:font_size`` are read. Raises :class:`GeoError`
+    (``invalid_geojson``) when ``fc`` is not a FeatureCollection.
+    """
+    text = fc if isinstance(fc, str) else json.dumps(fc)
+    return json.loads(_native.maplibre_layers(text))
 
 
 def to_geojson(src: str, **kwargs: Any) -> dict:

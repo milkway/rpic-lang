@@ -377,6 +377,10 @@ function checkGeoOptions(opts) {
  * they have a `bbox`, so `Name.n`/`Name.e` follow its extent — before the
  * final pass. Diagnostics keep the caller's line numbers.
  *
+ * `layers: true` adds `layers`: the MapLibre style-spec layers that draw the
+ * collection with sizes true to the ground (source id `"pic"`; hand them to
+ * `attach` from `@strategicprojects/rpic/maplibre`).
+ *
  * Throws an `Error` with `.errorInfo` on a pic error (like `compile`) and a
  * `GeoError` (`.info = { kind, message, hint }`) on a georeferencing error.
  */
@@ -392,6 +396,8 @@ export function compileGeoJSON(src, opts = {}) {
     flatten: opts.flatten,
     view_scale: opts.viewScale,
     screen_classes: opts.screenClasses,
+    // the MapLibre layers (docs/geopic.md § 6); absent unless asked for
+    layers: opts.layers ? true : undefined,
   };
   return feats.length
     ? compileWithFeatures(src, feats, base, opts)
@@ -408,6 +414,20 @@ export function compileGeoJSON(src, opts = {}) {
 export function geoToCanvas(registration, points) {
   const reg = typeof registration === 'string' ? registration : JSON.stringify(registration);
   const out = JSON.parse(geoWasm().geo_to_canvas(reg, JSON.stringify(points)));
+  if (!Array.isArray(out)) throw new GeoError(out.error, out.geo_error);
+  return out;
+}
+
+/**
+ * The MapLibre layers (docs/geopic.md § 6) that draw a geopic
+ * FeatureCollection — the engine's own output, as `compileGeoJSON(src,
+ * { layers: true })` gives it. Needs the geo build.
+ * @param {object | string} fc a FeatureCollection from `compileGeoJSON` (or its JSON text)
+ * @returns {object[]}
+ */
+export function maplibreLayers(fc) {
+  const text = typeof fc === 'string' ? fc : JSON.stringify(fc);
+  const out = JSON.parse(geoWasm().maplibre_layers(text));
   if (!Array.isArray(out)) throw new GeoError(out.error, out.geo_error);
   return out;
 }

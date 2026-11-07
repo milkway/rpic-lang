@@ -46,6 +46,7 @@ jobs:
           RPIC_BIN: ${{ github.workspace }}/target/release/rpic
         run: |
           npm ci
+          npm test
           npm run build
 
   highlight-grammar:

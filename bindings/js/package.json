@@ -15,6 +15,10 @@
       "types": "./player.d.ts",
       "default": "./player.js"
     },
+    "./maplibre": {
+      "types": "./maplibre.d.ts",
+      "default": "./maplibre.js"
+    },
     "./pkg/rpic_wasm_bg.wasm": "./pkg/rpic_wasm_bg.wasm",
     "./pkg/rpic_wasm_math_bg.wasm": "./pkg/rpic_wasm_math_bg.wasm",
     "./pkg/rpic_wasm_geo_bg.wasm": "./pkg/rpic_wasm_geo_bg.wasm"
@@ -24,6 +28,8 @@
     "index.d.ts",
     "player.js",
     "player.d.ts",
+    "maplibre.js",
+    "maplibre.d.ts",
     "pkg/rpic_wasm.js",
     "pkg/rpic_wasm.d.ts",
     "pkg/rpic_wasm_bg.wasm",
@@ -44,7 +50,7 @@
     "build:wasm:geo": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg --out-name rpic_wasm_geo -- --features geo",
     "build:wasm": "npm run build:wasm:lean && npm run build:wasm:math && npm run build:wasm:geo",
     "prepack": "npm run build:wasm",
-    "test": "node test/smoke.mjs && node test/smoke-math.mjs && node test/smoke-geo.mjs"
+    "test": "node test/smoke.mjs && node test/smoke-math.mjs && node test/smoke-geo.mjs && node test/smoke-maplibre.mjs"
   },
   "keywords": ["pic", "svg", "diagram", "graphics", "wasm", "gsap", "animation", "circuits", "geojson", "maps"],
   "author": "André Leite <leite@de.ufpe.br>",

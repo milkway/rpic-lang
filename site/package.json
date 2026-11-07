@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "node scripts/check-maplibre-layers.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.2",

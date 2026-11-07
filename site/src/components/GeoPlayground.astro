@@ -154,9 +154,10 @@ const initialStudio = studioUrl(first.source);
       }
       try {
         const frame = frameSel.value as '' | 'enu' | 'mercator';
-        const out = rpic.compileGeoJSON(src, frame ? { frame } : {});
+        // the engine's MapLibre layers ride along (sizes true to the ground)
+        const out = rpic.compileGeoJSON(src, { ...(frame ? { frame } : {}), layers: true });
         const fc = out.geojson as unknown as GeoFC;
-        map.setGeoJSON(fc);
+        map.setGeoJSON(fc, out.layers);
         if (fit) map.fitTo(fc);
         const r = out.registration;
         const parts = [

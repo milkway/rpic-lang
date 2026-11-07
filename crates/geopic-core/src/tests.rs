@@ -914,3 +914,168 @@ fn font_sizes_and_the_registration_ride_the_collection() {
         .unwrap();
     assert!(dot["properties"].get("geopic:font_size").is_none());
 }
+
+// ---- MapLibre layers (DECISIONS G9, docs/geopic.md § Rendering on MapLibre)
+
+fn layer<'a>(ls: &'a [Value], id: &str) -> &'a Value {
+    ls.iter().find(|l| l["id"] == id).expect(id)
+}
+
+/// The two zoom stops of an `interpolate` size: `[(z, factor)]`, where the
+/// innermost `["*", metres, factor]` carries the px-per-metre at that zoom.
+fn stops(expr: &Value) -> Vec<(f64, f64)> {
+    let a = expr.as_array().unwrap();
+    assert_eq!(a[0], "interpolate");
+    assert_eq!(a[1], serde_json::json!(["exponential", 2]));
+    assert_eq!(a[2], serde_json::json!(["zoom"]));
+    a[3..]
+        .chunks(2)
+        .map(|c| {
+            // ["max", floor, ["*", metres, f]] or ["min", 255, ["max", 1, [...]]]
+            let mut e = &c[1];
+            while e[0] != "*" {
+                e = &e[2];
+            }
+            (c[0].as_f64().unwrap(), e[2].as_f64().unwrap())
+        })
+        .collect()
+}
+
+#[test]
+fn maplibre_layers_ids_order_and_source() {
+    let g = georeference(
+        &scene_of("geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\nB: box \"hub\"\ndot at (2,0)\n\"t\" at (3,0)"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let ls = crate::maplibre::layers(&g.features);
+    let ids: Vec<&str> = ls.iter().map(|l| l["id"].as_str().unwrap()).collect();
+    assert_eq!(
+        ids,
+        [
+            "pic-fill",
+            "pic-stroke",
+            "pic-stroke-dashed",
+            "pic-dot",
+            "pic-text",
+            "pic-title"
+        ]
+    );
+    let types: Vec<&str> = ls.iter().map(|l| l["type"].as_str().unwrap()).collect();
+    assert_eq!(
+        types,
+        ["fill", "line", "line", "circle", "symbol", "symbol"]
+    );
+    assert!(ls.iter().all(|l| l["source"] == "pic"));
+    assert_eq!(
+        layer(&ls, "pic-stroke-dashed")["paint"]["line-dasharray"],
+        serde_json::json!([3, 2])
+    );
+    assert!(
+        layer(&ls, "pic-stroke")["paint"]
+            .get("line-dasharray")
+            .is_none()
+    );
+    // compass → MapLibre anchors, `center` fallback
+    let anchor = layer(&ls, "pic-text")["layout"]["text-anchor"]
+        .as_array()
+        .unwrap()
+        .clone();
+    assert_eq!(anchor[0], "match");
+    assert_eq!(anchor.len(), 2 + 2 * 9 + 1);
+    assert_eq!(anchor[anchor.len() - 1], "center");
+    let pairs: Vec<(&str, &str)> = anchor[2..anchor.len() - 1]
+        .chunks(2)
+        .map(|c| (c[0].as_str().unwrap(), c[1].as_str().unwrap()))
+        .collect();
+    assert!(pairs.contains(&("w", "left")) && pairs.contains(&("ne", "top-right")));
+    // the JSON entry point gives the same array
+    let via_json: Value =
+        serde_json::from_str(&crate::maplibre::layers_json(&g.features.to_json()).unwrap())
+            .unwrap();
+    assert_eq!(via_json, Value::Array(ls));
+    let bad = crate::maplibre::layers_json("{\"type\":\"Feature\"}").unwrap_err();
+    assert_eq!(bad.kind, "invalid_geojson");
+    assert_eq!(
+        crate::maplibre::layers_json("nope").unwrap_err().kind,
+        "invalid_geojson"
+    );
+}
+
+#[test]
+fn maplibre_sizes_are_true_to_the_ground() {
+    // 400 m per inch at Marco Zero (lat −8.0631), one 11 pt label
+    let g = georeference(
+        &scene_of("geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\nB: box \"hub\""),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let s = crate::maplibre::sizing(&g.features);
+    let cos = (-8.0631_f64).to_radians().cos();
+    let px0 = 1.0 / (78_271.517 * cos);
+    assert!((s.px_per_metre_z0 - px0).abs() <= 1e-18);
+    assert!(
+        (s.px_per_metre_z0 - 1.290_360_2e-5).abs() < 1e-12,
+        "{}",
+        s.px_per_metre_z0
+    );
+    assert_eq!(s.m_per_in, 400.0);
+    // 11 pt = 61.11 m; 255 px / (61.11 m · px0) = 2^18.3 → stop at zoom 18
+    let font_m = 11.0 * 400.0 / 72.0;
+    assert_eq!(s.text_z_hi, (255.0 / (font_m * px0)).log2().floor() as i32);
+    assert_eq!(s.text_z_hi, 18);
+
+    let ls = crate::maplibre::layers(&g.features);
+    // line width: (stroke-width pt · m/in / 72) metres, × px0 at z0, × px0·2^24 at z24
+    let lw = &layer(&ls, "pic-stroke")["paint"]["line-width"];
+    assert_eq!(stops(lw), [(0.0, px0), (24.0, px0 * 2f64.powi(24))]);
+    assert_eq!(lw[4][1], 1); // 1 px floor
+    assert_eq!(
+        lw[4][2][1],
+        serde_json::json!([
+            "*",
+            ["coalesce", ["get", "stroke-width"], 0.8],
+            400.0 / 72.0
+        ])
+    );
+    assert_eq!(layer(&ls, "pic-stroke-dashed")["paint"]["line-width"], *lw);
+    // dot radius: inches × m/in, 2 px floor
+    let r = &layer(&ls, "pic-dot")["paint"]["circle-radius"];
+    assert_eq!(stops(r), [(0.0, px0), (24.0, px0 * 2f64.powi(24))]);
+    assert_eq!(r[4][1], 2);
+    assert_eq!(
+        r[4][2][1],
+        serde_json::json!(["*", ["coalesce", ["get", "geopic:radius_in"], 0.04], 400.0])
+    );
+    // text: upper stop at text_z_hi, capped at 255 px
+    let ts = &layer(&ls, "pic-text")["layout"]["text-size"];
+    assert_eq!(stops(ts), [(0.0, px0), (18.0, px0 * 2f64.powi(18))]);
+    assert_eq!(ts[6][0], "min");
+    assert_eq!(ts[6][1], 255);
+    assert_eq!(layer(&ls, "pic-title")["layout"]["text-size"], *ts);
+    // at the upper stop the largest font is just under 255 px
+    let px_hi = font_m * px0 * 2f64.powi(18);
+    assert!(px_hi <= 255.0 && px_hi * 2.0 > 255.0, "{px_hi}");
+}
+
+#[test]
+fn maplibre_mercator_drops_cos_and_defaults_hold() {
+    let src =
+        "geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\ngeo_frame = 1\nB: box \"hub\"";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let s = crate::maplibre::sizing(&g.features);
+    assert_eq!(s.lat, 0.0);
+    assert_eq!(s.px_per_metre_z0, 1.0 / 78_271.517);
+    // no registration at all: 100 m/in, lat 0; no font → the 1e-6 m floor
+    // pushes the text stop to its ceiling
+    let empty = crate::FeatureCollection::new(Vec::new());
+    let d = crate::maplibre::sizing(&empty);
+    assert_eq!(d.m_per_in, 100.0);
+    assert_eq!(d.lat, 0.0);
+    assert_eq!(d.text_z_hi, 24);
+    let ls = crate::maplibre::layers(&empty);
+    assert_eq!(
+        layer(&ls, "pic-stroke")["paint"]["line-width"][4][2][1][2],
+        100.0 / 72.0
+    );
+}

@@ -595,6 +595,15 @@ fn geo_to_canvas(registration: &str, lon: f64, lat: f64) -> PyResult<(f64, f64)>
     Ok((p[0], p[1]))
 }
 
+/// The MapLibre style-spec layers (docs/geopic.md § 6) for a geopic
+/// FeatureCollection given as JSON text; returns the layers array as JSON
+/// text (rpic.geo.maplibre_layers parses it). Raises GeoError
+/// (`invalid_geojson`) when the input is not a FeatureCollection.
+#[pyfunction]
+fn maplibre_layers(py: Python<'_>, fc_json: &str) -> PyResult<String> {
+    geopic_core::maplibre::layers_json(fc_json).map_err(|e| geo_err(py, e))
+}
+
 #[pymodule(name = "_native")]
 fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     rpic_core::set_math_renderer(rpic_render::math::render_math);
@@ -607,6 +616,7 @@ fn rpic(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(geo_compile, m)?)?;
     m.add_function(wrap_pyfunction!(geo_to_canvas, m)?)?;
     m.add_function(wrap_pyfunction!(geo_to_canvas_many, m)?)?;
+    m.add_function(wrap_pyfunction!(maplibre_layers, m)?)?;
     m.add("CompileError", m.py().get_type::<CompileError>())?;
     m.add("GeoError", m.py().get_type::<GeoError>())?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
