@@ -423,7 +423,8 @@ where every consumer gets them the same way:
   the options. The zero-import JS module takes it: `attach(map, fc,
   { before })` / `createGeoMap(…, { before })`, a layer id or `'labels'` =
   a layer whose id really is `labels` when the style has one (the sentinel
-  must not shadow a real id), else the first `symbol` layer of
+  must not shadow a real id), else the first `symbol` layer (corrected:
+  see the addendum below) of
   `map.getStyle().layers` that is not one of ours, resolved when the layers
   are added. Only the geometry layers
   (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) go before it;
@@ -436,6 +437,36 @@ where every consumer gets them the same way:
   `'labels'`. rpic-r already has `rpic_geojson()`/`rpic_sf()`/`rpic_mapgl()`;
   its next release adds `rpic_mapgl(…, before = "labels", text_scale = …)`
   (signature decided), mirroring both.
+
+Addendum (after 0.16.1): `'labels'` was "the first `symbol` layer", which
+is wrong for styles that interleave labels with the geometry. Measured on
+CARTO positron (`basemaps.cartocdn.com/gl/positron-gl-style/style.json`,
+95 layers): the first symbol is `waterway_label` at index 13, followed by
+tunnels, roads, buildings and boundaries up to `boundary_country_inner` at
+67 — the drawing sat under all of them. OpenFreeMap's positron, used on
+rpic.dev, keeps every symbol at the end, which hid it. `'labels'` is now
+the start of the style's *trailing* symbol block: the first layer after
+the last non-`symbol` layer (ours ignored) — on CARTO index 68
+(`watername_ocean`, then the `place_*`, `poi_*` and `roadname_*` labels),
+not 13. No symbol after the last geometry layer = on top; a layer really
+named `labels` still wins. Labels interleaved below the last geometry
+layer stay under the shapes — the price of keeping the basemap's roads
+and buildings below them.
+
+Second addendum (same fix): a `pic-text` label drawn on CARTO sat centred on
+the line it annotates. The anchor was right; the font was not. Rendered on
+MapLibre 5.22 with CARTO positron, the specs' `text-font ["Noto Sans
+Regular"]` (CARTO's glyph server serves a Noto with different vertical
+metrics) centres the text box on the anchor; the style's own `["Montserrat
+Regular"]` puts it above with the right gap. OpenFreeMap's Noto behaves.
+The specs keep Noto (they stay a pure function of the collection, and any
+fixed name is someone's wrong font); placement-like, the font belongs to
+the consumer's map: `attach(…, { font })`, `'style'` by default = the most
+common `text-font` stack among the style's own symbol layers (counted by
+the whole stack; ties to a Regular/Medium first face over Bold/Italic;
+the spec's when the style has none), `'spec'` = the placeholder, or an
+explicit stack — set on copies of `pic-text`/`pic-title` when added;
+`createGeoMap` forwards it. rpic.dev needs no change.
 
 ## Embedder API (2026-11-07, #425)
 

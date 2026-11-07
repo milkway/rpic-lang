@@ -188,21 +188,68 @@ const EMPTY = { type: 'FeatureCollection', features: [] };
 /**
  * The layer id the pic geometry layers are inserted before, resolved now from
  * the map's current style: `'labels'` = a layer whose id really is `labels`
- * when the style has one, else the first `symbol` layer that is not one of
- * ours (the basemap's place names, road labels…); any other string = that
- * layer, when the map has it. `undefined` (append on top) otherwise.
+ * when the style has one, else the start of the style's *trailing* label
+ * block — the first layer after the last non-`symbol` layer (ours ignored).
+ * Not the first `symbol` layer: CARTO's positron has `waterway_label` at 13
+ * and roads, buildings and boundaries up to 67, its names from 68 on. With
+ * no symbol layer after the last geometry layer, `undefined` (on top). Any
+ * other string = that layer, when the map has it; `undefined` otherwise.
  */
 function beforeId(map, before) {
   if (before == null) return undefined;
   if (before === 'labels') {
     if (map.getLayer('labels')) return 'labels'; // a style with a real `labels` layer
     const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
-    const first = (style?.layers ?? []).find((l) => l.type === 'symbol' && !LAYER_IDS.includes(l.id));
-    return first?.id;
+    const basemap = (style?.layers ?? []).filter((l) => !LAYER_IDS.includes(l.id));
+    let lastGeo = -1;
+    basemap.forEach((l, i) => { if (l.type !== 'symbol') lastGeo = i; });
+    return basemap[lastGeo + 1]?.id; // a symbol layer by construction, or none
   }
   if (map.getLayer(before)) return before;
   console.warn(`rpic: attach: no layer "${before}" on the map; the pic layers go on top`);
   return undefined;
+}
+
+/** `text-font` as a plain stack of names (`["literal", […]]` unwrapped), or null. */
+function fontStack(v) {
+  if (Array.isArray(v) && v[0] === 'literal' && Array.isArray(v[1])) v = v[1];
+  return Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string') ? v : null;
+}
+
+/**
+ * The font the drawing's labels use under `font` (see `attach`): an explicit
+ * stack as given; `'spec'` = null (the engine's, untouched); `'style'` = the
+ * most common `text-font` stack among the style's own symbol layers (ours
+ * ignored; stacks compared whole), ties going to a stack whose first name is a
+ * Regular or Medium face, then to the first seen — null when the style has no
+ * symbol layer with a plain `text-font` (the spec's then stands).
+ */
+function resolveFont(map, font) {
+  if (Array.isArray(font)) return font;
+  if (font === 'spec') return null;
+  const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
+  const counts = new Map(); // JSON → { stack, n, order }
+  for (const l of style?.layers ?? []) {
+    if (l.type !== 'symbol' || LAYER_IDS.includes(l.id)) continue;
+    const stack = fontStack(l.layout?.['text-font']);
+    if (!stack) continue;
+    const key = JSON.stringify(stack);
+    const c = counts.get(key) ?? { stack, n: 0, order: counts.size };
+    c.n += 1;
+    counts.set(key, c);
+  }
+  const plain = (c) => (/Regular|Medium/.test(c.stack[0]) ? 1 : 0);
+  let best = null;
+  for (const c of counts.values()) {
+    if (!best || c.n > best.n || (c.n === best.n && plain(c) > plain(best))) best = c;
+  }
+  return best ? best.stack : null;
+}
+
+/** Check `attach`'s `font` option up front: `'style'`, `'spec'` or a stack. */
+function checkFont(font) {
+  if (font === 'style' || font === 'spec' || fontStack(font)) return;
+  throw new TypeError(`rpic: attach: font must be 'style', 'spec' or a non-empty array of font names, got ${JSON.stringify(font)}`);
 }
 
 /**
@@ -211,11 +258,19 @@ function beforeId(map, before) {
  * { layers: true }).layers`); omitted, they are computed by `layers(fc)`.
  * `fit: true` frames the drawing. `before` places the *geometry* layers
  * (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) under another
- * one: a layer id, or `'labels'` for the first `symbol` layer of the map's
- * style (so the basemap's labels stay above the shapes); resolved each time
+ * one: a layer id, or `'labels'` for the start of the style's trailing block
+ * of `symbol` layers (so the basemap's labels stay above the shapes, and its
+ * roads and buildings below them); resolved each time
  * the layers are added, on top when there is no such layer. The drawing's
  * own labels (`pic-text`, `pic-title`) are always appended on top, so a
- * basemap label never covers them. Waits for the map's
+ * basemap label never covers them. `font` picks their `text-font`:
+ * `'style'` (default) = the most common stack of the style's own symbol
+ * layers — the glyph server serves those, and a font it serves with other
+ * vertical metrics (CARTO's Noto) puts a text box centred on its anchor
+ * instead of beside it; `'spec'` = the engine's `["Noto Sans Regular"]`, a
+ * placeholder; or an explicit stack. Resolved when the label layers are
+ * added (the caller's specs are copied, never changed); the spec's font when
+ * the style has no symbol layer with a `text-font`. Waits for the map's
  * `load` when the style is not loaded yet; calls made meanwhile are applied
  * then.
  * @returns {{ setGeoJSON(fc, layers?): void, fitTo(fc?): void, detach(): void }}
@@ -226,6 +281,8 @@ export function attach(map, fc = EMPTY, opts = {}) {
   let pendingFit = opts.fit ? true : null; // true = frame `current`, or a collection
   let ready = false;
   let detached = false;
+  const font = opts.font ?? 'style';
+  checkFont(font);
 
   // the only properties that depend on the collection (its registration and
   // largest font): everything else in a spec is constant across collections
@@ -233,10 +290,13 @@ export function attach(map, fc = EMPTY, opts = {}) {
   const SIZE_LAYOUT = ['text-size'];
   function applyLayers(specs) {
     let below; // resolved once per pass, only when a layer is added
+    let textFont; // likewise, only when a label layer is added
     for (const spec of specs) {
       if (!map.getLayer(spec.id)) {
         if (TEXT_LAYER_IDS.includes(spec.id)) {
-          map.addLayer(spec); // the drawing's labels: on top, never buried
+          if (textFont === undefined) textFont = { stack: resolveFont(map, font) };
+          const add = textFont.stack ? { ...spec, layout: { ...spec.layout, 'text-font': textFont.stack } } : spec;
+          map.addLayer(add); // the drawing's labels: on top, never buried
           continue;
         }
         if (below === undefined) below = { id: beforeId(map, opts.before) };
@@ -314,8 +374,8 @@ export const DEFAULT_STYLE = 'https://tiles.openfreemap.org/styles/positron';
  * yourself if your bundler needs it). Options: `style` (default the
  * OpenFreeMap positron basemap), `cooperativeGestures` (default true: the
  * page scrolls past the map), `navigation` (zoom buttons, default true),
- * `before` (as in `attach`: `'labels'` keeps the basemap's labels on top).
- * Returns the `attach` handle plus `map` and `destroy()`.
+ * `before` (as in `attach`: `'labels'` keeps the basemap's labels on top),
+ * `font` (as in `attach`, default `'style'`). Returns the `attach` handle plus `map` and `destroy()`.
  */
 export function createGeoMap(maplibregl, container, opts = {}) {
   const map = new maplibregl.Map({
@@ -325,7 +385,7 @@ export function createGeoMap(maplibregl, container, opts = {}) {
     cooperativeGestures: opts.cooperativeGestures ?? true,
   });
   if (opts.navigation ?? true) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-  const handle = attach(map, EMPTY, { before: opts.before });
+  const handle = attach(map, EMPTY, { before: opts.before, font: opts.font });
   return {
     map,
     setGeoJSON: handle.setGeoJSON,

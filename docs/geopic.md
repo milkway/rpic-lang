@@ -258,14 +258,31 @@ is the default); `bundle_json_with` is the CLI's bundle under options.
 consumer's style — `map.addLayer(spec, beforeId)` — belongs to the map, not
 to the layer objects: the JS `attach(map, fc, { before })` takes a layer id
 or `'labels'` — the style's layer whose id is `labels` when there is one,
-otherwise the first `symbol` layer of the map's current style that is not
-one of ours (resolved when the layers are added; on top when the style has
-none). Only the
+otherwise the start of the current style's *trailing* block of `symbol`
+layers: the first layer after the last non-`symbol` layer, ours ignored
+(resolved when the layers are added; on top when no symbol layer follows
+the last geometry layer). Not the first `symbol` layer: styles interleave
+some labels with the geometry — CARTO's positron has `waterway_label` at
+index 13 and its roads, buildings and boundaries up to 67, so the first
+symbol would put the shapes under the roads and buildings. Only the
 geometry layers (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`)
 go there, so the basemap's place names stay above the shapes; the
 drawing's own labels (`pic-text`, `pic-title`) are always appended on top —
 a basemap "Olinda" must not cover the drawing's "Olinda". rpic.dev uses
 `before: 'labels'`.
+
+*Font.* The specs' `text-font ["Noto Sans Regular"]` is a placeholder, not a
+requirement: the glyphs come from the consumer style's server, and the same
+name can carry other vertical metrics there — on CARTO's positron (MapLibre
+5.22) a Noto label's box sat centred on its anchor, a `pic-text` label on the
+line it annotates; the style's own Montserrat put it beside, with the right
+gap (OpenFreeMap's Noto behaves, which hid it on rpic.dev). Consumers should
+follow the style's font. `attach(map, fc, { font })` does: `'style'`
+(default) = the most common `text-font` stack among the style's own symbol
+layers (stacks compared whole, `["literal", […]]` unwrapped, other
+expressions skipped; ties to a Regular/Medium first face), set on copies of
+`pic-text`/`pic-title` when they are added — the spec's when the style has
+no such layer; `'spec'` keeps the placeholder; a stack is used as given.
 
 Exposed everywhere the collection is:
 
