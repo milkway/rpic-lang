@@ -6,6 +6,7 @@ description: Place a pic drawing on the Earth with a few variables and get a Geo
 import Callout from '../../components/Callout.astro';
 import PicFigure from '../../components/PicFigure.astro';
 import GeoMap from '../../components/GeoMap.astro';
+import GeoPlayground from '../../components/GeoPlayground.astro';
 
 # Maps — pic drawings as GeoJSON
 
@@ -57,6 +58,17 @@ rpic --geojson callout.pic > callout.geojson
                     "geopic:placement": "screen", "…": "…" } }
 ] }
 ```
+
+## Try it live
+
+Edit the source below: the SVG and the map follow every keystroke. Nothing
+leaves your browser — the drawing is compiled and georeferenced on the page by
+the same engine as the CLI, through the npm package's geo build (a 665 KB
+WebAssembly module, fetched only once you scroll here or click into the
+editor). Pick another example, switch the projection frame, or break the
+source to see the diagnostics.
+
+<GeoPlayground />
 
 ## Or let two known points fix everything
 

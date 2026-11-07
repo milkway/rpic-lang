@@ -12,6 +12,17 @@ resolves to the latest version.
 
 ### Added
 
+- **Site: a live GeoPic playground** on the Maps page ("Try it live"): edit
+  pic source in the browser and see the SVG and the drawing on an interactive
+  MapLibre map, re-georeferenced on every edit (debounced), with the four
+  `examples/geo` sources, a `frame` switch, pic/geo errors, warnings and the
+  registration summary. Everything runs client-side through the npm
+  package's geo wasm build (665 KB), loaded lazily when the playground
+  scrolls into view or the editor is focused. The map code moved to a shared
+  client module (`site/src/lib/geomap.ts`) that the build-time maps use too;
+  ground-true sizes now honour the `mercator` frame (its metres are already
+  Web Mercator's, so no `cos φ` factor). The site CI and the Pages deploy
+  build the JS binding's wasm before the site.
 - **geopic: sizes true to the ground.** Features with text carry
   `geopic:font_size` (points, from the scene's resolved font) and the
   `FeatureCollection` carries a foreign member `geopic: {schema, registration}`
