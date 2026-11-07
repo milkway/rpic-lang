@@ -27,6 +27,10 @@ bundle["diagnostics"]  # lines emitted by pic `print`
 bundle["warnings"]     # structured warnings (ignored attributes, ...)
 bundle["objects"]      # per-object geometry: {"id": "s0", "kind": "box",
                        #   "bbox": {x,y,w,h} | None, "line", "col", ...}
+                       #   + "link" when `link "<url>"` set one
+# only when the source uses them (same keys as `rpic --json`):
+#   "interactions" ([{"id", "kind": "drag", "inertia"?, "bounds"?, "axis"?}]
+#   for `draggable`), "places", "passthrough", "scroll"
 # (compile_json returns the same as a JSON string)
 
 # the scene: the resolved draw list as device-independent JSON

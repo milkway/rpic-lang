@@ -1,5 +1,7 @@
 # Smoke tests for the Python binding. Run against a built wheel:
 #   maturin build && pip install target/wheels/*.whl pytest && pytest tests -q
+import json
+
 import pytest
 
 import rpic
@@ -67,6 +69,64 @@ def test_compile_places_and_passthrough_ride_only_when_present():
     assert cont["passthrough"] == [
         {"text": ".ft B\n+ more", "line": 1, "col": 1, "end_col": 7, "end_line": 2}
     ]
+
+
+def test_compile_link_rides_only_when_set():
+    # `link "<url>"` (#358): the object carries "link", in the CLI bundle's key order
+    bundle = rpic.compile('box link "https://example.org"\ncircle')
+    linked, plain = bundle["objects"]
+    assert linked["link"] == "https://example.org"
+    assert list(linked) == ["id", "kind", "bbox", "link", "line", "col", "end_col"]
+    assert "link" not in plain
+    assert all("link" not in o for o in rpic.compile("box\ncircle")["objects"])
+
+
+def test_compile_interactions_ride_only_when_present():
+    # `draggable` (#331): a top-level "interactions" array, absent when unused
+    bundle = rpic.compile("B: box wid 3 ht 2\nN: circle at B.c\ndraggable N inertia bounds B x")
+    assert bundle["interactions"] == [
+        {"id": "s1", "kind": "drag", "inertia": True, "bounds": "s0", "axis": "x"}
+    ]
+    simple = rpic.compile('box "drag me"\ndraggable last')
+    assert simple["interactions"] == [{"id": "s0", "kind": "drag"}]
+    assert "interactions" not in rpic.compile("box")
+
+
+def test_compile_matches_the_json_bundle_keys():
+    # every key of the CLI `--json` bundle reaches the dict (#444): objects'
+    # link, interactions and the optional animation keys
+    src = "\n".join(
+        [
+            'A: box "one two" link "https://example.org"',
+            'B: box "SECRET"',
+            "L: line right 2",
+            "C: circle",
+            'animate A with "type" by word',
+            'animate B with "scramble" by "01"',
+            'animate C with "wiggle" wiggles 6',
+            'animate L with "draw" from 20% to 60%',
+            "draggable C inertia",
+            "animate scroll",
+        ]
+    )
+    bundle = rpic.compile(src)
+    ref = json.loads(rpic.compile_json(src))
+    assert set(bundle) == set(ref)
+    for key in ("animations", "objects", "interactions"):
+        # same keys in the same order (bbox values: the dict keeps full
+        # floats where the JSON rounds to 4 places, so compare them apart)
+        assert [list(x) for x in bundle[key]] == [list(x) for x in ref[key]], key
+        strip = lambda xs: [{k: v for k, v in x.items() if k != "bbox"} for x in xs]  # noqa: E731
+        assert strip(bundle[key]) == strip(ref[key]), key
+    for got, want in zip(bundle["objects"], ref["objects"]):
+        for k in ("x", "y", "w", "h"):
+            assert abs(got["bbox"][k] - want["bbox"][k]) < 1e-3
+    anims = bundle["animations"]
+    assert anims[0]["unit"] == "word"
+    assert anims[1]["chars"] == "01"
+    assert anims[2]["wiggles"] == 6
+    assert (anims[3]["drawFrom"], anims[3]["drawTo"]) == (0.2, 0.6)
+    assert bundle["scroll"] is True
 
 
 def test_compile_warnings():
