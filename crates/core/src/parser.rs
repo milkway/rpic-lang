@@ -312,15 +312,22 @@ fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
             continue;
         }
 
-        let text = line.strip_suffix('\r').unwrap_or(line);
-        let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
-        let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
-        if follows_pass
+        // a passthrough line's text and span (only the `.`/`+` branches pay)
+        let pass_line = || {
+            let text = line.strip_suffix('\r').unwrap_or(line);
+            let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
+            let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
+            (text, line_no, end_col)
+        };
+        if !in_string
+            && !continued
+            && follows_pass
             && line.starts_with('+')
             && let Some(entry) = passthrough.last_mut()
         {
             // troff's continuation of the previous request line: same
             // logical line, so it joins that entry (newline kept)
+            let (text, line_no, end_col) = pass_line();
             entry.text.push('\n');
             entry.text.push_str(text);
             entry.span.end_col = end_col;
@@ -328,6 +335,7 @@ fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
             out.push('\n');
             after_pass = true;
         } else if !in_string && !continued && is_passthrough_line(line) {
+            let (text, line_no, end_col) = pass_line();
             passthrough.push(PassLine {
                 text: text.to_string(),
                 span: Span::new(line_no, 1, end_col),
