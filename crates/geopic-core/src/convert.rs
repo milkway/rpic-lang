@@ -210,6 +210,10 @@ impl Ctx<'_> {
     fn heads(&mut self, item: &Item, heads: &[Head], base: &Props) {
         for h in heads {
             let mut props = base.clone();
+            // the label is the item's title point, not the heads' (G10)
+            for k in ["title", "geopic:text", "geopic:font_size"] {
+                props.remove(k);
+            }
             props.insert("geopic:kind".into(), json!("arrowhead"));
             props.insert("geopic:head".into(), json!(h.at));
             props.insert("geopic:filled".into(), json!(h.filled));
@@ -264,6 +268,52 @@ impl Ctx<'_> {
             return;
         }
         let props = self.base_props(item);
+        // a shape's attached text becomes its own Point (DECISIONS G10): a
+        // label placed by a map renderer on the polygon itself is repeated
+        // once per tile the polygon is clipped into
+        let titled = item.kind != "text" && item.text.as_ref().is_some_and(|l| !l.is_empty());
+        if !titled {
+            return self.shape(item, props);
+        }
+        let before = self.out.len();
+        self.shape(item, props.clone());
+        if self.out.len() > before {
+            self.title_point(item, props);
+        }
+    }
+
+    /// The `geopic:kind = "title"` Point of a shape that carries text: at
+    /// the scene's `text_center` (the centre the SVG lays the lines out
+    /// around), with the text properties of a `text` item — the first
+    /// line's compass as `geopic:anchor`, so `above`/`ljust`/… keep their
+    /// side — and the shape's id in `geopic:for`. A scene from an engine
+    /// older than `text_center` falls back to the item's `at` (closed
+    /// shapes); without either, no title point.
+    fn title_point(&mut self, item: &Item, mut props: Props) {
+        let Some(lines) = item.text.as_deref().filter(|l| !l.is_empty()) else {
+            return;
+        };
+        let Some(at) = item.text_center.or(item.at) else {
+            return;
+        };
+        for k in [
+            "stroke",
+            "stroke-width",
+            "stroke-opacity",
+            "fill",
+            "fill-opacity",
+            "geopic:dash",
+            "geopic:hatch",
+        ] {
+            props.remove(k);
+        }
+        props.insert("geopic:id".into(), json!(format!("{}:title", item.id)));
+        props.insert("geopic:kind".into(), json!("title"));
+        props.insert("geopic:for".into(), json!(item.id));
+        self.text_point(lines, at, props);
+    }
+
+    fn shape(&mut self, item: &Item, props: Props) {
         match item.kind.as_str() {
             "box" => {
                 let (Some(c), Some(w), Some(h)) = (item.at, item.w, item.h) else {

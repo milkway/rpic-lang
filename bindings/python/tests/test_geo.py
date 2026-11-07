@@ -20,6 +20,13 @@ def test_to_geojson_is_a_feature_collection_in_wgs84():
     assert box["geometry"]["type"] == "Polygon"
     lon, lat = box["geometry"]["coordinates"][0][0]
     assert -34.9 < lon < -34.8 and -8.1 < lat < -8.0
+    # the box's label is its own Point (#435), right after the polygon
+    i = fc["features"].index(box)
+    title = fc["features"][i + 1]
+    assert title["geometry"]["type"] == "Point"
+    assert title["properties"]["geopic:kind"] == "title"
+    assert title["properties"]["geopic:for"] == box["properties"]["geopic:id"]
+    assert title["properties"]["geopic:text"] == "hub" and box["properties"]["title"] == "hub"
 
 
 def test_compile_returns_registration_and_structured_warnings():
@@ -109,8 +116,8 @@ def test_to_geodataframe_needs_geopandas_or_returns_a_geodataframe():
     gdf = rpic.geo.to_geodataframe(SRC, warn=False)
     assert gdf.crs.to_epsg() == 4326
     assert {"stroke", "geopic:kind", "geopic:id"} <= set(gdf.columns)
-    assert len(gdf) == 3
-    assert set(gdf.geometry.geom_type) == {"Polygon", "LineString"}
+    assert len(gdf) == 4  # box, arrow, arrowhead, the box's title point
+    assert set(gdf.geometry.geom_type) == {"Polygon", "LineString", "Point"}
 
 
 def test_features_the_source_defines_pin_its_own_objects():

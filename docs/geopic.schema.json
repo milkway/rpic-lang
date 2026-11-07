@@ -14,9 +14,10 @@
     "fill-opacity": { "type": "number", "minimum": 0, "maximum": 1 },
     "title": { "type": "string" },
     "geopic:schema": { "const": 1 },
-    "geopic:id": { "type": "string", "pattern": "^s[0-9]+$" },
+    "geopic:id": { "type": "string", "pattern": "^s[0-9]+(:title)?$" },
+    "geopic:for": { "type": "string", "pattern": "^s[0-9]+$" },
     "geopic:kind": {
-      "enum": ["box", "circle", "ellipse", "arc", "line", "arrow", "arrowhead", "spline", "text", "dot", "brace"]
+      "enum": ["box", "circle", "ellipse", "arc", "line", "arrow", "arrowhead", "spline", "text", "title", "dot", "brace"]
     },
     "geopic:z": { "type": "integer", "minimum": 0 },
     "geopic:label": { "type": "string" },

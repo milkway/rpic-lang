@@ -135,6 +135,20 @@ deferred. Decision: no new flag and no new document.
 - Bindings pass JSON through, so Python/JS/C/R see the keys with no API
   change; the JS `.d.ts` types were extended.
 
+### S12. Items with text carry the centre their text is laid out around (#435)
+
+Each scene item with a `text` array also carries `text_center: [x, y]` —
+the `center` the emitter hands to the text layout (`text_json`), in scene
+inches: a box's/circle's/ellipse's centre, a line's path text point, a
+spline's midpoint, an arc's centre, a brace's label point, a text object's
+`at`. The per-line baselines are not enough to recover it: blank lines are
+skipped yet still advance the stack, `above`/`below` shift the baseline by
+the valign offset, `ljust`/`rjust` shift `x`. A consumer that places the
+label as one block — geopic's title points (G10), a MapLibre symbol —
+needs the centre plus the first line's compass. Additive under §7: `scene`
+stays **1**, the schema and the golden-key test gain the key, and it rides
+only on items that emit text. `--svg`/`--json` are untouched.
+
 ## geopic-core (2026-11-06)
 
 ### G1. Input is the scene *document*, not engine types — approved by the user
@@ -262,3 +276,36 @@ comes from the platform libm). The site's `geomap.ts` is now a thin wrapper
 (worker URL, popups, hover cursor) over that module; GeoMap.astro takes the
 layers from the build-time `rpic --geojson --maplibre`, the playground from
 `compileGeoJSON(…, { layers: true })`.
+
+### G10. A shape's text is its own Point feature (#435)
+
+`pic-title` was a symbol layer on the Polygon features that carry a
+`title`. MapLibre places a polygon's symbol at the centroid of the polygon
+*as clipped to each vector tile*, so a box straddling a tile boundary got
+its title twice (measured on rpic.dev: 2 rendered `pic-title` features at
+zoom 16.38 for the callout), shifted when partly clipped — and
+`text-allow-overlap`/`text-ignore-placement` keep both. No layer property
+fixes that, so the engine now emits, right after the features of every
+non-`text` item that carries text lines (arrowheads included), a `Point`
+with `geopic:kind = "title"` at the scene's `text_center` (S12) — the
+centre the SVG lays the label stack out around: a box's centre, a line's
+path text point, an arc's centre, a brace's label point. Its properties
+are a `text` item's: `geopic:text`, `geopic:anchor` = the first line's
+compass (it encodes valign/halign, so `above` sits on top of the point,
+`ljust` extends right of it — the review of #436 found that inverting the
+baselines instead baked those offsets in twice), `geopic:rotation` (minus
+the bearing), `geopic:font_size`; plus the shape's `geopic:z`/`label`/
+`block`/`class`/`link`/`placement`; the stroke/fill keys are dropped.
+`geopic:id` is `<shape id>:title` (a scene id never contains `:`, so it
+cannot collide; arrowheads share their line's id because they *are* part
+of its drawing, a label point is a different object) and `geopic:for` names
+the shape. The shape keeps `title` (simplestyle popups, `geojson.io`);
+arrowheads no longer carry `title`/`geopic:text`/`geopic:font_size`.
+A scene from an engine before `text_center` falls back to the item's `at`
+(closed shapes keep their labels); without either, no title point.
+Residual: the scene's `text` omits blank lines, so `box "" "below"` puts
+"below" at the centre where the SVG draws it half a line skip lower.
+`pic-title` now filters `geopic:kind == "title"` and is styled exactly like
+`pic-text` (anchor, rotation), still the sixth layer. Additive:
+`geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
+`:title` id suffix.

@@ -122,7 +122,8 @@ All coordinates are absolute model inches, y-up. `fit`, `rotated`, `close`,
 | `text` | `at` (the object's anchor point) + `text` ([§5](#5-text)) |
 | `block` | `items`: the child item ids, in id order; no geometry (a block is a grouping, its frame — if drawn — is a child `box`) |
 
-Any kind may carry `text` (attached labels), `stroke`, `fill`, `opacity`
+Any kind may carry `text` (attached labels) — always with `text_center`
+([§5](#5-text)) —, `stroke`, `fill`, `opacity`
 ([§4](#4-style)) and — for `line`/`arrow`/`spline`/`arc` — `heads`
 ([§3.3](#33-arrowheads)).
 
@@ -217,6 +218,14 @@ Text stays text. Each line of an item's `text` array:
   `c n s e w ne nw se sw` (`w` = the text extends right of the reference,
   `s` = it sits above it, …): semantic information for consumers like TikZ
   that think in box anchors.
+- The item's `text_center` (`[x, y]`, scene units, present whenever `text`
+  is) is the centre the lines were laid out around — the object's centre
+  for closed shapes, the path's text point for lines, the midpoint for
+  splines, the centre for arcs, the label point for braces, `at` for text
+  objects. The baselines alone do not give it back (blank lines are skipped
+  but still take a line, `above`/`below`/`ljust`/`rjust` offset them); a
+  consumer that places the label as one block (a map symbol) anchors it
+  there with the first line's `anchor`.
 - `font.size` is always present, in points, fully resolved (classic 11 pt for
   attached labels, height-derived for standalone text objects, or the explicit
   `fontsize`). `family` appears for `mono`/`font "…"`; `bold`/`italic` only
@@ -264,7 +273,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
       "fill": { "color": "#90ee90" },
       "stroke": { "color": "#000000", "width": 0.8 },
       "text": [ { "text": "hub", "at": [0, -0.0504], "anchor": "c",
-                  "font": { "size": 11 } } ] },
+                  "font": { "size": 11 } } ],
+      "text_center": [0, 0] },
     { "id": "s1", "kind": "arrow", "z": 1,
       "points": [[0.178, 0], [0.693, 0]],
       "stroke": { "color": "#000000", "width": 0.8 },
@@ -297,7 +307,8 @@ C: circle rad 0.18 at B.e + (0.8, 0) dashed
   (JSON Schema 2020-12); a test validates every corpus scene against it.
 - Additive history within version 1: **0.13.0** added the top-level `places`
   array and the block items' `span`/`call` provenance fields; **0.14.0** added
-  the top-level `rescale` factor and `span` on shape items.
+  the top-level `rescale` factor and `span` on shape items; **0.15.1** added
+  `text_center` on items that carry `text` (DECISIONS S12).
 
 ## 8. Color resolution
 

@@ -176,6 +176,70 @@ fn committed_geojson_matches_current_output_and_validates() {
                 other => panic!("unexpected geometry {other}"),
             }
         }
+        // #435: every shape with a title is followed by exactly one title
+        // Point naming it, and only shapes with a title have one
+        for (i, f) in feats.iter().enumerate() {
+            let p = &f["properties"];
+            if p["geopic:kind"] == "title" {
+                assert_eq!(f["geometry"]["type"], "Point", "{}", pic.display());
+                let owner = feats
+                    .iter()
+                    .map(|f| &f["properties"])
+                    .find(|o| o["geopic:id"] == p["geopic:for"] && o["geopic:kind"] != "arrowhead")
+                    .unwrap_or_else(|| panic!("{}: title without its shape", pic.display()));
+                assert_eq!(p["geopic:text"], owner["title"], "{}", pic.display());
+                // right after the owner's own features, arrowheads included
+                let own: Vec<usize> = feats
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, o)| o["properties"]["geopic:id"] == p["geopic:for"])
+                    .map(|(j, _)| j)
+                    .collect();
+                assert_eq!(own.last().map(|j| j + 1), Some(i), "{}", pic.display());
+                assert!(
+                    own.windows(2).all(|w| w[1] == w[0] + 1),
+                    "{}",
+                    pic.display()
+                );
+            }
+            if p["geopic:kind"] == "arrowhead" {
+                for k in ["title", "geopic:text", "geopic:font_size"] {
+                    assert!(
+                        p.get(k).is_none(),
+                        "{}: arrowhead carries {k}",
+                        pic.display()
+                    );
+                }
+            }
+        }
+        let shapes_with_titles: std::collections::BTreeSet<&str> = feats
+            .iter()
+            .map(|f| &f["properties"])
+            .filter(|p| {
+                !matches!(
+                    p["geopic:kind"].as_str(),
+                    Some("text" | "title" | "arrowhead")
+                )
+            })
+            .filter(|p| p.get("title").is_some())
+            .map(|p| p["geopic:id"].as_str().unwrap())
+            .collect();
+        let titled: std::collections::BTreeSet<&str> = feats
+            .iter()
+            .map(|f| &f["properties"])
+            .filter(|p| p["geopic:kind"] == "title")
+            .map(|p| p["geopic:for"].as_str().unwrap())
+            .collect();
+        assert_eq!(titled, shapes_with_titles, "{}", pic.display());
+        assert_eq!(
+            titled.len(),
+            feats
+                .iter()
+                .filter(|f| f["properties"]["geopic:kind"] == "title")
+                .count(),
+            "{}: one title Point per shape",
+            pic.display()
+        );
     }
 }
 

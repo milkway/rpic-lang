@@ -256,6 +256,7 @@
         "fill": { "$ref": "#/$defs/fill" },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
         "text": { "type": "array", "items": { "$ref": "#/$defs/textline" } },
+        "text_center": { "$ref": "#/$defs/point" },
         "items": { "type": "array", "items": { "type": "string" } },
         "span": { "$ref": "#/$defs/span" },
         "call": { "$ref": "#/$defs/call" }
