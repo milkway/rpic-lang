@@ -98,7 +98,23 @@ impl Ctx<'_> {
                 .collect::<Vec<_>>()
                 .join("\n");
             p.insert("title".into(), json!(text));
-            p.insert("geopic:text".into(), json!(text));
+            // the stack as drawn, blank rows included, so a renderer that
+            // centres the block on the point puts each line on its SVG row;
+            // a pre-S13 scene (no row/text_rows) silently keeps the join
+            let stacked = match stacked_text(lines, item.text_rows) {
+                Ok(s) => s,
+                Err(why) => {
+                    self.warnings.push(
+                        Warning::new(
+                            "scene_inconsistent",
+                            format!("text rows ignored ({why}); visible lines joined"),
+                        )
+                        .on(item),
+                    );
+                    None
+                }
+            };
+            p.insert("geopic:text".into(), json!(stacked.unwrap_or(text)));
             // the first line's font size (points): with the registration's
             // metres per inch a consumer sizes the label true to the ground
             if let Some(size) = lines
@@ -456,4 +472,42 @@ pub fn convert(
         ));
     }
     FeatureCollection::new(ctx.out)
+}
+
+/// The label stack as the author wrote it (DECISIONS G10 addendum): the
+/// scene omits blank lines but gives each visible line its `row` and the
+/// item its `text_rows` (S13), so the stack is `text_rows` rows joined by
+/// `\n` with empty strings where the blank ones were (`box "" "below"` →
+/// `"\nbelow"`). `Ok(None)` when the scene predates S13 (neither key
+/// present); `Err` when the keys are there but disagree — the caller then
+/// joins the visible lines, as before, warning only in the second case.
+fn stacked_text(lines: &[TextLine], text_rows: Option<usize>) -> Result<Option<String>, String> {
+    let with_row = lines.iter().filter(|l| l.row.is_some()).count();
+    let n = match text_rows {
+        None if with_row == 0 => return Ok(None),
+        None => return Err("`row` without `text_rows`".into()),
+        Some(_) if with_row < lines.len() => {
+            return Err(format!(
+                "{} of {} lines lack `row`",
+                lines.len() - with_row,
+                lines.len()
+            ));
+        }
+        Some(n) => n,
+    };
+    let mut rows = vec![""; n];
+    let mut last: Option<usize> = None;
+    for l in lines {
+        let r = l.row.unwrap_or_default();
+        if r >= n {
+            return Err(format!("row {r} outside text_rows {n}"));
+        }
+        // rows are emitted in stack order, one line per row
+        if last.is_some_and(|p| r <= p) {
+            return Err(format!("row {r} out of order"));
+        }
+        rows[r] = l.text.as_str();
+        last = Some(r);
+    }
+    Ok(Some(rows.join("\n")))
 }

@@ -1283,7 +1283,7 @@ impl<'a> Sc<'a> {
         let mut y = center.y + (v * lineskip / 2.0) - xheight;
         let mut visible = false;
         let mut parts: Vec<String> = Vec::new();
-        for line in lines {
+        for (row, line) in lines.iter().enumerate() {
             let just_offset = xheight / 2.0 + line.text_offset;
             let standalone_half_width = standalone_dims
                 .map(|(w, _)| {
@@ -1356,20 +1356,28 @@ impl<'a> Sc<'a> {
                     self.warnings.push(diag);
                 }
             }
+            // S13: the line's 0-based row in the author's stack (blank
+            // rows included), so a consumer can re-stack the visible lines
+            t.push_str(&format!(",\"row\":{row}"));
             t.push('}');
             parts.push(t);
         }
+        // an all-blank stack (`box "" ""`) emits nothing: no `text`, hence
+        // neither of the keys that ride with it
         if parts.is_empty() {
             return false;
         }
-        self.out
-            .push_str(&format!(",\"text\":[{}]", parts.join(",")));
-        // the centre the lines were laid out around (S12): a consumer that
-        // places the label as one block (a map's symbol) needs it, and it
-        // cannot be recovered from the emitted baselines (blank lines are
-        // skipped, valign/halign shift them)
-        self.out
-            .push_str(&format!(",\"text_center\":{}", spoint(center)));
+        // one write, so `text_center`/`text_rows` exist exactly when `text`
+        // does: the centre the lines were laid out around (S12) — a consumer
+        // placing the label as one block needs it, the baselines cannot give
+        // it back — and the stack height in rows, blank ones included (S13,
+        // the layout's n)
+        self.out.push_str(&format!(
+            ",\"text\":[{}],\"text_center\":{},\"text_rows\":{}",
+            parts.join(","),
+            spoint(center),
+            lines.len()
+        ));
         visible
     }
 }
@@ -1938,6 +1946,9 @@ mod tests {
             "rescale",
             // 0.15.1: the centre attached/standalone text is laid out around
             "text_center",
+            // after 0.15.1: each text line's stack row + the stack height (S13)
+            "row",
+            "text_rows",
             "span",
             "line",
             "col",
@@ -2027,6 +2038,53 @@ mod review_regressions {
         // the baselines are offset from it, so it is not derivable from them
         assert_ne!(items[1]["text"][0]["at"][1], serde_json::json!(0));
         assert_eq!(items[0]["text"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn text_rows_place_visible_lines_in_the_authors_stack() {
+        // S13: blank lines are not emitted, but `row`/`text_rows` say where
+        // the visible ones sit — and agree with the drawn baselines
+        let d = crate::compile(
+            "box \"\" \"below\" at (0,0)\nbox \"above\" \"\" at (2,0)\n\
+             box \"a\" \"\" \"c\" at (4,0)\nbox \"one\" at (6,0)\nbox at (8,0)",
+        )
+        .unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let items = v["items"].as_array().unwrap();
+        let rows = |i: usize| -> Vec<u64> {
+            items[i]["text"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|t| t["row"].as_u64().unwrap())
+                .collect()
+        };
+        assert_eq!(rows(0), vec![1]);
+        assert_eq!(items[0]["text_rows"], 2);
+        assert_eq!(rows(1), vec![0]);
+        assert_eq!(items[1]["text_rows"], 2);
+        assert_eq!(rows(2), vec![0, 2]);
+        assert_eq!(items[2]["text_rows"], 3);
+        assert_eq!(rows(3), vec![0]);
+        assert_eq!(items[3]["text_rows"], 1);
+        assert!(items[4].get("text_rows").is_none(), "no text, no rows");
+        // an all-blank stack emits no text at all, so neither key rides
+        let d = crate::compile("box \"\" \"\"").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let it = &v["items"][0];
+        for k in ["text", "text_center", "text_rows"] {
+            assert!(it.get(k).is_none(), "all-blank stack carries `{k}`: {it}");
+        }
+        // the drawn baselines agree: "below" sits under the centre, "above"
+        // over it, and a/c are two line-skips apart around the centre
+        let y = |i: usize, k: usize| items[i]["text"][k]["at"][1].as_f64().unwrap();
+        assert!(y(0, 0) < 0.0, "below is drawn below the centre");
+        assert!(y(1, 0) > 0.0, "above is drawn above the centre");
+        let skip = y(2, 0) - y(2, 1);
+        let one = y(1, 0) - y(0, 0); // one row apart (same font)
+        assert!((skip - 2.0 * one).abs() < 1e-5, "{skip} vs 2×{one}"); // 6-dp output
     }
 
     #[test]

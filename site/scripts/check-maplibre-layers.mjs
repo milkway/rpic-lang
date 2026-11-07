@@ -15,6 +15,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { layers } from '@strategicprojects/rpic/maplibre';
+// maplibre-gl's own style-spec (its dependency): evaluates the layer expressions
+import { createExpression, latest, validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const geoDir = resolve(here, '../../examples/geo');
@@ -53,4 +55,26 @@ const callout = JSON.parse(readFileSync(join(geoDir, 'callout.geojson'), 'utf8')
 callout.geopic.registration.frame = 'mercator';
 close(layers(callout), snap('callout-mercator'), 'callout-mercator: JS port');
 close(layers({ type: 'FeatureCollection', features: [] }), snap('empty'), 'empty: JS port');
+// G10 addendum: evaluate the symbol layers' text-field with MapLibre's own
+// expression engine (the style-spec maplibre-gl ships): a trailing blank row
+// gains a no-break space so the shaper keeps it; everything else is verbatim
+{
+  const field = snap('callout').find((l) => l.id === 'pic-title').layout['text-field'];
+  const e = createExpression(field, latest.layout_symbol['text-field']);
+  assert.equal(e.result, 'success', JSON.stringify(e.value));
+  const evalText = (t) => String(e.value.evaluate({ zoom: 16 }, { type: 'Point', properties: { 'geopic:text': t } }));
+  for (const [t, want] of [['\nbelow', '\nbelow'], ['above\n', 'above\n\u00a0'], ['a\n\nc', 'a\n\nc'], ['one', 'one'], ['', '']]) {
+    assert.equal(evalText(t), want, JSON.stringify(t));
+  }
+}
+// every snapshot is a valid style-spec layer list (text-line-height included)
+for (const f of readdirSync(snapDir).filter((f) => f.endsWith('.layers.json'))) {
+  const style = {
+    version: 8,
+    glyphs: 'https://example.invalid/{fontstack}/{range}.pbf',
+    sources: { pic: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } },
+    layers: JSON.parse(readFileSync(join(snapDir, f), 'utf8')),
+  };
+  assert.deepEqual(validateStyleMin(style).map((e) => e.message), [], f);
+}
 console.log('check-maplibre-layers: ok');

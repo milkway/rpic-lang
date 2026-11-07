@@ -133,10 +133,10 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `stroke`, `stroke-width` | `stroke.color` (hex), `stroke.width` (points) |
 | `fill` | `fill.color`; for a gradient, the first stop's color (warning `unsupported_style`) |
 | `stroke-opacity`, `fill-opacity` | the item's `opacity` |
-| `title` | the item's text lines joined by `\n` |
+| `title` | the item's **visible** text lines joined by `\n` (blank lines of the stack left out — a popup has no use for them) |
 | `geopic:schema` | `1` — the version of this vocabulary |
 | `geopic:id`, `geopic:kind`, `geopic:z`, `geopic:label`, `geopic:block`, `geopic:class`, `geopic:link` | the scene item's fields |
-| `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement |
+| `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement. `geopic:text` holds **all rows of the author's stack**, joined by `\n`, blank ones as empty strings (`box "" "below"` → `"\nbelow"`, `box "a" "" "c"` → `"a\n\nc"`), rebuilt from the scene's `row`/`text_rows` (scene DECISIONS S13), so a renderer that centres the block on the point draws each line on its SVG row; a scene without them joins the visible lines |
 | `geopic:font_size` | the first text line's font size, **points**; with the collection's `geopic.registration.scale_m_per_in`, `font_size / 72 × scale_m_per_in` is the letter height in metres — size labels true to the ground, in proportion to the shapes, at any zoom |
 | `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
@@ -170,6 +170,7 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |
 | `densification_budget` | the 2 000 000-vertex budget ran out; later segments carry endpoints only |
+| `scene_inconsistent` | an item's text `row`/`text_rows` (scene S13) are present but contradict each other (a row outside the stack, out of order, a line without `row`, `row` without `text_rows`): `geopic:text` falls back to the visible lines joined. A scene with neither key (an older engine) is not warned |
 
 Errors (`GeoError {kind, message, hint?}`): `no_registration`, `invalid_scale`
 (`geo_scale ≤ 0`, non-finite bearing, effective scale — declared or fitted —
@@ -196,7 +197,7 @@ are, in order.
 | `pic-stroke` | `line` | `Polygon` or `LineString`, has `stroke`, no `geopic:dash` | `line-color` = `stroke`, `line-opacity` = `stroke-opacity` (default 1), `line-width` (below), round cap and join |
 | `pic-stroke-dashed` | `line` | same, has `geopic:dash` | as `pic-stroke` + `line-dasharray [3, 2]` |
 | `pic-dot` | `circle` | `geopic:kind == "dot"` | `circle-color` = `fill` (default `#000000`), `circle-radius` (below) |
-| `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, `text-font ["Noto Sans Regular"]`, `text-size` (below), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
+| `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, a trailing `\n` padded with a no-break space (`["case", ["==", ["slice", T, ["max", 0, ["-", ["length", T], 1]]], "\n"], ["concat", T, "\u00a0"], T]`, `T` = `["get", "geopic:text"]` — MapLibre's shaper drops a final newline, the padding keeps the last blank row; the shaper trims the space, so the row stays empty), `text-font ["Noto Sans Regular"]`, `text-size` (below), `text-line-height 1` (pic's line skip is the font size; MapLibre's default 1.2 em would push each row 20 % further from the point), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
 | `pic-title` | `symbol` | `geopic:kind == "title"` (the shapes' title points) | exactly as `pic-text`. A symbol on the polygon itself would be placed once per vector tile the polygon is clipped into — a box straddling a tile boundary showed its title twice (#435) — so the label is a point of its own |
 
 **Sizes are true to the ground.** From the collection's

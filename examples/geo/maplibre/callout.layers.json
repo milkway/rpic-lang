@@ -339,8 +339,45 @@
   ],
   "layout": {
    "text-field": [
-    "get",
-    "geopic:text"
+    "case",
+    [
+     "==",
+     [
+      "slice",
+      [
+       "get",
+       "geopic:text"
+      ],
+      [
+       "max",
+       0,
+       [
+        "-",
+        [
+         "length",
+         [
+          "get",
+          "geopic:text"
+         ]
+        ],
+        1
+       ]
+      ]
+     ],
+     "\n"
+    ],
+    [
+     "concat",
+     [
+      "get",
+      "geopic:text"
+     ],
+     "\u00a0"
+    ],
+    [
+     "get",
+     "geopic:text"
+    ]
    ],
    "text-font": [
     "Noto Sans Regular"
@@ -401,6 +438,7 @@
      ]
     ]
    ],
+   "text-line-height": 1,
    "text-anchor": [
     "match",
     [
@@ -464,8 +502,45 @@
   ],
   "layout": {
    "text-field": [
-    "get",
-    "geopic:text"
+    "case",
+    [
+     "==",
+     [
+      "slice",
+      [
+       "get",
+       "geopic:text"
+      ],
+      [
+       "max",
+       0,
+       [
+        "-",
+        [
+         "length",
+         [
+          "get",
+          "geopic:text"
+         ]
+        ],
+        1
+       ]
+      ]
+     ],
+     "\n"
+    ],
+    [
+     "concat",
+     [
+      "get",
+      "geopic:text"
+     ],
+     "\u00a0"
+    ],
+    [
+     "get",
+     "geopic:text"
+    ]
    ],
    "text-font": [
     "Noto Sans Regular"
@@ -526,6 +601,7 @@
      ]
     ]
    ],
+   "text-line-height": 1,
    "text-anchor": [
     "match",
     [
