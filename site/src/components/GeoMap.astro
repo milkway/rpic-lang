@@ -2,9 +2,10 @@
 // A pic drawing on a real map: the repo file is georeferenced at build time
 // (`rpic --geojson`, the same binary that renders the figures) and the
 // FeatureCollection is handed to MapLibre GL JS in the browser, styled from
-// its simplestyle + `geopic:*` properties. Items with
-// `geopic:placement = "screen"` (other than dots and labels) become HTML
-// markers with a fixed pixel size — the point of that property.
+// its simplestyle + `geopic:*` properties — every shape as map geometry, so
+// the map matches the SVG figure exactly. (`geopic:placement = "screen"` is
+// a hint for consumers that implement pixel-anchored callouts; this demo
+// does not, on purpose: a fixed-size marker made the arrow look detached.)
 import { renderGeoFile } from '../lib/rpic';
 
 interface Props {
@@ -35,20 +36,10 @@ const geojson = renderGeoFile(src);
     padding: 8px 10px;
     color: #0f172a;
   }
-  .geomap-callout {
-    font: 12px/1.3 ui-sans-serif, system-ui, sans-serif;
-    white-space: pre;
-    text-align: center;
-    padding: 6px 10px;
-    border: 1px solid #0f172a;
-    border-radius: 4px;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
-    pointer-events: none;
-  }
 </style>
 
 <script>
-  import { Map as MapLibreMap, Marker, NavigationControl, Popup, setWorkerUrl } from 'maplibre-gl';
+  import { Map as MapLibreMap, NavigationControl, Popup, setWorkerUrl } from 'maplibre-gl';
   import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
   import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -82,12 +73,6 @@ const geojson = renderGeoFile(src);
     return Number.isFinite(w) ? [[w, s], [e, n]] : null;
   }
 
-  function centroid(ring: [number, number][]): [number, number] {
-    const pts = ring.slice(0, -1);
-    const [x, y] = pts.reduce(([a, b], [px, py]) => [a + px, b + py], [0, 0]);
-    return [x / pts.length, y / pts.length];
-  }
-
   for (const el of document.querySelectorAll<HTMLElement>('.geomap')) {
     const fc = JSON.parse(el.dataset.geojson ?? '{"type":"FeatureCollection","features":[]}') as {
       type: string;
@@ -101,11 +86,7 @@ const geojson = renderGeoFile(src);
     });
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
 
-    // screen-placed shapes (a callout box) are HTML markers, not map geometry
-    const screenShapes = fc.features.filter(
-      (f) => f.properties['geopic:placement'] === 'screen' && !['text', 'dot'].includes(String(f.properties['geopic:kind'])),
-    );
-    const mapFeatures = fc.features.filter((f) => !screenShapes.includes(f));
+    const mapFeatures = fc.features;
 
     map.on('load', () => {
       map.addSource('pic', { type: 'geojson', data: { type: 'FeatureCollection', features: mapFeatures } });
@@ -152,15 +133,19 @@ const geojson = renderGeoFile(src);
         paint: { 'text-color': '#0f172a', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
       });
 
-      for (const f of screenShapes) {
-        const ring = (f.geometry.coordinates as [number, number][][])[0];
-        const div = document.createElement('div');
-        div.className = 'geomap-callout';
-        div.textContent = String(f.properties['title'] ?? f.properties['geopic:kind']);
-        div.style.background = String(f.properties['fill'] ?? '#ffffff');
-        div.style.borderColor = String(f.properties['stroke'] ?? '#0f172a');
-        new Marker({ element: div, anchor: 'center' }).setLngLat(centroid(ring)).addTo(map);
-      }
+      // text attached to a shape (a box's label) sits at the shape's centre
+      map.addLayer({
+        id: 'pic-title', type: 'symbol', source: 'pic',
+        filter: ['all', isPolygon, ['has', 'title'], ['!=', kind, 'arrowhead']],
+        layout: {
+          'text-field': ['get', 'title'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 12,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: { 'text-color': '#0f172a', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
+      });
 
       map.on('click', ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot'], (ev) => {
         const f = ev.features?.[0];
