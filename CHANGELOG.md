@@ -10,6 +10,16 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- geopic → MapLibre: a box's title was drawn twice when the box straddled a
+  vector-tile boundary (MapLibre labels a polygon once per tile it is clipped
+  into). Every shape that carries text now also yields a `Point` feature with
+  `geopic:kind = "title"` at the label's centre (`geopic:for` = the shape's id,
+  `geopic:id` = `<id>:title`), and the `pic-title` layer draws those points,
+  styled like `pic-text` (anchor and rotation now honoured). Additive:
+  `geopic:schema` stays 1; the polygon keeps its `title`. DECISIONS G10 (#435).
+
 ## [0.15.0] — 2026-11-07
 
 ### Added
