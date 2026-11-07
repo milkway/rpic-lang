@@ -466,8 +466,9 @@ Semantics of the group (`Stmt::LabelledCall`, evaluated in place):
   `nth_index` skips — `last []`, `2nd []` and untyped `last` count exactly
   the objects they counted before. (Named places stay in `placed` as they
   always were; they are not objects of the group.)
-- Animation/`class`/`link`/`draggable` on the label act as on a block: the
-  first shape, `stagger` over the group's shapes.
+- Directives on the label treat it as a block: `animate`/`draggable` act on
+  its first shape, `stagger` fans across its shapes, and whatever refuses a
+  block today (`class` on a block) refuses the group alike.
 - Scene: a `BlockInfo` with `label`, `shapes` = the group's range, `span`/
   `call` of the **outermost** call (same convention as every block, S11/E1;
   for the usual top-level call that is the labelled call itself, raw args
