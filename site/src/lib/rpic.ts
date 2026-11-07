@@ -129,10 +129,22 @@ export function renderPicFile(relPath: string, opts: RenderOptions = {}): string
  * control points) fails the build — only georeferenced examples belong here.
  */
 export function renderGeoFile(relPath: string, opts: RenderOptions = {}): unknown {
+  return geoRun(relPath, opts, false);
+}
+
+/**
+ * `renderGeoFile` plus the MapLibre layers that draw it, both from the engine
+ * (`rpic --geojson --maplibre`, docs/geopic.md § 6): `{ geojson, layers }`.
+ */
+export function renderGeoMapFile(relPath: string, opts: RenderOptions = {}): { geojson: unknown; layers: unknown[] } {
+  return geoRun(relPath, opts, true) as { geojson: unknown; layers: unknown[] };
+}
+
+function geoRun(relPath: string, opts: RenderOptions, maplibre: boolean): unknown {
   const abs = repoPath(relPath);
   const code = readFileSync(abs, 'utf8');
   const key = cacheKey([
-    'geo',
+    maplibre ? 'geo-maplibre' : 'geo',
     relPath,
     code,
     opts.circuits ?? false,
@@ -146,6 +158,7 @@ export function renderGeoFile(relPath: string, opts: RenderOptions = {}): unknow
     ...(opts.circuits ? ['-c'] : []),
     ...(opts.texlabels ? ['-t'] : []),
     '--geojson',
+    ...(maplibre ? ['--maplibre'] : []),
     abs,
   ];
   const text = execFileSync(rpicBin(), args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

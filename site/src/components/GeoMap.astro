@@ -1,10 +1,10 @@
 ---
 // A pic drawing on a real map: the repo file is georeferenced at build time
-// (`rpic --geojson`, the same binary that renders the figures) and the
-// FeatureCollection is handed to MapLibre GL JS in the browser through the
-// shared `lib/geomap.ts` (styling from simplestyle + `geopic:*`, sizes true
-// to the ground — see the comments there).
-import { renderGeoFile } from '../lib/rpic';
+// (`rpic --geojson --maplibre`, the same binary that renders the figures) and
+// the FeatureCollection, with the engine's MapLibre layers (sizes true to the
+// ground, docs/geopic.md § 6), is handed to MapLibre GL JS in the browser
+// through the shared `lib/geomap.ts`.
+import { renderGeoMapFile } from '../lib/rpic';
 
 interface Props {
   /** repo-relative .pic path (georeferenced beside its own dir) */
@@ -14,7 +14,7 @@ interface Props {
   height?: string;
 }
 const { src, caption, height = '22rem' } = Astro.props;
-const geojson = renderGeoFile(src);
+const { geojson, layers } = renderGeoMapFile(src);
 ---
 
 <figure class="not-prose my-6">
@@ -22,6 +22,7 @@ const geojson = renderGeoFile(src);
     class="geomap rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50"
     style={`height:${height}`}
     data-geojson={JSON.stringify(geojson)}
+    data-layers={JSON.stringify(layers)}
   ></div>
   {caption && (
     <figcaption class="text-center text-[13px] text-slate-500 dark:text-slate-400 mt-2">{caption}</figcaption>
@@ -37,14 +38,15 @@ const geojson = renderGeoFile(src);
 </style>
 
 <script>
-  // all the map logic (basemap, layers, ground-true sizes, popups) lives in
-  // the shared client module, also driving the live playground
-  import { createGeoMap, type GeoFC } from '../lib/geomap';
+  // all the map logic (basemap, layers, popups) lives in the shared client
+  // module, also driving the live playground; the layers are the engine's
+  import { createGeoMap, type GeoFC, type MapLibreLayer } from '../lib/geomap';
 
   for (const el of document.querySelectorAll<HTMLElement>('.geomap')) {
     const fc = JSON.parse(el.dataset.geojson ?? '{"type":"FeatureCollection","features":[]}') as GeoFC;
+    const layers = el.dataset.layers ? (JSON.parse(el.dataset.layers) as MapLibreLayer[]) : undefined;
     const map = createGeoMap(el);
-    map.setGeoJSON(fc);
+    map.setGeoJSON(fc, layers);
     map.fitTo(fc);
   }
 </script>
