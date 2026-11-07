@@ -178,7 +178,86 @@ above 10⁹ m/in), `invalid_anchor` (`|lat| ≥ 90`, `|lon| > 180`, non-finite),
 that is redefined resolves to its **latest** definition, a top-level object
 winning over a block-local one of the same name.
 
-## 6. Versioning
+## 6. Rendering on MapLibre
+
+`geopic_core::maplibre::layers(&fc)` turns a collection into the
+[MapLibre style-spec](https://maplibre.org/maplibre-style-spec/layers/)
+layers that draw it — styling as data, emitted once by the engine so the
+rpic.dev Maps page, the Studio, other sites and R/mapgl draw the same map
+(DECISIONS G9). Every layer reads one GeoJSON source whose id is always
+**`pic`**: add the collection as that source, then add the layers as they
+are, in order.
+
+| id | type | filter | styling |
+|---|---|---|---|
+| `pic-fill` | `fill` | `Polygon` | `fill-color` = `fill` (default `#000000`); `fill-opacity` = `fill-opacity` (default 0.55) when the feature has `fill`, else 0 |
+| `pic-stroke` | `line` | `Polygon` or `LineString`, has `stroke`, no `geopic:dash` | `line-color` = `stroke`, `line-opacity` = `stroke-opacity` (default 1), `line-width` (below), round cap and join |
+| `pic-stroke-dashed` | `line` | same, has `geopic:dash` | as `pic-stroke` + `line-dasharray [3, 2]` |
+| `pic-dot` | `circle` | `geopic:kind == "dot"` | `circle-color` = `fill` (default `#000000`), `circle-radius` (below) |
+| `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, `text-font ["Noto Sans Regular"]`, `text-size` (below), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
+| `pic-title` | `symbol` | `Polygon` with `title`, `geopic:kind != "arrowhead"` | `text-field` = `title` at the shape's centre, otherwise as `pic-text` (no anchor, no rotation) |
+
+**Sizes are true to the ground.** From the collection's
+`geopic.registration` take `m` = `scale_m_per_in` (100 when absent) and
+`φ` = `anchor.lat` under `enu`, **0 under `mercator`** (and when absent):
+Mercator metres are already the map's own, inflated by 1/cos φ, so the cosine
+drops out. With MapLibre's 512 px tiles the equator spans 512 px at zoom 0,
+so a ground length of `L` metres is, at zoom `z`,
+
+    px(L, z) = L · p₀ · 2^z,    p₀ = 1 / (78271.517 · cos φ)
+
+A pic length becomes metres as `pt · m / 72` (stroke widths, font sizes, in
+points) or `in · m` (dot radii, in inches). MapLibre lets `zoom` drive only a
+top-level `interpolate`, so each size is `["interpolate", ["exponential", 2],
+["zoom"], z₀, px(L, z₀), z₁, px(L, z₁)]`, which reproduces the 2^z law
+exactly between the stops:
+
+| property | metres `L` (feature default) | stops | clamp |
+|---|---|---|---|
+| `line-width` | `stroke-width` pt (0.8) · m / 72 | z 0 and 24 | ≥ 1 px |
+| `circle-radius` | `geopic:radius_in` in (0.04) · m | z 0 and 24 | ≥ 2 px |
+| `text-size` | `geopic:font_size` pt (11) · m / 72 | z 0 and `z_text` | ≥ 1 px; ≤ 255 px at `z_text` |
+
+Symbol sizes are packed into 16-bit vertex attributes (≈ 255 px), so a far
+zoom stop with thousands of pixels overflows and the text comes out tiny. The
+upper text stop is therefore per collection: with `F` the largest
+`geopic:font_size · m / 72` over the features (at least 10⁻⁶ m),
+
+    z_text = clamp(⌊log₂(255 / (F · p₀))⌋, 1, 24)
+
+— exact 2^z scaling up to the last zoom at which the largest label still fits,
+a frozen size beyond (far past the fitted zoom). Example: 400 m/in at
+φ = −8.0631° gives p₀ = 1.2903602 × 10⁻⁵ px/m; an 11 pt label is 61.1 m
+and `z_text` = 18. Integer constants are emitted as JSON integers.
+
+Exposed everywhere the collection is:
+
+```sh
+rpic --geojson --maplibre map.pic     # {"geojson": FeatureCollection, "layers": [...]}
+```
+
+```js
+const { geojson, layers } = compileGeoJSON(src, { layers: true });
+import { attach } from '@strategicprojects/rpic/maplibre';
+attach(map, geojson, { layers, fit: true });   // adds source "pic" + the layers
+```
+
+```python
+from rpic import geo
+out = geo.compile(src, layers=True)           # out["layers"]
+layers = geo.maplibre_layers(fc)              # from any geopic collection
+```
+
+`maplibre_layers` / `layers_json` read only the `geopic.registration`
+foreign member and the features' `geopic:font_size`. The zero-dependency JS
+module `@strategicprojects/rpic/maplibre` also carries a port of the same
+function (`layers(fc)`), used when no engine output is at hand; a test pins it
+to the engine. The snapshots in `examples/geo/maplibre/*.layers.json` (the
+four examples, the callout under `mercator`, an empty collection) are the
+layer specs the rpic.dev maps drew before the styling moved here, and every
+implementation is checked against them.
+
+## 7. Versioning
 
 `geopic:schema` is a single integer, **1**. Adding a property or a kind keeps
 it; renaming, removing or changing the meaning or unit of a property bumps it

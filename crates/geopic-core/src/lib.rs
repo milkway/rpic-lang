@@ -27,6 +27,7 @@ mod convert;
 mod densify;
 mod geodesy;
 mod geojson;
+pub mod maplibre;
 mod register;
 mod scene;
 #[cfg(test)]

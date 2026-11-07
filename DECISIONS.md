@@ -240,3 +240,25 @@ needs typeset math *and* GeoJSON is not a use case yet). The host-side layer
 (two-pass feature injection) lives in `bindings/js/index.js`, a faithful port
 of `rpic.geo`, so the wasm surface stays two functions.
 
+### G9. MapLibre styling is data emitted by geopic-core (#432)
+
+The Maps page's MapLibre styling (#426/#428/#429/#430 — six layers, sizes
+true to the ground from `geopic.registration`, the per-collection text zoom
+stop under the 255 px symbol limit) lived only in `site/src/lib/geomap.ts`.
+The Studio, other sites and R/mapgl need the same map, so the styling moved
+into `geopic_core::maplibre` as a pure function `layers(&FeatureCollection)
+-> Vec<serde_json::Value>`, ported verbatim from `geomap.ts`'s `sizing()`
+(same constants, same operation order: the engine output equals the old
+site's to the last bit on macOS). The source id is fixed (`pic`). Surfaces:
+`rpic --geojson --maplibre` (`{geojson, layers}`; plain `--geojson`
+untouched), `compileGeoJSON(src, { layers: true })` + wasm
+`maplibre_layers`, Python `geo.maplibre_layers(fc)` / `compile(…,
+layers=True)`, and the zero-import JS module `@strategicprojects/rpic/maplibre`
+(`attach`, `createGeoMap(maplibregl, …)` — the maplibre-gl namespace is a
+parameter, so no dependency). That module also holds a JS port of `layers()`
+for callers without the geo wasm; the port and the engine are both pinned to
+the pre-move snapshots in `examples/geo/maplibre/` (numerically: `cos φ`
+comes from the platform libm). The site's `geomap.ts` is now a thin wrapper
+(worker URL, popups, hover cursor) over that module; GeoMap.astro takes the
+layers from the build-time `rpic --geojson --maplibre`, the playground from
+`compileGeoJSON(…, { layers: true })`.
