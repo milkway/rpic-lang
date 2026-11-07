@@ -133,10 +133,10 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `stroke`, `stroke-width` | `stroke.color` (hex), `stroke.width` (points) |
 | `fill` | `fill.color`; for a gradient, the first stop's color (warning `unsupported_style`) |
 | `stroke-opacity`, `fill-opacity` | the item's `opacity` |
-| `title` | the item's text lines joined by `\n` |
+| `title` | the item's **visible** text lines joined by `\n` (blank lines of the stack left out — a popup has no use for them) |
 | `geopic:schema` | `1` — the version of this vocabulary |
 | `geopic:id`, `geopic:kind`, `geopic:z`, `geopic:label`, `geopic:block`, `geopic:class`, `geopic:link` | the scene item's fields |
-| `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement. `geopic:text` is the label stack as written: one row per line joined by `\n`, a blank line kept as an empty row (`box "" "below"` → `"\nbelow"`, `box "a" "" "c"` → `"a\n\nc"`), rebuilt from the scene's `row`/`text_rows` (scene DECISIONS S13), so a renderer that centres the block on the point draws each line on its SVG row; a scene without them joins the visible lines. The shape's `title` (popups) holds only the visible lines |
+| `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement. `geopic:text` holds **all rows of the author's stack**, joined by `\n`, blank ones as empty strings (`box "" "below"` → `"\nbelow"`, `box "a" "" "c"` → `"a\n\nc"`), rebuilt from the scene's `row`/`text_rows` (scene DECISIONS S13), so a renderer that centres the block on the point draws each line on its SVG row; a scene without them joins the visible lines |
 | `geopic:font_size` | the first text line's font size, **points**; with the collection's `geopic.registration.scale_m_per_in`, `font_size / 72 × scale_m_per_in` is the letter height in metres — size labels true to the ground, in proportion to the shapes, at any zoom |
 | `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
