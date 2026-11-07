@@ -5,6 +5,8 @@
 // Math:     await ready(undefined, { math: true }); // texlabels typeset in-browser
 // Maps:     await ready(undefined, { geo: true });  // compileGeoJSON (drawing → GeoJSON)
 import * as leanModule from './pkg/rpic_wasm.js';
+// the one layer-options validator (maplibre.js itself stays zero-import)
+import { checkLayerOptions } from './maplibre.js';
 
 // display names of the three builds, keyed by ready()'s choice
 const BUILDS = { lean: 'lean', math: 'math-enabled', geo: 'geo-enabled' };
@@ -352,9 +354,6 @@ function checkGeoOptions(opts) {
   if (opts.bearing !== undefined && !finite(opts.bearing)) {
     throw new Error('rpic: bearing must be a finite number (degrees)');
   }
-  if (opts.layers !== undefined && opts.layers !== null && typeof opts.layers === 'object') {
-    layerOptions(opts.layers); // throws on a bad key or value
-  }
   if (
     opts.anchor !== undefined &&
     !(Array.isArray(opts.anchor) && opts.anchor.length === 2 && opts.anchor.every(finite))
@@ -364,23 +363,13 @@ function checkGeoOptions(opts) {
 }
 
 /**
- * MapLibre layer options (`{ textScale }`) in the engine's JSON spelling.
- * `textScale` multiplies every label's font size (finite, in (0, 16]; the
- * engine checks the range) — checked here because `JSON.stringify` would turn
- * NaN/Infinity into `null`, i.e. the default.
+ * MapLibre layer options (`{ textScale }`) in the engine's JSON spelling,
+ * validated by the maplibre module's own check (one validator, run before the
+ * wasm — `JSON.stringify` would also turn NaN/Infinity into `null`, i.e. the
+ * default).
  */
-function layerOptions(o = {}) {
-  if (o === null || typeof o !== 'object' || Array.isArray(o)) {
-    throw new Error('rpic: layer options must be an object ({ textScale })');
-  }
-  for (const k of Object.keys(o)) {
-    if (k !== 'textScale') throw new Error(`rpic: unknown layer option \`${k}\` (expected textScale)`);
-  }
-  if (o.textScale === undefined) return {};
-  if (!(typeof o.textScale === 'number' && Number.isFinite(o.textScale) && o.textScale > 0)) {
-    throw new Error('rpic: textScale must be a positive finite number');
-  }
-  return { text_scale: o.textScale };
+function layerOptions(o) {
+  return { text_scale: checkLayerOptions(o).textScale };
 }
 
 /**
@@ -411,6 +400,8 @@ function layerOptions(o = {}) {
 export function compileGeoJSON(src, opts = {}) {
   geoWasm();
   checkGeoOptions(opts);
+  // validated once, here, before any compile_geo pass
+  const layers = !opts.layers ? undefined : typeof opts.layers === 'object' ? layerOptions(opts.layers) : true;
   const feats = normalizeFeatures(opts.features);
   const base = {
     frame: opts.frame,
@@ -421,7 +412,7 @@ export function compileGeoJSON(src, opts = {}) {
     view_scale: opts.viewScale,
     screen_classes: opts.screenClasses,
     // the MapLibre layers (docs/geopic.md § 6); absent unless asked for
-    layers: !opts.layers ? undefined : typeof opts.layers === 'object' ? layerOptions(opts.layers) : true,
+    layers,
   };
   return feats.length
     ? compileWithFeatures(src, feats, base, opts)
@@ -452,7 +443,7 @@ export function geoToCanvas(registration, points) {
  */
 export function maplibreLayers(fc, opts = {}) {
   const text = typeof fc === 'string' ? fc : JSON.stringify(fc);
-  const out = JSON.parse(geoWasm().maplibre_layers(text, JSON.stringify(layerOptions(opts ?? {}))));
+  const out = JSON.parse(geoWasm().maplibre_layers(text, JSON.stringify(layerOptions(opts))));
   if (!Array.isArray(out)) throw new GeoError(out.error, out.geo_error);
   return out;
 }

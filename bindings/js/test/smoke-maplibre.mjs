@@ -5,7 +5,7 @@
 // build per module instance).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { attach, bounds, createGeoMap, LAYER_IDS, layers, MAX_TEXT_SCALE, sizing, SOURCE } from '../maplibre.js';
+import { attach, bounds, checkLayerOptions, createGeoMap, LAYER_IDS, layers, MAX_TEXT_SCALE, sizing, SOURCE } from '../maplibre.js';
 import { compileGeoJSON, maplibreLayers, ready } from '../index.js';
 
 // zero imports: the module must stay loadable without wasm or maplibre-gl
@@ -74,7 +74,7 @@ for (const [name, fc] of Object.entries(cases)) {
   assert.ok(layers(fc, { textScale: 16 }));
   for (const k of [0, -1, NaN, Infinity, 17, '2']) {
     assert.throws(() => layers(fc, { textScale: k }), /textScale/, `port ${k}`);
-    assert.throws(() => maplibreLayers(fc, { textScale: k }), /text_?[sS]cale/, `engine ${k}`);
+    assert.throws(() => maplibreLayers(fc, { textScale: k }), /textScale/, `engine ${k}`);
   }
   assert.throws(() => maplibreLayers(fc, { text_scale: 2 }), /unknown layer option/);
   // compileGeoJSON: `layers: { textScale }` = maplibreLayers on its collection
@@ -87,7 +87,12 @@ for (const [name, fc] of Object.entries(cases)) {
   assert.deepEqual(compileGeoJSON(src, { circuits: true, layers: {} }).layers, plain.layers);
   assert.equal(compileGeoJSON(src, { circuits: true }).layers, undefined);
   assert.throws(() => compileGeoJSON(src, { layers: { textScale: NaN } }), /textScale/);
-  assert.throws(() => compileGeoJSON(src, { layers: { textScale: 20 } }), (e) => e.info?.kind === 'invalid_options');
+  // one validator, before the wasm runs: a plain Error naming textScale
+  assert.throws(() => compileGeoJSON(src, { layers: { textScale: 20 } }), (e) => !e.info && /textScale/.test(e.message));
+  assert.throws(() => compileGeoJSON(src, { layers: [] }), /must be an object/);
+  assert.deepEqual(checkLayerOptions(), { textScale: 1 });
+  assert.deepEqual(checkLayerOptions({ textScale: 2 }), { textScale: 2 });
+  assert.throws(() => layers(fc, { foo: 1 }), /unknown layer option/);
   assert.throws(() => compileGeoJSON(src, { layers: { before: 'labels' } }), /unknown layer option/);
 }
 

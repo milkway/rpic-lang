@@ -50,6 +50,13 @@ export interface LayerOptions {
 /** The largest accepted `textScale`: 16. */
 export const MAX_TEXT_SCALE: number;
 
+/**
+ * Validate layer options as the engine does (object, no unknown keys,
+ * `textScale` finite in (0, 16]); returns them with the default filled.
+ * Throws an `Error` otherwise.
+ */
+export function checkLayerOptions(opts?: LayerOptions | null): Required<LayerOptions>;
+
 /** The numbers behind the ground-true size expressions (throws on a bad `textScale`). */
 export function sizing(fc: GeoPicCollection, opts?: LayerOptions): Sizing;
 /** The six layers that draw `fc` — a port of the engine's output (throws on a bad `textScale`). */

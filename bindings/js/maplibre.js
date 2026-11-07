@@ -28,13 +28,26 @@ const ANCHORS = {
 /** The largest accepted `textScale` (the engine's `LayerOptions::MAX_TEXT_SCALE`). */
 export const MAX_TEXT_SCALE = 16;
 
-/** `opts.textScale` (default 1), validated as the engine does (DECISIONS G11). */
-function textScaleOf(opts) {
-  const k = opts?.textScale ?? 1;
+/**
+ * Layer options (`{ textScale }`) validated as the engine does (DECISIONS
+ * G11) — the one check every JS entry point uses (`layers`, `sizing`, and
+ * `compileGeoJSON`/`maplibreLayers` in index.js, before the wasm runs):
+ * an object (or null/undefined = defaults), no unknown keys, `textScale` a
+ * finite number in (0, 16]. Returns `{ textScale }` with the default filled.
+ */
+export function checkLayerOptions(opts) {
+  if (opts == null) return { textScale: 1 };
+  if (typeof opts !== 'object' || Array.isArray(opts)) {
+    throw new Error('rpic: layer options must be an object ({ textScale })');
+  }
+  for (const k of Object.keys(opts)) {
+    if (k !== 'textScale') throw new Error(`rpic: unknown layer option \`${k}\` (expected textScale)`);
+  }
+  const k = opts.textScale ?? 1;
   if (!(typeof k === 'number' && Number.isFinite(k) && k > 0 && k <= MAX_TEXT_SCALE)) {
     throw new Error(`rpic: textScale must be a finite number in (0, ${MAX_TEXT_SCALE}], got ${k}`);
   }
-  return k;
+  return { textScale: k };
 }
 
 /**
@@ -46,7 +59,7 @@ function textScaleOf(opts) {
  * still fits in MapLibre's 255 px symbol limit.
  */
 export function sizing(fc, opts = {}) {
-  const textScale = textScaleOf(opts);
+  const { textScale } = checkLayerOptions(opts);
   const reg = fc?.geopic?.registration;
   const mPerIn = reg?.scale_m_per_in ?? 100;
   const lat = reg?.frame === 'mercator' ? 0 : (reg?.anchor?.lat ?? 0);
