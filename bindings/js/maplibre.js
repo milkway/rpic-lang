@@ -100,6 +100,9 @@ export function layers(fc) {
       'text-field': textField(),
       'text-font': ['Noto Sans Regular'],
       'text-size': textSize(),
+      // pic's line skip is the font size; MapLibre's default 1.2 em would
+      // push every row 20 % off text_center
+      'text-line-height': 1,
       'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],
       // geopic:rotation is CCW from east; MapLibre rotates clockwise
       'text-rotate': ['*', -1, ['coalesce', ['get', 'geopic:rotation'], 0]],

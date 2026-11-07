@@ -273,6 +273,9 @@ impl Sizing {
                     "text-field": text_field.clone(),
                     "text-font": ["Noto Sans Regular"],
                     "text-size": text_size.clone(),
+                    // pic's line skip is the font size; MapLibre's default
+                    // 1.2 em would push every row 20 % off `text_center`
+                    "text-line-height": 1,
                     "text-anchor": anchor.clone(),
                     // geopic:rotation is CCW from east; MapLibre rotates clockwise
                     "text-rotate": ["*", -1, ["coalesce", ["get", "geopic:rotation"], 0]],

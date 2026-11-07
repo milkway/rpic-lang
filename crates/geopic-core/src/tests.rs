@@ -1352,6 +1352,8 @@ fn maplibre_text_field_pads_a_trailing_blank_row() {
     ]);
     for id in ["pic-text", "pic-title"] {
         assert_eq!(layer(&ls, id)["layout"]["text-field"], want, "{id}");
+        // pic's line skip = the font size (MapLibre's default is 1.2 em)
+        assert_eq!(layer(&ls, id)["layout"]["text-line-height"], 1, "{id}");
     }
     let title = g
         .features

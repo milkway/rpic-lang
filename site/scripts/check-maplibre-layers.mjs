@@ -16,7 +16,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { layers } from '@strategicprojects/rpic/maplibre';
 // maplibre-gl's own style-spec (its dependency): evaluates the layer expressions
-import { createExpression, latest } from '@maplibre/maplibre-gl-style-spec';
+import { createExpression, latest, validateStyleMin } from '@maplibre/maplibre-gl-style-spec';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const geoDir = resolve(here, '../../examples/geo');
@@ -66,5 +66,15 @@ close(layers({ type: 'FeatureCollection', features: [] }), snap('empty'), 'empty
   for (const [t, want] of [['\nbelow', '\nbelow'], ['above\n', 'above\n\u00a0'], ['a\n\nc', 'a\n\nc'], ['one', 'one'], ['', '']]) {
     assert.equal(evalText(t), want, JSON.stringify(t));
   }
+}
+// every snapshot is a valid style-spec layer list (text-line-height included)
+for (const f of readdirSync(snapDir).filter((f) => f.endsWith('.layers.json'))) {
+  const style = {
+    version: 8,
+    glyphs: 'https://example.invalid/{fontstack}/{range}.pbf',
+    sources: { pic: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } } },
+    layers: JSON.parse(readFileSync(join(snapDir, f), 'utf8')),
+  };
+  assert.deepEqual(validateStyleMin(style).map((e) => e.message), [], f);
 }
 console.log('check-maplibre-layers: ok');
