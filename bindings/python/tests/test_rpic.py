@@ -206,3 +206,40 @@ def test_include_policy(tmp_path):
     # unknown policy string is a plain ValueError
     with pytest.raises(ValueError, match="include_policy"):
         rpic.render_svg("box", include_policy="nope")
+
+
+# ---- #450: named preludes --------------------------------------------------
+
+_LIB = "define vsrc { [ line from $1 to $2; circle rad 0.1 at last line.c ] }\n"
+
+
+def test_preludes_keep_user_positions_and_name_their_own():
+    src = "A: (0,0); B: (1,0)\nV1: vsrc(A,B)\n"
+    out = rpic.compile(src, preludes=[{"name": "dune", "text": _LIB}], scene=True)
+    blk = next(i for i in out["scene"]["items"] if i["kind"] == "block")
+    assert blk["label"] == "V1"
+    assert blk["span"]["line"] == 2 and "file" not in blk["span"]
+    assert all(o["file"] == "dune" for o in out["objects"])
+    # (name, text) pairs work too, through every entry point
+    assert rpic.render_svg(src, preludes=[("dune", _LIB)]) == out["svg"]
+    assert json.loads(rpic.compile_json(src, preludes=[("dune", _LIB)]))["svg"] == out["svg"]
+    assert rpic.scene(src, preludes=[("dune", _LIB)])["items"] == out["scene"]["items"]
+    # no preludes = the plain compile
+    assert rpic.compile("box", preludes=[]) == rpic.compile("box")
+
+
+def test_prelude_errors():
+    with pytest.raises(rpic.CompileError) as e:
+        rpic.compile("box\nbxo\n", preludes=[("dune", _LIB)])
+    assert (e.value.info["line"], e.value.info["file"]) == (2, None)
+    with pytest.raises(rpic.CompileError) as e:
+        rpic.compile("box", preludes=[("house", "circle\nbxo\n")])
+    assert (e.value.info["line"], e.value.info["file"]) == (2, "house")
+    for bad in ([("circuits", "box")], [("x", "box"), ("x", "box")], [("", "box")]):
+        with pytest.raises(rpic.CompileError) as e:
+            rpic.compile("box", preludes=bad)
+        assert e.value.info["kind"] == "invalid_options"
+    with pytest.raises(TypeError):
+        rpic.compile("box", preludes=[{"name": "x"}])
+    with pytest.raises(TypeError):
+        rpic.compile("box", preludes=[42])

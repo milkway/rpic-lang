@@ -116,6 +116,41 @@ try {
 compile('box "a" dashd').warnings; // [{ kind: "ignored_attribute", hint: "did you mean `dashed`?", … }]
 ```
 
+### Named preludes (all bindings)
+
+An embedder's own macro library can ride as a **named prelude** — compiled
+before the source, after `circuits`/`texlabels`, as its own unit, like the
+circuit library. Your line numbers never shift, positions inside the prelude
+carry `file: <name>`, and a prelude macro called from your source keeps your
+call site (`span`, `call.raw_args`):
+
+```js
+const lib = 'define vsrc { [ line from $1 to $2; circle rad 0.1 at last line.c ] }\n';
+const out = compile('A: (0,0); B: (1,0)\nV1: vsrc(A,B)', {
+  preludes: [{ name: 'dune', text: lib }],
+  scene: true,
+});
+out.scene.items.find((i) => i.kind === 'block').span; // { line: 2, … } — your line
+out.objects[0].file;                                  // "dune"
+```
+
+```python
+out = rpic.compile(src, preludes=[{"name": "dune", "text": lib}])  # or [("dune", lib)]
+fc = rpic.geo.to_geojson(src, preludes=[("dune", lib)])
+```
+
+```c
+char *json = rpic_compile_json_opts(src, NULL,
+    "{\"preludes\": [{\"name\": \"dune\", \"text\": \"define vsrc { ... }\"}]}");
+rpic_free_string(json);
+```
+
+On the CLI: `rpic --prelude dune=dune.pic --json fig.pic` (repeatable; a
+relative file resolves against the input file's directory, like `copy`). A
+bad name (empty, duplicate, containing `"` or a line break, or one of the reserved `circuits`,
+`<texlabels>` and `features`)
+is an error with `kind: "invalid_options"`.
+
 ## R
 
 The [`rpic` R package](https://github.com/milkway/rpic-r) wraps the same

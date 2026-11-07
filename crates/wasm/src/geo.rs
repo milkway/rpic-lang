@@ -18,6 +18,14 @@ struct GeoFeatureOpt {
     bbox: Option<[f64; 4]>,
 }
 
+/// A named prelude as the options JSON carries it.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PreludeOpt {
+    name: String,
+    text: String,
+}
+
 /// `compile_geo`'s options JSON; every key optional.
 #[derive(serde::Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
@@ -27,6 +35,9 @@ struct GeoOpts {
     scale: Option<f64>,
     bearing: Option<f64>,
     features: Vec<GeoFeatureOpt>,
+    /// named preludes (`CompileOptions::preludes`), not a geo option: peeled
+    /// off before the conversion
+    preludes: Vec<PreludeOpt>,
     flatten: Option<f64>,
     view_scale: Option<f64>,
     screen_classes: Option<Vec<String>>,
@@ -86,7 +97,8 @@ fn diagnostic_value(d: &rpic_core::Diagnostic) -> serde_json::Value {
 /// `opts_json` is a JSON object (or empty string) with the optional keys
 /// `frame` (`"enu"` | `"mercator"`), `anchor` (`[lon, lat]`), `scale`
 /// (metres per inch), `bearing` (degrees clockwise from north), `features`
-/// (`[{name, lon, lat, bbox?}]`, control points by label), `flatten`
+/// (`[{name, lon, lat, bbox?}]`, control points by label), `preludes`
+/// (`[{name, text}]`, named source units as in `compile_preludes`), `flatten`
 /// (inches), `view_scale` (px per inch under `geo_px = 1`) and
 /// `screen_classes`; `layers: true` adds the MapLibre layers that draw the
 /// collection (`"layers": [...]`, docs/geopic.md § 6) — or `layers:
@@ -101,8 +113,13 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
     } else {
         serde_json::from_str(opts_json)
     };
+    let mut copts = wasm_options(circuits, texlabels);
     let (gopts, want_layers) = match parsed {
         Ok(mut o) => {
+            copts.preludes = std::mem::take(&mut o.preludes)
+                .into_iter()
+                .map(|p| rpic_core::Prelude::new(p.name, p.text))
+                .collect();
             let layers = match o.layers.take() {
                 serde_json::Value::Null | serde_json::Value::Bool(false) => None,
                 serde_json::Value::Bool(true) => {
@@ -125,7 +142,7 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
             ));
         }
     };
-    let d = match rpic_core::compile_with_diagnostics(src, &wasm_options(circuits, texlabels)) {
+    let d = match rpic_core::compile_with_diagnostics(src, &copts) {
         Ok(d) => d,
         Err(e) => {
             return serde_json::json!({

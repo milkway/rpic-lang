@@ -69,6 +69,69 @@ pub fn compile_scene(
     rpic_core::compile_json_all_with_options(src, &opts, &sopts)
 }
 
+/// Like [`compile_with`], plus named preludes (`names[i]` ↔ `texts[i]`):
+/// source units spliced after `circuits`/`texlabels`, in order, before `src`
+/// — positions inside one carry `file` = its name; the user's own positions
+/// never shift. Bad names (or mismatched lengths) come back as an
+/// `invalid_options` error bundle. `scene` adds the scene key as
+/// [`compile_scene`] does.
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn compile_preludes(
+    src: &str,
+    circuits: bool,
+    texlabels: bool,
+    names: Vec<String>,
+    texts: Vec<String>,
+    scene: bool,
+    flatten: Option<f64>,
+    outline: bool,
+) -> String {
+    if names.len() != texts.len() {
+        return invalid_options_json(&format!(
+            "preludes: {} names but {} texts",
+            names.len(),
+            texts.len()
+        ));
+    }
+    let mut opts = wasm_options(circuits, texlabels);
+    opts.preludes = names
+        .into_iter()
+        .zip(texts)
+        .map(|(n, t)| rpic_core::Prelude::new(n, t))
+        .collect();
+    if scene {
+        let sopts = rpic_core::SceneOptions {
+            flatten: flatten.filter(|f| f.is_finite() && *f > 0.0),
+            outline,
+            source: None,
+        };
+        rpic_core::compile_json_all_with_options(src, &opts, &sopts)
+    } else {
+        rpic_core::compile_json_with_options(src, &opts)
+    }
+}
+
+/// `{error, error_info: {kind: "invalid_options"}, warnings: []}` — the
+/// bundle's error shape, built by hand (the lean build has no serde).
+fn invalid_options_json(msg: &str) -> String {
+    let d = rpic_core::Diagnostic::new("invalid_options", msg);
+    let mut quoted = String::from("\"");
+    for c in msg.chars() {
+        match c {
+            '"' => quoted.push_str("\\\""),
+            '\\' => quoted.push_str("\\\\"),
+            c if (c as u32) < 0x20 => quoted.push_str(&format!("\\u{:04x}", c as u32)),
+            c => quoted.push(c),
+        }
+    }
+    quoted.push('"');
+    format!(
+        "{{\"error\":{quoted},\"error_info\":{},\"warnings\":[]}}",
+        rpic_core::diagnostic_json(&d)
+    )
+}
+
 pub(crate) fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::CompileOptions {
     rpic_core::CompileOptions {
         circuits,
@@ -85,3 +148,25 @@ pub(crate) fn wasm_options(circuits: bool, texlabels: bool) -> rpic_core::Compil
 /// as GeoJSON. Gated because it adds ~180 KB to the module (DECISIONS.md G8).
 #[cfg(feature = "geo")]
 mod geo;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn mismatched_prelude_lists_are_invalid_options() {
+        let j = super::compile_preludes(
+            "box",
+            false,
+            false,
+            vec!["a".into(), "b".into()],
+            vec!["box".into()],
+            false,
+            None,
+            false,
+        );
+        assert!(j.contains("\"kind\":\"invalid_options\""), "{j}");
+        assert!(
+            j.contains("\"error\":\"preludes: 2 names but 1 texts\""),
+            "{j}"
+        );
+    }
+}

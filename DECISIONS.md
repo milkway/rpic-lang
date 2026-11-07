@@ -591,3 +591,54 @@ same name. Labels alone do not fix that, so those five got `__name` geometry
 twins like `__resistor`: bodies renamed in place, the public one-line
 definitions appended at the end of `circuits.pic` so no line moves (object
 spans point into the bodies; corpus `--json` identical).
+
+### E4. Embedder preludes are named source units, like `-c` (#450)
+
+`CompileOptions.preludes: Vec<Prelude { name, text }>` splices each prelude
+as its own lexed unit — after `circuits` and the `texlabels` initializer, in
+order, before the user's source — through the same `splice_unit` path the
+circuit library takes. Consequences, all inherited rather than built:
+
+- **User lines never shift.** The user's text is lexed separately, so every
+  position-bearing key (diagnostics, `objects`, `places`, `passthrough`,
+  scene `span`, `MacroCall.raw_args`) is relative to it with no rebasing.
+  The Studio's hand-rolled rebase of a prepended dune prelude
+  (rpic-studio#17/#18) — and every future key it would have missed — goes
+  away.
+- **Positions inside a prelude carry `file = name`** (the token's unit
+  name), exactly as library positions carry `"circuits"`. Troff
+  passthrough lines, `verbatimtex` and `\psset` lines in a prelude are set
+  aside as in the user's text (the Studio's prepending did the same), their
+  spans tagged with the prelude's name; prelude entries precede the user's.
+- **Call-site provenance is the user's.** A prelude macro called from user
+  code records the outermost call (`BlockInfo.span`/`call`, `raw_args`),
+  which is the user's — the E1/E3 machinery does not care which unit the
+  `define` came from.
+
+Names are validated before parsing: non-empty, unique, no `"` or line break
+(a name is echoed into JSON and `L:C:` messages), and not a reserved name:
+`circuits` and `<texlabels>` (an embedder unit must not be mistaken for the
+library or the `-t` initializer) and `features` — the `file` the JS and
+Python geo bindings stamp on positions inside the feature lines they inject
+(docs/geopic.md). That sentinel was *reserved*, not renamed to
+`<features>`: it is documented, released behaviour (0.14.0) that hosts may
+match on, and reserving it costs nothing. A bad name is a structured compile error with kind
+`invalid_options`, the kind geopic already uses for bad host options.
+`IncludePolicy` is unaffected: the text is given, not read; a `copy` *inside*
+a prelude obeys the policy like any other.
+
+Surfaces: Rust (`CompileOptions::with_prelude`, `parse_with_options`), CLI
+`--prelude NAME=FILE` (repeatable; the CLI reads the file — the user named
+it, so it is policy-free — and a relative FILE resolves against the input
+file's directory, the rule `copy "file"` follows, so a figure and its
+prelude travel together), JS `compile(src, { preludes })` /
+`compileGeoJSON(src, { preludes })` (new wasm `compile_preludes`; the
+`compile_geo` options JSON gains `preludes`), Python `preludes=` on every
+entry point and `rpic.geo`, C `rpic_compile_json_opts(src, opts,
+opts_json)`. The C ABI gained a function rather than a field: `RpicOptions`
+is a `#[repr(C)]` struct, and growing it would break every compiled caller;
+the options JSON is extensible without another ABI change. Rejected: a
+single `prelude: Option<…>` (the list subsumes it) and text prepending in
+the bindings (the very thing this replaces). With no preludes every path is
+the old one: corpus proof, main vs branch binaries (isolated target dirs,
+`cmp` differ), `-c -t`: `--svg`, `--json` and `--scene` 128/128 identical.

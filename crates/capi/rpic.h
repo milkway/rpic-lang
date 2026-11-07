@@ -41,6 +41,16 @@ char *rpic_scene_json(const char *src, const RpicOptions *opts, double flatten);
 /* The compile bundle with the "scene" key included (scene warnings merged
  * into "warnings"). flatten as in rpic_scene_json. */
 char *rpic_compile_json_all(const char *src, const RpicOptions *opts, double flatten);
+/* Like rpic_compile_json_ex, with the options RpicOptions cannot carry as a
+ * JSON object (NULL or "" = none; every key optional):
+ *   {"preludes": [{"name": "dune", "text": "define vsource { ... }"}],
+ *    "scene": true, "flatten": 0.01}
+ * preludes are named source units spliced before src (after circuits and
+ * texlabels, in order); positions inside one carry "file": its name, and the
+ * user's own positions never shift. scene: true returns the
+ * rpic_compile_json_all bundle; flatten (> 0, inches) implies scene. Bad options -> {error, error_info} with kind
+ * "invalid_options". */
+char *rpic_compile_json_opts(const char *src, const RpicOptions *opts, const char *opts_json);
 unsigned char *rpic_render_png_ex(const char *src, double scale, const RpicOptions *opts, size_t *out_len);
 unsigned char *rpic_render_pdf_ex(const char *src, const RpicOptions *opts, size_t *out_len);
 

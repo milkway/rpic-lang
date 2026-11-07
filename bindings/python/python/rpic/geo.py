@@ -36,7 +36,7 @@ __all__ = [
     "to_geodataframe",
 ]
 
-_COMPILE_KEYS = ("circuits", "texlabels", "base", "include_policy", "max_loop_iterations", "max_shapes")
+_COMPILE_KEYS = ("circuits", "texlabels", "base", "include_policy", "max_loop_iterations", "max_shapes", "preludes")
 
 
 class GeoWarning(UserWarning):
@@ -216,18 +216,27 @@ def _compile_with_features(src: str, feats: list[_Feature], kwargs: dict) -> dic
     except CompileError as e:
         _shift(getattr(e, "info", None), k)
         raise
+    def own_def(span: Any) -> bool:
+        # past the placeholders, or inside a named prelude (``file`` set)
+        span = span or {}
+        return span.get("file") is not None or span.get("line", 0) > k
+
     defined = set()
     for p in sc.get("places", []):
-        if p.get("label") in names and (p.get("span") or {}).get("line", 0) > k:
+        if p.get("label") in names and own_def(p.get("span")):
             defined.add(p["label"])
     for it in sc.get("items", []):
-        if it.get("label") in names and (it.get("span") or {}).get("line", 0) > k:
+        if it.get("label") in names and own_def(it.get("span")):
             defined.add(it["label"])
     own = [f for f in feats if f[0] in defined]
     inject = [f for f in feats if f[0] not in defined]
     # pass 1: the registration — declared anchor, or the source's control
-    # points, the source-defined features among them
-    first = _compile(placeholders + src, k, features=own, **kwargs)
+    # points, the source-defined features among them. Placeholders only for
+    # the features nobody defines: a placeholder sits in the caller's text,
+    # after any prelude, and would clobber a prelude's definition (last
+    # label wins); the source's own definitions need none either.
+    holders = "".join(f"{f[0]}: (0, 0)\n" for f in inject)
+    first = _compile(holders + src, len(inject), features=own, **kwargs)
     if not inject:
         return first
     prelude = _prelude(first["registration"], first["canvas"], inject)
@@ -264,7 +273,8 @@ def compile(
     ``1e-3``), ``view_scale`` (px per inch under ``geo_px = 1``),
     ``screen_classes``, plus the usual compile options (``circuits``,
     ``texlabels``, ``base``, ``include_policy``, ``max_loop_iterations``,
-    ``max_shapes``).
+    ``max_shapes``, ``preludes`` — named source units compiled before
+    ``src``, as in :func:`rpic.compile`).
 
     ``features`` names points the source may use without defining them
     (``arrow from Recife to Olinda``): features the source does define act as

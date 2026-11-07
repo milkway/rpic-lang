@@ -140,9 +140,23 @@ pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseErro
 /// own input reports user lines, and library problems name the library.
 pub fn parse_with_prelude(
     src: &str,
+    includes: IncludeCtx,
+    circuits: bool,
+    texlabels: bool,
+) -> Result<Picture, ParseError> {
+    parse_units(src, includes, circuits, texlabels, &[])
+}
+
+/// [`parse_with_prelude`] plus the embedder's named [`crate::Prelude`]s,
+/// each lexed as its own unit (`file` = its name) after `circuits` and
+/// `texlabels`, in order, before `src`. Names are validated by the caller
+/// ([`crate::CompileOptions`]).
+pub(crate) fn parse_units(
+    src: &str,
     mut includes: IncludeCtx,
     circuits: bool,
     texlabels: bool,
+    preludes: &[crate::Prelude],
 ) -> Result<Picture, ParseError> {
     // a fresh table per compilation: a reused context must not accumulate
     // every text it ever lexed
@@ -159,7 +173,21 @@ pub fn parse_with_prelude(
         // Initializer only — the source stays sovereign (`texlabels = 0` wins).
         splice_unit(&mut toks, lex_named("texlabels = 1\n", "<texlabels>")?);
     }
-    let (src, passthrough) = strip_backend_preamble(src);
+    // Embedder preludes read like the user's own text (troff passthrough,
+    // `verbatimtex`, … set aside the same way), but every position names
+    // the prelude.
+    let mut passthrough = Vec::new();
+    for p in preludes {
+        let (text, pass) = strip_backend_preamble(&p.text);
+        let file: std::sync::Arc<str> = std::sync::Arc::from(p.name.as_str());
+        passthrough.extend(pass.into_iter().map(|mut l| {
+            l.span.file = Some(file.clone());
+            l
+        }));
+        splice_unit(&mut toks, lex_in(&text, Some(&p.name), &table)?);
+    }
+    let (src, user_pass) = strip_backend_preamble(src);
+    passthrough.extend(user_pass);
     toks.extend(lex_in(&src, None, &table)?);
     let (toks, macros) = preprocess(toks, &includes)?;
     let mut pic = Parser::new(toks).parse_picture()?;

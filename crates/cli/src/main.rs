@@ -109,6 +109,8 @@ fn main() -> ExitCode {
     let mut maplibre = false;
     let mut text_scale: Option<f64> = None;
     let mut geo = geopic_core::GeoOptions::default();
+    // `--prelude NAME=FILE` args, read once the input file is known
+    let mut prelude_args: Vec<String> = Vec::new();
 
     let mut i = 1;
     while i < args.len() {
@@ -170,6 +172,10 @@ fn main() -> ExitCode {
                 }
                 Some(Err(e)) => return fail(&e),
                 None => return fail(&format!("rpic: `{a}` needs NAME=LON,LAT")),
+            },
+            "--prelude" => match string_arg(&args, &mut i, a, "NAME=FILE") {
+                Ok(v) => prelude_args.push(v),
+                Err(e) => return fail(&e),
             },
             "--outline" => outline = true,
             "--flatten" => match number_arg(&args, &mut i, a, "tolerance in inches", true) {
@@ -249,6 +255,19 @@ fn main() -> ExitCode {
         }
     };
 
+    // relative prelude files resolve against the input's directory, like
+    // `copy "file"` (an input with no directory part: the working directory)
+    let input_dir = std::path::Path::new(&path)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty());
+    let mut preludes = Vec::with_capacity(prelude_args.len());
+    for arg in &prelude_args {
+        match read_prelude(arg, input_dir) {
+            Ok(p) => preludes.push(p),
+            Err(e) => return fail(&e),
+        }
+    }
+
     // `-c`/`-t` become compile options (not text prepended to the source), so
     // diagnostic positions stay relative to the user's own file.
     let opts = rpic_core::CompileOptions {
@@ -259,6 +278,8 @@ fn main() -> ExitCode {
             .map(|p| p.to_path_buf()),
         // the CLI keeps full filesystem access for includes
         includes: rpic_core::IncludePolicy::Unrestricted,
+        // `--prelude NAME=FILE` units, in command-line order
+        preludes,
         ..Default::default()
     };
     // the page title for `--html`: the input file's stem
@@ -341,13 +362,7 @@ fn run(
             Ok(Output::Text(s))
         }
         Mode::Ast => {
-            let pic = rpic_core::parse_with_prelude(
-                src,
-                rpic_core::IncludeCtx::with_policy(opts.base.clone(), opts.includes),
-                opts.circuits,
-                opts.texlabels,
-            )
-            .map_err(|e| e.to_string())?;
+            let pic = rpic_core::parse_with_options(src, opts).map_err(|e| e.message)?;
             Ok(Output::Text(format!("{pic:#?}\n")))
         }
         Mode::Svg => {
@@ -440,6 +455,8 @@ fn print_help() {
          OPTIONS:\n    \
          -c, --circuits      load the native circuit-element library (in-source: copy \"circuits\")\n    \
      -t, --texlabels     typeset $…$ labels as TeX math (sets texlabels = 1)\n    \
+         --prelude NAME=FILE load FILE as a named unit before the input (repeatable; positions in it report NAME;\n    \
+         \x20                   a relative FILE resolves against the input file's directory, like `copy`)\n    \
          -o, --output FILE   write to FILE (default: stdout)\n    \
          --scale N           PNG scale factor, 1.0 = 96 dpi (default 1.0)\n    \
          --flatten TOL       scene: deliver curves as polylines within TOL inches\n    \
@@ -454,6 +471,26 @@ fn print_help() {
          --text-scale K          maplibre: multiply every label's font size by K (0 < K <= 16; default 1)\n    \
          -h, --help          show this help\n"
     );
+}
+
+/// `--prelude NAME=FILE`: the named unit, its text read here (the user named
+/// the file, so no include policy applies). A relative FILE resolves against
+/// `dir` (the input file's directory) when given, else the working
+/// directory. Name validation is the core's.
+fn read_prelude(arg: &str, dir: Option<&std::path::Path>) -> Result<rpic_core::Prelude, String> {
+    let Some((name, file)) = arg.split_once('=') else {
+        return Err(format!("rpic: `--prelude` needs NAME=FILE (got `{arg}`)"));
+    };
+    if file.is_empty() {
+        return Err(format!("rpic: `--prelude {arg}`: missing FILE"));
+    }
+    let path = match dir {
+        Some(d) if std::path::Path::new(file).is_relative() => d.join(file),
+        _ => std::path::PathBuf::from(file),
+    };
+    let text = std::fs::read_to_string(&path)
+        .map_err(|e| format!("rpic: cannot read prelude `{}`: {e}", path.display()))?;
+    Ok(rpic_core::Prelude::new(name, text))
 }
 
 #[cfg(test)]

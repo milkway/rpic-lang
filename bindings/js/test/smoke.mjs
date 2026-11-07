@@ -240,3 +240,35 @@ assert.ok(
 assert.throws(() => compile('box', { flatten: 0 }), /flatten must be a positive finite tolerance/);
 assert.throws(() => compile('box', { flatten: -1 }), /flatten/);
 assert.throws(() => compile('box', { flatten: NaN }), /flatten/);
+
+// #450: named preludes are their own source units — user positions never
+// shift, positions inside the prelude carry its name
+{
+  const lib = 'define vsrc { [ line from $1 to $2; circle rad 0.1 at last line.c ] }\n';
+  const src = 'A: (0,0); B: (1,0)\nV1: vsrc(A,B)\n';
+  const out = compile(src, { preludes: [{ name: 'dune', text: lib }], scene: true });
+  const b = out.scene.items.find((i) => i.kind === 'block');
+  assert.equal(b.label, 'V1');
+  assert.equal(b.span.line, 2);
+  assert.equal(b.span.file, undefined);
+  assert.ok(out.scene.items.filter((i) => i.kind !== 'block').every((i) => i.span.file === 'dune'));
+  assert.ok(out.objects.every((o) => o.file === 'dune'));
+  // without scene too; an empty list is the plain compile
+  assert.equal(compile(src, { preludes: [{ name: 'dune', text: lib }] }).svg, out.svg);
+  assert.deepEqual(compile('box', { preludes: [] }), compile('box'));
+  // user errors keep their lines; prelude errors name the prelude
+  assert.throws(
+    () => compile('box\nbxo', { preludes: [{ name: 'dune', text: lib }] }),
+    (e) => e.errorInfo.line === 2 && e.errorInfo.file == null,
+  );
+  assert.throws(
+    () => compile('box', { preludes: [{ name: 'house', text: 'circle\nbxo\n' }] }),
+    (e) => e.errorInfo.line === 2 && e.errorInfo.file === 'house',
+  );
+  assert.throws(
+    () => compile('box', { preludes: [{ name: 'circuits', text: 'box' }] }),
+    (e) => e.errorInfo.kind === 'invalid_options',
+  );
+  assert.throws(() => compile('box', { preludes: [{ name: 'x' }] }), TypeError);
+  assert.throws(() => compile('box', { preludes: 'x' }), TypeError);
+}

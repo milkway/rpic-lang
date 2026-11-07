@@ -193,3 +193,34 @@ def test_feature_names_are_validated_never_interpolated():
     out = rpic.geo.compile(src, features={"Marco_Zero_1": (0.0, 0.0)}, warn=False)
     assert out["registration"]["control_points"] == 1
 
+
+
+def test_preludes_reach_geo_compile_and_feature_injection():
+    pre = [("lib", "define spot { [ circle rad 0.1 ] }\nRecife: (0,0)\n")]
+    head = "geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 1000\n"
+    fc = rpic.geo.to_geojson(head + "spot()\n", preludes=pre, warn=False)
+    assert fc["features"]
+    out = rpic.geo.compile(
+        head + "arrow from Recife to Olinda\n",
+        preludes=pre,
+        features={"Olinda": (-34.8553, -8.0089)},
+        warn=False,
+    )
+    assert out["geojson"]["features"]
+
+
+def test_a_prelude_defined_feature_is_not_clobbered_by_a_placeholder():
+    # the prelude places Recife; a placeholder after it (in the caller's
+    # text) would move it to (0, 0) for the first pass and skew the fit
+    pre = [("lib", "Recife: (3, 1)\n")]
+    feats = {"Recife": (-34.8711, -8.0631), "Olinda": (-34.8553, -8.0089)}
+    out = rpic.geo.compile("geo_scale = 1000\narrow from Recife to Olinda\n", preludes=pre, features=feats, warn=False)
+    reg = out["registration"]
+    # exactly as if the source itself defined Recife
+    same = rpic.geo.compile("geo_scale = 1000\nRecife: (3, 1)\narrow from Recife to Olinda\n", features=feats, warn=False)
+    assert reg == same["registration"]
+    assert math.isclose(reg["scale_m_per_in"], 1000, rel_tol=1e-4), reg
+    assert abs(reg["bearing_deg"]) < 1e-2, reg
+    arrow = next(f for f in out["geojson"]["features"] if f["properties"]["geopic:kind"] == "arrow")
+    first = arrow["geometry"]["coordinates"][0]
+    assert math.isclose(first[0], -34.8711, abs_tol=1e-6) and math.isclose(first[1], -8.0631, abs_tol=1e-6)
