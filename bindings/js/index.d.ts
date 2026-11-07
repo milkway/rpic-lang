@@ -1,4 +1,5 @@
 // Type definitions for rpic
+import type { MapLibreLayer } from './maplibre';
 
 // The player (animate/interactive + Anim/Interaction) is typed in player.d.ts
 // — its module has no wasm dependency and is importable on its own via the
@@ -327,6 +328,8 @@ export interface GeoOptions {
   viewScale?: number;
   /** `class` words marking screen-anchored items (default `['screen']`) */
   screenClasses?: string[];
+  /** add `layers`: the MapLibre layers that draw the collection (docs/geopic.md § 6) */
+  layers?: boolean;
 }
 
 /** A non-fatal loss or substitution while georeferencing (never silent). */
@@ -399,6 +402,12 @@ export interface GeoResult {
     /** the pic `scale` variable (source units per inch) */
     scale: number;
   };
+  /**
+   * With `layers: true` only: MapLibre style-spec layers (source `"pic"`),
+   * sizes true to the ground — pass them to `attach` from
+   * `@strategicprojects/rpic/maplibre`.
+   */
+  layers?: MapLibreLayer[];
 }
 
 /** A georeferencing error; `info.kind` is machine-readable. */
@@ -433,3 +442,11 @@ export function geoToCanvas(
   registration: GeoRegistration | string,
   points: [number, number][]
 ): [number, number][];
+
+export type { MapLibreLayer };
+
+/**
+ * The engine's MapLibre layers for a geopic FeatureCollection (or its JSON
+ * text). Needs the geo build.
+ */
+export function maplibreLayers(fc: GeoJSONFeatureCollection | string): MapLibreLayer[];

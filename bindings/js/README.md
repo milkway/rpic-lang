@@ -113,6 +113,39 @@ options must be finite (`scale`/`flatten`/`viewScale` > 0) or the call throws.
 `geoToCanvas(registration, [[lon, lat], …])` maps points back onto the canvas.
 In Node, pass the bytes of `pkg/rpic_wasm_geo_bg.wasm` to `ready(…, { geo: true })`.
 
+#### On a MapLibre map
+
+`layers: true` adds the MapLibre style-spec layers that draw the collection
+the way rpic.dev does — every stroke, dot and label sized **true to the
+ground** from the collection's registration (source id `"pic"`;
+[docs/geopic.md § 6](https://github.com/milkway/rpic-lang/blob/main/docs/geopic.md#6-rendering-on-maplibre)).
+The subpath module `@strategicprojects/rpic/maplibre` has zero imports (no
+wasm, no maplibre-gl dependency) and puts them on your map:
+
+```js
+import maplibregl from 'maplibre-gl';
+import { attach, createGeoMap } from '@strategicprojects/rpic/maplibre';
+
+const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
+
+// your own map: adds/updates source "pic" + the six layers (waits for `load`)
+const pic = attach(map, geojson, { layers, fit: true });
+pic.setGeoJSON(next.geojson, next.layers); // live edits
+pic.fitTo();                                // re-frame
+pic.detach();                               // remove layers + source
+
+// …or a ready map (OpenFreeMap positron basemap, zoom buttons, cooperative
+// gestures); the maplibre-gl namespace is a parameter, not a dependency
+const g = createGeoMap(maplibregl, 'map', { style, cooperativeGestures, navigation });
+g.setGeoJSON(geojson, layers);
+g.fitTo();
+```
+
+Without the geo build (a collection from the CLI or Python), omit `layers`:
+the module computes the same ones with `layers(fc)`, a JS port of the
+engine's function pinned to it by the test suite. The CLI prints both at
+once: `rpic --geojson --maplibre map.pic` → `{ "geojson": …, "layers": […] }`.
+
 ## API
 
 | Function | Description |
@@ -120,7 +153,9 @@ In Node, pass the bytes of `pkg/rpic_wasm_geo_bg.wasm` to `ready(…, { geo: tru
 | `ready(wasmInput?, {math?, geo?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build, `geo: true` the geo-enabled one; conflicting later calls reject. |
 | `compile(src, {circuits?, texlabels?, scene?, flatten?, outline?})` | → `{ svg, animations, diagnostics, warnings, objects, places?, passthrough?, scene? }` (throws on a pic error with `errorInfo`; `places` = named `Label: position` points in SVG units, `passthrough` = troff `.` lines, each present only when the source has some). `scene: true` adds the device-independent resolved draw list ([docs/scene.md](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)); `flatten` (inches) delivers its curves as polylines. |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
-| `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas }`; throws `GeoError` (`info.kind`) or a pic error. |
+| `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, layers?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas, layers? }`; `layers: true` adds the MapLibre layers. Throws `GeoError` (`info.kind`) or a pic error. |
+| `maplibreLayers(fc)` | Geo build only. The engine's MapLibre layers for a geopic FeatureCollection. |
+| `attach(map, fc, {layers?, fit?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc)`, `sizing(fc)`, `bounds(fc)`. |
 | `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

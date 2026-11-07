@@ -30,6 +30,8 @@ struct GeoOpts {
     flatten: Option<f64>,
     view_scale: Option<f64>,
     screen_classes: Option<Vec<String>>,
+    /// add the MapLibre layers (`geopic_core::maplibre`) as `layers`
+    layers: bool,
 }
 
 impl GeoOpts {
@@ -85,7 +87,8 @@ fn diagnostic_value(d: &rpic_core::Diagnostic) -> serde_json::Value {
 /// (metres per inch), `bearing` (degrees clockwise from north), `features`
 /// (`[{name, lon, lat, bbox?}]`, control points by label), `flatten`
 /// (inches), `view_scale` (px per inch under `geo_px = 1`) and
-/// `screen_classes`. Each overrides the corresponding `geo_*` variable of
+/// `screen_classes`; `layers: true` adds the MapLibre layers that draw the
+/// collection (`"layers": [...]`, docs/geopic.md § 6). Each geo key overrides the corresponding `geo_*` variable of
 /// the source. Animations cannot ride into GeoJSON: a source with `animate`
 /// statements adds an `ignored` warning.
 #[wasm_bindgen]
@@ -95,11 +98,14 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
     } else {
         serde_json::from_str(opts_json)
     };
-    let gopts = match parsed {
-        Ok(o) => match o.into_options() {
-            Ok(g) => g,
-            Err(e) => return geo_error_json(&e),
-        },
+    let (gopts, want_layers) = match parsed {
+        Ok(o) => {
+            let layers = o.layers;
+            match o.into_options() {
+                Ok(g) => (g, layers),
+                Err(e) => return geo_error_json(&e),
+            }
+        }
         Err(e) => {
             return geo_error_json(&geopic_core::GeoError::new(
                 "invalid_options",
@@ -145,15 +151,18 @@ pub fn compile_geo(src: &str, circuits: bool, texlabels: bool, opts_json: &str) 
         .iter()
         .find(|(k, _)| k == "scale")
         .map_or(1.0, |(_, v)| *v);
-    let rest = serde_json::json!({
+    let mut rest = serde_json::json!({
         "warnings": warnings,
         // pic `print` lines and engine notices (e.g. texlabels without a
         // math renderer), as in `compile`'s bundle
         "diagnostics": d.diagnostics,
         "registration": g.registration,
         "canvas": { "rescale": d.rescale, "scale": scale },
-    })
-    .to_string();
+    });
+    if want_layers {
+        rest["layers"] = serde_json::Value::Array(geopic_core::maplibre::layers(&g.features));
+    }
+    let rest = rest.to_string();
     // splice the FeatureCollection text in without re-parsing it
     format!("{{\"geojson\":{},{}", g.features.to_json(), &rest[1..])
 }
@@ -188,4 +197,12 @@ pub fn geo_to_canvas(registration_json: &str, points_json: &str) -> String {
         .map(|[lon, lat]| reg.to_canvas(geopic_core::LonLat { lon, lat }))
         .collect();
     serde_json::to_string(&out).unwrap_or_else(|_| "[]".to_string())
+}
+
+/// The MapLibre layers (docs/geopic.md § 6) for a geopic FeatureCollection
+/// given as JSON text: the layers array as JSON text, or `{"error",
+/// "geo_error"}` when the input is not a FeatureCollection.
+#[wasm_bindgen]
+pub fn maplibre_layers(fc_json: &str) -> String {
+    geopic_core::maplibre::layers_json(fc_json).unwrap_or_else(|e| geo_error_json(&e))
 }
