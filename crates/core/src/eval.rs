@@ -421,6 +421,10 @@ struct Placed {
     /// For blocks: index into `State::blocks` (scene export), so a label on
     /// the block statement can be attached to the block's record.
     block: Option<usize>,
+    /// The group a labelled flat macro call names (`X1: m(…)`, DECISIONS
+    /// E3): reachable through its label only — `last`/ordinals skip it, so
+    /// `last []` and `2nd block` count exactly what they did before.
+    synthetic: bool,
 }
 
 impl Placed {
@@ -916,9 +920,16 @@ impl State {
                     members: HashMap::new(),
                     block_shapes: None,
                     block: None,
+                    synthetic: false,
                 });
                 self.labels.insert(key, idx);
             }
+            Stmt::LabelledCall {
+                label,
+                body,
+                span,
+                call_site,
+            } => self.labelled_call(label, body, span.as_ref(), call_site.as_deref())?,
             Stmt::Group(stmts) => {
                 let (pos, dir) = (self.pos, self.dir);
                 self.eval_stmts(stmts)?;

@@ -640,7 +640,24 @@ fn expand(
                     t.call_site = Some(std::sync::Arc::clone(&site));
                 }
                 let expanded = expand(&sub, macros, depth + 1, includes)?;
-                out.extend(expanded);
+                if follows_label(&out) {
+                    // `X1: m(…)`: bracket the expansion so the parser can
+                    // give the label to the call's whole group when it
+                    // cannot take the first statement (DECISIONS E3)
+                    let mark = |tok| {
+                        let mut t = toks[name_idx].clone();
+                        t.tok = tok;
+                        t.call_site = Some(std::sync::Arc::clone(&site));
+                        t.arg_frame = None;
+                        t.macro_frame = None;
+                        t
+                    };
+                    out.push(mark(Token::CallOpen));
+                    out.extend(expanded);
+                    out.push(mark(Token::CallClose));
+                } else {
+                    out.extend(expanded);
+                }
             }
             // `copy "file"` splices another pic file's (expanded) tokens inline.
             Token::Kw(Kw::Copy) => {
@@ -664,6 +681,39 @@ fn expand(
         }
     }
     Ok(out)
+}
+
+/// Whether `out` ends with a statement label and its colon (`X1:` or
+/// `X[i]:`), i.e. a macro call starting here is a labelled call.
+fn follows_label(out: &[Spanned]) -> bool {
+    let Some((colon, rest)) = out.split_last() else {
+        return false;
+    };
+    if colon.tok != Token::Colon {
+        return false;
+    }
+    match rest.last().map(|s| &s.tok) {
+        Some(Token::Label(_)) => true,
+        Some(Token::RightBrack) => {
+            // a subscripted label: walk back over the balanced `[ … ]`
+            let mut depth = 0i32;
+            for (k, t) in rest.iter().enumerate().rev() {
+                match t.tok {
+                    Token::RightBrack => depth += 1,
+                    Token::LeftBrack => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return k > 0 && matches!(rest[k - 1].tok, Token::Label(_));
+                        }
+                    }
+                    Token::Newline => return false,
+                    _ => {}
+                }
+            }
+            false
+        }
+        _ => false,
+    }
 }
 
 /// The provenance every token of a macro expansion carries: a call made
@@ -1095,7 +1145,7 @@ fn arg_token_text(tok: &Token) -> String {
         Token::Newline => ";".into(),
         Token::DotPS => ".PS".into(),
         Token::DotPE => ".PE".into(),
-        Token::Eof => String::new(),
+        Token::Eof | Token::CallOpen | Token::CallClose => String::new(),
         Token::Lt => "<".into(),
         Token::Gt => ">".into(),
         Token::Le => "<=".into(),
@@ -1291,6 +1341,7 @@ fn token_text(t: &Token) -> String {
         Token::DotPS => ".PS".into(),
         Token::DotPE => ".PE".into(),
         Token::Eof => "end of input".into(),
+        Token::CallOpen | Token::CallClose => "the end of a labelled macro call".into(),
         Token::Lt => "<".into(),
         Token::Lparen => "(".into(),
         Token::Rparen => ")".into(),
@@ -1985,6 +2036,23 @@ impl Parser {
             let span = Some(self.cur_span());
             let label = self.parse_label()?;
             self.expect(&Token::Colon)?;
+            if self.at(&Token::CallOpen) {
+                if self.labelled_call_is_group() {
+                    let call_site = self.toks[self.idx].call_site.clone();
+                    self.bump();
+                    let body = self.descend(|p| p.parse_elementlist(&[Token::CallClose]))?;
+                    self.expect(&Token::CallClose)?;
+                    return Ok(Stmt::LabelledCall {
+                        label,
+                        body,
+                        span,
+                        call_site,
+                    });
+                }
+                // classic: the label takes the expansion's first statement,
+                // exactly as if the brackets had never been there
+                self.drop_call_brackets();
+            }
             if self.at_object_start() {
                 let object = self.parse_object()?;
                 return Ok(Stmt::Object {
@@ -2369,6 +2437,52 @@ impl Parser {
             }
             _ => false,
         }
+    }
+
+    /// At the [`Token::CallOpen`] of a labelled macro call: whether the
+    /// label must name the call's group (DECISIONS E3) — i.e. the
+    /// expansion does not start with what a label takes the classic way
+    /// (an object or a position), so `Label: <first statement>` would be a
+    /// syntax error. Everything the label could take keeps pic's (and
+    /// dpic's) textual meaning: the label names that first statement.
+    fn labelled_call_is_group(&mut self) -> bool {
+        let save = self.idx;
+        self.idx += 1;
+        let group = match self.cur() {
+            Token::CallClose | Token::Newline | Token::Eof | Token::LeftBrace => true,
+            Token::Kw(Kw::If | Kw::For | Kw::Print | Kw::Exec | Kw::Reset) => true,
+            Token::Kw(Kw::Command | Kw::Sh | Kw::Copy) => true,
+            Token::Dir(_) => matches!(self.peek(1), Token::Newline | Token::Eof | Token::CallClose),
+            Token::Label(_) if self.label_colon_ahead() => true,
+            _ => self.at_assignment_start(),
+        };
+        self.idx = save;
+        group
+    }
+
+    /// Remove the [`Token::CallOpen`] at the cursor and its matching
+    /// [`Token::CallClose`], leaving the token stream as it was before the
+    /// preprocessor bracketed it.
+    fn drop_call_brackets(&mut self) {
+        let mut depth = 0usize;
+        let mut close = None;
+        for (k, t) in self.toks.iter().enumerate().skip(self.idx) {
+            match t.tok {
+                Token::CallOpen => depth += 1,
+                Token::CallClose => {
+                    depth -= 1;
+                    if depth == 0 {
+                        close = Some(k);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        if let Some(k) = close {
+            self.toks.remove(k);
+        }
+        self.toks.remove(self.idx);
     }
 
     fn at_object_start(&self) -> bool {
@@ -4095,6 +4209,63 @@ ellipse "typesetter"
             .filter(|a| matches!(a, Attr::Then))
             .count();
         assert_eq!(thens, 3);
+    }
+
+    #[test]
+    fn labelled_flat_macro_call_parses_as_a_group() {
+        // #425 item 3 / DECISIONS E3: an expansion the label cannot take
+        // the classic way (it starts with an assignment) becomes a group
+        let p = pic("define g { gx = 1; box; T: circle }\nX1: g()\nbox");
+        assert_eq!(p.stmts.len(), 2);
+        let Stmt::LabelledCall {
+            label,
+            body,
+            call_site,
+            ..
+        } = &p.stmts[0]
+        else {
+            panic!("{:?}", p.stmts[0])
+        };
+        assert_eq!(label.name, "X1");
+        assert_eq!(body.len(), 3);
+        assert_eq!(call_site.as_ref().unwrap().call.name, "g");
+        // subscripted labels are labels too
+        let p = pic("define g { gx = 1; box }\nX[2]: g()");
+        assert!(matches!(&p.stmts[0], Stmt::LabelledCall { label, .. }
+            if label.subscript.is_some()));
+        // an expansion starting with a label is a group as well
+        let p = pic("define g { A: box; B: box }\nX1: g()");
+        assert!(matches!(&p.stmts[0], Stmt::LabelledCall { body, .. } if body.len() == 2));
+        // nothing may follow the call on its line
+        assert!(parse("define g { gx = 1; box }\nX1: g() dashed").is_err());
+    }
+
+    #[test]
+    fn labelled_call_keeps_the_classic_reading_when_it_can() {
+        // pic/dpic expand textually: `Z: twob()` labels the first box, a
+        // macro yielding a position names that position, a `[ ]` body is
+        // the labelled block. Those parses do not change (the brackets are
+        // dropped; the corpus guards prove the bytes).
+        let labelled_object = |src: &str, n: usize| {
+            let p = pic(src);
+            assert_eq!(p.stmts.len(), n, "{src}");
+            assert!(
+                matches!(&p.stmts[0], Stmt::Object { label: Some(_), .. }),
+                "{src}: {:?}",
+                p.stmts[0]
+            );
+        };
+        labelled_object("define twob { box; box }\nZ: twob()", 2);
+        labelled_object("define mb { box wid 2 }\nB: mb ht 1", 1);
+        labelled_object("define bk { [ box ] }\nK: bk()", 1);
+        let p = pic("define mid { 0.5 between (0,0) and (1,0) }\nM: mid()");
+        assert!(matches!(&p.stmts[0], Stmt::Place { .. }));
+        // `mb ht 1`: the trailing attribute still reaches the box
+        let Stmt::Object { object, .. } = &pic("define mb { box wid 2 }\nB: mb ht 1").stmts[0]
+        else {
+            panic!()
+        };
+        assert_eq!(object.attrs.len(), 2);
     }
 
     #[test]

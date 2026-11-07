@@ -3585,3 +3585,119 @@ fn re_lexed_text_does_not_grow_the_source_table() {
     assert_eq!(pic.includes.sources.len(), 2);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ---- labelled flat macro calls (#425 item 3, DECISIONS E3) ----------------
+
+const GLYPH: &str = "define glyph { gx = 1; box wid 0.5; T: circle rad 0.1; line right 0.5 }\n";
+
+fn place_at(d: &Drawing, name: &str) -> (f64, f64) {
+    let p = d.places.iter().rev().find(|p| p.label == name).unwrap();
+    ((p.at.x * 1e9).round() / 1e9, (p.at.y * 1e9).round() / 1e9)
+}
+
+#[test]
+fn labelled_flat_macro_names_the_group_it_draws() {
+    let d = draw(&format!(
+        "{GLYPH}X1: glyph()\nC: X1.c; N: X1.n; I: X1.T; S: X1.start; E: X1.end\n\
+         D: (X1.wid, X1.ht); H: Here"
+    ));
+    // box 0..0.5, circle 0.5..0.7, line 0.7..1.2 — the union of the group
+    assert_eq!(place_at(&d, "C"), (0.6, 0.0));
+    assert_eq!(place_at(&d, "N"), (0.6, 0.25));
+    assert_eq!(place_at(&d, "D"), (1.2, 0.5));
+    // inner labels are members; start/end = first/last object's
+    assert_eq!(place_at(&d, "I"), (0.6, 0.0));
+    assert_eq!(place_at(&d, "S"), (0.0, 0.0));
+    assert_eq!(place_at(&d, "E"), (1.2, 0.0));
+    // the cursor moved exactly as for the unlabelled call
+    assert_eq!(place_at(&d, "H"), (1.2, 0.0));
+    // a scene block over the three shapes, with the call's provenance
+    assert_eq!(d.blocks.len(), 1);
+    let b = &d.blocks[0];
+    assert_eq!(b.label.as_deref(), Some("X1"));
+    assert_eq!(b.shapes, (0, 3));
+    assert_eq!(b.parent, None);
+    assert_eq!(b.call.as_ref().unwrap().name, "glyph");
+    assert_eq!(b.span.as_ref().unwrap().line, 2);
+    assert!(d.shape_blocks.iter().all(|&s| s == Some(0)));
+    // a named place inside the expansion belongs to the group
+    let d = draw("define g { gx = 1; box; P: Here }\nX1: g()");
+    let p = d.places.iter().find(|p| p.label == "P").unwrap();
+    assert_eq!(p.block, Some(0));
+}
+
+#[test]
+fn labelling_a_flat_call_changes_no_geometry() {
+    let body = "A: (0,0); B: (1,0)\nglyph()\nline up\nglyph()";
+    let plain = draw(&format!("{GLYPH}{body}"));
+    let labelled = draw(&format!(
+        "{GLYPH}{}",
+        body.replacen("glyph()", "X1: glyph()", 1)
+            .replacen("\nglyph()", "\nX2: glyph()", 1)
+    ));
+    assert_eq!(plain.shapes, labelled.shapes);
+    assert_eq!(crate::svg::to_svg(&plain), crate::svg::to_svg(&labelled));
+    assert_eq!(labelled.blocks.len(), 2);
+}
+
+#[test]
+fn labelled_group_is_invisible_to_last_and_ordinals() {
+    // `last []` / `1st block` / untyped `last` still see only real objects
+    let d = draw(
+        "define g { gx = 1; [ box ]; circle }\nX1: g()\n\
+         L: last.c; K: last [].c; F: 1st [].c",
+    );
+    assert_eq!(place_at(&d, "L"), (1.0, 0.0));
+    assert_eq!(place_at(&d, "K"), (0.375, 0.0));
+    assert_eq!(place_at(&d, "F"), (0.375, 0.0));
+    // the real block is a child of the group in the scene table
+    assert_eq!(d.blocks.len(), 2);
+    assert_eq!(d.blocks[0].label, None);
+    assert_eq!(d.blocks[0].parent, Some(1));
+    assert_eq!(d.blocks[1].label.as_deref(), Some("X1"));
+}
+
+#[test]
+fn block_bodied_macro_label_is_unchanged() {
+    // a `[ ]`-bodied macro already yields a block: the label takes it the
+    // classic way, no synthetic group
+    let d = draw("define bm {[ box; T: circle ]}\nX1: bm()\nI: X1.T");
+    assert_eq!(d.blocks.len(), 1);
+    assert_eq!(d.blocks[0].label.as_deref(), Some("X1"));
+    assert_eq!(place_at(&d, "I"), (1.0, 0.0));
+}
+
+#[test]
+fn labelled_call_that_draws_nothing_is_an_error() {
+    let e = eval(&parse("define setup { q = 1; R: (1,1) }\nX1: setup()").unwrap())
+        .err()
+        .unwrap();
+    assert_eq!(e.msg, "label `X1` on a macro that draws nothing");
+    let info = e.info.unwrap();
+    assert_eq!(info.kind, "label_on_empty_call");
+    assert_eq!((info.line, info.col), (Some(2), Some(1)));
+    assert!(info.hint.unwrap().contains("`setup`"));
+    // an empty body too
+    assert!(eval(&parse("define nil { }\nX1: nil()").unwrap()).is_err());
+}
+
+#[test]
+fn labelled_calls_nest_in_blocks_loops_and_groups() {
+    let d = draw(&format!(
+        "{GLYPH}define pair {{ P1: glyph(); P2: glyph() }}\n\
+         W: [ Q: pair() ]\nI: W.Q.P2.T\n\
+         for i = 1 to 2 do {{ Y[i]: glyph() }}\nJ: Y[2].T"
+    ));
+    assert_eq!(place_at(&d, "I"), (1.8, 0.0));
+    assert_eq!(place_at(&d, "J"), (4.2, 0.0));
+    // W, then inside it Q with P1, P2; then Y[1], Y[2]
+    let labels: Vec<_> = d.blocks.iter().map(|b| b.label.clone()).collect();
+    let names = ["P1", "P2", "Q", "W", "Y[1]", "Y[2]"];
+    for n in names {
+        assert!(labels.contains(&Some(n.to_string())), "{n}: {labels:?}");
+    }
+    let idx = |n: &str| labels.iter().position(|l| l.as_deref() == Some(n));
+    assert_eq!(d.blocks[idx("P1").unwrap()].parent, idx("Q"));
+    assert_eq!(d.blocks[idx("Q").unwrap()].parent, idx("W"));
+    assert_eq!(d.blocks[idx("Y[2]").unwrap()].parent, None);
+}

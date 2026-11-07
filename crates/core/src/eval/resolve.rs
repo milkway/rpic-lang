@@ -172,7 +172,7 @@ impl State {
             .placed
             .iter()
             .enumerate()
-            .filter(|(_, pl)| want.is_none_or(|w| pl.kind == w))
+            .filter(|(_, pl)| !pl.synthetic && want.is_none_or(|w| pl.kind == w))
             .map(|(i, _)| i)
             .collect();
         if matches.is_empty() {
