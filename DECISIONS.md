@@ -694,3 +694,5 @@ single `prelude: Option<…>` (the list subsumes it) and text prepending in
 the bindings (the very thing this replaces). With no preludes every path is
 the old one: corpus proof, main vs branch binaries (isolated target dirs,
 `cmp` differ), `-c -t`: `--svg`, `--json` and `--scene` 128/128 identical.
+
+**G11, third addendum (2026-11-08).** The `font: 'style'` pick prefers plain faces: among the style's symbol layers, the most common `text-font` stack whose first face is Regular or Medium (not Italic); only with none, the most common of all. Reason: CARTO positron's most common stack is `Montserrat SemiBold …` (15 place-name layers) against `Montserrat Medium …` (7), and the drawing's labels must not come out bold. rpic-r's `add_rpic(font = "style")` applies the same rule, so both consumers choose `Montserrat Medium` there.

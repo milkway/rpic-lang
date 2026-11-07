@@ -153,7 +153,7 @@ const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 // before: 'labels' puts the shapes under the basemap's labels (the style's
 // trailing block of symbol layers, above its roads and buildings), or pass a
 // layer id; the drawing's own labels always stay on top, in the style's own
-// font (font: 'style', the default: its most common text-font stack — or
+// font (font: 'style', the default: its most common Regular/Medium text-font stack — or
 // 'spec' for the engine's Noto placeholder, or an explicit stack)
 const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits

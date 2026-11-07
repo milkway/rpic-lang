@@ -348,13 +348,20 @@ assert.deepEqual(fontOf(m, 'pic-text'), MONT);
 m = fakeMap({ loaded: true, style: cartoFonts });
 attach(m, callout);
 assert.deepEqual(fontOf(m, 'pic-title'), MONT);
-// ties go to a Regular/Medium face over Bold/Italic, whatever the order
+// a plain face (Regular/Medium, not Italic) wins even over a more common Bold
+// stack — CARTO positron's most common stack is its SemiBold place names
 m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Medium']), sym('d', ['Roboto Bold'])] });
-attach(m, callout);
-assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Bold']); // 2 beats 1, Bold or not
-m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Medium'])] });
-attach(m, callout);
-assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']);
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']); // plain first, then count
+m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Regular']), sym('b', ['Roboto Medium']), sym('c', ['Roboto Medium'])] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']); // most common among the plain ones
+m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Bold'])] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Bold']); // no plain stack: most common of all
+m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Regular Italic']), sym('b', ['Roboto Bold'])] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Regular Italic']); // Italic is not plain; tie → first seen
 // 'spec' keeps the engine's Noto
 m = fakeMap({ loaded: true, style: cartoFonts });
 attach(m, callout, { layers: engine, font: 'spec' });

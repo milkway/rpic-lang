@@ -53,8 +53,9 @@ resolves to the latest version.
   placeholder font `["Noto Sans Regular"]`; CARTO's glyph server serves a Noto
   with other vertical metrics, so a label sat centred on the line it annotates
   instead of beside it. `attach`/`createGeoMap` take `font`: `'style'`
-  (default) = the most common `text-font` stack of the style's own symbol
-  layers (the spec's when there is none), `'spec'` = the placeholder, or an
+  (default) = the most common Regular/Medium `text-font` stack of the style's
+  own symbol layers (with none, the most common of all; the spec's when there
+  is none), `'spec'` = the placeholder, or an
   explicit stack; applied to copies of `pic-text`/`pic-title` (DECISIONS G11
   second addendum, `docs/geopic.md` § 6).
 
