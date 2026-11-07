@@ -5,8 +5,8 @@
 // build per module instance).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { attach, bounds, createGeoMap, LAYER_IDS, layers, sizing, SOURCE } from '../maplibre.js';
-import { maplibreLayers, ready } from '../index.js';
+import { attach, bounds, createGeoMap, LAYER_IDS, layers, MAX_TEXT_SCALE, sizing, SOURCE } from '../maplibre.js';
+import { compileGeoJSON, maplibreLayers, ready } from '../index.js';
 
 // zero imports: the module must stay loadable without wasm or maplibre-gl
 const own = readFileSync(new URL('../maplibre.js', import.meta.url), 'utf8');
@@ -50,6 +50,45 @@ for (const [name, fc] of Object.entries(cases)) {
   assert.deepEqual(port.map((l) => l.id), LAYER_IDS, name);
   close(port, read(new URL(`${name}.layers.json`, snapDir)), `${name} vs snapshot`);
   close(port, maplibreLayers(fc), `${name} vs engine`);
+  // G11: the default scale is the default output; 1.5 agrees port vs engine
+  assert.deepEqual(layers(fc, { textScale: 1 }), port, `${name} textScale 1`);
+  assert.deepEqual(maplibreLayers(fc, { textScale: 1 }), maplibreLayers(fc), `${name} engine textScale 1`);
+  close(layers(fc, { textScale: 1.5 }), maplibreLayers(fc, { textScale: 1.5 }), `${name} textScale 1.5 vs engine`);
+}
+
+// textScale: the font metres factor scales, the text stop follows the scaled
+// font (one zoom lower at ×2), nothing else moves
+{
+  const fc = cases.callout;
+  const [b, x2] = [layers(fc), layers(fc, { textScale: 2 })];
+  assert.equal(sizing(fc, { textScale: 2 }).textZHi, sizing(fc).textZHi - 1);
+  assert.equal(sizing(fc, { textScale: 2 }).textScale, 2);
+  assert.equal(sizing(fc).textScale, 1);
+  for (const id of ['pic-text', 'pic-title']) {
+    const [tb, t2] = [b, x2].map((ls) => ls.find((l) => l.id === id).layout['text-size']);
+    assert.equal(t2[4][2][1][2], 2 * tb[4][2][1][2], id);
+    assert.equal(t2[5], tb[5] - 1, id);
+  }
+  for (let i = 0; i < 4; i++) assert.deepEqual(x2[i], b[i], LAYER_IDS[i]);
+  assert.equal(MAX_TEXT_SCALE, 16);
+  assert.ok(layers(fc, { textScale: 16 }));
+  for (const k of [0, -1, NaN, Infinity, 17, '2']) {
+    assert.throws(() => layers(fc, { textScale: k }), /textScale/, `port ${k}`);
+    assert.throws(() => maplibreLayers(fc, { textScale: k }), /text_?[sS]cale/, `engine ${k}`);
+  }
+  assert.throws(() => maplibreLayers(fc, { text_scale: 2 }), /unknown layer option/);
+  // compileGeoJSON: `layers: { textScale }` = maplibreLayers on its collection
+  const src = readFileSync(new URL('callout.pic', geoDir), 'utf8');
+  const plain = compileGeoJSON(src, { circuits: true, layers: true });
+  const big = compileGeoJSON(src, { circuits: true, layers: { textScale: 1.5 } });
+  assert.deepEqual(big.geojson, plain.geojson);
+  assert.deepEqual(plain.layers, maplibreLayers(plain.geojson));
+  assert.deepEqual(big.layers, maplibreLayers(big.geojson, { textScale: 1.5 }));
+  assert.deepEqual(compileGeoJSON(src, { circuits: true, layers: {} }).layers, plain.layers);
+  assert.equal(compileGeoJSON(src, { circuits: true }).layers, undefined);
+  assert.throws(() => compileGeoJSON(src, { layers: { textScale: NaN } }), /textScale/);
+  assert.throws(() => compileGeoJSON(src, { layers: { textScale: 20 } }), (e) => e.info?.kind === 'invalid_options');
+  assert.throws(() => compileGeoJSON(src, { layers: { before: 'labels' } }), /unknown layer option/);
 }
 
 // pic-title draws the title Points (#435), styled exactly as pic-text
@@ -78,9 +117,9 @@ assert.equal(sizing(cases.empty).textZHi, 24);
 assert.deepEqual(bounds(cases.empty), null);
 
 // ---- attach on a fake map ----------------------------------------------------
-function fakeMap({ loaded }) {
+function fakeMap({ loaded, style }) {
   const calls = [];
-  const layersById = new Map();
+  const layersById = new Map((style ?? []).map((l) => [l.id, l]));
   const sources = new Map();
   const listeners = {};
   return {
@@ -92,8 +131,18 @@ function fakeMap({ loaded }) {
     addSource(id, src) { calls.push(['addSource', id, src.type]); sources.set(id, { setData: (d) => calls.push(['setData', d.features.length]) }); },
     getSource: (id) => sources.get(id),
     removeSource(id) { calls.push(['removeSource', id]); sources.delete(id); },
-    addLayer(l) { calls.push(['addLayer', l.id]); layersById.set(l.id, l); },
+    addLayer(l, before) {
+      calls.push(['addLayer', l.id, before]);
+      const all = [...layersById.values()];
+      const at = before === undefined ? all.length : all.findIndex((x) => x.id === before);
+      assert.ok(at >= 0, `addLayer before a missing layer ${before}`);
+      all.splice(at, 0, l);
+      layersById.clear();
+      for (const x of all) layersById.set(x.id, x);
+    },
     getLayer: (id) => layersById.get(id),
+    getStyle: () => ({ layers: [...layersById.values()].map(({ id, type }) => ({ id, type })) }),
+    order: () => [...layersById.keys()],
     removeLayer(id) { calls.push(['removeLayer', id]); layersById.delete(id); },
     setFilter(id) { calls.push(['setFilter', id]); },
     setPaintProperty(id, k, v) { calls.push(['setPaint', id, k, v]); },
@@ -156,6 +205,58 @@ m.fire('load');
 m.fire('idle');
 assert.equal(ops(m, 'addSource').length, 0);
 
+// ---- before: under the basemap's labels, or under a given layer --------------
+const basemap = [
+  { id: 'background', type: 'background' },
+  { id: 'water', type: 'fill' },
+  { id: 'roads', type: 'line' },
+  { id: 'road-names', type: 'symbol' },
+  { id: 'place-names', type: 'symbol' },
+];
+m = fakeMap({ loaded: true, style: basemap });
+h = attach(m, callout, { layers: engine, before: 'labels' });
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
+assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS, 'road-names', 'place-names']);
+// an update moves nothing; detach + re-attach resolves again (our own
+// symbol layers never count as "the labels")
+h.setGeoJSON(cases.radius);
+assert.equal(ops(m, 'addLayer').length, 6);
+h.detach();
+h = attach(m, callout, { before: 'labels' });
+assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS, 'road-names', 'place-names']);
+h.detach();
+// a layer id
+m = fakeMap({ loaded: true, style: basemap });
+attach(m, callout, { before: 'roads' });
+assert.deepEqual(m.order(), ['background', 'water', ...LAYER_IDS, 'roads', 'road-names', 'place-names']);
+// a style without symbol layers, or a missing id: on top
+m = fakeMap({ loaded: true, style: basemap.slice(0, 3) });
+attach(m, callout, { before: 'labels' });
+assert.deepEqual(m.order(), ['background', 'water', 'roads', ...LAYER_IDS]);
+{
+  const warn = console.warn;
+  const warned = [];
+  console.warn = (msg) => warned.push(msg);
+  try {
+    m = fakeMap({ loaded: true, style: basemap });
+    attach(m, callout, { before: 'nope' });
+  } finally {
+    console.warn = warn;
+  }
+  assert.deepEqual(m.order(), [...basemap.map((l) => l.id), ...LAYER_IDS]);
+  assert.equal(warned.length, 1);
+  assert.match(warned[0], /nope/);
+}
+// resolved at apply time: a map whose style loads later
+m = fakeMap({ loaded: false, style: basemap });
+attach(m, callout, { before: 'labels' });
+m.fire('load');
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
+// no `before`: appended, beforeId undefined (the previous behaviour)
+m = fakeMap({ loaded: true, style: basemap });
+attach(m, callout);
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => undefined));
+
 // ---- createGeoMap with a fake maplibre-gl namespace -------------------------
 let made;
 const fakeGl = {
@@ -187,5 +288,14 @@ createGeoMap(fakeGl, 'el2', { style: 'x', cooperativeGestures: false, navigation
 assert.equal(made.opts.style, 'x');
 assert.equal(made.opts.cooperativeGestures, false);
 assert.equal(made.controls.length, 0);
+// `before` is forwarded to attach
+{
+  const g2 = createGeoMap(fakeGl, 'el3', { before: 'labels' });
+  for (const l of basemap) made.map.addLayer(l);
+  made.map.calls.length = 0;
+  g2.setGeoJSON(callout, engine);
+  made.map.fire('load');
+  assert.deepEqual(ops(made.map, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => 'road-names'));
+}
 
 console.log('smoke-maplibre: ok');

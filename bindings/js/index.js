@@ -352,12 +352,35 @@ function checkGeoOptions(opts) {
   if (opts.bearing !== undefined && !finite(opts.bearing)) {
     throw new Error('rpic: bearing must be a finite number (degrees)');
   }
+  if (opts.layers !== undefined && opts.layers !== null && typeof opts.layers === 'object') {
+    layerOptions(opts.layers); // throws on a bad key or value
+  }
   if (
     opts.anchor !== undefined &&
     !(Array.isArray(opts.anchor) && opts.anchor.length === 2 && opts.anchor.every(finite))
   ) {
     throw new Error('rpic: anchor must be [lon, lat], two finite numbers');
   }
+}
+
+/**
+ * MapLibre layer options (`{ textScale }`) in the engine's JSON spelling.
+ * `textScale` multiplies every label's font size (finite, in (0, 16]; the
+ * engine checks the range) — checked here because `JSON.stringify` would turn
+ * NaN/Infinity into `null`, i.e. the default.
+ */
+function layerOptions(o = {}) {
+  if (o === null || typeof o !== 'object' || Array.isArray(o)) {
+    throw new Error('rpic: layer options must be an object ({ textScale })');
+  }
+  for (const k of Object.keys(o)) {
+    if (k !== 'textScale') throw new Error(`rpic: unknown layer option \`${k}\` (expected textScale)`);
+  }
+  if (o.textScale === undefined) return {};
+  if (!(typeof o.textScale === 'number' && Number.isFinite(o.textScale) && o.textScale > 0)) {
+    throw new Error('rpic: textScale must be a positive finite number');
+  }
+  return { text_scale: o.textScale };
 }
 
 /**
@@ -379,7 +402,8 @@ function checkGeoOptions(opts) {
  *
  * `layers: true` adds `layers`: the MapLibre style-spec layers that draw the
  * collection with sizes true to the ground (source id `"pic"`; hand them to
- * `attach` from `@strategicprojects/rpic/maplibre`).
+ * `attach` from `@strategicprojects/rpic/maplibre`). `layers: { textScale }`
+ * does the same with every label's font size multiplied by `textScale`.
  *
  * Throws an `Error` with `.errorInfo` on a pic error (like `compile`) and a
  * `GeoError` (`.info = { kind, message, hint }`) on a georeferencing error.
@@ -397,7 +421,7 @@ export function compileGeoJSON(src, opts = {}) {
     view_scale: opts.viewScale,
     screen_classes: opts.screenClasses,
     // the MapLibre layers (docs/geopic.md § 6); absent unless asked for
-    layers: opts.layers ? true : undefined,
+    layers: !opts.layers ? undefined : typeof opts.layers === 'object' ? layerOptions(opts.layers) : true,
   };
   return feats.length
     ? compileWithFeatures(src, feats, base, opts)
@@ -423,11 +447,12 @@ export function geoToCanvas(registration, points) {
  * FeatureCollection — the engine's own output, as `compileGeoJSON(src,
  * { layers: true })` gives it. Needs the geo build.
  * @param {object | string} fc a FeatureCollection from `compileGeoJSON` (or its JSON text)
+ * @param {{ textScale?: number }} [opts] `textScale` multiplies every label's font size
  * @returns {object[]}
  */
-export function maplibreLayers(fc) {
+export function maplibreLayers(fc, opts = {}) {
   const text = typeof fc === 'string' ? fc : JSON.stringify(fc);
-  const out = JSON.parse(geoWasm().maplibre_layers(text));
+  const out = JSON.parse(geoWasm().maplibre_layers(text, JSON.stringify(layerOptions(opts ?? {}))));
   if (!Array.isArray(out)) throw new GeoError(out.error, out.geo_error);
   return out;
 }

@@ -32,14 +32,28 @@ export interface Sizing {
   lat: number;
   /** 1 / (78271.517 · cos lat) */
   pxPerMetreAtZ0: number;
-  /** upper zoom stop of `text-size` (1..24) */
+  /** upper zoom stop of `text-size` (1..24), from the scaled fonts */
   textZHi: number;
+  /** the `textScale` the sizes were built with (default 1) */
+  textScale: number;
 }
 
-/** The numbers behind the ground-true size expressions. */
-export function sizing(fc: GeoPicCollection): Sizing;
-/** The six layers that draw `fc` — a port of the engine's output. */
-export function layers(fc: GeoPicCollection): MapLibreLayer[];
+/** Options of the layers (the engine's `LayerOptions`, DECISIONS G11). */
+export interface LayerOptions {
+  /**
+   * multiplies every label's font size; finite, in (0, 16]; default 1 (true
+   * to the ground). The upper `text-size` zoom stop follows the scaled font.
+   */
+  textScale?: number;
+}
+
+/** The largest accepted `textScale`: 16. */
+export const MAX_TEXT_SCALE: number;
+
+/** The numbers behind the ground-true size expressions (throws on a bad `textScale`). */
+export function sizing(fc: GeoPicCollection, opts?: LayerOptions): Sizing;
+/** The six layers that draw `fc` — a port of the engine's output (throws on a bad `textScale`). */
+export function layers(fc: GeoPicCollection, opts?: LayerOptions): MapLibreLayer[];
 /** `[[west, south], [east, north]]`, or null for an empty collection. */
 export function bounds(fc: GeoPicCollection): [[number, number], [number, number]] | null;
 
@@ -48,8 +62,10 @@ export interface MapLike {
   addSource(id: string, source: unknown): unknown;
   getSource(id: string): { setData(data: unknown): unknown } | undefined | null;
   removeSource(id: string): unknown;
-  addLayer(layer: unknown): unknown;
+  addLayer(layer: unknown, beforeId?: string): unknown;
   getLayer(id: string): unknown;
+  /** read for `before: 'labels'` (the first `symbol` layer) */
+  getStyle?(): { layers?: { id: string; type: string }[] } | undefined | null;
   removeLayer(id: string): unknown;
   setFilter(id: string, filter: unknown): unknown;
   setPaintProperty(id: string, name: string, value: unknown): unknown;
@@ -66,6 +82,13 @@ export interface AttachOptions {
   layers?: MapLibreLayer[] | unknown[];
   /** frame the drawing once drawn */
   fit?: boolean;
+  /**
+   * add the layers under this one: a layer id, or `'labels'` = the first
+   * `symbol` layer of the map's current style (the basemap's labels stay on
+   * top). Resolved when the layers are added; on top when there is none.
+   * A placement on the consumer's map, not part of the layer specs.
+   */
+  before?: 'labels' | (string & {});
 }
 
 export interface GeoMapAttachment {
@@ -87,6 +110,8 @@ export interface CreateGeoMapOptions {
   cooperativeGestures?: boolean;
   /** zoom buttons; default true */
   navigation?: boolean;
+  /** as in `attach`: a layer id, or `'labels'` to keep the basemap's labels on top */
+  before?: 'labels' | (string & {});
 }
 
 export interface GeoMap<M = unknown> extends GeoMapAttachment {
