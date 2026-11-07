@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-11-08
+
 ### Added
 
 - geopic → MapLibre: a `text_scale` layer option multiplies every label's
@@ -704,7 +706,8 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/milkway/rpic-lang/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/milkway/rpic-lang/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/milkway/rpic-lang/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/milkway/rpic-lang/compare/v0.13.0...v0.14.0
