@@ -336,3 +336,44 @@ fn flatten_reaches_the_georeferencer() {
     assert_eq!(coarse, 33, "coarse ring = 32 vertices + closing point");
     assert!(fine > 200, "fine ring has {fine} vertices");
 }
+
+/// `--geojson --maplibre`: the same FeatureCollection plus the MapLibre
+/// layers, which match the snapshots in `examples/geo/maplibre/` — the
+/// layer specs the rpic.dev Maps page drew before the styling moved into
+/// geopic-core (DECISIONS G9). Plain `--geojson` stays a bare collection.
+#[test]
+fn maplibre_bundle_carries_the_collection_and_the_snapshot_layers() {
+    let snapshots = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/geo/maplibre");
+    for pic in examples() {
+        let plain = rpic(&["-c", "--geojson"], &pic);
+        let out = rpic(&["-c", "--geojson", "--maplibre"], &pic);
+        assert!(
+            out.status.success(),
+            "{}: {}",
+            pic.display(),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        let keys: Vec<&String> = v.as_object().unwrap().keys().collect();
+        assert_eq!(keys, ["geojson", "layers"], "{}", pic.display());
+        // the collection is the plain --geojson output, byte for byte
+        assert_eq!(
+            v["geojson"],
+            serde_json::from_slice::<serde_json::Value>(&plain.stdout).unwrap(),
+            "{}",
+            pic.display()
+        );
+        let stem = pic.file_stem().unwrap().to_string_lossy();
+        let want: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(snapshots.join(format!("{stem}.layers.json"))).unwrap(),
+        )
+        .unwrap();
+        // px-per-metre comes from cos(lat): last-bit libm noise only
+        close(&v["layers"], &want, 1e-9, &format!("{stem} layers"));
+    }
+    // `--maplibre` alone is an error, not a silent no-op
+    let pic = examples().remove(0);
+    let bad = rpic(&["--maplibre"], &pic);
+    assert!(!bad.status.success());
+    assert!(String::from_utf8_lossy(&bad.stderr).contains("needs `--geojson`"));
+}

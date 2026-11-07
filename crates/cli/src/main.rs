@@ -20,8 +20,11 @@ enum Mode {
     /// `--scene`: the scene document alone (docs/scene.md).
     Scene,
     /// `--geojson`: the scene georeferenced as a GeoJSON FeatureCollection
-    /// (docs/geopic.md), via geopic-core.
-    GeoJson,
+    /// (docs/geopic.md), via geopic-core. With `maplibre` (`--maplibre`):
+    /// `{"geojson": …, "layers": […]}`, the MapLibre layers that draw it.
+    GeoJson {
+        maplibre: bool,
+    },
     Html,
 }
 
@@ -102,6 +105,7 @@ fn main() -> ExitCode {
     let mut texlabels = false;
     let mut flatten: Option<f64> = None;
     let mut outline = false;
+    let mut maplibre = false;
     let mut geo = geopic_core::GeoOptions::default();
 
     let mut i = 1;
@@ -118,7 +122,8 @@ fn main() -> ExitCode {
             "--json" => mode = Mode::Json,
             "--json=all" => mode = Mode::JsonAll,
             "--scene" => mode = Mode::Scene,
-            "--geojson" => mode = Mode::GeoJson,
+            "--geojson" => mode = Mode::GeoJson { maplibre: false },
+            "--maplibre" => maplibre = true,
             "--geo-anchor" => match args.get(i + 1).map(|v| parse_lonlat(a, v)) {
                 Some(Ok(ll)) => {
                     i += 1;
@@ -202,6 +207,13 @@ fn main() -> ExitCode {
             }
         }
         i += 1;
+    }
+
+    if maplibre {
+        match &mut mode {
+            Mode::GeoJson { maplibre: m } => *m = true,
+            _ => return fail("rpic: `--maplibre` needs `--geojson`"),
+        }
     }
 
     let Some(path) = path else {
@@ -338,7 +350,7 @@ fn run(
             }
             Ok(Output::Text(out.json))
         }
-        Mode::GeoJson => {
+        Mode::GeoJson { maplibre } => {
             let d = rpic_core::compile_with_options(src, opts)?;
             emit_diagnostics(&d);
             let scene = rpic_core::scene_json(&d, sopts);
@@ -356,6 +368,11 @@ fn run(
             }
             for w in &g.warnings {
                 emit_warning(&w.kind, w.id.as_deref(), &w.message);
+            }
+            if *maplibre {
+                return Ok(Output::Text(geopic_core::maplibre::bundle_json(
+                    &g.features,
+                )));
             }
             Ok(Output::Text(g.features.to_json()))
         }
@@ -413,6 +430,7 @@ fn print_help() {
          --geo-frame F           geojson: `enu` (default) or `mercator`\n    \
          --geo-view-scale PX     geojson: pixels per inch when the source sets geo_px = 1\n    \
          --geo-feature N=LON,LAT geojson: a named feature (control point for the label N); repeatable\n    \
+         --maplibre              geojson: emit {{\"geojson\": …, \"layers\": […]}} with the MapLibre layers\n    \
          -h, --help          show this help\n"
     );
 }
