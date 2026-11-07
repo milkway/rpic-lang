@@ -336,6 +336,109 @@ pub unsafe extern "C" fn rpic_compile_json_all(
     compile_json_all_impl(src, &unsafe { opts_ex(ex) }, flatten)
 }
 
+/// The extra options `rpic_compile_json_opts` reads from its JSON object:
+/// `preludes` (`[{"name", "text"}]`, see [`rpic_core::CompileOptions::preludes`]),
+/// `scene` (bool: include the `scene` key, as [`rpic_compile_json_all`]) and
+/// `flatten` (number, inches, with `scene`). NULL/empty = none. Errors are
+/// `invalid_options` messages.
+fn json_opts(
+    json: Option<&str>,
+    o: &mut rpic_core::CompileOptions,
+) -> Result<Option<rpic_core::SceneOptions>, String> {
+    let Some(json) = json.filter(|j| !j.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let v: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("options JSON does not parse: {e}"))?;
+    let obj = v
+        .as_object()
+        .ok_or_else(|| "options JSON must be an object".to_string())?;
+    let mut scene = false;
+    let mut flatten = 0.0;
+    for (k, val) in obj {
+        match k.as_str() {
+            "preludes" => {
+                let list = val
+                    .as_array()
+                    .ok_or_else(|| "`preludes` must be an array of {name, text}".to_string())?;
+                for p in list {
+                    let (Some(name), Some(text)) = (
+                        p.get("name").and_then(|n| n.as_str()),
+                        p.get("text").and_then(|t| t.as_str()),
+                    ) else {
+                        return Err(
+                            "each prelude must be {\"name\": string, \"text\": string}".into()
+                        );
+                    };
+                    o.preludes.push(rpic_core::Prelude::new(name, text));
+                }
+            }
+            "scene" => {
+                scene = val
+                    .as_bool()
+                    .ok_or_else(|| "`scene` must be a boolean".to_string())?
+            }
+            "flatten" => {
+                flatten = val
+                    .as_f64()
+                    .ok_or_else(|| "`flatten` must be a number".to_string())?
+            }
+            other => return Err(format!("unknown option `{other}`")),
+        }
+    }
+    Ok(scene.then(|| scene_opts(flatten)))
+}
+
+/// `{error, error_info: {kind: "invalid_options"}, warnings: []}`.
+fn invalid_options_json(msg: &str) -> String {
+    let d = rpic_core::Diagnostic::new("invalid_options", msg);
+    format!(
+        "{{\"error\":{},\"error_info\":{},\"warnings\":[]}}",
+        serde_json::Value::String(msg.to_string()),
+        rpic_core::diagnostic_json(&d)
+    )
+}
+
+/// Like [`rpic_compile_json_ex`], with the options [`RpicOptions`] cannot
+/// carry passed as a JSON object `opts_json` (NULL or "" = none):
+/// `{"preludes": [{"name": "…", "text": "…"}], "scene": true, "flatten": 0.01}`
+/// — every key optional. `preludes` are named source units spliced before
+/// `src` (after `circuits`/`texlabels`), positions inside them reporting
+/// `file` = their name; `scene: true` returns the [`rpic_compile_json_all`]
+/// bundle. A bad options object returns `{error, error_info}` with kind
+/// `invalid_options`. NULL only if `src` is null/invalid.
+///
+/// # Safety
+/// See [`rpic_render_svg_ex`]; `opts_json` null or a valid NUL-terminated
+/// UTF-8 string.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rpic_compile_json_opts(
+    src: *const c_char,
+    ex: *const RpicOptions,
+    opts_json: *const c_char,
+) -> *mut c_char {
+    let mut o = unsafe { opts_ex(ex) };
+    let json = if opts_json.is_null() {
+        None
+    } else {
+        match unsafe { as_str(opts_json) } {
+            Some(j) => Some(j),
+            None => return to_c_string(invalid_options_json("options JSON is not UTF-8")),
+        }
+    };
+    match json_opts(json, &mut o) {
+        Err(msg) => to_c_string(invalid_options_json(&msg)),
+        Ok(None) => compile_json_impl(src, &o),
+        Ok(Some(sopts)) => guard_ptr(|| {
+            let Some(s) = (unsafe { as_str(src) }) else {
+                return ptr::null_mut();
+            };
+            ensure_math_renderer();
+            to_c_string(rpic_core::compile_json_all_with_options(s, &o, &sopts))
+        }),
+    }
+}
+
 /// Like [`rpic_render_png`] with full [`RpicOptions`] (NULL = defaults).
 ///
 /// # Safety
@@ -430,6 +533,46 @@ mod tests {
         let all_bad =
             string_from_owned_ptr(unsafe { rpic_compile_json_all(bad.as_ptr(), ptr::null(), 0.0) });
         assert!(all_bad.contains("\"error\""));
+    }
+
+    #[test]
+    fn compile_json_opts_splices_named_preludes() {
+        let src = CString::new("box\nV1: vsrc((0,0),(1,0))\n").unwrap();
+        let opts = CString::new(
+            r#"{"preludes":[{"name":"dune","text":"define vsrc { [ line from $1 to $2 ] }\n"}],"scene":true}"#,
+        )
+        .unwrap();
+        let j = string_from_owned_ptr(unsafe {
+            rpic_compile_json_opts(src.as_ptr(), ptr::null(), opts.as_ptr())
+        });
+        let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+        assert!(v.get("error").is_none(), "{j}");
+        let items = v["scene"]["items"].as_array().unwrap();
+        let blk = items.iter().find(|i| i["kind"] == "block").unwrap();
+        assert_eq!(blk["span"]["line"], 2);
+        assert!(j.contains("\"file\":\"dune\""), "{j}");
+        // NULL options == rpic_compile_json_ex
+        let plain = CString::new("box\n").unwrap();
+        assert_eq!(
+            string_from_owned_ptr(unsafe {
+                rpic_compile_json_opts(plain.as_ptr(), ptr::null(), ptr::null())
+            }),
+            string_from_owned_ptr(unsafe { rpic_compile_json_ex(plain.as_ptr(), ptr::null()) })
+        );
+        // bad options and bad names are invalid_options errors
+        for bad in [
+            r#"{"prelude":[]}"#,
+            r#"{"preludes":[{"name":"x"}]}"#,
+            r#"{"preludes":[{"name":"circuits","text":"box"}]}"#,
+            "[",
+        ] {
+            let o = CString::new(bad).unwrap();
+            let j = string_from_owned_ptr(unsafe {
+                rpic_compile_json_opts(plain.as_ptr(), ptr::null(), o.as_ptr())
+            });
+            let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+            assert_eq!(v["error_info"]["kind"], "invalid_options", "{bad}: {j}");
+        }
     }
 
     #[test]
