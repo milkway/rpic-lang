@@ -1,0 +1,211 @@
+---
+// The live GeoPic playground: edit pic source in the browser and see, side by
+// side, the SVG (`compile`) and the drawing on a MapLibre map
+// (`compileGeoJSON`), re-georeferenced on every edit — all client-side through
+// the npm package's geo wasm build. That build (~665 KB) and the map are
+// loaded lazily: only when the playground scrolls into view or the editor gets
+// focus. Until then the pane shows the build-time SVG of the first example.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { renderPicFile } from '../lib/rpic';
+import { studioUrl } from '../lib/studio';
+
+const EXAMPLES = [
+  { file: 'examples/geo/callout.pic', name: 'callout — a declared anchor' },
+  { file: 'examples/geo/arrow-between-features.pic', name: 'arrow between two control points' },
+  { file: 'examples/geo/radius.pic', name: 'radius — a geodesic circle' },
+  { file: 'examples/geo/two-control-points.pic', name: 'site plan — two surveyed corners' },
+].map((e) => ({ ...e, source: readFileSync(resolve(process.cwd(), '..', e.file), 'utf8') }));
+
+const first = EXAMPLES[0];
+const initialSvg = renderPicFile(first.file);
+const initialStudio = studioUrl(first.source);
+---
+
+<div class="geo-playground not-prose my-6" data-examples={JSON.stringify(EXAMPLES.map((e) => e.source))}>
+  <div class="grid gap-4 lg:grid-cols-2">
+    <div class="flex flex-col min-w-0">
+      <div class="flex flex-wrap items-center gap-2 mb-1.5 text-[12px]">
+        <label class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+          Example
+          <select class="gp-example rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5">
+            {EXAMPLES.map((e, i) => <option value={i}>{e.name}</option>)}
+          </select>
+        </label>
+        <label class="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+          frame
+          <select class="gp-frame rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1.5 py-0.5">
+            <option value="">as in source</option>
+            <option value="enu">enu</option>
+            <option value="mercator">mercator</option>
+          </select>
+        </label>
+        <a
+          href={initialStudio ?? 'https://studio.rpic.dev/'}
+          target="_blank"
+          rel="noopener"
+          class="gp-studio ml-auto inline-flex items-center gap-1.5 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-medium px-2.5 py-1 no-underline transition-colors"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Open in Studio
+        </a>
+      </div>
+      <textarea
+        class="gp-source w-full flex-1 min-h-[24rem] resize-y rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-3 font-mono text-[12.5px] leading-[1.45] focus:outline-none focus:ring-2 focus:ring-emerald-600/40"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        aria-label="pic source (editable)"
+      >{first.source}</textarea>
+      <div
+        class="gp-status mt-2 min-h-[2.5rem] rounded-md bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-3 py-2 font-mono text-[11.5px] leading-snug text-slate-600 dark:text-slate-300 whitespace-pre-wrap"
+        role="status"
+        aria-live="polite"
+      >The engine loads when you scroll here or click into the editor.</div>
+    </div>
+    <div class="flex flex-col gap-4 min-w-0">
+      <div
+        class="gp-svg rounded-lg border border-slate-200 dark:border-slate-700 bg-white grid place-items-center p-4 min-h-[10rem] [&_svg]:max-w-full [&_svg]:h-auto [&_svg]:max-h-[16rem]"
+        set:html={initialSvg}
+      />
+      <div class="relative">
+        <div class="gp-map rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50" style="height:22rem"></div>
+        <div class="gp-loading absolute inset-0 grid place-items-center rounded-lg text-[13px] text-slate-500 pointer-events-none">loading engine…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  .gp-map .maplibregl-popup-content {
+    font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+    padding: 8px 10px;
+    color: #0f172a;
+  }
+</style>
+
+<script>
+  import { studioUrl } from '../lib/studio';
+  import type { GeoFC, GeoMapHandle } from '../lib/geomap';
+
+  type Rpic = typeof import('@strategicprojects/rpic');
+  type Diag = { kind?: string; message?: string; line?: number | null; col?: number | null };
+
+  const DEBOUNCE_MS = 150;
+
+  for (const root of document.querySelectorAll<HTMLElement>('.geo-playground')) {
+    const examples = JSON.parse(root.dataset.examples ?? '[]') as string[];
+    const source = root.querySelector<HTMLTextAreaElement>('.gp-source')!;
+    const exampleSel = root.querySelector<HTMLSelectElement>('.gp-example')!;
+    const frameSel = root.querySelector<HTMLSelectElement>('.gp-frame')!;
+    const studio = root.querySelector<HTMLAnchorElement>('.gp-studio')!;
+    const status = root.querySelector<HTMLElement>('.gp-status')!;
+    const svgBox = root.querySelector<HTMLElement>('.gp-svg')!;
+    const mapEl = root.querySelector<HTMLElement>('.gp-map')!;
+    const loading = root.querySelector<HTMLElement>('.gp-loading')!;
+
+    let rpic: Rpic | null = null;
+    let map: GeoMapHandle | null = null;
+    let starting: Promise<void> | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const say = (text: string, tone: 'ok' | 'error' | 'info' = 'info') => {
+      status.textContent = text;
+      status.classList.toggle('text-red-700', tone === 'error');
+      status.classList.toggle('dark:text-red-400', tone === 'error');
+    };
+
+    const fmt = (n: number, digits: number) => Number(n.toFixed(digits)).toString();
+    const warningLines = (ws: Diag[] | undefined) =>
+      (ws ?? []).map((w) => `warning ${w.kind ?? 'warning'}: ${w.message ?? ''}`);
+
+    /** Compile + georeference the current source; `fit` re-frames the map. */
+    function run(fit: boolean) {
+      if (!rpic || !map) return;
+      const src = source.value;
+      const url = studioUrl(src);
+      studio.hidden = !url;
+      if (url) studio.href = url;
+
+      let warnings: Diag[] | undefined;
+      try {
+        const out = rpic.compile(src);
+        svgBox.innerHTML = out.svg;
+        warnings = out.warnings as Diag[];
+      } catch (e) {
+        const info = (e as { errorInfo?: Diag }).errorInfo;
+        const where = info?.line != null ? `${info.line}:${info.col ?? 0} ` : '';
+        say(`${where}${info?.message ?? (e as Error).message}`, 'error');
+        return;
+      }
+      try {
+        const frame = frameSel.value as '' | 'enu' | 'mercator';
+        const out = rpic.compileGeoJSON(src, frame ? { frame } : {});
+        const fc = out.geojson as unknown as GeoFC;
+        map.setGeoJSON(fc);
+        if (fit) map.fitTo(fc);
+        const r = out.registration;
+        const parts = [
+          `${r.method} (${r.frame})`,
+          `scale ${fmt(r.scale_m_per_in, 3)} m/in`,
+          `bearing ${fmt(r.bearing_deg, 3)}°`,
+        ];
+        if (r.rms_m !== undefined) parts.push(`rms ${r.rms_m.toPrecision(2)} m`);
+        const lines = [`ok · ${fc.features.length} features · ${parts.join(' · ')}`, ...warningLines(out.warnings as Diag[])];
+        say(lines.join('\n'), 'ok');
+      } catch (e) {
+        const info = (e as { info?: { kind: string; message: string; hint?: string } }).info;
+        const text = info
+          ? `${info.kind}: ${info.message}${info.hint ? ` — ${info.hint}` : ''}`
+          : (e as Error).message;
+        say([text, ...warningLines(warnings)].join('\n'), 'error');
+      }
+    }
+
+    /** Fetch the geo build and MapLibre once; then render the current source. */
+    function start(): Promise<void> {
+      starting ??= (async () => {
+        say('loading engine…');
+        try {
+          const [mod, geomap] = await Promise.all([import('@strategicprojects/rpic'), import('../lib/geomap')]);
+          await mod.ready(undefined, { geo: true });
+          rpic = mod;
+          map = geomap.createGeoMap(mapEl);
+          loading.remove();
+          run(true);
+        } catch (e) {
+          starting = null; // allow a retry on the next focus
+          loading.textContent = 'engine failed to load';
+          say(`could not load the engine: ${(e as Error).message}`, 'error');
+        }
+      })();
+      return starting;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((en) => en.isIntersecting)) {
+          io.disconnect();
+          void start();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    io.observe(root);
+    source.addEventListener('focus', () => void start());
+
+    source.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => run(false), DEBOUNCE_MS);
+    });
+    frameSel.addEventListener('change', () => run(true));
+    exampleSel.addEventListener('change', () => {
+      source.value = examples[Number(exampleSel.value)] ?? '';
+      clearTimeout(timer);
+      if (rpic) run(true);
+      else void start();
+    });
+  }
+</script>

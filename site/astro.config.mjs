@@ -13,7 +13,16 @@ const forestDark = JSON.parse(readFileSync('../tools/highlight/themes/rpic-fores
 export default defineConfig({
   site: 'https://rpic.dev',
   integrations: [mdx()],
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    // The Maps playground imports the JS binding from the repo
+    // (`file:../bindings/js`, a symlink). Keep it out of the dev-time
+    // pre-bundle so wasm-pack's `new URL('…_bg.wasm', import.meta.url)`
+    // keeps pointing beside the glue (the production build handles that URL
+    // as an asset on its own), and let the dev server read outside site/.
+    optimizeDeps: { exclude: ['@strategicprojects/rpic'] },
+    server: { fs: { allow: ['..'] } },
+  },
   markdown: {
     shikiConfig: {
       langs: [grammar],
