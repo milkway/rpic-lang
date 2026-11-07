@@ -386,5 +386,6 @@ where every consumer gets them the same way:
   labels under the basemap's (a style without symbol layers,
   or a missing id, appends on top — the latter with a console warning,
   since MapLibre would otherwise refuse the layer). rpic.dev passes
-  `'labels'`; rpic-r's planned `rpic_mapgl(…, before = "labels",
-  text_scale = …)` mirrors both.
+  `'labels'`. rpic-r already has `rpic_geojson()`/`rpic_sf()`/`rpic_mapgl()`;
+  its next release adds `rpic_mapgl(…, before = "labels", text_scale = …)`
+  (signature decided), mirroring both.

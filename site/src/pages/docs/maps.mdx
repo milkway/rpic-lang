@@ -167,13 +167,14 @@ prints `{ "geojson": …, "layers": […] }` (`--text-scale 1.5` for larger
 labels); in Python, `rpic.geo.maplibre_layers(fc, text_scale=1.5)` or
 `rpic.geo.compile(src, layers=True, text_scale=1.5)`.
 
-In R the same layers will ride on a [mapgl](https://walker-data.com/mapgl/)
-map — **coming in rpic-r** (`rpic_mapgl()` is not released yet):
+In R, rpic-r's `rpic_geojson()`, `rpic_sf()` and `rpic_mapgl()` put the same
+layers on a [mapgl](https://walker-data.com/mapgl/) map. The `before` and
+`text_scale` arguments arrive **with the next rpic-r release**:
 
 ```r
 library(mapgl)
 maplibre(style = carto_style("positron")) |>
-  rpic_mapgl(src, before = "labels", text_scale = 1.5)
+  rpic_mapgl(src, before = "labels", text_scale = 1.5)   # next rpic-r release
 ```
 
 The sizing formulas and the layer table are in
