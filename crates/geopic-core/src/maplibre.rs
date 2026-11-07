@@ -456,8 +456,8 @@ pub fn layers_json_with(fc_json: &str, opts_json: &str) -> Result<String, GeoErr
     layers_json_from(fc_json, &opts)
 }
 
+/// `opts` is already valid (the default, or [`LayerOptions::from_json`]'s).
 fn layers_json_from(fc_json: &str, opts: &LayerOptions) -> Result<String, GeoError> {
-    opts.validate()?;
     let v: Value = serde_json::from_str(fc_json).map_err(|e| {
         GeoError::new(
             "invalid_geojson",
@@ -488,20 +488,20 @@ fn layers_json_from(fc_json: &str, opts: &LayerOptions) -> Result<String, GeoErr
 /// `rpic --geojson --maplibre` prints. The collection's own text is spliced
 /// in (no re-parse).
 pub fn bundle_json(fc: &FeatureCollection) -> String {
-    format!(
-        "{{\"geojson\":{},\"layers\":{}}}",
-        fc.to_json(),
-        Value::Array(layers(fc))
-    )
+    bundle_text(fc, layers(fc))
 }
 
 /// [`bundle_json`] with the layers under `opts` (`rpic --geojson --maplibre
 /// --text-scale k`). `Err(invalid_options)` when the options do not validate.
 pub fn bundle_json_with(fc: &FeatureCollection, opts: &LayerOptions) -> Result<String, GeoError> {
-    let layers = layers_with(fc, opts)?;
-    Ok(format!(
+    Ok(bundle_text(fc, layers_with(fc, opts)?))
+}
+
+/// The one bundle format: the collection's own text spliced in (no re-parse).
+fn bundle_text(fc: &FeatureCollection, layers: Vec<Value>) -> String {
+    format!(
         "{{\"geojson\":{},\"layers\":{}}}",
         fc.to_json(),
         Value::Array(layers)
-    ))
+    )
 }
