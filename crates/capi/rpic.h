@@ -48,7 +48,7 @@ char *rpic_compile_json_all(const char *src, const RpicOptions *opts, double fla
  * preludes are named source units spliced before src (after circuits and
  * texlabels, in order); positions inside one carry "file": its name, and the
  * user's own positions never shift. scene: true returns the
- * rpic_compile_json_all bundle. Bad options -> {error, error_info} with kind
+ * rpic_compile_json_all bundle; flatten (> 0, inches) implies scene. Bad options -> {error, error_info} with kind
  * "invalid_options". */
 char *rpic_compile_json_opts(const char *src, const RpicOptions *opts, const char *opts_json);
 unsigned char *rpic_render_png_ex(const char *src, double scale, const RpicOptions *opts, size_t *out_len);

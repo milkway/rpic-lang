@@ -339,8 +339,8 @@ pub unsafe extern "C" fn rpic_compile_json_all(
 /// The extra options `rpic_compile_json_opts` reads from its JSON object:
 /// `preludes` (`[{"name", "text"}]`, see [`rpic_core::CompileOptions::preludes`]),
 /// `scene` (bool: include the `scene` key, as [`rpic_compile_json_all`]) and
-/// `flatten` (number, inches, with `scene`). NULL/empty = none. Errors are
-/// `invalid_options` messages.
+/// `flatten` (positive number, inches; implies `scene`). NULL/empty = none.
+/// Errors are `invalid_options` messages.
 fn json_opts(
     json: Option<&str>,
     o: &mut rpic_core::CompileOptions,
@@ -355,6 +355,7 @@ fn json_opts(
         .ok_or_else(|| "options JSON must be an object".to_string())?;
     let mut scene = false;
     let mut flatten = 0.0;
+    let mut flatten_given = false;
     for (k, val) in obj {
         match k.as_str() {
             "preludes" => {
@@ -381,12 +382,17 @@ fn json_opts(
             "flatten" => {
                 flatten = val
                     .as_f64()
-                    .ok_or_else(|| "`flatten` must be a number".to_string())?
+                    .filter(|f| f.is_finite() && *f > 0.0)
+                    .ok_or_else(|| {
+                        "`flatten` must be a positive tolerance in inches".to_string()
+                    })?;
+                flatten_given = true;
             }
             other => return Err(format!("unknown option `{other}`")),
         }
     }
-    Ok(scene.then(|| scene_opts(flatten)))
+    // `flatten` implies the scene (as JS `compile` does)
+    Ok((scene || flatten_given).then(|| scene_opts(flatten)))
 }
 
 /// `{error, error_info: {kind: "invalid_options"}, warnings: []}`.
@@ -405,7 +411,7 @@ fn invalid_options_json(msg: &str) -> String {
 /// — every key optional. `preludes` are named source units spliced before
 /// `src` (after `circuits`/`texlabels`), positions inside them reporting
 /// `file` = their name; `scene: true` returns the [`rpic_compile_json_all`]
-/// bundle. A bad options object returns `{error, error_info}` with kind
+/// bundle, and `flatten` (a positive tolerance in inches) implies it. A bad options object returns `{error, error_info}` with kind
 /// `invalid_options`. NULL only if `src` is null/invalid.
 ///
 /// # Safety
@@ -564,8 +570,15 @@ mod tests {
             }),
             string_from_owned_ptr(unsafe { rpic_compile_json_ex(plain.as_ptr(), ptr::null()) })
         );
+        // `flatten` alone implies the scene
+        let f = CString::new(r#"{"flatten":0.01}"#).unwrap();
+        let j = string_from_owned_ptr(unsafe {
+            rpic_compile_json_opts(plain.as_ptr(), ptr::null(), f.as_ptr())
+        });
+        assert!(j.contains("\"scene\":"), "{j}");
         // bad options and bad names are invalid_options errors
         for bad in [
+            r#"{"flatten":0}"#,
             r#"{"prelude":[]}"#,
             r#"{"preludes":[{"name":"x"}]}"#,
             r#"{"preludes":[{"name":"circuits","text":"box"}]}"#,
