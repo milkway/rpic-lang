@@ -2,8 +2,9 @@
 // A pic drawing on a real map: the repo file is georeferenced at build time
 // (`rpic --geojson`, the same binary that renders the figures) and the
 // FeatureCollection is handed to MapLibre GL JS in the browser, styled from
-// its simplestyle + `geopic:*` properties — every shape as map geometry, so
-// the map matches the SVG figure exactly. (`geopic:placement = "screen"` is
+// its simplestyle + `geopic:*` properties — every shape as map geometry and
+// every size (strokes, dots, fonts) true to the ground via the collection's
+// `geopic.registration`, so the map keeps the SVG's proportions at any zoom. (`geopic:placement = "screen"` is
 // a hint for consumers that implement pixel-anchored callouts; this demo
 // does not, on purpose: a fixed-size marker made the arrow look detached.)
 import { renderGeoFile } from '../lib/rpic';
@@ -85,15 +86,52 @@ const geojson = renderGeoFile(src);
       cooperativeGestures: true,
     });
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+    // expose the maps for debugging / QA scripts
+    ((window as unknown as { __rpicGeoMaps?: unknown[] }).__rpicGeoMaps ??= []).push(map);
 
     const mapFeatures = fc.features;
+
+    // Sizes true to the ground: the collection's `geopic.registration` gives
+    // metres per inch, so a stroke width (points), a dot radius (inches) or
+    // a font size (points) becomes metres, and metres become pixels at zoom
+    // z as m / (78271.517 · cos(lat) / 2^z) — MapLibre's 512 px tiles put
+    // the whole equator on 512 px at zoom 0. MapLibre only lets `zoom` drive
+    // an interpolate at the top of an expression; an exponential (base 2)
+    // interpolation between two zoom stops reproduces the 2^z law exactly.
+    const reg = (fc as { geopic?: { registration?: { scale_m_per_in?: number; anchor?: { lat?: number } } } }).geopic?.registration;
+    const mPerIn = reg?.scale_m_per_in ?? 100;
+    const lat = reg?.anchor?.lat ?? 0;
+    const pxPerMetreAtZ0 = 1 / ((78271.517 * Math.cos((lat * Math.PI) / 180)) || 1);
+    const groundPx = (metres: unknown[], floorPx: number): unknown[] => [
+      'interpolate', ['exponential', 2], ['zoom'],
+      0, ['max', floorPx, ['*', metres, pxPerMetreAtZ0]],
+      24, ['max', floorPx, ['*', metres, pxPerMetreAtZ0 * 2 ** 24]],
+    ];
+    // Symbol sizes are packed into 16-bit vertex attributes (≈ 255 px max), so
+    // a far zoom stop with thousands of pixels overflows and the text came
+    // out tiny. For text the upper stop is the last zoom at which this map's
+    // largest font still fits in 255 px: exact 2^z scaling up to there, a
+    // frozen size beyond (far past the fitted zoom).
+    const maxFontM = Math.max(
+      1e-6,
+      ...fc.features.map((f) => (Number(f.properties['geopic:font_size']) || 0) * (mPerIn / 72)),
+    );
+    const textZHi = Math.min(24, Math.max(1, Math.floor(Math.log2(255 / (maxFontM * pxPerMetreAtZ0)))));
+    const groundTextPx = (metres: unknown[]): unknown[] => [
+      'interpolate', ['exponential', 2], ['zoom'],
+      0, ['max', 1, ['*', metres, pxPerMetreAtZ0]],
+      textZHi, ['min', 255, ['max', 1, ['*', metres, pxPerMetreAtZ0 * 2 ** textZHi]]],
+    ];
+    const ptToM = (expr: unknown[]): unknown[] => ['*', expr, mPerIn / 72];
+    const inToM = (expr: unknown[]): unknown[] => ['*', expr, mPerIn];
 
     map.on('load', () => {
       map.addSource('pic', { type: 'geojson', data: { type: 'FeatureCollection', features: mapFeatures } });
       const isPolygon = ['==', ['geometry-type'], 'Polygon'];
       const isLine = ['==', ['geometry-type'], 'LineString'];
       const kind = ['get', 'geopic:kind'];
-      const width = ['*', ['coalesce', ['get', 'stroke-width'], 0.8], 1.6];
+      // pic strokes are hairlines: ground-true width, never thinner than 1 px
+      const width = groundPx(ptToM(['coalesce', ['get', 'stroke-width'], 0.8]), 1);
       map.addLayer({
         id: 'pic-fill', type: 'fill', source: 'pic', filter: isPolygon,
         paint: {
@@ -116,17 +154,23 @@ const geojson = renderGeoFile(src);
       }
       map.addLayer({
         id: 'pic-dot', type: 'circle', source: 'pic', filter: ['==', kind, 'dot'],
-        paint: { 'circle-radius': 4, 'circle-color': ['coalesce', ['get', 'fill'], '#000000'] },
+        paint: {
+          'circle-radius': groundPx(inToM(['coalesce', ['get', 'geopic:radius_in'], 0.04]), 2),
+          'circle-color': ['coalesce', ['get', 'fill'], '#000000'],
+        },
       });
       map.addLayer({
         id: 'pic-text', type: 'symbol', source: 'pic', filter: ['==', kind, 'text'],
         layout: {
           'text-field': ['get', 'geopic:text'],
           'text-font': ['Noto Sans Regular'],
-          'text-size': 13,
+          // the pic font size in points → metres on the ground → px per zoom
+          'text-size': groundTextPx(ptToM(['coalesce', ['get', 'geopic:font_size'], 11])),
           'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],
           // geopic:rotation is CCW from east; MapLibre rotates clockwise
           'text-rotate': ['*', -1, ['coalesce', ['get', 'geopic:rotation'], 0]],
+          'text-rotation-alignment': 'map',
+          'text-pitch-alignment': 'map',
           'text-allow-overlap': true,
           'text-ignore-placement': true,
         },
@@ -140,7 +184,9 @@ const geojson = renderGeoFile(src);
         layout: {
           'text-field': ['get', 'title'],
           'text-font': ['Noto Sans Regular'],
-          'text-size': 12,
+          'text-size': groundTextPx(ptToM(['coalesce', ['get', 'geopic:font_size'], 11])),
+          'text-rotation-alignment': 'map',
+          'text-pitch-alignment': 'map',
           'text-allow-overlap': true,
           'text-ignore-placement': true,
         },

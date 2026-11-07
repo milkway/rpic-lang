@@ -883,3 +883,34 @@ fn curve_flattening_and_rings_draw_from_the_same_budget() {
         g.warnings
     );
 }
+
+#[test]
+fn font_sizes_and_the_registration_ride_the_collection() {
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 400\nB: box \"hub\" wid 1.3\n\"loose\" fontsize 20 at (3, 0)\ndot at (4,0)"),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let v: Value = serde_json::from_str(&g.features.to_json()).unwrap();
+    // the foreign member carries the registration
+    assert_eq!(v["geopic"]["schema"], 1);
+    assert_eq!(v["geopic"]["registration"]["scale_m_per_in"], 400.0);
+    assert_eq!(v["geopic"]["registration"]["method"], "anchor");
+    // points, from the scene's resolved font: 11 pt attached label, 20 pt standalone
+    let feats = v["features"].as_array().unwrap();
+    let hub = feats
+        .iter()
+        .find(|f| f["properties"]["title"] == "hub")
+        .unwrap();
+    assert_eq!(hub["properties"]["geopic:font_size"], 11.0);
+    let loose = feats
+        .iter()
+        .find(|f| f["properties"]["geopic:text"] == "loose")
+        .unwrap();
+    assert_eq!(loose["properties"]["geopic:font_size"], 20.0);
+    let dot = feats
+        .iter()
+        .find(|f| f["properties"]["geopic:kind"] == "dot")
+        .unwrap();
+    assert!(dot["properties"].get("geopic:font_size").is_none());
+}

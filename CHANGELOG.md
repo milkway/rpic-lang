@@ -12,6 +12,14 @@ resolves to the latest version.
 
 ### Added
 
+- **geopic: sizes true to the ground.** Features with text carry
+  `geopic:font_size` (points, from the scene's resolved font) and the
+  `FeatureCollection` carries a foreign member `geopic: {schema, registration}`
+  with the similarity that placed the drawing, so a consumer converts any pic
+  length into metres (`pt / 72 × scale_m_per_in`). The site's maps use it:
+  strokes, dots and labels scale with the zoom in metres (exponential zoom
+  interpolation; text stops computed per map so MapLibre's 16-bit symbol-size
+  packing never overflows), keeping the SVG's proportions at any zoom.
 - **`geopic-core`** (new workspace crate, publishable): georeferences an rpic
   scene into a GeoJSON `FeatureCollection` (WGS84). Registration by
   `geo_lon`/`geo_lat` + `geo_scale` + `geo_bearing`, by two control points
