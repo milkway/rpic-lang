@@ -38,6 +38,8 @@ svg = rpic.render_svg('box "$e^{j\\pi}+1=0$" fit', texlabels=True)
 
 # the parsed bundle: svg + animation manifest + diagnostics + warnings
 bundle = rpic.compile('box\nanimate last box with "pop"')
+# same keys as `rpic --json`: objects[i]["link"] when `link "<url>"` is set,
+# "interactions" for `draggable`, "places"/"passthrough"/"scroll" when present
 
 # `copy "file"` includes resolve relative to `base`
 svg = rpic.render_svg('copy "shim.pic"\nbox', base="figs/")

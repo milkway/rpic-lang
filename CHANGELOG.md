@@ -10,6 +10,16 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- Python: `rpic.compile()` now carries every key of the `--json` bundle
+  (#444). It built its dict by hand and dropped the objects' `"link"`
+  (`link "<url>"`, #358), the top-level `"interactions"` array
+  (`draggable`, #331) and the optional animation keys `"unit"` (`type … by
+  word`), `"chars"` (`scramble … by`), `"wiggles"`, `"drawFrom"` and
+  `"drawTo"` (partial `draw from … to …`). Each rides only when set, as in
+  the CLI bundle and the JS binding; existing keys keep their shapes.
+
 ## [0.16.0] — 2026-11-08
 
 ### Added
