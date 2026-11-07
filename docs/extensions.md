@@ -877,3 +877,44 @@ Rules:
   before the first use of a library element.
 - Classic input is untouched — the target only triggers on the exact string
   `"circuits"`, which previously always failed (no such file).
+
+## Embedding: Named Preludes
+
+An embedder that ships its own macro library (a circuit style, a house
+diagram vocabulary, dune's `vsource`/`isource` prelude for SPICE figures)
+can hand it to the compiler as a **named prelude** instead of gluing text in
+front of the user's source. Each prelude is spliced as its own source unit —
+exactly like the `-c` circuit library — after `circuits` and `texlabels`, in
+order, before the user's source:
+
+```sh
+rpic --prelude dune=dune.pic --json fig.pic
+```
+
+```rust
+let opts = rpic_core::CompileOptions::default().with_prelude("dune", DUNE_PIC);
+let json = rpic_core::compile_json_with_options(src, &opts);
+```
+
+What that buys:
+
+- **The user's lines never shift.** Every position — diagnostics, `objects`,
+  `places`, `passthrough`, scene `span`, `raw_args` — is relative to the
+  user's own text, with no rebasing on the host side.
+- **Positions inside a prelude name it**: `file: "dune"`, as library
+  positions carry `file: "circuits"` (`null` stays the user's input).
+- **Calls keep the user's provenance.** `V1: vsrc(A,B)` with `vsrc` defined
+  in a prelude is a block whose `span` and `call` (with `raw_args`) point at
+  the user's line; the shapes inside point into the prelude.
+- Troff `.` lines in a prelude are set aside as `passthrough` entries
+  tagged with the prelude's name.
+
+Names must be non-empty, unique, free of `"` and line breaks, and not
+`circuits` or `<texlabels>`; anything else is a compile error with kind
+`invalid_options`. The include policy is unaffected — the text is given, not
+read — though a `copy` inside a prelude obeys it. Bindings: JS
+`compile(src, { preludes: [{ name, text }] })` and `compileGeoJSON`, Python
+`preludes=[{"name": …, "text": …}]` (or `(name, text)` pairs) on every
+compile function and `rpic.geo`, C `rpic_compile_json_opts(src, opts,
+"{\"preludes\": [...]}")`. With no preludes, output is byte-identical to
+earlier releases.

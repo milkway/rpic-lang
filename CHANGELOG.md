@@ -10,6 +10,22 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- Named preludes for embedders (#450, DECISIONS E4):
+  `CompileOptions.preludes: Vec<Prelude { name, text }>` splices each one as
+  its own source unit — like the `-c` library — after `circuits`/`texlabels`,
+  in order, before the user's source. User positions never shift; positions
+  inside a prelude carry `file` = its name (passthrough included); a prelude
+  macro called from user code keeps the user's call-site provenance. Bad
+  names are `invalid_options` errors. Exposed as CLI `--prelude NAME=FILE`
+  (repeatable), JS `compile(src, { preludes })` and `compileGeoJSON`
+  (wasm `compile_preludes`, `compile_geo` options key `preludes`), Python
+  `preludes=` on every compile function and `rpic.geo`, C
+  `rpic_compile_json_opts` (options JSON), and Rust
+  `CompileOptions::with_prelude` / `parse_with_options`. Byte-identical
+  output when unused.
+
 ## [0.16.1] — 2026-11-08
 
 ### Fixed
