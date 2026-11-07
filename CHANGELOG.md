@@ -10,13 +10,6 @@ resolves to the latest version.
 
 ## [Unreleased]
 
-### Changed
-
-- geopic-core: `maplibre::Sizing` gained a `text_scale` field and is now
-  `#[non_exhaustive]` — read its fields freely, but build it only through
-  `sizing()` / `sizing_with()` (a struct literal outside the crate no longer
-  compiles).
-
 ### Added
 
 - geopic → MapLibre: a `text_scale` layer option multiplies every label's
@@ -33,11 +26,37 @@ resolves to the latest version.
   with `'labels'` (the first `symbol` layer of the style); the drawing's own
   labels (`pic-text`, `pic-title`) always stay on top. rpic.dev's shapes now
   sit under the basemap's place names.
-
 - Scene: each `text` line carries `row`, its 0-based row in the author's
   label stack (blank rows included), and the item carries `text_rows`, the
   stack's height — so a consumer can tell where the visible lines of
   `box "" "below"` sit (additive; `scene` stays 1; DECISIONS S13).
+- Macro calls keep their arguments as written: `MacroCall.raw_args`
+  (`Vec<RawArg>`, index-aligned with the normalized `args`) gives each
+  argument's source text from its first token to its last — `1e-9` stays
+  `1e-9`, spacing, quotes and `\` continuations kept — with its `span`
+  (start, `end_col`, the source unit's `file`) and `end_line`, the shape
+  of `PassLine`. Sliced from the lexed text, not rebuilt from tokens;
+  nested calls carry the outermost call's, like `args`. The scene's block
+  `call` gains `raw_args` (additive; `scene` stays 1). `--svg`/`--json`
+  unchanged. DECISIONS E1 (#425).
+
+### Changed
+
+- troff passthrough: a `+` in column 1 right after a passthrough line (or
+  after another `+` line) continues that request — it joins the entry
+  (`text` keeps the newlines, `PassLine.end_line` names the last line, the
+  bundle's `passthrough` entry gains `end_line`) instead of being a parse
+  error. A `+` line anywhere else is still an error; dpic 2025.08.01 rejects
+  both. Single-line entries are byte-identical. DECISIONS E2 (#425).
+- **API:** `ir::MacroCall`, `ir::RawArg` and `ir::PassLine` are now
+  `#[non_exhaustive]`: they are embedder-facing records that will keep
+  growing (#425 item 3 extends them again), so code outside rpic-core can
+  read their fields but no longer build them with a struct literal or
+  match them exhaustively. Nothing in rpic or rpic-r builds them.
+- geopic-core: `maplibre::Sizing` gained a `text_scale` field and is now
+  `#[non_exhaustive]` — read its fields freely, but build it only through
+  `sizing()` / `sizing_with()` (a struct literal outside the crate no longer
+  compiles).
 
 ### Fixed
 

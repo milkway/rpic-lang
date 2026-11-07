@@ -9,7 +9,7 @@
 use crate::ast::*;
 use crate::diagnostic::{Diagnostic, Span};
 use crate::ir::PassLine;
-use crate::lexer::{LexError, Spanned, lex, lex_named};
+use crate::lexer::{LexError, Spanned, lex, lex_in, lex_named};
 use crate::token::*;
 
 /// A parse error with source location. `file` (via [`ParseError::span`]) is
@@ -140,20 +140,27 @@ pub fn parse_in_dir(src: &str, base: Option<&Path>) -> Result<Picture, ParseErro
 /// own input reports user lines, and library problems name the library.
 pub fn parse_with_prelude(
     src: &str,
-    includes: IncludeCtx,
+    mut includes: IncludeCtx,
     circuits: bool,
     texlabels: bool,
 ) -> Result<Picture, ParseError> {
+    // a fresh table per compilation: a reused context must not accumulate
+    // every text it ever lexed
+    includes.sources = Default::default();
+    let table = includes.sources.clone();
     let mut toks: Vec<Spanned> = Vec::new();
     if circuits {
-        splice_unit(&mut toks, lex_named(crate::CIRCUITS, "circuits")?);
+        splice_unit(
+            &mut toks,
+            lex_in(crate::CIRCUITS, Some("circuits"), &table)?,
+        );
     }
     if texlabels {
         // Initializer only — the source stays sovereign (`texlabels = 0` wins).
         splice_unit(&mut toks, lex_named("texlabels = 1\n", "<texlabels>")?);
     }
     let (src, passthrough) = strip_backend_preamble(src);
-    toks.extend(lex(&src)?);
+    toks.extend(lex_in(&src, None, &table)?);
     let (toks, macros) = preprocess(toks, &includes)?;
     let mut pic = Parser::new(toks).parse_picture()?;
     pic.macros = macros;
@@ -229,6 +236,10 @@ pub(crate) fn parse_exec_source(
     arg_frame: Option<&[Vec<Spanned>]>,
     vars: &std::collections::HashMap<String, f64>,
 ) -> Result<Vec<Stmt>, ParseError> {
+    // Not registered in the compilation's SourceTable: exec text is built
+    // at run time (possibly a fresh string per loop iteration), so keeping
+    // every one alive would grow without bound. Its tokens carry no raw
+    // source; raw args are promised only for the author's own units.
     let mut toks = lex(src)?;
     if let Some(args) = arg_frame {
         toks = substitute(&toks, args);
@@ -276,15 +287,19 @@ pub(crate) fn parse_stringexpr_tokens(
 /// for the exact rule.
 fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
     let mut out = String::with_capacity(src.len());
-    let mut passthrough = Vec::new();
+    let mut passthrough: Vec<PassLine> = Vec::new();
     let mut in_verbatimtex = false;
     let mut in_string = false;
     let mut in_raw_sh = false;
     // the previous physical line ended in a `\` continuation, so this one is
     // the tail of a statement, not the start of a new line
     let mut continued = false;
+    // the previous physical line was a passthrough entry (or a `+`
+    // continuation of one), so a column-1 `+` here continues that entry
+    let mut after_pass = false;
 
     for (n, line) in src.lines().enumerate() {
+        let follows_pass = std::mem::take(&mut after_pass);
         let trimmed = line.trim_start();
         if in_verbatimtex {
             out.push('\n');
@@ -301,15 +316,37 @@ fn strip_backend_preamble(src: &str) -> (String, Vec<PassLine>) {
             continue;
         }
 
-        if !in_string && !continued && is_passthrough_line(line) {
+        // a passthrough line's text and span (only the `.`/`+` branches pay)
+        let pass_line = || {
             let text = line.strip_suffix('\r').unwrap_or(line);
             let line_no = u32::try_from(n + 1).unwrap_or(u32::MAX);
             let end_col = u32::try_from(text.chars().count() + 1).unwrap_or(u32::MAX);
+            (text, line_no, end_col)
+        };
+        if !in_string
+            && !continued
+            && follows_pass
+            && line.starts_with('+')
+            && let Some(entry) = passthrough.last_mut()
+        {
+            // troff's continuation of the previous request line: same
+            // logical line, so it joins that entry (newline kept)
+            let (text, line_no, end_col) = pass_line();
+            entry.text.push('\n');
+            entry.text.push_str(text);
+            entry.span.end_col = end_col;
+            entry.end_line = line_no;
+            out.push('\n');
+            after_pass = true;
+        } else if !in_string && !continued && is_passthrough_line(line) {
+            let (text, line_no, end_col) = pass_line();
             passthrough.push(PassLine {
                 text: text.to_string(),
                 span: Span::new(line_no, 1, end_col),
+                end_line: line_no,
             });
             out.push('\n');
+            after_pass = true;
         } else if !in_string && starts_word(trimmed, "verbatimtex") {
             in_verbatimtex = true;
             out.push('\n');
@@ -589,15 +626,15 @@ fn expand(
                 let body = macros.get(n).unwrap().clone();
                 let name_idx = i;
                 i += 1;
-                let args = if toks.get(i).map(|s| &s.tok) == Some(&Token::Lparen) {
+                let (args, seps) = if toks.get(i).map(|s| &s.tok) == Some(&Token::Lparen) {
                     i += 1;
-                    let (a, ni) = read_args(toks, i)?;
+                    let (a, seps, ni) = read_args(toks, i)?;
                     i = ni;
-                    a
+                    (a, seps)
                 } else {
-                    Vec::new()
+                    (Vec::new(), Vec::new())
                 };
-                let site = call_site(toks, name_idx, i, n, &args);
+                let site = call_site(toks, name_idx, i, n, &args, &seps, &includes.sources);
                 let mut sub = substitute(&body, &args);
                 for t in &mut sub {
                     t.call_site = Some(std::sync::Arc::clone(&site));
@@ -632,13 +669,16 @@ fn expand(
 /// The provenance every token of a macro expansion carries: a call made
 /// from inside another expansion keeps that (outer) call's site, so the
 /// site always names the outermost call the user wrote. `end` is the index
-/// just past the call (past `)` when it had arguments).
+/// just past the call (past `)` when it had arguments); `seps[k]` indexes
+/// the `(` or `,` token in front of argument `k` (see [`read_args`]).
 fn call_site(
     toks: &[Spanned],
     name_idx: usize,
     end: usize,
     name: &str,
     args: &[Vec<Spanned>],
+    seps: &[usize],
+    sources: &crate::lexer::SourceTable,
 ) -> std::sync::Arc<crate::lexer::CallSite> {
     let name_tok = &toks[name_idx];
     if let Some(site) = &name_tok.call_site {
@@ -652,7 +692,7 @@ fn call_site(
     {
         span.end_col = close.end_col;
     }
-    let args = args
+    let norm = args
         .iter()
         .map(|a| match a.as_slice() {
             // keep a lone string quoted (`tokens_to_text` unquotes it, the
@@ -661,18 +701,68 @@ fn call_site(
             _ => tokens_to_text(a),
         })
         .collect();
+    // one `(`/`,` in front of every argument, by construction (read_args)
+    debug_assert_eq!(seps.len(), args.len());
+    let raw_args = args
+        .iter()
+        .zip(seps)
+        .map(|(a, &j)| raw_arg(a, &toks[j], sources))
+        .collect();
     std::sync::Arc::new(crate::lexer::CallSite {
         span,
         call: crate::ir::MacroCall {
             name: name.to_string(),
-            args,
+            args: norm,
+            raw_args,
         },
     })
 }
 
+/// One argument as written: the source text from its first token to its
+/// last, sliced from the text they were lexed from (via `sources`) — not
+/// rebuilt from the tokens, so spelling, spacing and continuations
+/// survive. `sep` is the `(`/`,` in front of it, which places an empty
+/// argument. Tokens that do not share one registered text (synthesized,
+/// or pasted from elsewhere) fall back to the normalized text at the first
+/// token's position.
+fn raw_arg(
+    arg: &[Spanned],
+    sep: &Spanned,
+    sources: &crate::lexer::SourceTable,
+) -> crate::ir::RawArg {
+    let (Some(first), Some(last)) = (arg.first(), arg.last()) else {
+        let col = sep.end_col;
+        return crate::ir::RawArg {
+            text: String::new(),
+            span: Span::new(sep.line, col, col).in_file(sep.file.clone()),
+            end_line: sep.line,
+        };
+    };
+    let text = sources
+        .slice(first.src, last.src)
+        .unwrap_or_else(|| tokens_to_text(arg));
+    // the end position follows from the text itself, so a multi-line
+    // argument (a `\` continuation, a newline inside parentheses) is exact
+    let (end_line, end_col) = match text.rfind('\n') {
+        Some(nl) => (
+            first.line + text.matches('\n').count() as u32,
+            text[nl + 1..].chars().count() as u32 + 1,
+        ),
+        None => (first.line, first.col + text.chars().count() as u32),
+    };
+    crate::ir::RawArg {
+        text,
+        span: Span::new(first.line, first.col, end_col).in_file(first.file.clone()),
+        end_line,
+    }
+}
+
 /// Read comma-separated argument token-lists after a `(` (index `i` is just past
-/// it), returning the args and the index after the matching `)`.
-fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize), ParseError> {
+/// it), returning the args, the index of the `(`/`,` token in front of each,
+/// and the index after the matching `)`.
+type ReadArgs = (Vec<Vec<Spanned>>, Vec<usize>, usize);
+fn read_args(toks: &[Spanned], mut i: usize) -> Result<ReadArgs, ParseError> {
+    let mut seps: Vec<usize> = vec![i.saturating_sub(1)];
     let mut args: Vec<Vec<Spanned>> = Vec::new();
     let mut cur: Vec<Spanned> = Vec::new();
     let mut depth = 0i32;
@@ -705,6 +795,7 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
             Token::Comma if depth == 0 => {
                 trim_trailing_newlines(&mut cur);
                 args.push(std::mem::take(&mut cur));
+                seps.push(i);
                 i += 1;
             }
             Token::Newline if depth == 0 && cur.is_empty() => {
@@ -716,7 +807,8 @@ fn read_args(toks: &[Spanned], mut i: usize) -> Result<(Vec<Vec<Spanned>>, usize
             }
         }
     }
-    Ok((args, i))
+    seps.truncate(args.len());
+    Ok((args, seps, i))
 }
 
 fn trim_trailing_newlines(toks: &mut Vec<Spanned>) {
@@ -1291,7 +1383,7 @@ fn include_file(
         if macros.contains_key("__resistor") {
             return Ok(Vec::new());
         }
-        let toks = lex_named(crate::CIRCUITS, "circuits")?;
+        let toks = lex_in(crate::CIRCUITS, Some("circuits"), &includes.sources)?;
         let mut expanded = expand(&toks, macros, depth + 1, includes)?;
         if matches!(expanded.last().map(|s| &s.tok), Some(Token::Eof)) {
             expanded.pop();
@@ -1336,7 +1428,7 @@ fn include_file(
     }
     let content =
         std::fs::read_to_string(&path).map_err(|e| mkerr(format!("copy \"{fname}\": {e}")))?;
-    let toks = lex_named(&content, fname)?;
+    let toks = lex_in(&content, Some(fname), &includes.sources)?;
     let inc_base = path.parent().map(|d| d.to_path_buf());
     let inc_ctx = includes.child(inc_base);
     let mut expanded = expand(&toks, macros, depth + 1, &inc_ctx)?;
@@ -4082,6 +4174,78 @@ box
             ]
         );
         assert!(p.passthrough.iter().all(|l| l.span.file.is_none()));
+    }
+
+    #[test]
+    fn raw_args_of_a_call_in_a_named_unit_carry_its_name() {
+        // positions stay relative to their own source: a call in the
+        // circuits library reports file "circuits"
+        let ctx = IncludeCtx::default();
+        let src = "define m { [ box ] }\nm( 1e-9 )\n";
+        let toks = lex_in(src, Some("circuits"), &ctx.sources).unwrap();
+        let mut macros = HashMap::new();
+        let out = expand(&toks, &mut macros, 0, &ctx).unwrap();
+        let site = out.iter().find_map(|t| t.call_site.clone()).unwrap();
+        let a = &site.call.raw_args[0];
+        assert_eq!(
+            (
+                a.text.as_str(),
+                a.span.line,
+                a.span.col,
+                a.span.end_col,
+                a.span.file.as_deref()
+            ),
+            ("1e-9", 2, 4, 8, Some("circuits"))
+        );
+    }
+
+    #[test]
+    fn raw_args_of_a_library_call_point_into_the_user_source() {
+        // a user call to a `-c` library macro: every token it expands to —
+        // including the library's inner `__resistor($1, $2)` call — names
+        // the user's call, whose raw arguments are file-less user text
+        let ctx = IncludeCtx::default();
+        let mut toks = Vec::new();
+        splice_unit(
+            &mut toks,
+            lex_in(crate::CIRCUITS, Some("circuits"), &ctx.sources).unwrap(),
+        );
+        toks.extend(lex_in("A: (0,0); B: (2,0)\nresistor( A ,B)", None, &ctx.sources).unwrap());
+        let mut macros = HashMap::new();
+        let out = expand(&toks, &mut macros, 0, &ctx).unwrap();
+        let sites: Vec<_> = out.iter().filter_map(|t| t.call_site.clone()).collect();
+        assert!(!sites.is_empty());
+        for site in &sites {
+            assert_eq!(site.call.name, "resistor");
+            let raw: Vec<(&str, u32, u32, Option<&str>)> = site
+                .call
+                .raw_args
+                .iter()
+                .map(|a| {
+                    (
+                        a.text.as_str(),
+                        a.span.line,
+                        a.span.col,
+                        a.span.file.as_deref(),
+                    )
+                })
+                .collect();
+            assert_eq!(raw, [("A", 2, 11, None), ("B", 2, 14, None)]);
+        }
+    }
+
+    #[test]
+    fn plus_continuations_join_the_passthrough_entry() {
+        let (out, pass) = strip_backend_preamble(".ft B\n+a\r\n+b\nbox\n+c\n");
+        assert_eq!(pass.len(), 1);
+        assert_eq!(pass[0].text, ".ft B\n+a\n+b");
+        assert_eq!(
+            (pass[0].span.line, pass[0].end_line, pass[0].span.end_col),
+            (1, 3, 3)
+        );
+        // blanked line for line, so later positions do not move; the stray
+        // `+c` (not after a request) is left for the parser to reject
+        assert_eq!(out, "\n\n\nbox\n+c\n");
     }
 
     #[test]

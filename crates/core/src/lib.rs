@@ -187,7 +187,10 @@ pub fn places_json(d: &Drawing) -> String {
 
 /// Build the JSON `passthrough` array: the troff request lines set aside
 /// before lexing ([`Drawing::passthrough`]), in source order, each with its
-/// text (leading `.` included) and source span.
+/// text (leading `.` included) and source span. A request continued by
+/// column-1 `+` lines is one entry whose `text` contains `\n` and which
+/// carries `end_line` (its last line); `end_line` rides only on such
+/// continued entries, so single-line entries keep their 0.13.0 shape.
 pub fn passthrough_json(d: &Drawing) -> String {
     let mut s = String::from("[");
     for (i, l) in d.passthrough.iter().enumerate() {
@@ -196,7 +199,30 @@ pub fn passthrough_json(d: &Drawing) -> String {
         }
         s.push_str(&format!("{{\"text\":\"{}\"", json_str(&l.text)));
         s.push_str(&span_fields(Some(&l.span)));
+        // only a `+`-continued entry spans lines; single-line entries keep
+        // the 0.13.0 shape byte for byte
+        if l.end_line != l.span.line {
+            s.push_str(&format!(",\"end_line\":{}", l.end_line));
+        }
         s.push('}');
+    }
+    s.push(']');
+    s
+}
+
+/// Build the JSON `raw_args` array of a macro call ([`ir::MacroCall::raw_args`]):
+/// one `{"text","line","col","end_col"[,"file"],"end_line"}` object per
+/// argument — the argument exactly as written (`text` may contain `\n`)
+/// and its range, in the flat span convention of `passthrough`.
+pub fn raw_args_json(call: &ir::MacroCall) -> String {
+    let mut s = String::from("[");
+    for (i, a) in call.raw_args.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!("{{\"text\":\"{}\"", json_str(&a.text)));
+        s.push_str(&span_fields(Some(&a.span)));
+        s.push_str(&format!(",\"end_line\":{}}}", a.end_line));
     }
     s.push(']');
     s
@@ -602,6 +628,56 @@ mod tests {
             j.contains("\"passthrough\":[{\"text\":\".ft B\",\"line\":3,\"col\":1,\"end_col\":6}]"),
             "{j}"
         );
+    }
+
+    #[test]
+    fn json_passthrough_entry_spans_its_continuation_lines() {
+        // #425: `+` continuation lines join their request; only such an
+        // entry gains `end_line` (single-line entries keep their shape)
+        let j = compile_json(".ft B\n+ more\nbox\n.sp\n");
+        let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+        assert!(v.get("error").is_none(), "{j}");
+        let t = &v["passthrough"];
+        assert_eq!(t[0]["text"], ".ft B\n+ more");
+        assert_eq!(
+            (
+                t[0]["line"].as_u64(),
+                t[0]["end_line"].as_u64(),
+                t[0]["end_col"].as_u64()
+            ),
+            (Some(1), Some(2), Some(7))
+        );
+        assert!(
+            j.contains("{\"text\":\".sp\",\"line\":4,\"col\":1,\"end_col\":4}"),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn scene_block_call_carries_raw_args() {
+        let d = compile("define r { [ box ] }\nr(1e-9 , \"a, b\")").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: serde_json::Value = serde_json::from_str(&out.json).unwrap();
+        let blk = v["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["kind"] == "block")
+            .unwrap();
+        let call = &blk["call"];
+        assert_eq!(call["args"][0], "0.000000001");
+        assert_eq!(call["raw_args"][0]["text"], "1e-9");
+        assert_eq!(call["raw_args"][1]["text"], "\"a, b\"");
+        assert_eq!(
+            (
+                call["raw_args"][1]["line"].as_u64(),
+                call["raw_args"][1]["col"].as_u64(),
+                call["raw_args"][1]["end_line"].as_u64(),
+                call["raw_args"][1]["end_col"].as_u64()
+            ),
+            (Some(2), Some(10), Some(2), Some(16))
+        );
+        assert!(call["raw_args"][0].get("file").is_none());
     }
 
     #[test]

@@ -59,11 +59,25 @@
     },
     "call": {
       "type": "object",
-      "required": ["name", "args"],
+      "required": ["name", "args", "raw_args"],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
-        "args": { "type": "array", "items": { "type": "string" } }
+        "args": { "type": "array", "items": { "type": "string" } },
+        "raw_args": { "type": "array", "items": { "$ref": "#/$defs/raw_arg" } }
+      }
+    },
+    "raw_arg": {
+      "type": "object",
+      "required": ["text", "line", "col", "end_col", "end_line"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "col": { "type": "integer", "minimum": 1 },
+        "end_col": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "file": { "type": "string" }
       }
     },
     "place": {

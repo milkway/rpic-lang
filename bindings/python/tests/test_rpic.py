@@ -62,6 +62,11 @@ def test_compile_places_and_passthrough_ride_only_when_present():
     assert bundle["passthrough"] == [{"text": ".ft B", "line": 3, "col": 1, "end_col": 6}]
     plain = rpic.compile("box")
     assert "places" not in plain and "passthrough" not in plain
+    # a request continued by column-1 `+` lines is one entry (#425)
+    cont = rpic.compile(".ft B\n+ more\nbox\n")
+    assert cont["passthrough"] == [
+        {"text": ".ft B\n+ more", "line": 1, "col": 1, "end_col": 7, "end_line": 2}
+    ]
 
 
 def test_compile_warnings():

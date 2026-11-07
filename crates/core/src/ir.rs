@@ -105,6 +105,7 @@ pub struct BlockInfo {
 
 /// A macro invocation, as recorded for [`BlockInfo::call`].
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct MacroCall {
     /// The macro's name.
     pub name: String,
@@ -112,6 +113,32 @@ pub struct MacroCall {
     /// rpic's normalized token text (spacing follows the source; numbers
     /// print canonically).
     pub args: Vec<String>,
+    /// The same arguments exactly as the author spelled them, index-aligned
+    /// with `args`: `1e-9` stays `1e-9`, spacing, line continuations and
+    /// quotes are kept.
+    pub raw_args: Vec<RawArg>,
+}
+
+/// One macro-call argument as written (see [`MacroCall::raw_args`]).
+/// Same shape as [`PassLine`]: text, a [`Span`](crate::diagnostic::Span)
+/// from its start to its end, and the last line.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct RawArg {
+    /// The source text from the argument's first token to its last,
+    /// verbatim (inner whitespace, `\` line continuations and comments
+    /// included, surrounding whitespace not); it may contain `\n`. Empty
+    /// for an empty argument.
+    pub text: String,
+    /// Where `text` sits, relative to its own source unit (`span.file`:
+    /// `None` = the user's input, `"circuits"` = the library, else the
+    /// `copy` name as written): `span.line`/`span.col` (1-based, in chars)
+    /// where it starts, `span.end_col` just past its last char, on
+    /// `end_line`. An empty argument sits just past the `(` or `,` that
+    /// precedes it (`col == end_col`).
+    pub span: crate::diagnostic::Span,
+    /// The line `text` ends on: `span.line` unless it spans lines.
+    pub end_line: u32,
 }
 
 /// A named place: the point a `Label: position` statement defines.
@@ -134,11 +161,19 @@ pub struct PlaceInfo {
 
 /// A troff passthrough line (see [`Drawing::passthrough`]).
 #[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct PassLine {
     /// The line as written, leading `.` included, without its line ending.
+    /// A request continued by column-1 `+` lines (the troff convention for
+    /// "same logical line") holds all of them, joined by `\n`.
     pub text: String,
-    /// Where it sits in the user's source: column 1 to the end of the line.
+    /// Where it sits in the user's source: column 1 of its first line
+    /// (`span.line`) to the end of its last line (`span.end_col`, on
+    /// `end_line`).
     pub span: crate::diagnostic::Span,
+    /// The entry's last line: `span.line` unless `+` continuation lines
+    /// follow it.
+    pub end_line: u32,
 }
 
 /// Extra whitespace around the rendered canvas, in internal inches.

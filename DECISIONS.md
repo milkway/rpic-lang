@@ -389,3 +389,78 @@ where every consumer gets them the same way:
   `'labels'`. rpic-r already has `rpic_geojson()`/`rpic_sf()`/`rpic_mapgl()`;
   its next release adds `rpic_mapgl(…, before = "labels", text_scale = …)`
   (signature decided), mirroring both.
+
+## Embedder API (2026-11-07, #425)
+
+### E1. Raw call-site arguments are sliced from the lexed text (side table)
+
+`MacroCall.raw_args` (index-aligned with `args`) records each argument as
+the author wrote it, as `RawArg {text, span, end_line}` — the same shape as
+`PassLine`, one shape for "source text with a range". The text is the
+slice of the source the tokens were lexed from, from the argument's first
+token to its last. Rebuilding from tokens would lose the spelling
+(`1e-9`), the spacing and continuations, which is the point.
+
+Representation: every token carries a crate-private `Copy`
+`SrcRange {unit, start, end}` (char offsets), and the texts one compilation
+lexes (user input, `circuits`, `copy` includes, `exec` strings) live in a
+`SourceTable` on the `IncludeCtx` — created fresh by each
+`parse_with_prelude`, shared by its clones (eval-time expansion of deferred
+bodies), dropped with the picture. A first version put an `Arc<[char]>` of
+the text on every token; measured against main (release builds, medians,
+macOS arm64) it cost too much memory, so it was replaced:
+
+| | main | `Arc` per token | side table (kept) |
+|---|---|---|---|
+| `Spanned` size | 88 B | 112 B | 96 B |
+| peak RSS `-c` figuras/fig30 | 30.7 MiB | 36.2 MiB (+18 %) | 33.1 MiB (+8 %) |
+| peak RSS `-c` figuras/fig01 | 15.4 MiB | — | 16.1 MiB (+5 %) |
+| `-c --svg` dpic/man36 (#373 case, 31 runs) | 4.49 ms | 5.3 ms¹ | 4.55 ms (+1 %) |
+| full corpus `-c -t --svg`, 128 files (5 runs) | 1.611 s | 2.00 s¹ | 1.691 s (+5 %) |
+
+¹ separate, noisier session (main 4.3 ms / 1.87 s there); the RSS figures
+are stable across runs.
+
+Below the ~10 % budget, so the side table stays. Consequences:
+
+- Positions follow the diagnostics architecture: `span.line`/`span.col` of
+  the first token, `span.end_col` (exclusive) and `end_line` derived from
+  the slice itself, `span.file` = `None` (user input), `"circuits"`, or the
+  `copy` name. `end_line` is needed because `Span` is single-line.
+- User input is lexed after the backend-preamble filter, which blanks lines
+  but keeps line structure, so positions match the original source; a
+  blanked troff line inside an argument would read as empty there.
+- Bounded retention (security review of #439): `exec` text is built at run
+  time — possibly a fresh string per loop iteration — so it is lexed
+  *without* registering (unit 0); keeping each one alive for the whole
+  compile would grow memory linearly past the loop caps. Its tokens carry
+  no raw source (raw args then fall back to the normalized text), which is
+  fine: raw args are promised for the author's own units. Registration also
+  de-duplicates identical texts, so a `copy` re-run in a loop body reuses
+  its unit; the table grows only with *distinct* source texts. Test:
+  `re_lexed_text_does_not_grow_the_source_table` (200 iterations of `exec` +
+  `copy` → 2 units).
+- An empty argument (`m(a,,b)`) has `text` `""` placed just past its
+  `(`/`,` (`read_args` returns one separator per argument; asserted). Tokens
+  without one registered lexed text (synthesized, or `exec`
+  text mixed with substituted arguments) fall back to the normalized text.
+- Nested calls carry the outermost call's raw arguments, exactly like
+  `args`. Exposed in the scene's block `call` (additive, format 1); the
+  bundle `--json` has no block vocabulary (S11), so it does not change.
+
+### E2. `+` continuation lines join their passthrough entry
+
+troff continues a request with a `+` in column 1; pic users write it after
+a `.` passthrough line. Such a line — directly after a passthrough line or
+another continuation, and not inside a string or a `\`-continued
+statement — now joins the previous `PassLine`: `text` keeps the newlines
+(the embedder can re-split), `span.line` is the first line, `span.end_col`
+the end of the last, and `end_line` the last line. The bundle emits
+`end_line` only for continued entries, so every existing output is
+byte-identical. Anywhere else a column-1 `+` keeps its parse error — in
+particular right after `.PS`/`.PE` (e.g. `.PS 4` then `+ x`): those are the
+picture markers handled with the backend preamble, not passthrough
+entries, so there is nothing to continue ("expected an object, found +";
+dpic rejects it too).
+dpic 2025.08.01 rejects both forms ("Syntax error, unexpected +"): this is
+an rpic leniency, inert for every source dpic accepts.
