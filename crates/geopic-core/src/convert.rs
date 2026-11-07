@@ -264,6 +264,44 @@ impl Ctx<'_> {
             return;
         }
         let props = self.base_props(item);
+        let before = self.out.len();
+        self.shape(item, props.clone());
+        // a shape's attached text becomes its own Point (DECISIONS G10): a
+        // label placed by a map renderer on the polygon itself is repeated
+        // once per tile the polygon is clipped into
+        if item.kind != "text" && self.out.len() > before {
+            self.title_point(item, props);
+        }
+    }
+
+    /// The `geopic:kind = "title"` Point of a shape that carries text: at
+    /// the point the SVG centres the label on, with the text properties of a
+    /// `text` item and the shape's id in `geopic:for`.
+    fn title_point(&mut self, item: &Item, mut props: Props) {
+        let Some(lines) = item.text.as_deref().filter(|l| !l.is_empty()) else {
+            return;
+        };
+        let Some(at) = label_centre(item, lines) else {
+            return;
+        };
+        for k in [
+            "stroke",
+            "stroke-width",
+            "stroke-opacity",
+            "fill",
+            "fill-opacity",
+            "geopic:dash",
+            "geopic:hatch",
+        ] {
+            props.remove(k);
+        }
+        props.insert("geopic:id".into(), json!(format!("{}:title", item.id)));
+        props.insert("geopic:kind".into(), json!("title"));
+        props.insert("geopic:for".into(), json!(item.id));
+        self.text_point(lines, at, props);
+    }
+
+    fn shape(&mut self, item: &Item, props: Props) {
         match item.kind.as_str() {
             "box" => {
                 let (Some(c), Some(w), Some(h)) = (item.at, item.w, item.h) else {
@@ -377,6 +415,24 @@ impl Ctx<'_> {
             .on(item),
         );
     }
+}
+
+/// The canvas point a shape's attached text is centred on: the shape's
+/// centre when the scene gives one (`at`: box, circle, ellipse, dot), else
+/// the centre the SVG laid the lines out around (lines, splines, arcs,
+/// braces carry no `at`). The SVG stacks `n` lines one classic line skip `L`
+/// apart with their mean baseline `ratio·L/2` below that centre, so the
+/// centre is recovered from the emitted baselines.
+fn label_centre(item: &Item, lines: &[TextLine]) -> Option<[f64; 2]> {
+    /// `ir::DP_TEXT_RATIO` and `ir::FONT_PT_CLASSIC` of rpic-core.
+    const DP_TEXT_RATIO: f64 = 0.66;
+    const LINESKIP_IN: f64 = 11.0 / 72.0;
+    if let Some(at) = item.at {
+        return Some(at);
+    }
+    let first = lines.first()?;
+    let mean_y = lines.iter().map(|l| l.at[1]).sum::<f64>() / lines.len() as f64;
+    Some([first.at[0], mean_y + DP_TEXT_RATIO * LINESKIP_IN / 2.0])
 }
 
 /// Convert every item of `scene` under `reg`.

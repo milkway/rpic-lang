@@ -30,6 +30,13 @@ for (const k of ['box', 'arrow', 'arrowhead']) assert.ok(kinds(out.geojson).incl
 for (const f of out.geojson.features) assert.equal(f.properties['geopic:schema'], 1);
 const [lon0, lat0] = ofKind(out.geojson, 'box')[0].geometry.coordinates[0][0];
 assert.ok(lon0 > -34.9 && lon0 < -34.8 && lat0 > -8.1 && lat0 < -8.0);
+// the box's label is its own Point (#435), right after the polygon
+const boxAt = out.geojson.features.indexOf(ofKind(out.geojson, 'box')[0]);
+const title = out.geojson.features[boxAt + 1];
+assert.equal(title.geometry.type, 'Point');
+assert.deepEqual(ofKind(out.geojson, 'title'), [title]);
+assert.equal(title.properties['geopic:for'], out.geojson.features[boxAt].properties['geopic:id']);
+assert.equal(title.properties['geopic:text'], 'hub');
 assert.equal(out.registration.method, 'anchor');
 assert.equal(out.registration.frame, 'enu');
 assert.deepEqual(out.canvas, { rescale: 1, scale: 1 });

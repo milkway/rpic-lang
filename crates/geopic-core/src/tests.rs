@@ -1079,3 +1079,99 @@ fn maplibre_mercator_drops_cos_and_defaults_hold() {
         100.0 / 72.0
     );
 }
+
+/// #435: a shape's attached text is its own Point (`geopic:kind = "title"`)
+/// at the point the SVG centres the label on — a renderer labelling the
+/// polygon itself repeats the label once per tile the polygon spans.
+#[test]
+fn titled_shapes_yield_a_title_point_at_their_centre() {
+    let g = georeference(
+        &scene_of(
+            "geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\ngeo_bearing = 30\n\
+             B: box \"hub\" \"two\" wid 1.3 at (1.4, 0.9) fill 0.9 class \"screen\"\n\
+             line from (0,0) to (2,0) then to (2,2) \"mid\"\n\
+             circle \"c\" at (5, 5) rotated 20\n\
+             box at (8, 0)\n\
+             \"free\" at (3, 3)",
+        ),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let fs = &g.features.features;
+    let reg = &g.registration;
+    let at = |p: [f64; 2]| {
+        let ll = reg.to_lonlat(p);
+        (ll.lon, ll.lat)
+    };
+    let point = |f: &crate::geojson::Feature| match &f.geometry {
+        crate::geojson::Geometry::Point(p) => (p[0], p[1]),
+        g => panic!("not a point: {g:?}"),
+    };
+    let near = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-8 && (a.1 - b.1).abs() < 1e-8;
+    let titles: Vec<_> = fs
+        .iter()
+        .filter(|f| f.properties["geopic:kind"] == "title")
+        .collect();
+    // the box, the line and the circle; not the bare box, not free text
+    assert_eq!(titles.len(), 3);
+    let fors: Vec<&str> = titles
+        .iter()
+        .map(|f| f.properties["geopic:for"].as_str().unwrap())
+        .collect();
+    assert_eq!(fors, ["s0", "s1", "s2"]);
+
+    // the box's title follows its polygon, at the box centre
+    let bi = fs
+        .iter()
+        .position(|f| f.properties["geopic:id"] == "s0")
+        .unwrap();
+    let (bx, bt) = (&fs[bi], &fs[bi + 1]);
+    assert_eq!(bt.properties["geopic:kind"], "title");
+    assert_eq!(bt.properties["geopic:id"], "s0:title");
+    assert!(near(point(bt), at([1.4, 0.9])), "{:?}", point(bt));
+    assert_eq!(bt.properties["geopic:text"], "hub\ntwo");
+    assert_eq!(bt.properties["title"], "hub\ntwo");
+    assert_eq!(bt.properties["geopic:anchor"], "c");
+    assert_eq!(bt.properties["geopic:font_size"], 11.0);
+    // canvas rotation 0 minus the bearing, like a text item
+    assert_eq!(bt.properties["geopic:rotation"], -30.0);
+    for k in [
+        "geopic:label",
+        "geopic:class",
+        "geopic:placement",
+        "geopic:z",
+    ] {
+        assert_eq!(bt.properties[k], bx.properties[k], "{k}");
+    }
+    assert_eq!(bt.properties["geopic:placement"], "screen");
+    for k in ["fill", "stroke", "stroke-width"] {
+        assert!(bt.properties.get(k).is_none(), "{k}");
+    }
+    // the polygon keeps its title (simplestyle, popups)
+    assert_eq!(bx.properties["title"], "hub\ntwo");
+
+    // a line carries no centre: the label's own, the midpoint of start/end
+    let lt = titles[1];
+    assert!(near(point(lt), at([1.0, 1.0])), "{:?}", point(lt));
+    // a rotated label keeps its rotation (CCW) minus the bearing
+    assert_eq!(titles[2].properties["geopic:rotation"], 20.0 - 30.0);
+    assert!(near(point(titles[2]), at([5.0, 5.0])));
+}
+
+#[test]
+fn maplibre_title_layer_reads_the_title_points() {
+    let g = georeference(
+        &scene_of("geo_lon = 0\ngeo_lat = 0\ngeo_scale = 400\nB: box \"hub\""),
+        &GeoOptions::default(),
+    )
+    .unwrap();
+    let ls = crate::maplibre::layers(&g.features);
+    let (text, title) = (layer(&ls, "pic-text"), layer(&ls, "pic-title"));
+    assert_eq!(
+        title["filter"],
+        serde_json::json!(["==", ["get", "geopic:kind"], "title"])
+    );
+    // styled exactly as free text
+    assert_eq!(title["layout"], text["layout"]);
+    assert_eq!(title["paint"], text["paint"]);
+}

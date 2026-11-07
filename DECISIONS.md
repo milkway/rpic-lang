@@ -262,3 +262,32 @@ comes from the platform libm). The site's `geomap.ts` is now a thin wrapper
 (worker URL, popups, hover cursor) over that module; GeoMap.astro takes the
 layers from the build-time `rpic --geojson --maplibre`, the playground from
 `compileGeoJSON(…, { layers: true })`.
+
+### G10. A shape's text is its own Point feature (#435)
+
+`pic-title` was a symbol layer on the Polygon features that carry a
+`title`. MapLibre places a polygon's symbol at the centroid of the polygon
+*as clipped to each vector tile*, so a box straddling a tile boundary got
+its title twice (measured on rpic.dev: 2 rendered `pic-title` features at
+zoom 16.38 for the callout), shifted when partly clipped — and
+`text-allow-overlap`/`text-ignore-placement` keep both. No layer property
+fixes that, so the engine now emits, right after the features of every
+non-`text` item that carries text lines, a `Point` with `geopic:kind =
+"title"` at the canvas point the SVG centres the label on: the item's `at`
+when the scene gives one (box, circle, ellipse, dot), else the centre the
+label stack was laid out around, recovered from the emitted baselines (mean
+baseline + `DP_TEXT_RATIO · L / 2`, `L` the classic 11 pt line skip — lines,
+splines, arcs, braces carry no `at`; for a brace that is its label point,
+not a geometric centre). Its properties are a `text` item's (`geopic:text`,
+`geopic:anchor` and `geopic:rotation` from the first line — rotation minus
+the bearing —, `geopic:font_size`) plus the shape's `geopic:z`/`label`/
+`block`/`class`/`link`/`placement`; the stroke/fill keys are dropped.
+`geopic:id` is `<shape id>:title` (a scene id never contains `:`, so it
+cannot collide; arrowheads share their line's id because they *are* part
+of its drawing, a label point is a different object) and `geopic:for` names
+the shape. The shape keeps `title` (simplestyle popups, `geojson.io`).
+`pic-title` now filters `geopic:kind == "title"` and is styled exactly like
+`pic-text` (anchor, rotation), still the sixth layer. Additive:
+`geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
+`:title` id suffix. The anchor is the first line's (so a `ljust` label
+keeps its side), not a forced `c`.

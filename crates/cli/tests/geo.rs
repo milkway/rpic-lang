@@ -176,6 +176,40 @@ fn committed_geojson_matches_current_output_and_validates() {
                 other => panic!("unexpected geometry {other}"),
             }
         }
+        // #435: every shape with a title is followed by exactly one title
+        // Point naming it, and only shapes with a title have one
+        for (i, f) in feats.iter().enumerate() {
+            let p = &f["properties"];
+            if p["geopic:kind"] == "title" {
+                assert_eq!(f["geometry"]["type"], "Point", "{}", pic.display());
+                let owner = &feats[i - 1]["properties"];
+                assert_eq!(p["geopic:for"], owner["geopic:id"], "{}", pic.display());
+                assert_eq!(p["geopic:text"], owner["title"], "{}", pic.display());
+            }
+        }
+        let shapes_with_titles: std::collections::BTreeSet<&str> = feats
+            .iter()
+            .map(|f| &f["properties"])
+            .filter(|p| p["geopic:kind"] != "text" && p["geopic:kind"] != "title")
+            .filter(|p| p.get("title").is_some())
+            .map(|p| p["geopic:id"].as_str().unwrap())
+            .collect();
+        let titled: std::collections::BTreeSet<&str> = feats
+            .iter()
+            .map(|f| &f["properties"])
+            .filter(|p| p["geopic:kind"] == "title")
+            .map(|p| p["geopic:for"].as_str().unwrap())
+            .collect();
+        assert_eq!(titled, shapes_with_titles, "{}", pic.display());
+        assert_eq!(
+            titled.len(),
+            feats
+                .iter()
+                .filter(|f| f["properties"]["geopic:kind"] == "title")
+                .count(),
+            "{}: one title Point per shape",
+            pic.display()
+        );
     }
 }
 

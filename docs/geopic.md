@@ -118,6 +118,7 @@ multiplied beyond the budget).
 | `spline`, `arc`, `brace` | `LineString`; `Polygon` when the path is closed | one feature per path (`geopic:part` when more than one) |
 | `dot` | `Point` | `geopic:radius_in` |
 | `text` | `Point` at the object's anchor | `geopic:text`, `geopic:rotation` (degrees **counter-clockwise from the map's east**: the canvas rotation minus the bearing), `geopic:anchor` |
+| shape text | `Point`, `geopic:kind = "title"`, right after the shape's own features | every non-`text` item that carries text lines (a box's `"label"`, a line's) also yields this point, at the canvas point the SVG centres the label on — the shape's centre (`at`) for box/circle/ellipse/dot, else the centre the label stack was laid out around (lines, splines, arcs, braces). `geopic:id` = `<shape id>:title`, `geopic:for` = the shape's id; `geopic:text`, `geopic:anchor`, `geopic:font_size`, `geopic:rotation` as a `text` item; `geopic:z`/`label`/`block`/`class`/`link`/`placement` as the shape's; no stroke/fill. The shape keeps its `title` (DECISIONS G10) |
 | `block` | — | no feature; children carry `geopic:block` (the block path) |
 | hidden items | — | paint nothing, produce nothing (no warning) |
 
@@ -139,6 +140,7 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `geopic:font_size` | the first text line's font size, **points**; with the collection's `geopic.registration.scale_m_per_in`, `font_size / 72 × scale_m_per_in` is the letter height in metres — size labels true to the ground, in proportion to the shapes, at any zoom |
 | `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
+| `geopic:for` | `title` points: the `geopic:id` of the shape whose text they carry |
 | `geopic:head`, `geopic:filled` | arrowhead features: which end, filled or open |
 | `geopic:part` | path index when an item yields several features |
 | `geopic:role` | `"fill"` on the polygon that carries an open stroke's fill |
@@ -195,7 +197,7 @@ are, in order.
 | `pic-stroke-dashed` | `line` | same, has `geopic:dash` | as `pic-stroke` + `line-dasharray [3, 2]` |
 | `pic-dot` | `circle` | `geopic:kind == "dot"` | `circle-color` = `fill` (default `#000000`), `circle-radius` (below) |
 | `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, `text-font ["Noto Sans Regular"]`, `text-size` (below), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
-| `pic-title` | `symbol` | `Polygon` with `title`, `geopic:kind != "arrowhead"` | `text-field` = `title` at the shape's centre, otherwise as `pic-text` (no anchor, no rotation) |
+| `pic-title` | `symbol` | `geopic:kind == "title"` (the shapes' title points) | exactly as `pic-text`. A symbol on the polygon itself would be placed once per vector tile the polygon is clipped into — a box straddling a tile boundary showed its title twice (#435) — so the label is a point of its own |
 
 **Sizes are true to the ground.** From the collection's
 `geopic.registration` take `m` = `scale_m_per_in` (100 when absent) and
