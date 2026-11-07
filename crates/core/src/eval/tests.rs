@@ -3808,3 +3808,38 @@ fn labelled_groups_count_toward_the_shape_budget() {
         "{e}"
     );
 }
+
+#[test]
+fn labelled_call_body_may_end_in_a_bare_direction() {
+    // review of #441: `up` right before the group's end is a direction
+    // change, exactly as in the unlabelled call (nested too)
+    for d in ["up", "down", "left", "right"] {
+        let defs = format!("define m {{ x = 1; box; {d} }}\ndefine n {{ y = 1; G: m() }}\n");
+        let plain = draw(&format!("{defs}m()\nbox\nn()\nbox"));
+        let labelled = draw(&format!("{defs}X: m()\nbox\nH: n()\nbox\nP: H.G.c"));
+        assert_eq!(plain.shapes, labelled.shapes, "{d}");
+        assert_eq!(labelled.blocks.len(), 3, "{d}");
+    }
+}
+
+#[test]
+fn labelled_call_body_may_start_with_any_statement_form() {
+    // review of #441: the group rule is the parser's own dispatch, not a
+    // keyword list — rpic statements (`canvas`, `animate`, `class`, `link`,
+    // `draggable`, `%` comments) and env-var assignments start groups too
+    for first in [
+        "canvas from (0,0) to (3,3)",
+        "margin = 0.5",
+        "animate last box with \"fade\"",
+        "class last box \"hot\"",
+        "link last box \"https://rpic.dev\"",
+        "draggable last box",
+        "% a comment",
+    ] {
+        let defs = format!("define m {{ {first}\nbox }}\n");
+        let plain = draw(&format!("box\n{defs}m()"));
+        let d = draw(&format!("box\n{defs}X: m()\nC: X.c"));
+        assert_eq!(plain.shapes, d.shapes, "{first}");
+        assert_eq!(place_at(&d, "C"), (1.125, 0.0), "{first}");
+    }
+}

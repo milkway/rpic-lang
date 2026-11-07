@@ -39,10 +39,10 @@ pub enum Token {
     /// End of input.
     Eof,
     /// Synthetic, never lexed: the macro preprocessor brackets the expansion
-    /// of a labelled macro call (`X1: m(…)`) with this pair so the parser can
-    /// tell where the call's statements end (DECISIONS E3). The parser drops
-    /// the pair again whenever the label can take the expansion's first
-    /// statement the classic way (an object or a position).
+    /// of a labelled macro call (`X1: m(…)`) with this pair when the label
+    /// cannot take its first statement the classic way (an object or a
+    /// position), so the parser knows where the group ends (DECISIONS E3).
+    /// Classic calls are never bracketed.
     CallOpen,
     /// Closes a [`Token::CallOpen`] bracket.
     CallClose,
