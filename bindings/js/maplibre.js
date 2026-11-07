@@ -219,10 +219,11 @@ function fontStack(v) {
 /**
  * The font the drawing's labels use under `font` (see `attach`): an explicit
  * stack as given; `'spec'` = null (the engine's, untouched); `'style'` = the
- * most common `text-font` stack among the style's own symbol layers (ours
- * ignored; stacks compared whole), ties going to a stack whose first name is a
- * Regular or Medium face, then to the first seen — null when the style has no
- * symbol layer with a plain `text-font` (the spec's then stands).
+ * most common `text-font` stack among the style's own symbol layers whose
+ * first face is Regular or Medium (not Italic) — ours ignored, stacks compared
+ * whole, ties to the first seen; with no such stack, the most common of all —
+ * null when the style has no symbol layer with a plain `text-font` (the
+ * spec's then stands).
  */
 function resolveFont(map, font) {
   if (Array.isArray(font)) return font;
@@ -238,11 +239,19 @@ function resolveFont(map, font) {
     c.n += 1;
     counts.set(key, c);
   }
-  const plain = (c) => (/Regular|Medium/.test(c.stack[0]) ? 1 : 0);
-  let best = null;
-  for (const c of counts.values()) {
-    if (!best || c.n > best.n || (c.n === best.n && plain(c) > plain(best))) best = c;
-  }
+  // Prefer a plain face (Regular/Medium, not Italic) — the most common stack
+  // of a basemap is often its Bold/SemiBold place-name stack (CARTO positron:
+  // 15 SemiBold layers vs 7 Medium), and the drawing's labels must not come
+  // out bold. Among the plain stacks the most common wins (ties: first seen);
+  // with no plain stack, the most common of all. Same rule as rpic-r.
+  const plain = (c) => /Regular|Medium/.test(c.stack[0]) && !/Italic/.test(c.stack[0]);
+  const pick = (cands) => {
+    let best = null;
+    for (const c of cands) if (!best || c.n > best.n) best = c;
+    return best;
+  };
+  const all = [...counts.values()];
+  const best = pick(all.filter(plain)) ?? pick(all);
   return best ? best.stack : null;
 }
 

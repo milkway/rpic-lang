@@ -279,8 +279,11 @@ line it annotates; the style's own Montserrat put it beside, with the right
 gap (OpenFreeMap's Noto behaves, which hid it on rpic.dev). Consumers should
 follow the style's font. `attach(map, fc, { font })` does: `'style'`
 (default) = the most common `text-font` stack among the style's own symbol
-layers (stacks compared whole, `["literal", […]]` unwrapped, other
-expressions skipped; ties to a Regular/Medium first face), set on copies of
+layers whose first face is Regular or Medium (not Italic) — a basemap's most
+common stack is often its Bold place-name stack, and the drawing's labels must
+not come out bold (stacks compared whole, `["literal", […]]` unwrapped, other
+expressions skipped; with no plain stack, the most common of all; the same
+rule rpic-r's `add_rpic(font = "style")` applies), set on copies of
 `pic-text`/`pic-title` when they are added — the spec's when the style has
 no such layer; `'spec'` keeps the placeholder; a stack is used as given.
 

@@ -103,7 +103,8 @@ export interface AttachOptions {
   /**
    * the `text-font` of the drawing's labels (`pic-text`, `pic-title`):
    * `'style'` (default) = the most common stack among the style's own
-   * symbol layers (ties: a Regular/Medium face), the spec's when the style
+   * symbol layers whose first face is Regular/Medium (not Italic; with
+   * none, the most common of all), the spec's when the style
    * has none — the glyph server serves the style's fonts, and one it serves
    * with other metrics (CARTO's Noto) centres a label on its anchor;
    * `'spec'` = the engine's `["Noto Sans Regular"]` (a placeholder); or an
