@@ -165,6 +165,8 @@ pub fn objects_json(d: &Drawing) -> String {
 /// ([`Drawing::places`]), in evaluation order, with the point in SVG user
 /// units — the same frame as the `objects` bboxes — and the label's source
 /// span (same `line`/`col`/`end_col`/`file` convention as `objects`).
+/// A place defined inside `[ … ]` also carries `block`: the enclosing block
+/// path, the same `["blk0", …]` ids the scene uses (outermost first).
 pub fn places_json(d: &Drawing) -> String {
     let pts = svg::place_points(d);
     let mut s = String::from("[");
@@ -178,6 +180,15 @@ pub fn places_json(d: &Drawing) -> String {
             json_num(at.x),
             json_num(at.y)
         ));
+        // the enclosing block path, in the scene's vocabulary (`blk<N>` =
+        // index into `Drawing::blocks`, outermost first); only inside `[ ]`,
+        // so top-level entries keep their 0.13.0 shape (DECISIONS S15)
+        if p.block.is_some() {
+            s.push_str(&format!(
+                ",\"block\":{}",
+                scene::block_path_json(d, p.block)
+            ));
+        }
         s.push_str(&span_fields(p.span.as_ref()));
         s.push('}');
     }
@@ -711,6 +722,29 @@ mod tests {
         assert!(j.contains("}],\"places\":[{"), "{j}");
         assert!(
             j.contains("\"passthrough\":[{\"text\":\".ft B\",\"line\":3,\"col\":1,\"end_col\":6}]"),
+            "{j}"
+        );
+    }
+
+    #[test]
+    fn json_places_carry_block_path_only_inside_blocks() {
+        // #453: the issue's repro — C names its block, A and D keep the
+        // 0.13.0 shape byte for byte
+        let j = compile_json("A: (0,0)\nB: [ C: (1,1); box at C ]\nD: (2,0)\n");
+        let v: serde_json::Value = serde_json::from_str(&j).unwrap();
+        let p = v["places"].as_array().unwrap();
+        assert_eq!(p[1]["label"], "C");
+        assert_eq!(p[1]["block"], serde_json::json!(["blk0"]));
+        assert!(p[0].get("block").is_none() && p[2].get("block").is_none());
+        // key order: after the point, before the span
+        assert!(
+            j.contains(
+                "\"label\":\"C\",\"x\":37.0667,\"y\":24.5333,\"block\":[\"blk0\"],\"line\":2"
+            ),
+            "{j}"
+        );
+        assert!(
+            j.contains("{\"label\":\"A\",\"x\":1.0667,\"y\":24.5333,\"line\":1,"),
             "{j}"
         );
     }

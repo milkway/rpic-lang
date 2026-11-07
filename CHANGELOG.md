@@ -26,6 +26,12 @@ resolves to the latest version.
   `rpic_compile_json_opts` (options JSON), and Rust
   `CompileOptions::with_prelude` / `parse_with_options`. Byte-identical
   output when unused.
+- `--json` bundle `places` carry `block` (#453, DECISIONS S15): a place
+  defined inside `[ … ]` names its enclosing block path, outermost first,
+  in the scene's vocabulary (`["blk0", "blk1"]` — exactly what `--scene`
+  `places` carry). Top-level places are unchanged byte for byte. Python
+  `compile()` and the JS bundle pass it through; the JS `Place` type gains
+  `block?: string[]`.
 ### Docs
 
 - Math labels on wasm are documented as the sanctioned path (#449): `docs/tex-labels.md` § On wasm

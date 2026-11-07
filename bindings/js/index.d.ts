@@ -174,6 +174,11 @@ export interface Place {
   label: string;
   x: number;
   y: number;
+  /**
+   * enclosing block path, outermost first (`["blk0", "blk1"]`) — the scene's
+   * block ids. Present only when the place was defined inside `[ … ]`.
+   */
+  block?: string[];
   line?: number;
   col?: number;
   end_col?: number;

@@ -52,6 +52,12 @@ assert.equal(anchors.places[0].line, 2);
 assert.deepEqual(anchors.passthrough, [{ text: '.ft B', line: 3, col: 1, end_col: 6 }]);
 assert.equal(geom.places, undefined);
 assert.equal(geom.passthrough, undefined);
+// a place inside `[ ]` names its block path, as the scene does (#453)
+const nested = compile('A: (0,0)\nB: [ C: (1,1); box at C ]\nD: (2,0)', { scene: true });
+assert.equal(nested.places[0].block, undefined);
+assert.deepEqual(nested.places[1].block, ['blk0']);
+assert.deepEqual(nested.places[1].block, nested.scene.places[1].block);
+assert.equal(nested.places[2].block, undefined);
 const prov = compile('define cell { [ box ] }\nK: cell(1)\nP: K.e', { scene: true });
 assert.deepEqual(prov.scene.places[0].at, [0.75, 0]);
 const blk = prov.scene.items.find((i) => i.kind === 'block');

@@ -836,8 +836,8 @@ Rules:
   skip the group, so ordinals mean what they did.
 - **Provenance.** `--scene` gets a `blk<N>` item with `label`, `span` and
   `call` (the outermost call, raw arguments included — DECISIONS E1), and
-  the places the body defined name that block. The `--json` bundle has no
-  block vocabulary and does not change.
+  the places the body defined name that block — in the `--json` bundle too,
+  whose `places` carry the same `block` path (DECISIONS S15).
 - A labelled call that draws nothing (`define setup { q = 1 }`,
   `X: setup()`) is the error `label on a macro that draws nothing`
   (`label_on_empty_call`).

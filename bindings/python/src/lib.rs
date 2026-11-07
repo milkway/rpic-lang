@@ -298,7 +298,8 @@ fn scene<'py>(
 /// Compile to the parsed bundle: a dict `{"svg": str, "animations": [dict],
 /// "diagnostics": [str], "warnings": [dict], "objects": [dict]}` — plus
 /// `"places"` / `"passthrough"` when the source defines named places or
-/// carries troff lines, `"interactions"` (`[{"id", "kind": "drag",
+/// carries troff lines (a place inside `[ … ]` carries `"block"`, the
+/// scene's block path), `"interactions"` (`[{"id", "kind": "drag",
 /// "inertia"?, "bounds"?, "axis"?}]`) when it has `draggable` objects, and
 /// `"scroll": True` under `animate scroll`. An object carries `"link"` only
 /// when `link "<url>"` set one; an animation carries its optional GSAP keys

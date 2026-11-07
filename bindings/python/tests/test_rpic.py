@@ -64,6 +64,12 @@ def test_compile_places_and_passthrough_ride_only_when_present():
     assert bundle["passthrough"] == [{"text": ".ft B", "line": 3, "col": 1, "end_col": 6}]
     plain = rpic.compile("box")
     assert "places" not in plain and "passthrough" not in plain
+    # a place inside `[ ]` names its block path, as the scene does (#453)
+    nested_src = "A: (0,0)\nB: [ C: (1,1); box at C ]\nD: (2,0)"
+    a, c, d = rpic.compile(nested_src)["places"]
+    assert c["label"] == "C" and c["block"] == ["blk0"]
+    assert c["block"] == rpic.scene(nested_src)["places"][1]["block"]
+    assert "block" not in a and "block" not in d
     # a request continued by column-1 `+` lines is one entry (#425)
     cont = rpic.compile(".ft B\n+ more\nbox\n")
     assert cont["passthrough"] == [
