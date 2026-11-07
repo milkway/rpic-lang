@@ -79,3 +79,33 @@ def test_bad_input_is_a_geo_error():
     assert e.value.info["kind"] == "invalid_geojson"
     with pytest.raises(rpic.GeoError):
         rpic.geo.maplibre_layers("not json")
+
+
+def test_text_scale_scales_the_labels_only():
+    fc = cases()["callout"]
+    base = rpic.geo.maplibre_layers(fc)
+    assert rpic.geo.maplibre_layers(fc, text_scale=1.0) == base
+    assert rpic.geo.maplibre_layers(fc, text_scale=1) == base
+    big = rpic.geo.maplibre_layers(fc, text_scale=2)
+    for i in range(4):  # fill, strokes, dot: untouched
+        assert big[i] == base[i], IDS[i]
+    for i in (4, 5):
+        tb, t2 = base[i]["layout"]["text-size"], big[i]["layout"]["text-size"]
+        # ["interpolate", …, 0, ["max", 1, ["*", ["*", font, F], p]], z, …]
+        assert t2[4][2][1][2] == 2 * tb[4][2][1][2]
+        assert t2[5] == tb[5] - 1  # the upper stop follows the scaled font
+    out = rpic.geo.compile(SRC, layers=True, text_scale=1.5)
+    assert out["layers"] == rpic.geo.maplibre_layers(out["geojson"], text_scale=1.5)
+    assert rpic.geo.compile(SRC, layers=True, text_scale=1)["layers"] == rpic.geo.compile(SRC, layers=True)["layers"]
+
+
+@pytest.mark.parametrize("k", [0, -1, 16.5, 100, float("nan"), float("inf"), "2", True])
+def test_bad_text_scale_is_invalid_options(k):
+    with pytest.raises(rpic.GeoError) as e:
+        rpic.geo.maplibre_layers(cases()["callout"], text_scale=k)
+    assert e.value.info["kind"] == "invalid_options"
+
+
+def test_text_scale_needs_layers():
+    with pytest.raises(ValueError, match="layers=True"):
+        rpic.geo.compile(SRC, text_scale=2)

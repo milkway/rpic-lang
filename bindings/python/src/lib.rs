@@ -597,11 +597,14 @@ fn geo_to_canvas(registration: &str, lon: f64, lat: f64) -> PyResult<(f64, f64)>
 
 /// The MapLibre style-spec layers (docs/geopic.md § 6) for a geopic
 /// FeatureCollection given as JSON text; returns the layers array as JSON
-/// text (rpic.geo.maplibre_layers parses it). Raises GeoError
-/// (`invalid_geojson`) when the input is not a FeatureCollection.
+/// text (rpic.geo.maplibre_layers parses it). `opts_json` holds the layer
+/// options (`{"text_scale": k}`; empty = default). Raises GeoError
+/// (`invalid_geojson`) when the input is not a FeatureCollection,
+/// (`invalid_options`) when the options do not validate.
 #[pyfunction]
-fn maplibre_layers(py: Python<'_>, fc_json: &str) -> PyResult<String> {
-    geopic_core::maplibre::layers_json(fc_json).map_err(|e| geo_err(py, e))
+#[pyo3(signature = (fc_json, opts_json = ""))]
+fn maplibre_layers(py: Python<'_>, fc_json: &str, opts_json: &str) -> PyResult<String> {
+    geopic_core::maplibre::layers_json_with(fc_json, opts_json).map_err(|e| geo_err(py, e))
 }
 
 #[pymodule(name = "_native")]
