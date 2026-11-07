@@ -107,7 +107,9 @@ north), `features`, `flatten`, `viewScale`, `screenClasses`, `circuits`,
 `texlabels`. A georeferencing failure throws a `GeoError` whose `info` is
 `{ kind, message, hint }` (`no_registration`, `invalid_anchor`, …); pic errors
 throw the usual error with `errorInfo`. Nothing is dropped silently: every loss
-(an unsupported style, ignored `animate` timelines…) is in `warnings`.
+(an unsupported style, ignored `animate` timelines…) is in `warnings`, next to
+the engine's own warnings; pic `print` lines are in `diagnostics`. Numeric
+options must be finite (`scale`/`flatten`/`viewScale` > 0) or the call throws.
 `geoToCanvas(registration, [[lon, lat], …])` maps points back onto the canvas.
 In Node, pass the bytes of `pkg/rpic_wasm_geo_bg.wasm` to `ready(…, { geo: true })`.
 
@@ -118,7 +120,7 @@ In Node, pass the bytes of `pkg/rpic_wasm_geo_bg.wasm` to `ready(…, { geo: tru
 | `ready(wasmInput?, {math?, geo?})` | Initialize WASM. Browser: no arg. Node: pass `.wasm` bytes/URL. `math: true` loads the math-enabled build, `geo: true` the geo-enabled one; conflicting later calls reject. |
 | `compile(src, {circuits?, texlabels?, scene?, flatten?, outline?})` | → `{ svg, animations, diagnostics, warnings, objects, places?, passthrough?, scene? }` (throws on a pic error with `errorInfo`; `places` = named `Label: position` points in SVG units, `passthrough` = troff `.` lines, each present only when the source has some). `scene: true` adds the device-independent resolved draw list ([docs/scene.md](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)); `flatten` (inches) delivers its curves as polylines. |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
-| `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, …})` | Geo build only. → `{ geojson, warnings, registration, canvas }`; throws `GeoError` (`info.kind`) or a pic error. |
+| `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas }`; throws `GeoError` (`info.kind`) or a pic error. |
 | `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

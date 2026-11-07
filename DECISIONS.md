@@ -232,7 +232,7 @@ bytes (+39 %)**, 192 → 277 KB gzipped. That is over the ~150 KB budget set
 for "just put it in the lean module", and the lean build is what every
 rpic.dev example and every npm consumer pays for. So `crates/wasm` gains a
 `geo` cargo feature and the npm package a third artifact
-(`pkg/rpic_wasm_geo*`, 666 333 bytes), built by `build:wasm:geo` and loaded
+(`pkg/rpic_wasm_geo*`, 665 200 bytes), built by `build:wasm:geo` and loaded
 by `ready(url?, { geo: true })` — the exact mechanism of the `math` build,
 including the "already initialized as X" rejection. `math` and `geo` are
 mutually exclusive in `ready()` (no combined build is shipped; a page that

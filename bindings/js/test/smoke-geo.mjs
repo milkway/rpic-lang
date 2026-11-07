@@ -24,7 +24,7 @@ assert.match(renderSvg('box "hi"'), /hi/);
 // declared anchor → a FeatureCollection in WGS84 with the expected kinds
 const SRC = 'geo_lon = -34.8711\ngeo_lat = -8.0631\ngeo_scale = 400\nB: box "hub" at (1, 0.5)\narrow from (0,0) to B.sw';
 const out = compileGeoJSON(SRC);
-assert.deepEqual(Object.keys(out).sort(), ['canvas', 'geojson', 'registration', 'warnings']);
+assert.deepEqual(Object.keys(out).sort(), ['canvas', 'diagnostics', 'geojson', 'registration', 'warnings']);
 assert.equal(out.geojson.type, 'FeatureCollection');
 for (const k of ['box', 'arrow', 'arrowhead']) assert.ok(kinds(out.geojson).includes(k), k);
 for (const f of out.geojson.features) assert.equal(f.properties['geopic:schema'], 1);
@@ -122,8 +122,47 @@ const anim = compileGeoJSON('geo_lon = 0\ngeo_lat = 0\nbox\nanimate last box wit
 assert.ok(anim.warnings.some((w) => w.kind === 'ignored' && /animation/.test(w.message)), JSON.stringify(anim.warnings));
 
 // bad option shapes are geo errors, not crashes
-assert.throws(() => compileGeoJSON(plain, { anchor: 'here' }), (e) => e instanceof GeoError && e.info.kind === 'invalid_options');
+assert.throws(() => compileGeoJSON(plain, { screenClasses: 'screen' }), (e) => e instanceof GeoError && e.info.kind === 'invalid_options');
 assert.throws(() => compileGeoJSON('geo_lon = 0\ngeo_lat = 95\nbox'), (e) => e instanceof GeoError && e.info.kind === 'invalid_anchor');
+
+// engine warnings and print lines ride along (review #427, finding 1)
+const eng = compileGeoJSON('geo_lon = 0\ngeo_lat = 0\nbox color "nocolour"\nprint "hi"');
+assert.deepEqual(eng.diagnostics, ['hi']);
+assert.ok(eng.warnings.some((w) => w.kind === 'invalid_color' && w.line === 3), JSON.stringify(eng.warnings));
+assert.deepEqual(out.diagnostics, []);
+// …with caller line numbers after feature injection, engine warnings first
+const engInj = compileGeoJSON('geo_lon = 0\ngeo_lat = 0\nbox color "nocolour" gradient "red" "blue"\ndot at A', {
+  features: { A: [0.001, 0] },
+});
+const ic = engInj.warnings.findIndex((w) => w.kind === 'invalid_color');
+const us = engInj.warnings.findIndex((w) => w.kind === 'unsupported_style');
+assert.ok(ic >= 0 && us > ic, JSON.stringify(engInj.warnings));
+assert.equal(engInj.warnings[ic].line, 3);
+// texlabels without a math renderer: the notice is a diagnostic, not lost
+const tex = compileGeoJSON('geo_lon = 0\ngeo_lat = 0\nbox "$x^2$"', { texlabels: true });
+assert.ok(tex.diagnostics.some((d) => /math renderer/.test(d)), JSON.stringify(tex.diagnostics));
+
+// numeric options are validated, never silently dropped (finding 3)
+for (const [o, re] of [
+  [{ scale: NaN }, /scale must be a positive finite number/],
+  [{ scale: 0 }, /scale must be/],
+  [{ flatten: Infinity }, /flatten must be/],
+  [{ viewScale: -1 }, /viewScale must be/],
+  [{ bearing: NaN }, /bearing must be a finite number/],
+  [{ anchor: [0, NaN] }, /anchor must be \[lon, lat\]/],
+  [{ anchor: [0] }, /anchor must be/],
+  [{ anchor: 'here' }, /anchor must be/],
+]) {
+  assert.throws(() => compileGeoJSON(plain, o), re, JSON.stringify(o));
+}
+
+// a feature object without a name, and duplicate names (finding 5)
+assert.throws(() => compileGeoJSON(plain, { features: [{ lon: 0, lat: 0 }] }), /features must be.*name is required/);
+assert.throws(() => compileGeoJSON(plain, { features: [[1, 0, 0]] }), /name is required/);
+assert.throws(
+  () => compileGeoJSON(plain, { features: [['A', 0, 0], { name: 'A', lon: 1, lat: 1 }] }),
+  /feature "A" is given more than once/
+);
 
 // the regular compile surface still carries scenes
 assert.ok(compile('box', { scene: true }).scene.items.length === 1);

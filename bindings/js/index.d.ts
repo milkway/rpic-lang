@@ -342,7 +342,10 @@ export interface GeoWarning {
   message: string;
   /** the scene item concerned (`s<N>`), when there is one */
   id?: string;
-  /** its source span, relative to your own source */
+  /**
+   * its source span, relative to your own source; `file: 'features'` marks a
+   * position inside the lines `compileGeoJSON` injected for `features`
+   */
   span?: { line: number; col: number; end_col: number; file?: string };
 }
 
@@ -384,7 +387,10 @@ export interface GeoJSONFeatureCollection {
 export interface GeoResult {
   /** RFC 7946 FeatureCollection, WGS84 */
   geojson: GeoJSONFeatureCollection;
+  /** engine warnings, then scene, then geopic ones — never silent */
   warnings: (GeoWarning | Diagnostic)[];
+  /** lines emitted by pic `print` statements, plus engine notices (as in `Bundle`) */
+  diagnostics: string[];
   registration: GeoRegistration;
   /** what a host needs to write canvas positions back as source coordinates */
   canvas: {

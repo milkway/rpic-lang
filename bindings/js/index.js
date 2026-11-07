@@ -186,14 +186,19 @@ function oneFeature(name, pos) {
 function normalizeFeatures(features) {
   if (features === undefined || features === null) return [];
   if (Array.isArray(features)) {
-    return features.map((item) => {
+    const out = features.map((item) => {
       if (Array.isArray(item)) {
         if (item.length !== 3 && item.length !== 4) throw new Error(FORMS);
+        if (typeof item[0] !== 'string') throw new Error(`${FORMS} (name is required)`);
         return oneFeature(item[0], item.slice(1));
       }
-      if (item && typeof item === 'object') return oneFeature(item.name, item);
+      if (item && typeof item === 'object') {
+        if (typeof item.name !== 'string') throw new Error(`${FORMS} (name is required)`);
+        return oneFeature(item.name, item);
+      }
       throw new Error(FORMS);
     });
+    return unique(out);
   }
   if (typeof features === 'object') {
     return Object.entries(features).map(([name, pos]) => oneFeature(name, pos));
@@ -201,9 +206,26 @@ function normalizeFeatures(features) {
   throw new Error(FORMS);
 }
 
-/** Shift a diagnostic-like object (`line`/`file`) back by `k` prelude lines. */
+/** Reject a name given twice: which position would win is not obvious. */
+function unique(feats) {
+  const seen = new Set();
+  for (const f of feats) {
+    if (seen.has(f.name)) throw new Error(`rpic: feature ${JSON.stringify(f.name)} is given more than once`);
+    seen.add(f.name);
+  }
+  return feats;
+}
+
+/**
+ * Re-base one position (`line`/`file`) past the `k` prelude lines. A
+ * position *inside* the prelude is not the caller's: it is tagged
+ * `file: 'features'` (`line` stays relative to the prelude).
+ */
 function rebaseLine(d, k) {
-  if (k && d && typeof d === 'object' && d.file == null && (d.line ?? 0) > k) d.line -= k;
+  if (!k || !d || typeof d !== 'object' || d.file != null) return;
+  if (!Number.isInteger(d.line) || d.line < 1) return;
+  if (d.line > k) d.line -= k;
+  else d.file = 'features';
 }
 
 /**
@@ -317,7 +339,30 @@ function compileWithFeatures(src, feats, base, opts) {
 }
 
 /**
- * Georeference pic source: `{ geojson, warnings, registration, canvas }`.
+ * Numeric options are checked here: `JSON.stringify` would turn NaN/Infinity
+ * into `null`, which the wasm reads as "not given" — a silent fallback.
+ */
+function checkGeoOptions(opts) {
+  const finite = (v) => typeof v === 'number' && Number.isFinite(v);
+  for (const key of ['scale', 'flatten', 'viewScale']) {
+    if (opts[key] !== undefined && !(finite(opts[key]) && opts[key] > 0)) {
+      throw new Error(`rpic: ${key} must be a positive finite number`);
+    }
+  }
+  if (opts.bearing !== undefined && !finite(opts.bearing)) {
+    throw new Error('rpic: bearing must be a finite number (degrees)');
+  }
+  if (
+    opts.anchor !== undefined &&
+    !(Array.isArray(opts.anchor) && opts.anchor.length === 2 && opts.anchor.every(finite))
+  ) {
+    throw new Error('rpic: anchor must be [lon, lat], two finite numbers');
+  }
+}
+
+/**
+ * Georeference pic source: `{ geojson, warnings, diagnostics, registration,
+ * canvas }`.
  * Needs the geo build (`await ready(undefined, { geo: true })`).
  *
  * `frame` (`'enu'` | `'mercator'`), `anchor` `[lon, lat]`, `scale` (metres per
@@ -337,6 +382,7 @@ function compileWithFeatures(src, feats, base, opts) {
  */
 export function compileGeoJSON(src, opts = {}) {
   geoWasm();
+  checkGeoOptions(opts);
   const feats = normalizeFeatures(opts.features);
   const base = {
     frame: opts.frame,
