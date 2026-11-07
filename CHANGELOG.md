@@ -12,6 +12,20 @@ resolves to the latest version.
 
 ### Added
 
+- geopic → MapLibre: a `text_scale` layer option multiplies every label's
+  font size (finite, in (0, 16]; default 1 = today's output to the bit); the
+  upper `text-size` zoom stop is chosen from the scaled font, so labels still
+  fit MapLibre's 255 px limit. Engine `LayerOptions` + `layers_with` /
+  `layers_json_with` / `bundle_json_with`; CLI `--text-scale K` (with
+  `--geojson --maplibre`); JS `compileGeoJSON(src, { layers: { textScale } })`,
+  `maplibreLayers(fc, { textScale })` and the port's `layers`/`sizing(fc,
+  { textScale })`; Python `geo.maplibre_layers(fc, text_scale=)` and
+  `geo.compile(…, layers=True, text_scale=)` (DECISIONS G11).
+- JS `attach(map, fc, { before })` / `createGeoMap(…, { before })`: add the
+  pic layers under a given layer, or under the basemap's labels with
+  `'labels'` (the first `symbol` layer of the style). rpic.dev's maps now sit
+  under the basemap's place names.
+
 - Scene: each `text` line carries `row`, its 0-based row in the author's
   label stack (blank rows included), and the item carries `text_rows`, the
   stack's height — so a consumer can tell where the visible lines of

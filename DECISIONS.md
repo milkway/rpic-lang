@@ -344,3 +344,40 @@ style-spec (`createExpression`) on the three idioms.
 `pic-text` (anchor, rotation), still the sixth layer. Additive:
 `geopic:schema` stays 1; the schema gains the kind, `geopic:for` and the
 `:title` id suffix.
+
+### G11. Layer options at the source; placement stays with the map
+
+A user drawing on an R `mapgl::maplibre()` map asked for larger rpic labels
+and for the drawing to sit under the basemap's labels. Both are answered
+where every consumer gets them the same way:
+
+- **`text_scale` is a layer option of the engine**
+  (`geopic_core::maplibre::LayerOptions { text_scale }`, `layers_with`,
+  `layers_json_with(fc_json, opts_json)`, `bundle_json_with`; CLI
+  `--text-scale K`; JS `layers: { textScale }` / `maplibreLayers(fc,
+  { textScale })` and the port; Python `text_scale=`). It multiplies the font
+  size *inside the sizing*: the `text-size` metres factor becomes `m / 72 ·
+  text_scale` (folded into the constant, so ×1 is the old output to the bit
+  and the snapshots in `examples/geo/maplibre/` are untouched), and `z_text`
+  is computed from the scaled largest font. Capping the pixels after the
+  fact instead would freeze the big labels several zooms early; with the
+  scale inside, ×2 lowers `z_text` by exactly one and the 2^z law holds up
+  to it. Range: finite, in (0, 16] — beyond 16× an 11 pt label is a
+  176 pt one, and the 255 px ceiling would pin `z_text` at its floor for any
+  realistic map. Out of range, non-numeric or unknown keys: `GeoError`
+  `invalid_options` (the JSON form takes objects only — serde would read a
+  struct from an array). `layers_with` returns a `Result` for that reason;
+  `layers(fc)` stays infallible. Strokes and dots keep ground-true sizes:
+  the request was about legibility of text, and a scaled stroke would stop
+  meaning "the width on the ground".
+- **`before` is not part of the spec.** Where layers go in a style is a
+  property of the consumer's map (`map.addLayer(spec, beforeId)`), not of
+  the layer objects; the specs stay a pure function of the collection and
+  the options. The zero-import JS module takes it: `attach(map, fc,
+  { before })` / `createGeoMap(…, { before })`, a layer id or `'labels'` =
+  the first `symbol` layer of `map.getStyle().layers` that is not one of
+  ours, resolved when the layers are added (a style without symbol layers,
+  or a missing id, appends on top — the latter with a console warning,
+  since MapLibre would otherwise refuse the layer). rpic.dev passes
+  `'labels'`; rpic-r's planned `rpic_mapgl(…, before = "labels",
+  text_scale = …)` mirrors both.

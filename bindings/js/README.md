@@ -128,23 +128,33 @@ import { attach, createGeoMap } from '@strategicprojects/rpic/maplibre';
 
 const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 
-// your own map: adds/updates source "pic" + the six layers (waits for `load`)
-const pic = attach(map, geojson, { layers, fit: true });
+// your own map: adds/updates source "pic" + the six layers (waits for `load`);
+// before: 'labels' puts them under the basemap's labels (first symbol layer),
+// or pass a layer id
+const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits
 pic.fitTo();                                // re-frame
 pic.detach();                               // remove layers + source
 
 // …or a ready map (OpenFreeMap positron basemap, zoom buttons, cooperative
 // gestures); the maplibre-gl namespace is a parameter, not a dependency
-const g = createGeoMap(maplibregl, 'map', { style, cooperativeGestures, navigation });
+const g = createGeoMap(maplibregl, 'map', { style, cooperativeGestures, navigation, before });
 g.setGeoJSON(geojson, layers);
 g.fitTo();
 ```
 
+Larger labels: `compileGeoJSON(src, { layers: { textScale: 1.5 } })` (or
+`maplibreLayers(fc, { textScale: 1.5 })`) multiplies every font size —
+finite, in (0, 16], default 1 — and moves the upper zoom stop of
+`text-size` so the largest label still fits MapLibre's 255 px limit;
+strokes and dots stay true to the ground.
+
 Without the geo build (a collection from the CLI or Python), omit `layers`:
-the module computes the same ones with `layers(fc)`, a JS port of the
-engine's function pinned to it by the test suite. The CLI prints both at
-once: `rpic --geojson --maplibre map.pic` → `{ "geojson": …, "layers": […] }`.
+the module computes the same ones with `layers(fc)` (or `layers(fc,
+{ textScale })`), a JS port of the engine's function pinned to it by the
+test suite. The CLI prints both at once: `rpic --geojson --maplibre map.pic`
+→ `{ "geojson": …, "layers": […] }` (add `--text-scale 1.5` for larger
+labels).
 
 ## API
 
@@ -154,8 +164,8 @@ once: `rpic --geojson --maplibre map.pic` → `{ "geojson": …, "layers": […]
 | `compile(src, {circuits?, texlabels?, scene?, flatten?, outline?})` | → `{ svg, animations, diagnostics, warnings, objects, places?, passthrough?, scene? }` (throws on a pic error with `errorInfo`; `places` = named `Label: position` points in SVG units, `passthrough` = troff `.` lines, each present only when the source has some). `scene: true` adds the device-independent resolved draw list ([docs/scene.md](https://github.com/milkway/rpic-lang/blob/main/docs/scene.md)); `flatten` (inches) delivers its curves as polylines. |
 | `renderSvg(src, {circuits?, texlabels?})` | → SVG string. |
 | `compileGeoJSON(src, {anchor?, scale?, bearing?, frame?, features?, layers?, …})` | Geo build only. → `{ geojson, warnings, diagnostics, registration, canvas, layers? }`; `layers: true` adds the MapLibre layers. Throws `GeoError` (`info.kind`) or a pic error. |
-| `maplibreLayers(fc)` | Geo build only. The engine's MapLibre layers for a geopic FeatureCollection. |
-| `attach(map, fc, {layers?, fit?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc)`, `sizing(fc)`, `bounds(fc)`. |
+| `maplibreLayers(fc, {textScale?})` | Geo build only. The engine's MapLibre layers for a geopic FeatureCollection; `textScale` multiplies every label's font size. |
+| `attach(map, fc, {layers?, fit?, before?})` | `@strategicprojects/rpic/maplibre`. Source `"pic"` + layers on a MapLibre map (under layer `before`, or under the basemap's labels with `'labels'`) → `{ setGeoJSON, fitTo, detach }`. Also `createGeoMap(maplibregl, container, opts)`, `layers(fc, {textScale?})`, `sizing(fc, {textScale?})`, `bounds(fc)`. |
 | `geoToCanvas(registration, points)` | Geo build only. WGS84 `[lon, lat]` points → canvas `[x, y]` inches. |
 | `animate(root, animations, gsap)` | Build/play a GSAP timeline (`draw`/`fade`/`pop`). Browser only. |
 

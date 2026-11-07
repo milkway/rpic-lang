@@ -233,29 +233,52 @@ a frozen size beyond (far past the fitted zoom). Example: 400 m/in at
 φ = −8.0631° gives p₀ = 1.2903602 × 10⁻⁵ px/m; an 11 pt label is 61.1 m
 and `z_text` = 18. Integer constants are emitted as JSON integers.
 
+**Options** (`geopic_core::maplibre::LayerOptions`, `layers_with(&fc,
+&opts)`; DECISIONS G11). The default is the ground-true output above, to the
+bit.
+
+| option | type, range (default) | effect |
+|---|---|---|
+| `text_scale` | finite number in (0, 16] (1) | multiplies every font size: the `text-size` metres become `geopic:font_size · m / 72 · text_scale` (the factor is folded into the constant), and `F` in `z_text` is taken over the *scaled* sizes — so at ×2 the upper stop is one zoom lower and the largest label still fits in 255 px. Strokes and dots are unchanged |
+
+Out of range, not a number, or an unknown key: a `GeoError` of kind
+`invalid_options`. The JSON entry point `layers_json_with(fc_json,
+opts_json)` takes `{"text_scale": 1.5}` (every key optional; an empty string
+is the default); `bundle_json_with` is the CLI's bundle under options.
+
+*Placement is not an option of the specs.* Where the layers go in the
+consumer's style — `map.addLayer(spec, beforeId)` — belongs to the map, not
+to the layer objects: the JS `attach(map, fc, { before })` takes a layer id
+or `'labels'`, the first `symbol` layer of the map's current style (resolved
+when the layers are added; on top when the style has none), so the
+basemap's place names stay above the drawing. rpic.dev uses `before:
+'labels'`.
+
 Exposed everywhere the collection is:
 
 ```sh
 rpic --geojson --maplibre map.pic     # {"geojson": FeatureCollection, "layers": [...]}
+rpic --geojson --maplibre --text-scale 1.5 map.pic   # labels 1.5× larger
 ```
 
 ```js
-const { geojson, layers } = compileGeoJSON(src, { layers: true });
+const { geojson, layers } = compileGeoJSON(src, { layers: true });   // or { layers: { textScale: 1.5 } }
 import { attach } from '@strategicprojects/rpic/maplibre';
-attach(map, geojson, { layers, fit: true });   // adds source "pic" + the layers
+attach(map, geojson, { layers, fit: true, before: 'labels' });   // source "pic" + the layers, under the labels
+maplibreLayers(fc, { textScale: 1.5 });       // from any geopic collection
 ```
 
 ```python
 from rpic import geo
-out = geo.compile(src, layers=True)           # out["layers"]
-layers = geo.maplibre_layers(fc)              # from any geopic collection
+out = geo.compile(src, layers=True)           # out["layers"]; text_scale=1.5 for larger labels
+layers = geo.maplibre_layers(fc, text_scale=1.0)   # from any geopic collection
 ```
 
 `maplibre_layers` / `layers_json` read only the `geopic.registration`
 foreign member and the features' `geopic:font_size`. The zero-dependency JS
 module `@strategicprojects/rpic/maplibre` also carries a port of the same
-function (`layers(fc)`), used when no engine output is at hand; a test pins it
-to the engine. The snapshots in `examples/geo/maplibre/*.layers.json` (the
+function (`layers(fc, { textScale })`, and `sizing`), used when no engine
+output is at hand; a test pins it to the engine at scales 1 and 1.5. The snapshots in `examples/geo/maplibre/*.layers.json` (the
 four examples, the callout under `mercator`, an empty collection) are the
 layer specs the rpic.dev maps drew before the styling moved here, and every
 implementation is checked against them.
