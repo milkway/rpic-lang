@@ -10,6 +10,13 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- CLI `rpic --version` / `-V` prints `rpic X.Y.Z` (the crate version) to
+  stdout and exits 0; listed in `--help`. Until now the binary had no version
+  flag, so after a `brew upgrade` only the package manager knew what was
+  installed (#458).
+
 ## [0.17.0] - 2026-11-08
 
 ### Added
