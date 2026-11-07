@@ -1097,6 +1097,8 @@ fn maplibre_text_scale_scales_the_font_and_lowers_the_text_stop() {
     let fc = &g.features;
     let base = layers(fc);
     assert_eq!(layers_with(fc, &LayerOptions::default()).unwrap(), base);
+    // the documented construction idiom, future-proof as fields are added
+    #[allow(clippy::needless_update)]
     let one = LayerOptions {
         text_scale: 1.0,
         ..Default::default()
