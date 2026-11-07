@@ -258,9 +258,13 @@ is the default); `bundle_json_with` is the CLI's bundle under options.
 consumer's style — `map.addLayer(spec, beforeId)` — belongs to the map, not
 to the layer objects: the JS `attach(map, fc, { before })` takes a layer id
 or `'labels'` — the style's layer whose id is `labels` when there is one,
-otherwise the first `symbol` layer of the map's current style that is not
-one of ours (resolved when the layers are added; on top when the style has
-none). Only the
+otherwise the start of the current style's *trailing* block of `symbol`
+layers: the first layer after the last non-`symbol` layer, ours ignored
+(resolved when the layers are added; on top when no symbol layer follows
+the last geometry layer). Not the first `symbol` layer: styles interleave
+some labels with the geometry — CARTO's positron has `waterway_label` at
+index 13 and its roads, buildings and boundaries up to 67, so the first
+symbol would put the shapes under the roads and buildings. Only the
 geometry layers (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`)
 go there, so the basemap's place names stay above the shapes; the
 drawing's own labels (`pic-text`, `pic-title`) are always appended on top —

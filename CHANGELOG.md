@@ -39,6 +39,17 @@ resolves to the latest version.
   one-build-per-module rule of `ready()`, lazy loading, the embedder recipe (`rpic-render`'s `math`
   feature + `set_math_renderer` at init) and the literal-text fallback. The JS README matches.
 
+### Fixed
+
+- JS `@strategicprojects/rpic/maplibre`: `attach(map, fc, { before: 'labels' })`
+  (and `createGeoMap`) resolved `'labels'` to the style's *first* `symbol`
+  layer. On CARTO positron that is `waterway_label` at index 13, with 50+
+  road, building and boundary layers after it, so the drawing was buried
+  under them. `'labels'` is now the start of the style's trailing symbol
+  block — the first layer after the last non-`symbol` layer (index 68 on
+  CARTO); on top when there is none; a layer named `labels` still wins
+  (DECISIONS G11 addendum, `docs/geopic.md` § 6).
+
 ## [0.16.1] — 2026-11-08
 
 ### Fixed
