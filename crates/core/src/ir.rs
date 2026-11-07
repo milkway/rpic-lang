@@ -112,6 +112,31 @@ pub struct MacroCall {
     /// rpic's normalized token text (spacing follows the source; numbers
     /// print canonically).
     pub args: Vec<String>,
+    /// The same arguments exactly as the author spelled them, index-aligned
+    /// with `args`: `1e-9` stays `1e-9`, spacing, line continuations and
+    /// quotes are kept.
+    pub raw_args: Vec<RawArg>,
+}
+
+/// One macro-call argument as written (see [`MacroCall::raw_args`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct RawArg {
+    /// The source text from the argument's first token to its last,
+    /// verbatim (inner whitespace, `\` line continuations and comments
+    /// included, surrounding whitespace not). Empty for an empty argument.
+    pub text: String,
+    /// Where `text` starts: 1-based line and column (in chars). For an
+    /// empty argument, just past the `(` or `,` that precedes it.
+    pub line: u32,
+    pub col: u32,
+    /// Where `text` ends: the line of its last char and the column just
+    /// past it (exclusive). Equal to `line`/`col` for an empty argument.
+    pub end_line: u32,
+    pub end_col: u32,
+    /// The source the positions are relative to, as in
+    /// [`crate::diagnostic::Span::file`]: `None` = the user's input,
+    /// `"circuits"` = the library, else the `copy` name as written.
+    pub file: Option<std::sync::Arc<str>>,
 }
 
 /// A named place: the point a `Label: position` statement defines.

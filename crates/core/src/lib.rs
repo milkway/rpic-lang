@@ -202,6 +202,32 @@ pub fn passthrough_json(d: &Drawing) -> String {
     s
 }
 
+/// Build the JSON `raw_args` array of a macro call ([`ir::MacroCall::raw_args`]):
+/// one `{"text","line","col","end_line","end_col"[,"file"]}` object per
+/// argument, the argument exactly as written and where.
+pub fn raw_args_json(call: &ir::MacroCall) -> String {
+    let mut s = String::from("[");
+    for (i, a) in call.raw_args.iter().enumerate() {
+        if i > 0 {
+            s.push(',');
+        }
+        s.push_str(&format!(
+            "{{\"text\":\"{}\",\"line\":{},\"col\":{},\"end_line\":{},\"end_col\":{}",
+            json_str(&a.text),
+            a.line,
+            a.col,
+            a.end_line,
+            a.end_col
+        ));
+        if let Some(f) = &a.file {
+            s.push_str(&format!(",\"file\":\"{}\"", json_str(f)));
+        }
+        s.push('}');
+    }
+    s.push(']');
+    s
+}
+
 /// The flat span fields the bundle uses (`objects`, `places`, `passthrough`):
 /// `,"line":L,"col":C,"end_col":E[,"file":"…"]`, or nothing when unknown.
 fn span_fields(span: Option<&Span>) -> String {
@@ -602,6 +628,33 @@ mod tests {
             j.contains("\"passthrough\":[{\"text\":\".ft B\",\"line\":3,\"col\":1,\"end_col\":6}]"),
             "{j}"
         );
+    }
+
+    #[test]
+    fn scene_block_call_carries_raw_args() {
+        let d = compile("define r { [ box ] }\nr(1e-9 , \"a, b\")").unwrap();
+        let out = scene_json(&d, &SceneOptions::default());
+        let v: serde_json::Value = serde_json::from_str(&out.json).unwrap();
+        let blk = v["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i["kind"] == "block")
+            .unwrap();
+        let call = &blk["call"];
+        assert_eq!(call["args"][0], "0.000000001");
+        assert_eq!(call["raw_args"][0]["text"], "1e-9");
+        assert_eq!(call["raw_args"][1]["text"], "\"a, b\"");
+        assert_eq!(
+            (
+                call["raw_args"][1]["line"].as_u64(),
+                call["raw_args"][1]["col"].as_u64(),
+                call["raw_args"][1]["end_line"].as_u64(),
+                call["raw_args"][1]["end_col"].as_u64()
+            ),
+            (Some(2), Some(10), Some(2), Some(16))
+        );
+        assert!(call["raw_args"][0].get("file").is_none());
     }
 
     #[test]

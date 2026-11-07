@@ -709,7 +709,8 @@ impl<'a> Sc<'a> {
                 }
                 self.out.push_str(&format!("\"{}\"", crate::json_str(a)));
             }
-            self.out.push_str("]}");
+            self.out
+                .push_str(&format!("],\"raw_args\":{}}}", crate::raw_args_json(c)));
         }
         self.out.push_str(",\"items\":[");
         let mut first = true;
@@ -1836,7 +1837,9 @@ mod tests {
         );
         assert_eq!(
             k["call"],
-            serde_json::json!({"name": "cell", "args": ["\"a\""]})
+            serde_json::json!({"name": "cell", "args": ["\"a\""], "raw_args": [
+                {"text": "\"a\"", "line": 2, "col": 9, "end_line": 2, "end_col": 12}
+            ]})
         );
         let inline = blocks.iter().find(|b| b.get("label").is_none()).unwrap();
         assert_eq!(
@@ -1946,6 +1949,9 @@ mod tests {
             "call",
             "name",
             "args",
+            // #425: the call's arguments as written (additive)
+            "raw_args",
+            "end_line",
         ]
         .iter()
         .map(|s| s.to_string())

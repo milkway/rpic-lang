@@ -34,6 +34,20 @@ pub struct Spanned {
     /// calls nested inside an expansion keep the outer call's site.
     /// Excluded from `PartialEq` like `file`.
     pub call_site: Option<Arc<CallSite>>,
+    /// The token's place in the text it was lexed from: that text (shared
+    /// by every token of one lexing pass) and the token's char range
+    /// `[start, end)` in it. Lets the preprocessor recover a macro
+    /// argument exactly as written ([`crate::ir::RawArg`]). `None` for
+    /// synthesized tokens. Excluded from `PartialEq` like `file`.
+    pub(crate) source: Option<TokenSource>,
+}
+
+/// See [`Spanned::source`].
+#[derive(Clone)]
+pub(crate) struct TokenSource {
+    pub(crate) text: Arc<[char]>,
+    pub(crate) start: u32,
+    pub(crate) end: u32,
 }
 
 /// Where a macro expansion came from: the call as written at the
@@ -57,6 +71,7 @@ impl Spanned {
             arg_frame: None,
             macro_frame: None,
             call_site: None,
+            source: None,
         }
     }
 
@@ -142,7 +157,7 @@ pub fn lex_named(src: &str, file: &str) -> Result<Vec<Spanned>, LexError> {
 }
 
 struct Lexer {
-    chars: Vec<char>,
+    chars: Arc<[char]>,
     pos: usize,
     line: u32,
     col: u32,
@@ -153,7 +168,7 @@ struct Lexer {
 impl Lexer {
     fn new(src: &str, file: Option<Arc<str>>) -> Self {
         Lexer {
-            chars: src.chars().collect(),
+            chars: src.chars().collect::<Vec<char>>().into(),
             pos: 0,
             line: 1,
             col: 1,
@@ -243,10 +258,10 @@ impl Lexer {
                 }
             }
 
-            let (line, col) = (self.line, self.col);
+            let (line, col, start) = (self.line, self.col, self.pos);
             let c = match self.peek() {
                 None => {
-                    self.push(Token::Eof, line, col, col);
+                    self.push(Token::Eof, line, col, col, start);
                     return Ok(self.out);
                 }
                 Some(c) => c,
@@ -282,11 +297,11 @@ impl Lexer {
             } else {
                 col.saturating_add(1)
             };
-            self.push(tok, line, col, end_col);
+            self.push(tok, line, col, end_col, start);
         }
     }
 
-    fn push(&mut self, tok: Token, line: u32, col: u32, end_col: u32) {
+    fn push(&mut self, tok: Token, line: u32, col: u32, end_col: u32, start: usize) {
         // A newline adjacent to `then` is a line/spline-path continuation, not a
         // statement terminator: circuit_macros figures wrap long paths across
         // lines without a trailing `\`, breaking either after `then`
@@ -303,11 +318,15 @@ impl Lexer {
         {
             self.out.pop();
         }
-        self.out.push(
-            Spanned::new(tok, line, col)
-                .with_end(end_col)
-                .with_file(self.file.clone()),
-        );
+        let mut t = Spanned::new(tok, line, col)
+            .with_end(end_col)
+            .with_file(self.file.clone());
+        t.source = Some(TokenSource {
+            text: Arc::clone(&self.chars),
+            start: u32::try_from(start).unwrap_or(u32::MAX),
+            end: u32::try_from(self.pos).unwrap_or(u32::MAX),
+        });
+        self.out.push(t);
     }
 
     fn lex_string(&mut self) -> Result<Token, LexError> {

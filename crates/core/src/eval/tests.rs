@@ -3427,3 +3427,89 @@ fn troff_passthrough_lines_surface_on_the_drawing() {
     assert_eq!(d.shapes, p.shapes);
     assert_eq!(crate::svg::to_svg(&d), crate::svg::to_svg(&p));
 }
+
+#[test]
+fn macro_calls_keep_their_arguments_as_written() {
+    // #425: `args` is normalized; `raw_args` is the author's spelling, with
+    // where it sits — one per argument, index-aligned
+    let d = draw("define r { [ box $1 ] }\nr(1e-9, \"a, b\")");
+    let call = d.blocks[0].call.as_ref().unwrap();
+    assert_eq!(call.args, ["0.000000001", "\"a, b\""]);
+    let raw: Vec<(&str, u32, u32, u32, u32)> = call
+        .raw_args
+        .iter()
+        .map(|a| (a.text.as_str(), a.line, a.col, a.end_line, a.end_col))
+        .collect();
+    assert_eq!(raw, [("1e-9", 2, 3, 2, 7), ("\"a, b\"", 2, 9, 2, 15)]);
+    assert!(call.raw_args.iter().all(|a| a.file.is_none()));
+}
+
+#[test]
+fn raw_macro_arguments_span_continuations_and_empty_slots() {
+    // an argument across a `\` continuation keeps it verbatim and ends on
+    // the next line; an empty argument sits just past its comma; inner
+    // spacing and nested parentheses survive
+    let d = draw("define r { [ box ] }\nr( 2 * \\\n  3 ,, f( x,y ) )");
+    let call = d.blocks[0].call.as_ref().unwrap();
+    assert_eq!(call.args.len(), 3);
+    let raw: Vec<(&str, u32, u32, u32, u32)> = call
+        .raw_args
+        .iter()
+        .map(|a| (a.text.as_str(), a.line, a.col, a.end_line, a.end_col))
+        .collect();
+    assert_eq!(
+        raw,
+        [
+            ("2 * \\\n  3", 2, 4, 3, 4),
+            ("", 3, 6, 3, 6),
+            ("f( x,y )", 3, 8, 3, 16)
+        ]
+    );
+    // no arguments, no raw arguments
+    let d = draw("define r { [ box ] }\nr()\nr");
+    assert!(
+        d.blocks
+            .iter()
+            .all(|b| b.call.as_ref().unwrap().raw_args.is_empty())
+    );
+}
+
+#[test]
+fn raw_macro_arguments_name_the_outermost_call() {
+    // nested calls inherit the outer call — raw arguments included
+    let src = "define cell { [ box \"$1\" ] }\n\
+               define pair { [ cell($1); cell($2) ] }\n\
+               pair( 1.50 , b )";
+    let d = draw(src);
+    for b in &d.blocks {
+        let call = b.call.as_ref().unwrap();
+        let raw: Vec<&str> = call.raw_args.iter().map(|a| a.text.as_str()).collect();
+        assert_eq!(
+            (call.name.as_str(), raw.as_slice()),
+            ("pair", &["1.50", "b"][..])
+        );
+    }
+}
+
+#[test]
+fn raw_macro_arguments_in_an_include_name_the_include() {
+    let dir = std::env::temp_dir().join(format!("rpic_rawargs_{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("inc.pic"), "define m { [ box ] }\nm(0x10, 1e3)\n").unwrap();
+    let pic = parse_in_dir("copy \"inc.pic\"", Some(dir.as_path())).unwrap();
+    let d = eval(&pic).unwrap();
+    let call = d.blocks[0].call.as_ref().unwrap();
+    let raw: Vec<(&str, u32, u32, Option<&str>)> = call
+        .raw_args
+        .iter()
+        .map(|a| (a.text.as_str(), a.line, a.col, a.file.as_deref()))
+        .collect();
+    assert_eq!(
+        raw,
+        [
+            ("0x10", 2, 3, Some("inc.pic")),
+            ("1e3", 2, 9, Some("inc.pic"))
+        ]
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

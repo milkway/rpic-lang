@@ -63,7 +63,21 @@
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
-        "args": { "type": "array", "items": { "type": "string" } }
+        "args": { "type": "array", "items": { "type": "string" } },
+        "raw_args": { "type": "array", "items": { "$ref": "#/$defs/raw_arg" } }
+      }
+    },
+    "raw_arg": {
+      "type": "object",
+      "required": ["text", "line", "col", "end_line", "end_col"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "line": { "type": "integer", "minimum": 0 },
+        "col": { "type": "integer", "minimum": 0 },
+        "end_line": { "type": "integer", "minimum": 0 },
+        "end_col": { "type": "integer", "minimum": 0 },
+        "file": { "type": "string" }
       }
     },
     "place": {
