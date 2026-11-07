@@ -1362,20 +1362,22 @@ impl<'a> Sc<'a> {
             t.push('}');
             parts.push(t);
         }
+        // an all-blank stack (`box "" ""`) emits nothing: no `text`, hence
+        // neither of the keys that ride with it
         if parts.is_empty() {
             return false;
         }
-        self.out
-            .push_str(&format!(",\"text\":[{}]", parts.join(",")));
-        // the centre the lines were laid out around (S12): a consumer that
-        // places the label as one block (a map's symbol) needs it, and it
-        // cannot be recovered from the emitted baselines (blank lines are
-        // skipped, valign/halign shift them)
-        self.out
-            .push_str(&format!(",\"text_center\":{}", spoint(center)));
-        // S13: the stack height in rows, blank ones included (the layout's n)
-        self.out
-            .push_str(&format!(",\"text_rows\":{}", lines.len()));
+        // one write, so `text_center`/`text_rows` exist exactly when `text`
+        // does: the centre the lines were laid out around (S12) — a consumer
+        // placing the label as one block needs it, the baselines cannot give
+        // it back — and the stack height in rows, blank ones included (S13,
+        // the layout's n)
+        self.out.push_str(&format!(
+            ",\"text\":[{}],\"text_center\":{},\"text_rows\":{}",
+            parts.join(","),
+            spoint(center),
+            lines.len()
+        ));
         visible
     }
 }
@@ -2067,6 +2069,14 @@ mod review_regressions {
         assert_eq!(rows(3), vec![0]);
         assert_eq!(items[3]["text_rows"], 1);
         assert!(items[4].get("text_rows").is_none(), "no text, no rows");
+        // an all-blank stack emits no text at all, so neither key rides
+        let d = crate::compile("box \"\" \"\"").unwrap();
+        let v: Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let it = &v["items"][0];
+        for k in ["text", "text_center", "text_rows"] {
+            assert!(it.get(k).is_none(), "all-blank stack carries `{k}`: {it}");
+        }
         // the drawn baselines agree: "below" sits under the centre, "above"
         // over it, and a/c are two line-skips apart around the centre
         let y = |i: usize, k: usize| items[i]["text"][k]["at"][1].as_f64().unwrap();
