@@ -15,6 +15,7 @@ Format, properties and warnings: ``docs/geopic.md`` in the repository.
 from __future__ import annotations
 
 import json
+import re
 import warnings as _warnings
 from typing import Any, Iterable, Mapping
 
@@ -45,6 +46,27 @@ class GeoWarning(UserWarning):
 
 FeatureLike = Mapping[str, Any] | Iterable[Any] | None
 
+# pic labels: an uppercase letter, then letters, digits or underscores. Feature
+# names are written into pic source, so anything else is rejected outright —
+# never interpolated.
+_LABEL = re.compile(r"^[A-Z][A-Za-z0-9_]*$")
+
+
+def _label(name: Any) -> str:
+    name = str(name)
+    if not _LABEL.match(name):
+        raise ValueError(
+            f"feature name {name!r} is not a pic label (an uppercase letter followed by letters, digits or underscores)"
+        )
+    return name
+
+
+def _coord(v: Any, what: str) -> float:
+    f = float(v)
+    if f != f or f in (float("inf"), float("-inf")):
+        raise ValueError(f"feature {what} must be a finite number, got {v!r}")
+    return f
+
 
 def _normalize_features(features: FeatureLike) -> list[tuple[str, float, float, tuple | None]]:
     """``features`` as a list of ``(name, lon, lat, bbox)``.
@@ -65,18 +87,19 @@ def _normalize_features(features: FeatureLike) -> list[tuple[str, float, float, 
         for name, g in zip(gdf.index, gdf.geometry):
             c = g.centroid
             w, s, e, n = g.bounds
-            out.append((str(name), float(c.x), float(c.y), (float(w), float(s), float(e), float(n))))
+            out.append((_label(name), float(c.x), float(c.y), (float(w), float(s), float(e), float(n))))
         return out
     if isinstance(features, Mapping):
-        for name, pos in features.items():
-            lon, lat = pos[0], pos[1]
-            bbox = tuple(pos[2]) if len(pos) > 2 and pos[2] is not None else None
-            out.append((str(name), float(lon), float(lat), bbox))
-        return out
-    for item in features:
-        name, lon, lat = item[0], item[1], item[2]
-        bbox = tuple(item[3]) if len(item) > 3 and item[3] is not None else None
-        out.append((str(name), float(lon), float(lat), bbox))
+        items: Iterable[Any] = ((name, pos[0], pos[1], pos[2] if len(pos) > 2 else None) for name, pos in features.items())
+    else:
+        items = ((item[0], item[1], item[2], item[3] if len(item) > 3 else None) for item in features)
+    for name, lon, lat, bbox in items:
+        bbox_t = None
+        if bbox is not None:
+            bbox_t = tuple(_coord(v, "bbox") for v in bbox)
+            if len(bbox_t) != 4:
+                raise ValueError(f"feature {name!r}: bbox must be (west, south, east, north)")
+        out.append((_label(name), _coord(lon, "lon"), _coord(lat, "lat"), bbox_t))
     return out
 
 

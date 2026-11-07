@@ -104,3 +104,18 @@ def test_to_geodataframe_needs_geopandas_or_returns_a_geodataframe():
     assert {"stroke", "geopic:kind", "geopic:id"} <= set(gdf.columns)
     assert len(gdf) == 3
     assert set(gdf.geometry.geom_type) == {"Polygon", "LineString"}
+
+
+def test_feature_names_are_validated_never_interpolated():
+    src = "geo_lon = 0\ngeo_lat = 0\nbox"
+    for bad in ['A; copy "/etc/passwd"', "lower", "1A", "A B", "A\nbox", ""]:
+        with pytest.raises(ValueError, match="not a pic label"):
+            rpic.geo.compile(src, features={bad: (0.0, 0.0)}, warn=False)
+    with pytest.raises(ValueError, match="finite"):
+        rpic.geo.compile(src, features={"A": (float("nan"), 0.0)}, warn=False)
+    with pytest.raises(ValueError, match="bbox"):
+        rpic.geo.compile(src, features=[("A", 0.0, 0.0, (1, 2, 3))], warn=False)
+    # a legitimate name still works
+    out = rpic.geo.compile(src, features={"Marco_Zero_1": (0.0, 0.0)}, warn=False)
+    assert out["registration"]["control_points"] == 1
+
