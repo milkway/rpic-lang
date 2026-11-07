@@ -1,0 +1,184 @@
+---
+// A pic drawing on a real map: the repo file is georeferenced at build time
+// (`rpic --geojson`, the same binary that renders the figures) and the
+// FeatureCollection is handed to MapLibre GL JS in the browser, styled from
+// its simplestyle + `geopic:*` properties. Items with
+// `geopic:placement = "screen"` (other than dots and labels) become HTML
+// markers with a fixed pixel size — the point of that property.
+import { renderGeoFile } from '../lib/rpic';
+
+interface Props {
+  /** repo-relative .pic path (georeferenced beside its own dir) */
+  src: string;
+  caption?: string;
+  /** map height, CSS length (default 22rem) */
+  height?: string;
+}
+const { src, caption, height = '22rem' } = Astro.props;
+const geojson = renderGeoFile(src);
+---
+
+<figure class="not-prose my-6">
+  <div
+    class="geomap rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50"
+    style={`height:${height}`}
+    data-geojson={JSON.stringify(geojson)}
+  ></div>
+  {caption && (
+    <figcaption class="text-center text-[13px] text-slate-500 dark:text-slate-400 mt-2">{caption}</figcaption>
+  )}
+</figure>
+
+<style is:global>
+  .geomap .maplibregl-popup-content {
+    font: 12px/1.4 ui-sans-serif, system-ui, sans-serif;
+    padding: 8px 10px;
+    color: #0f172a;
+  }
+  .geomap-callout {
+    font: 12px/1.3 ui-sans-serif, system-ui, sans-serif;
+    white-space: pre;
+    text-align: center;
+    padding: 6px 10px;
+    border: 1px solid #0f172a;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  import { Map as MapLibreMap, Marker, NavigationControl, Popup, setWorkerUrl } from 'maplibre-gl';
+  import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
+  import 'maplibre-gl/dist/maplibre-gl.css';
+
+  // the bundler cannot inline MapLibre's worker; serve the file and point at it
+  setWorkerUrl(workerUrl);
+
+  type Feature = {
+    geometry: { type: string; coordinates: unknown };
+    properties: Record<string, unknown>;
+  };
+
+  /** pic compass anchor → MapLibre text-anchor (the reference point sits at
+   *  that side of the text: `w` = text extends right of it, `n` = below). */
+  const ANCHORS: Record<string, string> = {
+    c: 'center', n: 'top', s: 'bottom', e: 'right', w: 'left',
+    ne: 'top-right', nw: 'top-left', se: 'bottom-right', sw: 'bottom-left',
+  };
+
+  function bounds(fc: { features: Feature[] }): [[number, number], [number, number]] | null {
+    let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+    const take = (p: unknown) => {
+      const [x, y] = p as [number, number];
+      w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y);
+    };
+    for (const f of fc.features) {
+      const g = f.geometry;
+      if (g.type === 'Point') take(g.coordinates);
+      else if (g.type === 'LineString') (g.coordinates as unknown[]).forEach(take);
+      else if (g.type === 'Polygon') (g.coordinates as unknown[][])[0].forEach(take);
+    }
+    return Number.isFinite(w) ? [[w, s], [e, n]] : null;
+  }
+
+  function centroid(ring: [number, number][]): [number, number] {
+    const pts = ring.slice(0, -1);
+    const [x, y] = pts.reduce(([a, b], [px, py]) => [a + px, b + py], [0, 0]);
+    return [x / pts.length, y / pts.length];
+  }
+
+  for (const el of document.querySelectorAll<HTMLElement>('.geomap')) {
+    const fc = JSON.parse(el.dataset.geojson ?? '{"type":"FeatureCollection","features":[]}') as {
+      type: string;
+      features: Feature[];
+    };
+    const map = new MapLibreMap({
+      container: el,
+      style: 'https://tiles.openfreemap.org/styles/positron',
+      attributionControl: { compact: true },
+      cooperativeGestures: true,
+    });
+    map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+
+    // screen-placed shapes (a callout box) are HTML markers, not map geometry
+    const screenShapes = fc.features.filter(
+      (f) => f.properties['geopic:placement'] === 'screen' && !['text', 'dot'].includes(String(f.properties['geopic:kind'])),
+    );
+    const mapFeatures = fc.features.filter((f) => !screenShapes.includes(f));
+
+    map.on('load', () => {
+      map.addSource('pic', { type: 'geojson', data: { type: 'FeatureCollection', features: mapFeatures } });
+      const isPolygon = ['==', ['geometry-type'], 'Polygon'];
+      const isLine = ['==', ['geometry-type'], 'LineString'];
+      const kind = ['get', 'geopic:kind'];
+      const width = ['*', ['coalesce', ['get', 'stroke-width'], 0.8], 1.6];
+      map.addLayer({
+        id: 'pic-fill', type: 'fill', source: 'pic', filter: isPolygon,
+        paint: {
+          'fill-color': ['coalesce', ['get', 'fill'], '#000000'],
+          'fill-opacity': ['case', ['has', 'fill'], ['coalesce', ['get', 'fill-opacity'], 0.55], 0],
+        },
+      });
+      for (const [id, dashed] of [['pic-stroke', false], ['pic-stroke-dashed', true]] as const) {
+        map.addLayer({
+          id, type: 'line', source: 'pic',
+          filter: ['all', ['any', isPolygon, isLine], ['has', 'stroke'], dashed ? ['has', 'geopic:dash'] : ['!', ['has', 'geopic:dash']]],
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': ['get', 'stroke'],
+            'line-width': width,
+            'line-opacity': ['coalesce', ['get', 'stroke-opacity'], 1],
+            ...(dashed ? { 'line-dasharray': [3, 2] } : {}),
+          },
+        });
+      }
+      map.addLayer({
+        id: 'pic-dot', type: 'circle', source: 'pic', filter: ['==', kind, 'dot'],
+        paint: { 'circle-radius': 4, 'circle-color': ['coalesce', ['get', 'fill'], '#000000'] },
+      });
+      map.addLayer({
+        id: 'pic-text', type: 'symbol', source: 'pic', filter: ['==', kind, 'text'],
+        layout: {
+          'text-field': ['get', 'geopic:text'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': 13,
+          'text-anchor': ['match', ['get', 'geopic:anchor'], ...Object.entries(ANCHORS).flat(), 'center'],
+          // geopic:rotation is CCW from east; MapLibre rotates clockwise
+          'text-rotate': ['*', -1, ['coalesce', ['get', 'geopic:rotation'], 0]],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: { 'text-color': '#0f172a', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 },
+      });
+
+      for (const f of screenShapes) {
+        const ring = (f.geometry.coordinates as [number, number][][])[0];
+        const div = document.createElement('div');
+        div.className = 'geomap-callout';
+        div.textContent = String(f.properties['title'] ?? f.properties['geopic:kind']);
+        div.style.background = String(f.properties['fill'] ?? '#ffffff');
+        div.style.borderColor = String(f.properties['stroke'] ?? '#0f172a');
+        new Marker({ element: div, anchor: 'center' }).setLngLat(centroid(ring)).addTo(map);
+      }
+
+      map.on('click', ['pic-fill', 'pic-stroke', 'pic-stroke-dashed', 'pic-dot'], (ev) => {
+        const f = ev.features?.[0];
+        if (!f) return;
+        const p = f.properties as Record<string, unknown>;
+        const title = p['title'] ? `<b>${String(p['title']).replace(/</g, '&lt;')}</b><br>` : '';
+        new Popup({ closeButton: false })
+          .setLngLat(ev.lngLat)
+          .setHTML(`${title}<code>${p['geopic:kind']}</code> · <code>${p['geopic:id']}</code>`)
+          .addTo(map);
+      });
+      for (const id of ['pic-fill', 'pic-stroke', 'pic-dot']) {
+        map.on('mouseenter', id, () => (map.getCanvas().style.cursor = 'pointer'));
+        map.on('mouseleave', id, () => (map.getCanvas().style.cursor = ''));
+      }
+
+      const b = bounds(fc);
+      if (b) map.fitBounds(b, { padding: 48, maxZoom: 19, duration: 0 });
+    });
+  }
+</script>
