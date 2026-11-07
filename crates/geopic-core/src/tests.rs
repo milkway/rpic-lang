@@ -1327,6 +1327,54 @@ fn scenes_without_text_rows_join_the_visible_lines() {
         .find(|f| f.properties["geopic:kind"] == "title")
         .unwrap();
     assert_eq!(t.properties["geopic:text"], "a\nc");
+    // absent keys (an older engine) are not an inconsistency: no warning
+    assert!(
+        g.warnings.iter().all(|w| w.kind != "scene_inconsistent"),
+        "{:?}",
+        g.warnings
+    );
+}
+
+/// `row`/`text_rows` present but contradictory: the visible lines are
+/// joined (as for an older scene) and the item gets `scene_inconsistent`.
+#[test]
+fn inconsistent_text_rows_warn_and_join_the_visible_lines() {
+    let scene = scene_of("geo_lon = 0\ngeo_lat = 0\nbox \"a\" \"\" \"c\" at (1,1)");
+    let base: Value = serde_json::from_str(&scene).unwrap();
+    type Edit = fn(&mut serde_json::Map<String, Value>);
+    let cases: [(&str, Edit); 4] = [
+        ("row outside", |o| {
+            o.insert("text_rows".into(), 2.into());
+        }),
+        ("rows out of order", |o| {
+            o["text"][1]["row"] = 0.into();
+        }),
+        ("row without text_rows", |o| {
+            o.remove("text_rows");
+        }),
+        ("a line without row", |o| {
+            o["text"][0].as_object_mut().unwrap().remove("row");
+        }),
+    ];
+    for (name, edit) in cases {
+        let mut sv = base.clone();
+        edit(sv["items"][0].as_object_mut().unwrap());
+        let g = georeference(&sv.to_string(), &GeoOptions::default()).unwrap();
+        let t = g
+            .features
+            .features
+            .iter()
+            .find(|f| f.properties["geopic:kind"] == "title")
+            .unwrap();
+        assert_eq!(t.properties["geopic:text"], "a\nc", "{name}");
+        let w: Vec<_> = g
+            .warnings
+            .iter()
+            .filter(|w| w.kind == "scene_inconsistent")
+            .collect();
+        assert_eq!(w.len(), 1, "{name}: {:?}", g.warnings);
+        assert_eq!(w[0].id.as_deref(), Some("s0"), "{name}");
+    }
 }
 
 /// G10 addendum: MapLibre drops a final "\n", so the symbol layers pad a

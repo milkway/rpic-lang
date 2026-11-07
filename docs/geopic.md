@@ -170,6 +170,7 @@ Warnings (`{kind, message, id?, span?}`), never silent:
 | `registration_residual` | Helmert RMS above 1 % of the drawing's extent |
 | `invalid_frame` | `geo_frame` not 0/1 (ENU used) |
 | `densification_budget` | the 2 000 000-vertex budget ran out; later segments carry endpoints only |
+| `scene_inconsistent` | an item's text `row`/`text_rows` (scene S13) are present but contradict each other (a row outside the stack, out of order, a line without `row`, `row` without `text_rows`): `geopic:text` falls back to the visible lines joined. A scene with neither key (an older engine) is not warned |
 
 Errors (`GeoError {kind, message, hint?}`): `no_registration`, `invalid_scale`
 (`geo_scale ≤ 0`, non-finite bearing, effective scale — declared or fitted —

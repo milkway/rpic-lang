@@ -344,6 +344,7 @@ export interface GeoWarning {
    * `unsupported_style`, `ignored`, `registration_residual`,
    * `ignored_with_control_points`, `control_point_unresolved`,
    * `control_point_overridden`, `unsupported_kind`, `densification_budget`,
+   * `scene_inconsistent`,
    * …; engine `scene_unsupported` diagnostics ride here too (with the
    * `Diagnostic` keys instead of `id`/`span`).
    */
