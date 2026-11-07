@@ -240,7 +240,46 @@ h.detach();
 m = fakeMap({ loaded: true, style: [...basemap.slice(0, 3), { id: 'labels', type: 'fill' }, ...basemap.slice(3)] });
 attach(m, callout, { before: 'labels' });
 assert.deepEqual(m.order(), ['background', 'water', 'roads', ...GEOM, 'labels', 'road-names', 'place-names', ...TEXT]);
-// …otherwise it is the first non-pic symbol layer (checked above with road-names)
+// …otherwise it is the start of the TRAILING symbol block (above: road-names),
+// not the first symbol layer: a symbol amid the geometry (CARTO positron's
+// waterway_label at 13, with roads and buildings up to 67) would bury the
+// shapes under the roads and buildings that follow it
+const carto = [
+  { id: 'bg', type: 'background' },
+  { id: 'water', type: 'fill' },
+  { id: 'waterway_label', type: 'symbol' },
+  { id: 'road', type: 'line' },
+  { id: 'building', type: 'fill' },
+  { id: 'road_shield', type: 'symbol' },
+  { id: 'place_city', type: 'symbol' },
+];
+m = fakeMap({ loaded: true, style: carto });
+attach(m, callout, { layers: engine, before: 'labels' });
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), split('road_shield'));
+assert.deepEqual(m.order(), [...carto.slice(0, 5).map((l) => l.id), ...GEOM, 'road_shield', 'place_city', ...TEXT]);
+// interleaved symbols; the last geometry layer is followed by place_city only
+const interleaved = [
+  { id: 'bg', type: 'background' },
+  { id: 'waterway_label', type: 'symbol' },
+  { id: 'road', type: 'line' },
+  { id: 'road_shield', type: 'symbol' },
+  { id: 'building', type: 'fill-extrusion' },
+  { id: 'place_city', type: 'symbol' },
+];
+m = fakeMap({ loaded: true, style: interleaved });
+attach(m, callout, { before: 'labels' });
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), split('place_city'));
+assert.deepEqual(m.order(), [...interleaved.slice(0, 5).map((l) => l.id), ...GEOM, 'place_city', ...TEXT]);
+// symbols only amid the geometry, none after it: on top
+const noTrailing = [
+  { id: 'bg', type: 'background' },
+  { id: 'waterway_label', type: 'symbol' },
+  { id: 'road', type: 'line' },
+];
+m = fakeMap({ loaded: true, style: noTrailing });
+attach(m, callout, { before: 'labels' });
+assert.deepEqual(ops(m, 'addLayer').map((c) => c[2]), LAYER_IDS.map(() => undefined));
+assert.deepEqual(m.order(), [...noTrailing.map((l) => l.id), ...LAYER_IDS]);
 // a layer id
 m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout, { before: 'roads' });

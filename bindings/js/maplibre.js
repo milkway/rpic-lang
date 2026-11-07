@@ -188,17 +188,22 @@ const EMPTY = { type: 'FeatureCollection', features: [] };
 /**
  * The layer id the pic geometry layers are inserted before, resolved now from
  * the map's current style: `'labels'` = a layer whose id really is `labels`
- * when the style has one, else the first `symbol` layer that is not one of
- * ours (the basemap's place names, road labels…); any other string = that
- * layer, when the map has it. `undefined` (append on top) otherwise.
+ * when the style has one, else the start of the style's *trailing* label
+ * block — the first layer after the last non-`symbol` layer (ours ignored).
+ * Not the first `symbol` layer: CARTO's positron has `waterway_label` at 13
+ * and roads, buildings and boundaries up to 67, its names from 68 on. With
+ * no symbol layer after the last geometry layer, `undefined` (on top). Any
+ * other string = that layer, when the map has it; `undefined` otherwise.
  */
 function beforeId(map, before) {
   if (before == null) return undefined;
   if (before === 'labels') {
     if (map.getLayer('labels')) return 'labels'; // a style with a real `labels` layer
     const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
-    const first = (style?.layers ?? []).find((l) => l.type === 'symbol' && !LAYER_IDS.includes(l.id));
-    return first?.id;
+    const basemap = (style?.layers ?? []).filter((l) => !LAYER_IDS.includes(l.id));
+    let lastGeo = -1;
+    basemap.forEach((l, i) => { if (l.type !== 'symbol') lastGeo = i; });
+    return basemap[lastGeo + 1]?.id; // a symbol layer by construction, or none
   }
   if (map.getLayer(before)) return before;
   console.warn(`rpic: attach: no layer "${before}" on the map; the pic layers go on top`);
@@ -211,8 +216,9 @@ function beforeId(map, before) {
  * { layers: true }).layers`); omitted, they are computed by `layers(fc)`.
  * `fit: true` frames the drawing. `before` places the *geometry* layers
  * (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`, `pic-dot`) under another
- * one: a layer id, or `'labels'` for the first `symbol` layer of the map's
- * style (so the basemap's labels stay above the shapes); resolved each time
+ * one: a layer id, or `'labels'` for the start of the style's trailing block
+ * of `symbol` layers (so the basemap's labels stay above the shapes, and its
+ * roads and buildings below them); resolved each time
  * the layers are added, on top when there is no such layer. The drawing's
  * own labels (`pic-text`, `pic-title`) are always appended on top, so a
  * basemap label never covers them. Waits for the map's

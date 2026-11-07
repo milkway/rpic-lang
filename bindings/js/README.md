@@ -150,8 +150,9 @@ import { attach, createGeoMap } from '@strategicprojects/rpic/maplibre';
 const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 
 // your own map: adds/updates source "pic" + the six layers (waits for `load`);
-// before: 'labels' puts the shapes under the basemap's labels (first symbol
-// layer), or pass a layer id; the drawing's own labels always stay on top
+// before: 'labels' puts the shapes under the basemap's labels (the style's
+// trailing block of symbol layers, above its roads and buildings), or pass a
+// layer id; the drawing's own labels always stay on top
 const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits
 pic.fitTo();                                // re-frame

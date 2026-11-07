@@ -71,7 +71,7 @@ export interface MapLike {
   removeSource(id: string): unknown;
   addLayer(layer: unknown, beforeId?: string): unknown;
   getLayer(id: string): unknown;
-  /** read for `before: 'labels'` (the first `symbol` layer) */
+  /** read for `before: 'labels'` (the start of the trailing `symbol` block) */
   getStyle?(): { layers?: { id: string; type: string }[] } | undefined | null;
   removeLayer(id: string): unknown;
   setFilter(id: string, filter: unknown): unknown;
@@ -92,8 +92,10 @@ export interface AttachOptions {
   /**
    * add the geometry layers (`pic-fill`, `pic-stroke`, `pic-stroke-dashed`,
    * `pic-dot`) under this one: a layer id, or `'labels'` = the style's layer
-   * with id `labels` if it has one, else its first `symbol` layer (the
-   * basemap's labels stay above the shapes). Resolved when the layers are added; on top when there is none.
+   * with id `labels` if it has one, else the start of its trailing block of
+   * `symbol` layers — the first layer after the last non-`symbol` one (the
+   * basemap's labels stay above the shapes, its roads and buildings below).
+   * Resolved when the layers are added; on top when there is none.
    * The drawing's own labels (`pic-text`, `pic-title`) always go on top.
    * A placement on the consumer's map, not part of the layer specs.
    */
