@@ -192,6 +192,27 @@ level (or `:=` onto a top-level variable)", and geopic's `no_registration`
 hint says the same. Tests lock both behaviours (scene, geopic-core, CLI).
 `--svg`/`--json`/`--scene` are byte-unchanged; only the hint text moves.
 
+### S15. Bundle places carry the scene's block path (#453)
+
+S11 kept block provenance out of the `--json` bundle ("no block
+vocabulary"). rpic-r's `rpic_places()` (milkway/rpic-r#39) needs the
+enclosing block per place from the bundle, without asking for the scene.
+`PlaceInfo.block` (an index into `Drawing.blocks`) is filled by evaluation
+on every path — it is not scene-only — so the bundle can name it at no
+cost. Decision: a place defined inside `[ … ]` gains `block`, the **same
+path the scene emits** (`["blk0","blk1"]`, outermost first, one shared
+`scene::block_path_json`), placed after `x`/`y` and before the span fields.
+`blk<N>` is the scene's block item id; the bundle has no block objects of
+its own (its `objects` are the `s<N>` shapes), so the id is a name shared
+with the scene, not a key into `objects`. Rejected: the block's label
+(optional, not unique) and the `s<N>` of a shape inside it (a block need
+not draw one). Top-level places carry no `block`, so their entries are
+byte-identical; the key is additive like S11's. Python's hand-built dict
+and the C/JS JSON pass it through unchanged; the JS `Place` type gains
+`block?: string[]`. Corpus proof, main vs branch binaries (isolated target
+dirs, `cmp` differ), `-c`: `--svg` and `--scene` identical; `--json`
+differs only by `block` on places inside blocks.
+
 ## geopic-core (2026-11-06)
 
 ### G1. Input is the scene *document*, not engine types — approved by the user

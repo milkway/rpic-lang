@@ -122,6 +122,7 @@ rpic --pdf -o out.pdf diagram.pic
 rpic -c circuit.pic                    # load the circuit-element library
 rpic -t paper.pic                      # typeset $…$ labels as TeX math
 rpic --json diagram.pic                # {svg, animations, diagnostics, warnings, objects, places?, passthrough?}
+                                       # places: Label: position points (+ block path inside [ ])
                                        # passthrough: troff `.` lines; `+` continuation lines join their entry (text has \n, + end_line)
 rpic --scene diagram.pic               # the resolved draw list as versioned JSON (docs/scene.md)
 rpic --json=all diagram.pic            # the compile bundle + the scene
