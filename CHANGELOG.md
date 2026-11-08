@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-08
+
 ### Fixed
 
 - A repeated size word keeps its **last** value, as in dpic: `box wid 1 wid 2`
@@ -820,7 +822,8 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/milkway/rpic-lang/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/milkway/rpic-lang/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/milkway/rpic-lang/compare/v0.16.1...v0.17.0
 [0.16.1]: https://github.com/milkway/rpic-lang/compare/v0.16.0...v0.16.1
