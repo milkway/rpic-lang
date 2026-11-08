@@ -10,6 +10,14 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- A free text of several lines (`"two" "lines" at P`) squeezed its lines to fit
+  `textht × n` (8.7 pt for two, 8.2 pt for three); dpic keeps every line at
+  11 pt one em apart. The object's default height is now `textht` for the
+  first line plus one em per further line, which reproduces dpic's baselines
+  exactly; a single line is unchanged (corpus: one figure moves).
+
 ### Added
 
 - Text objects take colour the dpic way: `"note" shaded "gray"` fills the

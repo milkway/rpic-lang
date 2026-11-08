@@ -1,24 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="354.666667" height="138.08" viewBox="0 0 354.666667 138.08" font-family="sans-serif" font-size="14.666667" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="354.666667" height="174.213333" viewBox="0 0 354.666667 174.213333" font-family="sans-serif" font-size="14.666667" fill="none">
 <g id="s0">
-<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.066667" y="92.253333" text-anchor="middle"></text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="1.066667" y="119.68" text-anchor="middle"></text>
 </g>
 <g id="s1">
-<polyline points="1.066667,135.413333 97.066667,135.413333 97.066667,39.413333 1.066667,39.413333 1.066667,135.413333" fill="none" stroke="black" stroke-width="1.066667"/>
+<polyline points="1.066667,162.84 97.066667,162.84 97.066667,66.84 1.066667,66.84 1.066667,162.84" fill="none" stroke="black" stroke-width="1.066667"/>
 </g>
 <g id="s2">
 </g>
 <g id="s3">
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="7.108428" text-anchor="start">.PS</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="17.070692" text-anchor="start">    x[5] = 1</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="27.032956" text-anchor="start">    P[0]: (0,0)</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="36.99522" text-anchor="start">    P[1]: (x[5],0)</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="46.957484" text-anchor="start">    P[2]: (x[5],x[5])</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="56.919748" text-anchor="start">    P[3]: (0,x[5])</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="66.882013" text-anchor="start">    P[4]: P[0]</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="76.844277" text-anchor="start">    line from P[0] to P[1]</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="86.806541" text-anchor="start">    for i = 2 to 4 do {</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="96.768805" text-anchor="start">      continue to P[i]</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="106.731069" text-anchor="start">      }</text>
-<text font-size="7.471698pt" stroke-width="0.266667" fill="black" x="123.733333" y="116.693333" text-anchor="start">.PE</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="10.213333" text-anchor="start">.PS</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="24.88" text-anchor="start">    x[5] = 1</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="39.546667" text-anchor="start">    P[0]: (0,0)</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="54.213333" text-anchor="start">    P[1]: (x[5],0)</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="68.88" text-anchor="start">    P[2]: (x[5],x[5])</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="83.546667" text-anchor="start">    P[3]: (0,x[5])</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="98.213333" text-anchor="start">    P[4]: P[0]</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="112.88" text-anchor="start">    line from P[0] to P[1]</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="127.546667" text-anchor="start">    for i = 2 to 4 do {</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="142.213333" text-anchor="start">      continue to P[i]</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="156.88" text-anchor="start">      }</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="123.733333" y="171.546667" text-anchor="start">.PE</text>
 </g>
 </svg>

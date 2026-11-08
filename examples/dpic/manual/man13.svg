@@ -22,8 +22,8 @@
 <text font-size="11pt" stroke-width="0.266667" fill="black" x="109.333333" y="15.742553" text-anchor="start">{\tt arc -&gt; cw from 0,0 to 1,0.5}</text>
 </g>
 <g id="s7">
-<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="262.933333" y="52.119903" text-anchor="start">With dpic the radius is half the chord</text>
-<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="262.933333" y="63.782553" text-anchor="start">if the default radius is too small</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="262.933333" y="51.60922" text-anchor="start">With dpic the radius is half the chord</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="262.933333" y="66.275887" text-anchor="start">if the default radius is too small</text>
 </g>
 <g id="s8">
 </g>
@@ -48,7 +48,7 @@
 <text font-size="11pt" stroke-width="0.266667" fill="black" x="68.266667" y="154.942553" text-anchor="middle">+</text>
 </g>
 <g id="s15">
-<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="166.933333" y="150.539903" text-anchor="start">Possible arcs {\tt \"arc from A to B\"}</text>
-<text font-size="8.746988pt" stroke-width="0.266667" fill="black" x="166.933333" y="162.202553" text-anchor="start">Add {\tt \"with .c at ...\"} to specify the arc uniquely</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="166.933333" y="150.02922" text-anchor="start">Possible arcs {\tt \"arc from A to B\"}</text>
+<text font-size="11pt" stroke-width="0.266667" fill="black" x="166.933333" y="164.695887" text-anchor="start">Add {\tt \"with .c at ...\"} to specify the arc uniquely</text>
 </g>
 </svg>
