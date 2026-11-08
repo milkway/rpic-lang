@@ -1,0 +1,59 @@
+# rpic editorial theme — dark paper (draw a `page` box first: SVG has no background). Tokens as variables, treatments as macros.
+# Load it as a named prelude (no line shifts in your figure):
+#   rpic --prelude theme=editorial-dark.pic --svg figure.pic
+# or copy it next to the figure and write `copy "editorial-dark.pic"` as the first line.
+# Palette after diagram-design (MIT, Cathryn Lavery): white-smoke paper, jet-black ink,
+# burnt-tangerine accent, blue-slate muted. One accent per diagram, two at most.
+
+paper  = 0x2d3142      # page and default node fill
+paper2 = 0x393e53      # container / secondary fill
+ink    = 0xf5f5f5      # primary text and stroke
+muted  = 0xbfc0c0      # secondary text, default arrow stroke
+soft   = 0x949eb2      # sublabels, boundary labels
+rule   = 0x454959      # hairline borders (paper at 12 % over ink)
+accent = 0xf08a59      # the focal colour: 1–2 elements per diagram
+accenttint = 0x413a44  # fill behind an accent-stroked box
+link   = 0x739fdf      # HTTP / API / external arrows
+
+nodewid = 1.5; nodeht = 0.55     # one node; everything else sits on a 0.1 in grid
+boxrad = 0.06                    # rounded corners, never pills
+linethick = 0.9                  # strokes in points
+arrowht = 0.1; arrowwid = 0.07   # small filled heads
+# (textht stays at its default: a standalone text keeps the classic 11 pt; `small` = sublabels, `big` = titles)
+
+# --- node treatments: node(TEXT, ATTRS) — the text (with its own per-string words)
+#     and, optionally, box attributes: node("API" "v2" mono small, at A + (2, 0) wid 1.8)
+#     The label is a text object of its own, so it takes the theme's ink on any paper
+#     (a shape's colour never reaches its attached label — dpic rule). A sublabel is always `mono small`.
+define node   { box wid nodewid ht nodeht outlined ink shaded paper $2; $1 shaded ink at last box }
+define focal  { box wid nodewid ht nodeht outlined accent shaded accenttint thick 1.4 $2; $1 shaded ink at last box }
+define store  { box wid nodewid ht nodeht outlined muted shaded paper2 $2; $1 shaded ink at last box }
+define ext    { box wid nodewid ht nodeht outlined muted shaded paper dashed $2; $1 shaded soft at last box }
+# a container: group("Backend", wid 3.4 ht 2 at B behind A) — label at its top-left
+define group  { box outlined rule shaded paper2 rad 0.1 $2; $1 mono small shaded soft ljust at last box.nw + (0.1, -0.14) }
+
+# --- text roles (text colour = `shaded`, as in dpic; rpic >= 0.18) ---
+define eyebrow { $1 mono small shaded soft ljust above at $2.nw + (0.02, 0.03) }
+define title   { $1 big bold shaded ink at $2 }
+define callout { $1 italic shaded muted at $2 }
+
+# --- arrows: muted by default, accent for the headline path, link for API calls ---
+#     flow(FROM, TO [, "LABEL" [, AT]])  — the label is a quoted string; AT is where along the
+#     arrow it sits (0 = FROM, 1 = TO; default 0.5). A horizontal run gets it just ABOVE the
+#     stroke (0.015 in gap), a vertical run just to the RIGHT (0.05 in). Move it with AT when
+#     the midpoint falls on a container edge or another stroke: flow(A.s, B.n, "REST", 0.78)
+#     puts it on the last quarter. Two parallel vertical arrows: label the left one with alabelw.
+define flowlabel { labelat = 0.5; if $+ > 3 then { labelat = $4 }; if abs(($1).y - ($2).y) < 0.01 then { $3 mono small shaded soft above at (labelat between $1 and $2) + (0, 0.015) } else { $3 mono small shaded soft ljust at (labelat between $1 and $2) + (0.05, 0) } }
+define flow     { arrow from $1 to $2 outlined muted; if $+ > 3 then { flowlabel($1, $2, $3, $4) } else { if $+ > 2 then { flowlabel($1, $2, $3) } } }
+define flowhot  { arrow from $1 to $2 outlined accent thick 1.4; if $+ > 3 then { flowlabel($1, $2, $3, $4) } else { if $+ > 2 then { flowlabel($1, $2, $3) } } }
+define flowapi  { arrow from $1 to $2 outlined link; if $+ > 3 then { flowlabel($1, $2, $3, $4) } else { if $+ > 2 then { flowlabel($1, $2, $3) } } }
+define flowopt  { arrow from $1 to $2 outlined muted dashed 0.05; if $+ > 3 then { flowlabel($1, $2, $3, $4) } else { if $+ > 2 then { flowlabel($1, $2, $3) } } }
+# free arrow labels: alabel(TEXT, POINT) centred; alabelw / alabele hug a vertical stroke on its left / right
+define alabel   { $1 mono small shaded soft at $2 }
+define alabelw  { $1 mono small shaded soft rjust at $2 - (0.05, 0) }
+define alabele  { $1 mono small shaded soft ljust at $2 + (0.05, 0) }
+
+# dark paper needs a page: draw it FIRST so everything else paints over it,
+# then pin the canvas to it so the SVG is exactly the page.
+#   page(6, 3.4)       # width, height in inches, centred on (0,0)
+define page { Page: box wid $1 ht $2 shaded paper outlined paper at (0,0); canvas from Page.sw to Page.ne }

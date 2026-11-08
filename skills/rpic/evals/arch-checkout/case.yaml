@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: arch-checkout
+expected_outcome: |
+  A .pic source and a PNG of an architecture diagram with five nodes (Next.js app, Rust/axum API, Postgres, Redis, Stripe), orthogonal arrows, the API→Postgres path visually emphasised and nothing else emphasised, labels not overlapping strokes, no clipping; the source renders without errors or warnings and the deliverable names the render command.
