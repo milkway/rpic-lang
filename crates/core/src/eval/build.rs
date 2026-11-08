@@ -821,9 +821,23 @@ impl State {
     }
 
     pub(super) fn text_obj(&mut self, obj: &Object) -> ER<usize> {
-        let text = self.text_of(obj)?;
+        let mut text = self.text_of(obj)?;
         if obj.attrs.iter().any(|a| matches!(a, Attr::Opacity(_))) {
             return err("opacity applies only to filled regions");
+        }
+        // dpic colours a text OBJECT with the same words as a shape: `shaded c`
+        // fills the glyphs, `outlined c` strokes their outline, `colored c`
+        // does both. A shape's own colour never reaches its attached label.
+        if obj.attrs.iter().any(|a| matches!(a, Attr::Color(..))) {
+            let st = self.style_of(obj)?;
+            for line in &mut text {
+                if let Some(c) = &st.stroke {
+                    line.stroke = Some(c.clone());
+                }
+                if let Some(Fill::Color(c)) = &st.fill {
+                    line.color = Some(c.clone());
+                }
+            }
         }
         let dir = self.dir_of(obj);
         let w = self

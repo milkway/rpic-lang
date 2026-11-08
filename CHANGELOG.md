@@ -10,6 +10,15 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- Text objects take colour the dpic way: `"note" shaded "gray"` fills the
+  glyphs, `outlined c` strokes their outline, `colored c` does both (colour
+  names, `#hex`, `0xRRGGBB`, `rgb()` and variables, as for shapes). A shape's
+  colour still never reaches its label. SVG output is byte-identical when
+  unused (corpus 128/128); scene text lines gain additive `color`/`stroke`
+  keys (DECISIONS S16).
+
 ## [0.17.1] - 2026-11-08
 
 ### Fixed

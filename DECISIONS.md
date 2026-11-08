@@ -192,6 +192,23 @@ level (or `:=` onto a top-level variable)", and geopic's `no_registration`
 hint says the same. Tests lock both behaviours (scene, geopic-core, CLI).
 `--svg`/`--json`/`--scene` are byte-unchanged; only the hint text moves.
 
+### S16. Text objects take colour like dpic; lines carry `color`/`stroke`
+
+rpic emitted every `<text>` with `fill="black"`: `"note" shaded "gray"` was
+accepted and ignored, while dpic (the oracle) fills the glyphs with `shaded`,
+strokes their outline with `outlined`, and does both with `colored` — a
+shape's colour never reaches its attached label. The gap surfaced when a
+themed diagram style (muted sublabels, light text on dark paper) needed it.
+Decision: follow dpic exactly. The evaluator copies a **text object's**
+stroke/fill onto its `TextLine`s (`stroke`, `color`), attached labels stay
+untouched; the SVG writes `fill="<color>"` (black when unset) and a
+`stroke="…"` attribute only when set, so unstyled output is byte-identical
+(corpus 128/128 on `--svg`, `--json` and `--scene`). The scene gains two
+additive line keys, `color` and `stroke`, hex-normalized like every other
+colour (format stays 1). Rejected: a per-string colour word (no oracle
+syntax; the object-level word is what dpic sources write), and mapping
+`fill 0.5` greys onto text (dpic leaves grey fills to shapes).
+
 ### S15. Bundle places carry the scene's block path (#453)
 
 S11 kept block provenance out of the `--json` bundle ("no block

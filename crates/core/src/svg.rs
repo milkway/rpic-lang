@@ -918,15 +918,21 @@ impl Svg {
                     num(p.y)
                 ));
             }
+            if let Some(c) = &line.stroke {
+                // dpic `outlined c` on a text: the glyph outline takes the colour
+                style_attrs.push_str(&format!(" stroke=\"{}\"", escape_attr(c)));
+            }
+            let fill = escape_attr(line.color.as_deref().unwrap_or("black"));
             let content = match self.cur_type {
                 Some(by_word) => split_type_units(&line.s, by_word),
                 None => escape_text(&line.s),
             };
             self.out.push_str(&format!(
-                "<text font-size=\"{}pt\"{} {} fill=\"black\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
+                "<text font-size=\"{}pt\"{} {} fill=\"{}\" x=\"{}\" y=\"{}\" text-anchor=\"{}\">{}</text>\n",
                 num(line.size_pt.unwrap_or(font_pt)),
                 style_attrs,
                 text_stroke,
+                fill,
                 num(p.x),
                 num(p.y),
                 anchor,
@@ -2173,6 +2179,35 @@ mod tests {
     }
 
     #[test]
+    fn text_objects_take_colour_words_like_dpic() {
+        // dpic: `shaded` fills the glyphs, `outlined` strokes their outline,
+        // `colored` does both; a shape's colour never reaches its label
+        let s = svg("\"t\" shaded \"red\"");
+        assert!(s.contains("fill=\"red\""), "{s}");
+        assert!(!s.contains("stroke=\"red\""), "{s}");
+        let s = svg("\"t\" outlined \"red\"");
+        assert!(
+            s.contains("stroke=\"red\" stroke-width=\"0.266667\" fill=\"black\""),
+            "{s}"
+        );
+        let s = svg("\"t\" colored \"blue\"");
+        assert!(
+            s.contains("stroke=\"blue\" stroke-width=\"0.266667\" fill=\"blue\""),
+            "{s}"
+        );
+        // colour variables and literals resolve as for shapes
+        let s = svg("ink = 0x2d3142\n\"t\" shaded ink");
+        assert!(s.contains("fill=\"#2d3142\""), "{s}");
+        // a box label stays black under the box's own outline colour
+        let s = svg("box \"label\" outlined \"red\" shaded \"white\"");
+        assert!(s.contains("fill=\"black\" x="), "{s}");
+        assert!(
+            !s.contains("<text") || !s.contains("stroke=\"red\" stroke-width=\"0.2pt\""),
+            "{s}"
+        );
+    }
+
+    #[test]
     fn rotated_text_emits_anchor_transform() {
         // pic CCW 30° = SVG rotate(-30) about the text anchor
         let s = svg("\"note\" rotated 30 at (0,0)");
@@ -2473,6 +2508,8 @@ mod tests {
             size_pt: None,
             rotate: None,
             aligned: false,
+            color: None,
+            stroke: None,
         }];
         let d = Drawing {
             shapes: vec![Shape::Text {
