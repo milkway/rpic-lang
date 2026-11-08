@@ -1359,6 +1359,14 @@ impl<'a> Sc<'a> {
             }
             // S13: the line's 0-based row in the author's stack (blank
             // rows included), so a consumer can re-stack the visible lines
+            if let Some(c) = &line.color {
+                let c = self.color(c, &span);
+                t.push_str(&format!(",\"color\":\"{}\"", crate::json_str(&c)));
+            }
+            if let Some(c) = &line.stroke {
+                let c = self.color(c, &span);
+                t.push_str(&format!(",\"stroke\":\"{}\"", crate::json_str(&c)));
+            }
             t.push_str(&format!(",\"row\":{row}"));
             t.push('}');
             parts.push(t);
@@ -1968,6 +1976,8 @@ mod tests {
             // after 0.15.1: each text line's stack row + the stack height (S13)
             "row",
             "text_rows",
+            // after 0.17.1: a text object's glyph fill / outline colour (S16)
+            // ("color" is already listed; "stroke" is the shape key reused)
             "span",
             "line",
             "col",
@@ -2217,5 +2227,19 @@ mod arc_head_regressions {
         // and the first cubic starts from `from` (its handle leaves from it)
         let start_handle = cubics[0][0];
         assert!(start_handle.dist(from) < 1.0);
+    }
+
+    #[test]
+    fn text_colour_rides_as_hex_on_the_line() {
+        let d = crate::compile("ink = 0x2d3142\n\"a\" shaded ink\n\"b\" outlined \"red\"\n\"c\"\n")
+            .unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&scene_json(&d, &SceneOptions::default()).json).unwrap();
+        let items = v["items"].as_array().unwrap();
+        assert_eq!(items[0]["text"][0]["color"], "#2d3142");
+        assert!(items[0]["text"][0].get("stroke").is_none());
+        assert_eq!(items[1]["text"][0]["stroke"], "#ff0000");
+        assert!(items[1]["text"][0].get("color").is_none());
+        assert!(items[2]["text"][0].get("color").is_none());
     }
 }

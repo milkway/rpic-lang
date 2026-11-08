@@ -208,8 +208,15 @@ Text stays text. Each line of an item's `text` array:
 ```json
 { "text": "label", "at": [x, y], "anchor": "c",
   "font": { "size": 11, "family": "monospace", "bold": true, "italic": true },
-  "rotation": 30, "row": 0 }
+  "rotation": 30, "color": "#2d3142", "stroke": "#ff0000", "row": 0 }
 ```
+
+- `color` is the glyph fill and `stroke` the glyph outline, hex-normalized like
+  every scene colour, present only when the source coloured the **text object**
+  (`"t" shaded c` → `color`, `"t" outlined c` → `stroke`, `colored c` → both —
+  dpic's words). Absent = the renderer's default ink, no outline. A shape's
+  own colours never reach its attached label (dpic), so attached lines carry
+  neither key.
 
 - `at` is the line's **baseline anchor point** — exactly the point the SVG
   backend places the glyph run at (pre-flip), so an SVG-like consumer needs no

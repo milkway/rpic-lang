@@ -440,7 +440,9 @@ do not use `fit` keep their dpic-compatible dimensions and placement.
 
 `bold`, `italic`, `mono`, `font "<family>"`, `fontsize <points>` and the
 pikchr size words `big`/`small` style each text string individually (inspired
-by Pikchr's `bold`/`italic`). They bind like `ljust`/`rjust`: to the string
+by Pikchr's `bold`/`italic`). Colour is not an extension: as in dpic, a text
+*object* takes `shaded c` (glyph fill), `outlined c` (glyph outline) or
+`colored c` (both) — `"note" shaded "gray"`, `"warn" shaded 0xbf4520`. They bind like `ljust`/`rjust`: to the string
 they follow, or — written before any string — to the next one. `big`/`small`
 are sugar over `fontsize` (1.5× / 0.7× of the classic 11 pt).
 

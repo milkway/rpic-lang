@@ -395,6 +395,12 @@ pub struct TextLine {
     /// during text collection; the linear-object eval resolves it into
     /// `rotate` once the segment's start/end are known.
     pub aligned: bool,
+    /// Text (glyph fill) colour, CSS: a standalone text's `shaded c` or
+    /// `colored c` (dpic semantics). `None` = the backend default (black).
+    pub color: Option<String>,
+    /// Glyph outline colour, CSS: a standalone text's `outlined c` or
+    /// `colored c`. `None` = no outline stroke.
+    pub stroke: Option<String>,
 }
 
 /// Classic label size in points — the baseline `fontsize` scales against.

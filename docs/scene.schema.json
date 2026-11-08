@@ -226,6 +226,8 @@
         "anchor": { "enum": ["c", "n", "s", "e", "w", "ne", "nw", "se", "sw"] },
         "font": { "$ref": "#/$defs/font" },
         "rotation": { "type": "number" },
+        "color": { "$ref": "#/$defs/color" },
+        "stroke": { "$ref": "#/$defs/color" },
         "row": { "type": "integer", "minimum": 0 },
         "math": {
           "type": "object",

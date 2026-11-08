@@ -2155,6 +2155,8 @@ impl State {
                         size_pt: pending_style.size_pt,
                         rotate: pending_style.rotate,
                         aligned: pending_style.aligned,
+                        color: None,
+                        stroke: None,
                     });
                     pending_halign = 0;
                     pending_valign = 0;
