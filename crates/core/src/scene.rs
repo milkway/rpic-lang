@@ -1272,8 +1272,7 @@ impl<'a> Sc<'a> {
             return false;
         }
         let standalone = standalone_dims.is_some();
-        let n = lines.len() as f64;
-        let v = n - 1.0 + DP_TEXT_RATIO;
+        let v = stack_divisor(lines);
         let lineskip = standalone_dims
             .map(|(_, h)| h)
             .filter(|_| v.abs() > 1e-12)

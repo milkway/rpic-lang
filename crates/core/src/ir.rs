@@ -421,6 +421,17 @@ pub(crate) const TEXT_CHAR_W_RATIO: f64 = 0.6;
 /// Line height, as a fraction of the em.
 pub(crate) const TEXT_LINE_H_RATIO: f64 = 1.2;
 
+/// Divisor that turns a text stack's height into its line skip
+/// (`lineskip = h / v`): the first line counts its x-height share
+/// (`DP_TEXT_RATIO`), every further line its full em scaled by that line's
+/// fontsize factor. For unsized lines this is the classic `n - 1 + 0.66`; a
+/// `small` sublabel under a free 11 pt name counts 0.7, so the name keeps its
+/// 11 pt instead of shrinking to fit a full-height slot (#466). The first line
+/// is never scaled: a single sized free line still centres on its own em.
+pub(crate) fn stack_divisor(lines: &[TextLine]) -> f64 {
+    DP_TEXT_RATIO + lines.iter().skip(1).map(|l| l.height_factor()).sum::<f64>()
+}
+
 impl TextLine {
     /// Width scale vs. the classic 11 pt regular estimate: explicit
     /// `fontsize` scales linearly; bold glyphs run ~5% wider.

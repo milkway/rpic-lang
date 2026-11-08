@@ -662,8 +662,7 @@ pub(super) fn text_object_vertical_bbox(center: Point, lines: &[TextLine], h: f6
     if !has_visible_text(lines) {
         return bb;
     }
-    let n = lines.len() as f64;
-    let v = n - 1.0 + DP_TEXT_RATIO;
+    let v = stack_divisor(lines);
     let lineskip = if v.abs() > 1e-12 { h / v } else { 11.0 / 72.0 };
     let xheight = lineskip * DP_TEXT_RATIO;
     let mut baseline_y = center.y + (v * lineskip / 2.0) - xheight;

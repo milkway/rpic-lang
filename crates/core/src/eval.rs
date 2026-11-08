@@ -1677,7 +1677,10 @@ impl State {
     // ---- attribute helpers -------------------------------------------------
 
     fn dim(&mut self, obj: &Object, kind: DimKind) -> ER<Option<f64>> {
-        for a in &obj.attrs {
+        // a repeated size word keeps its LAST value (`box wid 1 wid 2` is 2 in
+        // wide), as in dpic — so a macro's default `wid nodewid` yields to the
+        // `wid` a caller appends (#466)
+        for a in obj.attrs.iter().rev() {
             if let Attr::Dim(k, e) = a
                 && *k == kind
             {

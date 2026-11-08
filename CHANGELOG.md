@@ -12,6 +12,14 @@ resolves to the latest version.
 
 ### Fixed
 
+- A repeated size word keeps its **last** value, as in dpic: `box wid 1 wid 2`
+  is 2 in wide (it kept the first), so a macro's default `wid` now yields to the
+  `wid` a caller appends.
+- A free text stack whose later lines carry a smaller size (`"Name" "sub" mono
+  small`) kept the first line at 9 pt: the line skip now counts each further
+  line by its own size factor, so the unsized name stays at 11 pt. Unsized
+  stacks and single lines are unchanged (shared `stack_divisor`).
+
 - A free text of several lines (`"two" "lines" at P`) squeezed its lines to fit
   `textht × n` (8.7 pt for two, 8.2 pt for three); dpic keeps every line at
   11 pt one em apart. The object's default height is now `textht` for the
