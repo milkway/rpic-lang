@@ -14,8 +14,8 @@ name = "rpic"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-rpic-core = { version = "0.17.0", path = "../core" }
-rpic-render = { version = "0.17.0", path = "../render" }
+rpic-core = { version = "0.17.1", path = "../core" }
+rpic-render = { version = "0.17.1", path = "../render" }
 # parses the options JSON of `rpic_compile_json_opts` (already in the tree
 # through rpic-render)
 serde_json = "1.0.154"
