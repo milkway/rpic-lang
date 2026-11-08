@@ -10,6 +10,17 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Fixed
+
+- Macro substitution kept no provenance for a `"$n"` string or a `$+` in the
+  body: the rebuilt token lost its `file` and `end_col`, so a `"$1"` label
+  inside a library or prelude macro surfaced in `objects`/`shape_spans` as a
+  *user* position at the library's own line — invisible under text
+  concatenation, visible with 0.17.0's named preludes (found by the Studio).
+  The token now keeps the body token's `file`, `end_col` and call site. SVG
+  unchanged (corpus 128/128); `--json` `objects` gain the correct `end_col`
+  (26 corpus files) and `file` (#461).
+
 ### Added
 
 - CLI `rpic --version` / `-V` prints `rpic X.Y.Z` (the crate version) to

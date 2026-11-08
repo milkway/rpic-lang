@@ -964,17 +964,25 @@ fn substitute(body: &[Spanned], args: &[Vec<Spanned>]) -> Vec<Spanned> {
                 }
             }
             // `$+` is the number of arguments passed to this macro
+            // The substituted token keeps the body token's provenance (`file`,
+            // `end_col`, call site): a `"$1"` label inside a library or prelude
+            // macro stays a library position, never a user line (#461).
             Token::ArgCount => out.push(
-                Spanned::new(Token::Float(args.len() as f64), s.line, s.col).with_arg_frame(&frame),
+                Spanned {
+                    tok: Token::Float(args.len() as f64),
+                    ..s.clone()
+                }
+                .with_arg_frame(&frame),
             ),
             // `$n` is also substituted inside string literals (the `"$1"==""`
             // default-argument idiom, sprintf templates like `"$2%g"`, …).
-            Token::Str(text) if text.contains('$') => {
-                out.push(
-                    Spanned::new(Token::Str(subst_in_string(text, args)), s.line, s.col)
-                        .with_arg_frame(&frame),
-                );
-            }
+            Token::Str(text) if text.contains('$') => out.push(
+                Spanned {
+                    tok: Token::Str(subst_in_string(text, args)),
+                    ..s.clone()
+                }
+                .with_arg_frame(&frame),
+            ),
             _ => out.push(s.clone().with_arg_frame(&frame)),
         }
         i += 1;

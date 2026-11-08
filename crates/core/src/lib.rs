@@ -1097,6 +1097,34 @@ mod tests {
     }
 
     #[test]
+    fn substituted_strings_keep_the_prelude_provenance() {
+        // `"$1"` inside a prelude macro body is rebuilt by substitute(); the
+        // new token must keep the body's file and width, not become a user
+        // position at the prelude's own line (found by the Studio on 0.17.0)
+        let opts = CompileOptions::default()
+            .with_prelude("dune prelude", "define lbl { \"$1\" at (0,0) }\n");
+        let d = compile_with_options("lbl(hi)\n", &opts).unwrap();
+        let span = d.shape_spans[0].as_ref().expect("text has a span");
+        assert_eq!(span.file.as_deref(), Some("dune prelude"));
+        assert_eq!((span.line, span.col), (1, 14));
+        assert!(
+            span.end_col >= span.col + 4,
+            "end_col {} covers the literal",
+            span.end_col
+        );
+        // through a USER wrapper macro the label is still the prelude's (the
+        // Studio could not tell this case apart: the outermost call is the
+        // user's own macro)
+        let d = compile_with_options("define myV { lbl($1) }\nmyV(hi)\n", &opts).unwrap();
+        let span = d.shape_spans[0].as_ref().unwrap();
+        assert_eq!((span.line, span.file.as_deref()), (1, Some("dune prelude")));
+        // and a user-level `$`-string keeps being the user's, as before
+        let d = compile("define u { \"$1\" at (0,0) }\nu(hi)\n").unwrap();
+        let span = d.shape_spans[0].as_ref().unwrap();
+        assert_eq!((span.line, span.file.as_deref()), (1, None));
+    }
+
+    #[test]
     fn prelude_macro_keeps_the_user_call_site() {
         let src = "A: (0,0); B: (1,0)\n\nV1: vsrc(A,B)\n";
         let d = compile_with_options(src, &with_vsrc()).unwrap();
