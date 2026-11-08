@@ -820,8 +820,7 @@ impl Svg {
             return;
         }
         let standalone = standalone_dims.is_some();
-        let n = lines.len() as f64;
-        let v = n - 1.0 + DP_TEXT_RATIO;
+        let v = stack_divisor(lines);
         let lineskip = standalone_dims
             .map(|(_, h)| h)
             .filter(|_| v.abs() > 1e-12)
@@ -1123,8 +1122,7 @@ fn standalone_text_bounds(at: Point, text: &[TextLine], w: f64, h: f64) -> Bbox 
     // labels no longer clip (#270).
     let explicit_w = w.abs() > 1e-12;
     let half_w = w.abs() / 2.0;
-    let n = text.len() as f64;
-    let v = n - 1.0 + DP_TEXT_RATIO;
+    let v = stack_divisor(text);
     let lineskip = if h.abs() > 1e-12 && v.abs() > 1e-12 {
         h / v
     } else {
@@ -1200,7 +1198,7 @@ fn attached_text_bounds(center: Point, text: &[TextLine]) -> Bbox {
     let line_h = TEXT_LINE_H_RATIO * em;
     let xheight = DP_TEXT_RATIO * em;
     let n = text.len() as f64;
-    let v = n - 1.0 + DP_TEXT_RATIO;
+    let v = stack_divisor(text);
     for (i, line) in text.iter().enumerate() {
         if line.s.is_empty() {
             continue;
@@ -2229,6 +2227,31 @@ mod tests {
             s.contains("height=\"12.88\"") && s.contains("font-size=\"11pt\""),
             "{s}"
         );
+    }
+
+    #[test]
+    fn free_text_stack_with_a_small_sublabel_keeps_the_name_at_eleven_points() {
+        // the theme idiom `"Name" "sub" mono small` as a free text object
+        let s = svg("\"Abertura\" \"chamado\" mono small");
+        assert!(
+            s.contains("font-size=\"11pt\" stroke-width=\"0.266667\" fill=\"black\""),
+            "{s}"
+        );
+        assert!(
+            s.contains("font-size=\"7.7pt\" font-family=\"monospace\""),
+            "{s}"
+        );
+        // a single sized free line still centres on its own em (unchanged)
+        let s = svg("\"big\" fontsize 22");
+        assert!(s.contains("font-size=\"22pt\""), "{s}");
+    }
+
+    #[test]
+    fn a_repeated_size_word_keeps_its_last_value_like_dpic() {
+        // dpic -v oracle: `box wid 1 wid 2` → width 192 px; `circle rad 0.2 rad 0.5` → r 48
+        let s = svg(".PS\nbox wid 1 wid 2\ncircle rad 0.2 rad 0.5\n.PE\n");
+        assert!(s.contains("width=\"192\""), "{s}");
+        assert!(s.contains("r=\"48\""), "{s}");
     }
 
     #[test]
