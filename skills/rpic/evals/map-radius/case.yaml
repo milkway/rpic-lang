@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: map-radius
+expected_outcome: |
+  A georeferenced .pic (geo_lon/geo_lat anchor, geo_scale in metres per inch) drawing a circle whose radius is 500 m on the ground, a centre dot and a '500 m' label; a .geojson produced by rpic --geojson; an R snippet using rpic::pic() |> rpic_sf() and mapgl's maplibre() |> add_rpic(...) (or rpic_mapgl).

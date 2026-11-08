@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: rc-lowpass
+expected_outcome: |
+  A .pic schematic using the circuit library (resistor, capacitor, a voltage source, ground) with R1 1k in series and C1 100n to ground, the Vout node marked, component labels placed beside the symbols, rendered to SVG and PNG without errors.
