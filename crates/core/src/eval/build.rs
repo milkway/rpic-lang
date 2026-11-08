@@ -846,14 +846,24 @@ impl State {
         let h = match self.dim(obj, DimKind::Ht)? {
             Some(h) => h,
             None => {
-                // classic: textht per line; a styled line contributes its
-                // fontsize ratio, so `"big" fontsize 22` gets a 2x line
-                let lines: f64 = if text.is_empty() {
-                    1.0
-                } else {
-                    text.iter().map(|l| l.height_factor()).sum()
-                };
-                self.env_dim(EnvVar::Textht)? * lines.max(1.0)
+                // The first line takes `textht` (the classic 11 pt at the
+                // default); every further line adds its own em, so the lines
+                // of a free text stack keep their font size and sit one em
+                // apart, as dpic draws them (a height of `textht × n` squeezed
+                // every line of a two-line text to 8.7 pt). A styled line
+                // scales its share by its fontsize ratio (`"x" fontsize 22`
+                // is a 2× line).
+                let textht = self.env_dim(EnvVar::Textht)?;
+                match text.split_first() {
+                    None => textht,
+                    Some((first, rest)) => {
+                        textht * first.height_factor()
+                            + rest
+                                .iter()
+                                .map(|l| crate::ir::TEXT_EM_IN * l.height_factor())
+                                .sum::<f64>()
+                    }
+                }
             }
         };
         let extent = if horizontal(dir) { w } else { h };

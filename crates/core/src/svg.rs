@@ -2208,6 +2208,30 @@ mod tests {
     }
 
     #[test]
+    fn free_text_stack_keeps_eleven_points_one_em_apart() {
+        // dpic -v oracle for `"two" "lines" at (0,0)` and `"a" "b" "c" at (1,0)`:
+        // every line 11 pt, baselines one em (14.666667 px) apart
+        let s = svg(".PS\n\"two\" \"lines\" at (0,0)\n\"a\" \"b\" \"c\" at (1,0)\n.PE\n");
+        for (y, word) in [
+            ("17.546667", "two"),
+            ("32.213333", "lines"),
+            ("10.213333", "a"),
+            ("24.88", "b"),
+            ("39.546667", "c"),
+        ] {
+            let needle = format!("y=\"{y}\" text-anchor=\"middle\">{word}<");
+            assert!(s.contains(&needle), "{word}: {s}");
+        }
+        assert_eq!(s.matches("font-size=\"11pt\"").count(), 5, "{s}");
+        // a single free line is untouched (classic height and 11 pt)
+        let s = svg("\"one\" at (0,0)");
+        assert!(
+            s.contains("height=\"12.88\"") && s.contains("font-size=\"11pt\""),
+            "{s}"
+        );
+    }
+
+    #[test]
     fn rotated_text_emits_anchor_transform() {
         // pic CCW 30° = SVG rotate(-30) about the text anchor
         let s = svg("\"note\" rotated 30 at (0,0)");
