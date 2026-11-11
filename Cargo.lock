@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "geopic-core"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "geographiclib-rs",
  "jsonschema",
@@ -1825,7 +1825,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-capi"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "rpic-core",
  "rpic-render",
@@ -1834,7 +1834,7 @@ dependencies = [
 
 [[package]]
 name = "rpic-cli"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "geopic-core",
  "jsonschema",
@@ -1845,14 +1845,14 @@ dependencies = [
 
 [[package]]
 name = "rpic-core"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "rpic-render"
-version = "0.18.0"
+version = "0.19.0"
 dependencies = [
  "ratex-layout",
  "ratex-parser",
