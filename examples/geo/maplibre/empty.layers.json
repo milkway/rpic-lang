@@ -380,7 +380,66 @@
     ]
    ],
    "text-font": [
-    "Noto Sans Regular"
+    "case",
+    [
+     "all",
+     [
+      "==",
+      [
+       "get",
+       "geopic:font_weight"
+      ],
+      "bold"
+     ],
+     [
+      "==",
+      [
+       "get",
+       "geopic:font_style"
+      ],
+      "italic"
+     ]
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Bold"
+     ]
+    ],
+    [
+     "==",
+     [
+      "get",
+      "geopic:font_weight"
+     ],
+     "bold"
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Bold"
+     ]
+    ],
+    [
+     "==",
+     [
+      "get",
+      "geopic:font_style"
+     ],
+     "italic"
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Italic"
+     ]
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Regular"
+     ]
+    ]
    ],
    "text-size": [
     "interpolate",
@@ -543,7 +602,66 @@
     ]
    ],
    "text-font": [
-    "Noto Sans Regular"
+    "case",
+    [
+     "all",
+     [
+      "==",
+      [
+       "get",
+       "geopic:font_weight"
+      ],
+      "bold"
+     ],
+     [
+      "==",
+      [
+       "get",
+       "geopic:font_style"
+      ],
+      "italic"
+     ]
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Bold"
+     ]
+    ],
+    [
+     "==",
+     [
+      "get",
+      "geopic:font_weight"
+     ],
+     "bold"
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Bold"
+     ]
+    ],
+    [
+     "==",
+     [
+      "get",
+      "geopic:font_style"
+     ],
+     "italic"
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Italic"
+     ]
+    ],
+    [
+     "literal",
+     [
+      "Noto Sans Regular"
+     ]
+    ]
    ],
    "text-size": [
     "interpolate",

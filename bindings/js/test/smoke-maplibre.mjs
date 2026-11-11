@@ -5,7 +5,7 @@
 // build per module instance).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { attach, bounds, checkLayerOptions, createGeoMap, LAYER_IDS, layers, MAX_TEXT_SCALE, sizing, SOURCE } from '../maplibre.js';
+import { attach, bounds, checkLayerOptions, createGeoMap, FONTS, LAYER_IDS, layers, MAX_TEXT_SCALE, sizing, SOURCE, textFont } from '../maplibre.js';
 import { compileGeoJSON, maplibreLayers, ready } from '../index.js';
 
 // zero imports: the module must stay loadable without wasm or maplibre-gl
@@ -332,56 +332,97 @@ const cartoFonts = [
 ];
 const fontOf = (map, id) => map.getLayer(id).layout['text-font'];
 const engineCopy = JSON.stringify(engine);
-assert.deepEqual(engine.find((l) => l.id === 'pic-text').layout['text-font'], NOTO);
+// the specs choose a face from geopic:font_weight / geopic:font_style (G12)
+const SPEC_FONT = textFont();
+assert.deepEqual(engine.find((l) => l.id === 'pic-text').layout['text-font'], SPEC_FONT);
+assert.deepEqual(SPEC_FONT.at(-1), ['literal', NOTO]);
+assert.deepEqual(FONTS.boldItalic, FONTS.bold); // the reference glyph set has no bold italic
+/** `text-font` for these faces, as attach builds it */
+const faces = (regular, bold = regular, italic = regular, boldItalic = bold) => textFont({ regular, bold, italic, boldItalic });
 // default 'style': the most common stack, on both label layers only
 m = fakeMap({ loaded: true, style: cartoFonts });
 h = attach(m, callout, { layers: engine, before: 'labels' });
-assert.deepEqual(fontOf(m, 'pic-text'), MONT);
-assert.deepEqual(fontOf(m, 'pic-title'), MONT);
+// … with the style's own Bold of the same family for bold labels; it has no
+// italic Montserrat, so italic labels keep the regular face
+const MONT_FACES = faces(MONT, MONT_B);
+assert.deepEqual(fontOf(m, 'pic-text'), MONT_FACES);
+assert.deepEqual(fontOf(m, 'pic-title'), MONT_FACES);
+assert.deepEqual(MONT_FACES[2], ['literal', MONT_B]); // bold italic → the bold
+assert.deepEqual(MONT_FACES[6], ['literal', MONT]); // italic → regular
 assert.equal(JSON.stringify(engine), engineCopy); // the caller's specs are copied, never changed
 // an update keeps the font (only the sizes move) and needs no new resolution
 m.calls.length = 0;
 h.setGeoJSON(cases.radius);
 assert.deepEqual(ops(m, 'setLayout').map((c) => c[2]), ['text-size', 'text-size']);
-assert.deepEqual(fontOf(m, 'pic-text'), MONT);
+assert.deepEqual(fontOf(m, 'pic-text'), MONT_FACES);
 // the port's layers get the same treatment
 m = fakeMap({ loaded: true, style: cartoFonts });
 attach(m, callout);
-assert.deepEqual(fontOf(m, 'pic-title'), MONT);
+assert.deepEqual(fontOf(m, 'pic-title'), MONT_FACES);
 // a plain face (Regular/Medium, not Italic) wins even over a more common Bold
 // stack — CARTO positron's most common stack is its SemiBold place names
 m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Medium']), sym('d', ['Roboto Bold'])] });
 attach(m, callout, { layers: engine });
-assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']); // plain first, then count
+assert.deepEqual(fontOf(m, 'pic-text'), faces(['Roboto Medium'], ['Roboto Bold'], ['Roboto Italic'], ['Roboto Bold'])); // plain first, then count
 m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Regular']), sym('b', ['Roboto Medium']), sym('c', ['Roboto Medium'])] });
 attach(m, callout, { layers: engine });
 assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Medium']); // most common among the plain ones
 m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Bold']), sym('b', ['Roboto Italic']), sym('c', ['Roboto Bold'])] });
 attach(m, callout, { layers: engine });
-assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Bold']); // no plain stack: most common of all
+// no plain stack: most common of all — and the faces still come from the family
+assert.deepEqual(fontOf(m, 'pic-text'), faces(['Roboto Bold'], ['Roboto Bold'], ['Roboto Italic'], ['Roboto Bold']));
 m = fakeMap({ loaded: true, style: [sym('a', ['Roboto Regular Italic']), sym('b', ['Roboto Bold'])] });
 attach(m, callout, { layers: engine });
-assert.deepEqual(fontOf(m, 'pic-text'), ['Roboto Regular Italic']); // Italic is not plain; tie → first seen
+// Italic is not plain; tie → first seen
+assert.deepEqual(fontOf(m, 'pic-text'), faces(['Roboto Regular Italic'], ['Roboto Bold'], ['Roboto Regular Italic'], ['Roboto Bold']));
+// the faces of the family: Bold before SemiBold before Black, an italic of
+// plain weight (not Light Italic), a real bold italic when the style has one;
+// another family's Bold is never borrowed
+m = fakeMap({ loaded: true, style: [
+  sym('a', ['Montserrat Medium']), sym('b', ['Montserrat SemiBold']), sym('c', ['Montserrat SemiBold']),
+  sym('d', ['Montserrat Black']), sym('e', ['Montserrat Light Italic']), sym('f', ['Montserrat Medium Italic']),
+  sym('g', ['Montserrat SemiBold Italic']), sym('h', ['Open Sans Bold']),
+] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), faces(['Montserrat Medium'], ['Montserrat SemiBold'], ['Montserrat Medium Italic'], ['Montserrat SemiBold Italic']));
+m = fakeMap({ loaded: true, style: [sym('a', ['Noto Sans Regular']), sym('b', ['Noto Sans SemiBold']), sym('c', ['Noto Sans SemiBold']), sym('d', ['Noto Sans Bold']), sym('e', ['Noto Sans Italic'])] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), faces(NOTO, ['Noto Sans Bold'], ['Noto Sans Italic'], ['Noto Sans Bold']));
+// a style with one face only: the plain stack, no expression
+m = fakeMap({ loaded: true, style: [sym('a', OPEN), sym('b', MONT_B)] });
+attach(m, callout, { layers: engine });
+assert.deepEqual(fontOf(m, 'pic-text'), OPEN);
 // 'spec' keeps the engine's Noto
 m = fakeMap({ loaded: true, style: cartoFonts });
 attach(m, callout, { layers: engine, font: 'spec' });
-assert.deepEqual(fontOf(m, 'pic-text'), NOTO);
-assert.deepEqual(fontOf(m, 'pic-title'), NOTO);
+assert.deepEqual(fontOf(m, 'pic-text'), SPEC_FONT);
+assert.deepEqual(fontOf(m, 'pic-title'), SPEC_FONT);
 // an explicit stack wins
 m = fakeMap({ loaded: true, style: cartoFonts });
 attach(m, callout, { layers: engine, font: ['Inter Regular'] });
 assert.deepEqual(fontOf(m, 'pic-text'), ['Inter Regular']);
 assert.deepEqual(fontOf(m, 'pic-title'), ['Inter Regular']);
+// explicit faces: missing ones fall back (bold italic → bold → italic → regular)
+m = fakeMap({ loaded: true, style: cartoFonts });
+attach(m, callout, { layers: engine, font: { regular: ['Inter Regular'], bold: ['Inter Bold'] } });
+assert.deepEqual(fontOf(m, 'pic-text'), faces(['Inter Regular'], ['Inter Bold']));
+m = fakeMap({ loaded: true, style: cartoFonts });
+attach(m, callout, { layers: engine, font: { regular: ['Inter Regular'], italic: ['Inter Italic'] } });
+assert.deepEqual(fontOf(m, 'pic-title'), faces(['Inter Regular'], ['Inter Regular'], ['Inter Italic'], ['Inter Italic']));
 // no symbol layer with a text-font: the spec's
 m = fakeMap({ loaded: true, style: basemap });
 attach(m, callout, { layers: engine });
-assert.deepEqual(fontOf(m, 'pic-text'), NOTO);
+assert.deepEqual(fontOf(m, 'pic-text'), SPEC_FONT);
 m = fakeMap({ loaded: true });
 attach(m, callout, { layers: engine });
-assert.deepEqual(fontOf(m, 'pic-title'), NOTO);
+assert.deepEqual(fontOf(m, 'pic-title'), SPEC_FONT);
 // a bad value throws up front
 assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: 'Montserrat' }), /font must be/);
 assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: [] }), /font must be/);
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: { bold: ['Inter Bold'] } }), /font must be/);
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: { regular: ['Inter'], heavy: ['Inter Black'] } }), /font must be/);
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: { regular: ['Inter'], bold: 'Inter Bold' } }), /font must be/);
+assert.throws(() => attach(fakeMap({ loaded: true }), callout, { font: null ?? 0 }), /font must be/);
 
 // ---- createGeoMap with a fake maplibre-gl namespace -------------------------
 let made;

@@ -10,6 +10,21 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Added
+
+- geopic: a label's face reaches the map. Text features (and shape titles)
+  gain `geopic:font_weight` (`"bold"`), `geopic:font_style` (`"italic"`) and
+  `geopic:font_family` (`"monospace"` or the `font "…"` name), present only
+  when the first line sets them, and the MapLibre layers' `text-font` picks a
+  Bold / Italic stack from them (DECISIONS G12, #469). The JS
+  `attach(map, fc, { font: 'style' })` takes those faces from the style's own
+  symbol layers (regular when the style has none), and `font` also accepts
+  `{ regular, bold?, italic?, boldItalic? }`; new exports `FONTS` and
+  `textFont(faces)` (engine: `maplibre::FONTS`, `maplibre::text_font`).
+  `mono` / `font "…"` labels still draw in the regular family on MapLibre —
+  the family is carried for renderers that own their fonts. New example
+  `examples/geo/label-faces.pic`.
+
 ## [0.18.0] - 2026-11-08
 
 ### Fixed

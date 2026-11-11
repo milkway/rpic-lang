@@ -126,7 +126,7 @@ multiplied beyond the budget).
 | `spline`, `arc`, `brace` | `LineString`; `Polygon` when the path is closed | one feature per path (`geopic:part` when more than one) |
 | `dot` | `Point` | `geopic:radius_in` |
 | `text` | `Point` at the object's anchor | `geopic:text`, `geopic:rotation` (degrees **counter-clockwise from the map's east**: the canvas rotation minus the bearing), `geopic:anchor` |
-| shape text | `Point`, `geopic:kind = "title"`, right after the shape's own features (arrowheads included) | every non-`text` item that carries text lines (a box's `"label"`, a line's) also yields this point, at the scene's `text_center` — the centre the SVG lays the label out around (an older scene without it: the item's `at`, else no point). `geopic:id` = `<shape id>:title`, `geopic:for` = the shape's id; `geopic:text`, `geopic:anchor` (the first line's compass: `above` → `s`, `ljust` → `w`), `geopic:font_size`, `geopic:rotation` as a `text` item; `geopic:z`/`label`/`block`/`class`/`link`/`placement` as the shape's; no stroke/fill. The shape keeps its `title`; arrowheads carry no label keys (DECISIONS G10) |
+| shape text | `Point`, `geopic:kind = "title"`, right after the shape's own features (arrowheads included) | every non-`text` item that carries text lines (a box's `"label"`, a line's) also yields this point, at the scene's `text_center` — the centre the SVG lays the label out around (an older scene without it: the item's `at`, else no point). `geopic:id` = `<shape id>:title`, `geopic:for` = the shape's id; `geopic:text`, `geopic:anchor` (the first line's compass: `above` → `s`, `ljust` → `w`), `geopic:font_size`, `geopic:font_weight`/`font_style`/`font_family`, `geopic:rotation` as a `text` item; `geopic:z`/`label`/`block`/`class`/`link`/`placement` as the shape's; no stroke/fill. The shape keeps its `title`; arrowheads carry no label keys (DECISIONS G10) |
 | `block` | — | no feature; children carry `geopic:block` (the block path) |
 | hidden items | — | paint nothing, produce nothing (no warning) |
 
@@ -146,6 +146,7 @@ simplestyle-spec keys, then the `geopic:` namespace:
 | `geopic:id`, `geopic:kind`, `geopic:z`, `geopic:label`, `geopic:block`, `geopic:class`, `geopic:link` | the scene item's fields |
 | `geopic:text`, `geopic:rotation`, `geopic:anchor` | text content and placement. `geopic:text` holds **all rows of the author's stack**, joined by `\n`, blank ones as empty strings (`box "" "below"` → `"\nbelow"`, `box "a" "" "c"` → `"a\n\nc"`), rebuilt from the scene's `row`/`text_rows` (scene DECISIONS S13), so a renderer that centres the block on the point draws each line on its SVG row; a scene without them joins the visible lines |
 | `geopic:font_size` | the first text line's font size, **points**; with the collection's `geopic.registration.scale_m_per_in`, `font_size / 72 × scale_m_per_in` is the letter height in metres — size labels true to the ground, in proportion to the shapes, at any zoom |
+| `geopic:font_weight`, `geopic:font_style`, `geopic:font_family` | the first text line's face, each **present only when set**: `"bold"` for `bold`, `"italic"` for `italic`, and the family (`"monospace"` for `mono`, the name given to `font "…"`). As with the size, the first line speaks for the stack. A renderer picks a face of its own from them (§ 6, DECISIONS G12) |
 | `geopic:dash`, `geopic:hatch` | the scene's descriptors, verbatim (not geometry) |
 | `geopic:placement` | `"screen"` for `text`, `dot` and items whose `class` has a word in `screen_classes` (default `screen`); `"geo"` otherwise |
 | `geopic:for` | `title` points: the `geopic:id` of the shape whose text they carry |
@@ -205,7 +206,7 @@ are, in order.
 | `pic-stroke` | `line` | `Polygon` or `LineString`, has `stroke`, no `geopic:dash` | `line-color` = `stroke`, `line-opacity` = `stroke-opacity` (default 1), `line-width` (below), round cap and join |
 | `pic-stroke-dashed` | `line` | same, has `geopic:dash` | as `pic-stroke` + `line-dasharray [3, 2]` |
 | `pic-dot` | `circle` | `geopic:kind == "dot"` | `circle-color` = `fill` (default `#000000`), `circle-radius` (below) |
-| `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, a trailing `\n` padded with a no-break space (`["case", ["==", ["slice", T, ["max", 0, ["-", ["length", T], 1]]], "\n"], ["concat", T, "\u00a0"], T]`, `T` = `["get", "geopic:text"]` — MapLibre's shaper drops a final newline, the padding keeps the last blank row; the shaper trims the space, so the row stays empty), `text-font ["Noto Sans Regular"]`, `text-size` (below), `text-line-height 1` (pic's line skip is the font size; MapLibre's default 1.2 em would push each row 20 % further from the point), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
+| `pic-text` | `symbol` | `geopic:kind == "text"` | `text-field` = `geopic:text`, a trailing `\n` padded with a no-break space (`["case", ["==", ["slice", T, ["max", 0, ["-", ["length", T], 1]]], "\n"], ["concat", T, "\u00a0"], T]`, `T` = `["get", "geopic:text"]` — MapLibre's shaper drops a final newline, the padding keeps the last blank row; the shaper trims the space, so the row stays empty), `text-font` = a `case` on the label's face — `geopic:font_weight == "bold"` and `geopic:font_style == "italic"` → `["Noto Sans Bold"]`, bold → `["Noto Sans Bold"]`, italic → `["Noto Sans Italic"]`, else `["Noto Sans Regular"]` (each a `["literal", […]]`; see *Font* below), `text-size` (below), `text-line-height 1` (pic's line skip is the font size; MapLibre's default 1.2 em would push each row 20 % further from the point), `text-anchor` from `geopic:anchor` (`c` center, `n` top, `s` bottom, `e` right, `w` left, `ne` top-right, `nw` top-left, `se` bottom-right, `sw` bottom-left; default center), `text-rotate` = −`geopic:rotation`, rotation and pitch alignment `map`, overlap allowed, placement ignored; text `#0f172a`, halo `#ffffff` 1.5 px |
 | `pic-title` | `symbol` | `geopic:kind == "title"` (the shapes' title points) | exactly as `pic-text`. A symbol on the polygon itself would be placed once per vector tile the polygon is clipped into — a box straddling a tile boundary showed its title twice (#435) — so the label is a point of its own |
 
 **Sizes are true to the ground.** From the collection's
@@ -271,12 +272,12 @@ drawing's own labels (`pic-text`, `pic-title`) are always appended on top —
 a basemap "Olinda" must not cover the drawing's "Olinda". rpic.dev uses
 `before: 'labels'`.
 
-*Font.* The specs' `text-font ["Noto Sans Regular"]` is a placeholder, not a
-requirement: the glyphs come from the consumer style's server, and the same
-name can carry other vertical metrics there — on CARTO's positron (MapLibre
-5.22) a Noto label's box sat centred on its anchor, a `pic-text` label on the
-line it annotates; the style's own Montserrat put it beside, with the right
-gap (OpenFreeMap's Noto behaves, which hid it on rpic.dev). Consumers should
+*Font.* The specs' `text-font` names are placeholders, not a requirement: the
+glyphs come from the consumer style's server, and the same name can carry
+other vertical metrics there — on CARTO's positron (MapLibre 5.22) a Noto
+label's box sat centred on its anchor, a `pic-text` label on the line it
+annotates; the style's own Montserrat put it beside, with the right gap
+(OpenFreeMap's Noto behaves, which hid it on rpic.dev). Consumers should
 follow the style's font. `attach(map, fc, { font })` does: `'style'`
 (default) = the most common `text-font` stack among the style's own symbol
 layers whose first face is Regular or Medium (not Italic) — a basemap's most
@@ -285,7 +286,33 @@ not come out bold (stacks compared whole, `["literal", […]]` unwrapped, other
 expressions skipped; with no plain stack, the most common of all; the same
 rule rpic-r's `add_rpic(font = "style")` applies), set on copies of
 `pic-text`/`pic-title` when they are added — the spec's when the style has
-no such layer; `'spec'` keeps the placeholder; a stack is used as given.
+no such layer; `'spec'` keeps the placeholders; a stack is used as given, for
+every label.
+
+*Faces (DECISIONS G12).* A label written `bold` or `italic` in the pic source
+carries `geopic:font_weight` / `geopic:font_style`, and `text-font` chooses a
+stack from them, feature by feature (only the stacks a drawing uses are
+fetched). The specs name `Noto Sans Bold` and `Noto Sans Italic`, faces of
+the OpenMapTiles font set OpenFreeMap serves; that set has no bold italic, so
+a bold italic label asks for the Bold face — a spec must not name a font its
+reference glyph server answers with 404, which fails the whole tile's labels.
+Under `font: 'style'`, `attach` rebuilds the expression with the style's own
+faces: among the symbol layers' stacks whose first face is of the regular
+stack's family (the name minus its trailing weight and slant words), bold =
+`Bold`, else a `SemiBold`/`DemiBold`, else a heavier face; italic = a slanted
+face of plain weight (`Italic`, `Medium Italic`; not `Light Italic`); bold
+italic = a face with both. The most common stack of each wins; a face the
+style does not use falls back to the regular stack (bold italic: to the bold,
+then the italic) — a font the style never asks for may not be on its glyph
+server. When every face resolves to the regular stack, `text-font` is that
+plain stack. `font: { regular, bold?, italic?, boldItalic? }` names the
+stacks outright (same fallbacks), for a glyph server known to have them.
+`geopic:font_family` is carried for consumers that can honour it (a web
+renderer with its own fonts, a GIS); the MapLibre layers do not read it —
+basemap glyph servers rarely have a monospace face or an arbitrary family,
+so `mono` and `font "…"` labels come out in the regular family. The JS port
+exports `FONTS` and `textFont(faces)`; the engine, `maplibre::FONTS` and
+`maplibre::text_font`.
 
 Exposed everywhere the collection is:
 

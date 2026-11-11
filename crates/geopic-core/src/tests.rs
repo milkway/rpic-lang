@@ -4,7 +4,7 @@
 use crate::geodesy::{self, Frame, LonLat};
 use crate::register::{Method, Registration};
 use crate::{GeoOptions, Geometry, georeference};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 include!("geodtest_cases.inc");
 
@@ -1290,6 +1290,83 @@ fn maplibre_title_layer_reads_the_title_points() {
     // styled exactly as free text
     assert_eq!(title["layout"], text["layout"]);
     assert_eq!(title["paint"], text["paint"]);
+}
+
+/// DECISIONS G12: the first line's face travels with the label — on the
+/// shape, its title point and free text, never on arrowheads — and only
+/// when set.
+#[test]
+fn label_faces_reach_the_features() {
+    let src = "geo_lon = 0\ngeo_lat = 0\ngeo_scale = 100\n\
+        box \"Title\" bold \"sub\" italic\n\
+        \"note\" italic at (2,0)\n\
+        \"8080\" mono bold italic at (2,1)\n\
+        \"g\" font \"Georgia\" at (2,2)\n\
+        \"plain\" at (2,3)\n\
+        arrow \"lbl\" bold above from (0,-1) to (1,-1)";
+    let g = georeference(&scene_of(src), &GeoOptions::default()).unwrap();
+    let face = |id: &str, kind: &str| {
+        let f = g
+            .features
+            .features
+            .iter()
+            .find(|f| f.properties["geopic:id"] == id && f.properties["geopic:kind"] == kind)
+            .unwrap_or_else(|| panic!("{id} {kind}"));
+        [
+            "geopic:font_weight",
+            "geopic:font_style",
+            "geopic:font_family",
+        ]
+        .map(|k| f.properties.get(k).cloned().unwrap_or(Value::Null))
+    };
+    let n = Value::Null;
+    // the first line decides, as for geopic:font_size
+    assert_eq!(face("s0", "box"), [json!("bold"), n.clone(), n.clone()]);
+    assert_eq!(
+        face("s0:title", "title"),
+        [json!("bold"), n.clone(), n.clone()]
+    );
+    assert_eq!(face("s1", "text"), [n.clone(), json!("italic"), n.clone()]);
+    assert_eq!(
+        face("s2", "text"),
+        [json!("bold"), json!("italic"), json!("monospace")]
+    );
+    assert_eq!(face("s3", "text"), [n.clone(), n.clone(), json!("Georgia")]);
+    assert_eq!(face("s4", "text"), [n.clone(), n.clone(), n.clone()]);
+    assert_eq!(face("s5", "arrow"), [json!("bold"), n.clone(), n.clone()]);
+    assert_eq!(
+        face("s5:title", "title"),
+        [json!("bold"), n.clone(), n.clone()]
+    );
+    assert_eq!(face("s5", "arrowhead"), [n.clone(), n.clone(), n]);
+}
+
+/// DECISIONS G12: `text-font` is a `case` over the face properties, valid
+/// placeholder names only (the reference glyph set has no bold italic).
+#[test]
+fn maplibre_text_font_picks_the_face() {
+    let empty = crate::FeatureCollection::new(Vec::new());
+    let ls = crate::maplibre::layers(&empty);
+    let bold = json!(["==", ["get", "geopic:font_weight"], "bold"]);
+    let italic = json!(["==", ["get", "geopic:font_style"], "italic"]);
+    let want = json!([
+        "case",
+        ["all", bold, italic],
+        ["literal", ["Noto Sans Bold"]],
+        bold,
+        ["literal", ["Noto Sans Bold"]],
+        italic,
+        ["literal", ["Noto Sans Italic"]],
+        ["literal", ["Noto Sans Regular"]]
+    ]);
+    for id in ["pic-text", "pic-title"] {
+        assert_eq!(layer(&ls, id)["layout"]["text-font"], want, "{id}");
+    }
+    // a consumer's own faces
+    let own = crate::maplibre::text_font([&["A"], &["A Bold", "B Bold"], &["A Italic"], &["A BI"]]);
+    assert_eq!(own[4], json!(["literal", ["A Bold", "B Bold"]]));
+    assert_eq!(own[2], json!(["literal", ["A BI"]]));
+    assert_eq!(own[7], json!(["literal", ["A"]]));
 }
 
 /// Review of #436: the title point is the scene's `text_center` with the

@@ -133,6 +133,37 @@ pub const ANCHORS: [(&str, &str); 9] = [
     ("sw", "bottom-left"),
 ];
 
+/// The placeholder faces of `text-font` (DECISIONS G12): regular, bold,
+/// italic, bold italic. Names of the OpenMapTiles font set, which ships no
+/// "Noto Sans Bold Italic" — a bold italic label asks for the Bold face, so
+/// the specs never name a font their own reference glyph server lacks.
+pub const FONTS: [&str; 4] = [
+    "Noto Sans Regular",
+    "Noto Sans Bold",
+    "Noto Sans Italic",
+    "Noto Sans Bold",
+];
+
+/// `text-font` picking a face from the feature's `geopic:font_weight` /
+/// `geopic:font_style` (DECISIONS G12): `faces` = the regular, bold, italic
+/// and bold-italic stacks. A consumer with other fonts rebuilds the
+/// expression with its own stacks (the JS `attach` does).
+pub fn text_font(faces: [&[&str]; 4]) -> Value {
+    let [regular, bold, italic, bold_italic] = faces;
+    let is_bold = json!(["==", ["get", "geopic:font_weight"], "bold"]);
+    let is_italic = json!(["==", ["get", "geopic:font_style"], "italic"]);
+    json!([
+        "case",
+        ["all", is_bold.clone(), is_italic.clone()],
+        ["literal", bold_italic],
+        is_bold,
+        ["literal", bold],
+        is_italic,
+        ["literal", italic],
+        ["literal", regular]
+    ])
+}
+
 /// The per-collection numbers the size expressions are built from. Built
 /// only by [`sizing`] / [`sizing_with`] (`#[non_exhaustive]`: fields may be
 /// added, as `text_scale` was).
@@ -381,13 +412,15 @@ impl Sizing {
             ["concat", text, "\u{a0}"],
             text
         ]);
+        let [regular, bold, italic, bold_italic] = FONTS;
+        let text_font = text_font([&[regular], &[bold], &[italic], &[bold_italic]]);
         let symbol = |id: &str, k: &str| {
             json!({
                 "id": id, "type": "symbol", "source": SOURCE,
                 "filter": ["==", kind.clone(), k],
                 "layout": {
                     "text-field": text_field.clone(),
-                    "text-font": ["Noto Sans Regular"],
+                    "text-font": text_font.clone(),
                     "text-size": text_size.clone(),
                     // pic's line skip is the font size; MapLibre's default
                     // 1.2 em would push every row 20 % off `text_center`

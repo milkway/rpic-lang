@@ -1,0 +1,20 @@
+# Label faces on the map.
+#
+# `bold`, `italic` (and `mono` / `font "…"`) bind to the string before them,
+# as in any rpic drawing. On the map they travel with the label as
+# geopic:font_weight, geopic:font_style and geopic:font_family, and the
+# MapLibre layers pick a Bold / Italic face from them — here a bold place
+# name, the water named in italics as cartographers do, and a bold box title.
+geo_lon = -34.8711
+geo_lat = -8.0631
+geo_scale = 400          # metres per inch
+
+dot at (0, 0) rad 0.04
+"Marco Zero" bold at (0, -0.2)
+"Porto do Recife" italic at (0.75, 0.45)
+B: box "Bairro do Recife" bold wid 1.5 ht 0.4 at (-1.2, 0.7) fill 0.95
+"ilha, centro histórico" at B.s + (0, -0.14)
+arrow from B.se to (-0.06, 0.06) thick 1.2
+# a 200 m scale bar: half an inch at 400 m per inch
+S: line from (0.8, -0.35) to (1.3, -0.35)
+"200 m" small above at S.c

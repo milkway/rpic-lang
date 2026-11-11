@@ -154,7 +154,9 @@ const { geojson, layers } = rpic.compileGeoJSON(src, { layers: true });
 // trailing block of symbol layers, above its roads and buildings), or pass a
 // layer id; the drawing's own labels always stay on top, in the style's own
 // font (font: 'style', the default: its most common Regular/Medium text-font stack — or
-// 'spec' for the engine's Noto placeholder, or an explicit stack)
+// 'spec' for the engine's Noto placeholders, an explicit stack, or
+// { regular, bold?, italic?, boldItalic? }); labels written `bold` / `italic`
+// in the pic source take the style's Bold / Italic face of the same family
 const pic = attach(map, geojson, { layers, fit: true, before: 'labels' });
 pic.setGeoJSON(next.geojson, next.layers); // live edits
 pic.fitTo();                                // re-frame
@@ -180,11 +182,16 @@ test suite. The CLI prints both at once: `rpic --geojson --maplibre map.pic`
 → `{ "geojson": …, "layers": […] }` (add `--text-scale 1.5` for larger
 labels).
 
-The specs' `text-font` (`["Noto Sans Regular"]`) is a placeholder: a glyph
-server may serve a Noto with other vertical metrics (CARTO's does, and its
-labels sat centred on their lines instead of beside them). `attach` therefore
-gives `pic-text`/`pic-title` the style's own font by default; if you add the
-layers yourself, set `layout['text-font']` to a stack your style uses.
+The specs' `text-font` names (`Noto Sans Regular` / `Bold` / `Italic`,
+chosen per label from `geopic:font_weight` and `geopic:font_style`) are
+placeholders: a glyph server may serve a Noto with other vertical metrics
+(CARTO's does, and its labels sat centred on their lines instead of beside
+them). `attach` therefore gives `pic-text`/`pic-title` the style's own fonts
+by default — the Bold / Italic faces too, when the style's symbol layers use
+them, the regular one otherwise; if you add the layers yourself, set
+`layout['text-font']` to `textFont({ regular, bold, italic, boldItalic })`
+with stacks your style uses (or to one plain stack). `mono` and `font "…"`
+labels draw in the regular family: basemap glyph servers rarely have more.
 
 ## API
 

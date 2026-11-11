@@ -25,6 +25,33 @@ const ANCHORS = {
   ne: 'top-right', nw: 'top-left', se: 'bottom-right', sw: 'bottom-left',
 };
 
+/** The placeholder faces of `text-font` (the engine's `maplibre::FONTS`):
+ *  the OpenMapTiles font set ships no "Noto Sans Bold Italic", so a bold
+ *  italic label asks for the Bold face. */
+export const FONTS = {
+  regular: ['Noto Sans Regular'],
+  bold: ['Noto Sans Bold'],
+  italic: ['Noto Sans Italic'],
+  boldItalic: ['Noto Sans Bold'],
+};
+
+/**
+ * `text-font` picking a face from the feature's `geopic:font_weight` /
+ * `geopic:font_style` (DECISIONS G12; the engine's `maplibre::text_font`):
+ * `faces` = `{ regular, bold, italic, boldItalic }`, each a font stack.
+ */
+export function textFont(faces = FONTS) {
+  const isBold = () => ['==', ['get', 'geopic:font_weight'], 'bold'];
+  const isItalic = () => ['==', ['get', 'geopic:font_style'], 'italic'];
+  return [
+    'case',
+    ['all', isBold(), isItalic()], ['literal', faces.boldItalic],
+    isBold(), ['literal', faces.bold],
+    isItalic(), ['literal', faces.italic],
+    ['literal', faces.regular],
+  ];
+}
+
 /** The largest accepted `textScale` (the engine's `LayerOptions::MAX_TEXT_SCALE`). */
 export const MAX_TEXT_SCALE = 16;
 
@@ -131,7 +158,7 @@ export function layers(fc, opts = {}) {
     id, type: 'symbol', source: SOURCE, filter: ['==', kind(), k],
     layout: {
       'text-field': textField(),
-      'text-font': ['Noto Sans Regular'],
+      'text-font': textFont(),
       'text-size': textSize(),
       // pic's line skip is the font size; MapLibre's default 1.2 em would
       // push every row 20 % off text_center
@@ -216,18 +243,30 @@ function fontStack(v) {
   return Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string') ? v : null;
 }
 
-/**
- * The font the drawing's labels use under `font` (see `attach`): an explicit
- * stack as given; `'spec'` = null (the engine's, untouched); `'style'` = the
- * most common `text-font` stack among the style's own symbol layers whose
- * first face is Regular or Medium (not Italic) — ours ignored, stacks compared
- * whole, ties to the first seen; with no such stack, the most common of all —
- * null when the style has no symbol layer with a plain `text-font` (the
- * spec's then stands).
- */
-function resolveFont(map, font) {
-  if (Array.isArray(font)) return font;
-  if (font === 'spec') return null;
+const WEIGHT_WORD = /^(Thin|Hairline|ExtraLight|UltraLight|Light|Regular|Normal|Roman|Book|Medium|SemiBold|Semibold|DemiBold|Demibold|Bold|ExtraBold|UltraBold|Black|Heavy)$/;
+const PLAIN_WORD = /^(Regular|Normal|Roman|Book|Medium)$/;
+const BOLD_WORD = /^(SemiBold|Semibold|DemiBold|Demibold|Bold|ExtraBold|UltraBold|Black|Heavy)$/;
+const ITALIC_WORD = /^(Italic|Oblique)$/;
+
+/** A face name as `{ family, bold, italic, words }`: the trailing weight and
+ *  slant words split off ("Montserrat SemiBold Italic" → family Montserrat). */
+function parseFace(name) {
+  const words = String(name).trim().split(/\s+/);
+  const tail = [];
+  while (words.length > 1 && (WEIGHT_WORD.test(words.at(-1)) || ITALIC_WORD.test(words.at(-1)))) tail.unshift(words.pop());
+  return {
+    family: words.join(' '),
+    tail,
+    bold: tail.some((w) => BOLD_WORD.test(w)),
+    italic: tail.some((w) => ITALIC_WORD.test(w)),
+    // neither light nor heavy: only plain words (or none) beside the slant
+    plainWeight: tail.every((w) => PLAIN_WORD.test(w) || ITALIC_WORD.test(w)),
+  };
+}
+
+/** The `text-font` stacks of the style's own symbol layers, counted:
+ *  `[{ stack, n, order }]` (ours ignored, stacks compared whole). */
+function styleStacks(map) {
   const style = typeof map.getStyle === 'function' ? map.getStyle() : null;
   const counts = new Map(); // JSON → { stack, n, order }
   for (const l of style?.layers ?? []) {
@@ -239,26 +278,83 @@ function resolveFont(map, font) {
     c.n += 1;
     counts.set(key, c);
   }
+  return [...counts.values()];
+}
+
+/**
+ * The faces the drawing's labels use under `font` (see `attach`), as
+ * `{ regular, bold, italic, boldItalic }` stacks — or null for `'spec'` (the
+ * engine's, untouched) and when the style offers nothing.
+ *
+ * An explicit stack is every face (one font, as given); an object names the
+ * faces (`regular` required; a missing `bold`/`italic` is `regular`, a
+ * missing `boldItalic` is `bold`, else `italic`).
+ *
+ * `'style'`: `regular` = the most common `text-font` stack among the style's
+ * own symbol layers whose first face is Regular or Medium (not Italic) —
+ * ties to the first seen; with no such stack, the most common of all. The
+ * other faces come from the same layers (so the glyph server serves them):
+ * stacks whose first face is the same family, `bold` = Bold before
+ * SemiBold/DemiBold before heavier, `italic` = a slanted face of plain
+ * weight, `boldItalic` = both — the most common of each, falling back to
+ * `regular` (bold italic: to `bold`, then `italic`) when the style has none
+ * (DECISIONS G12).
+ */
+function resolveFont(map, font) {
+  if (Array.isArray(font)) return { regular: font, bold: font, italic: font, boldItalic: font };
+  if (font === 'spec') return null;
+  if (typeof font === 'object') {
+    const regular = font.regular;
+    const bold = font.bold ?? regular;
+    const italic = font.italic ?? regular;
+    return { regular, bold, italic, boldItalic: font.boldItalic ?? font.bold ?? font.italic ?? regular };
+  }
+  const all = styleStacks(map);
   // Prefer a plain face (Regular/Medium, not Italic) — the most common stack
   // of a basemap is often its Bold/SemiBold place-name stack (CARTO positron:
   // 15 SemiBold layers vs 7 Medium), and the drawing's labels must not come
   // out bold. Among the plain stacks the most common wins (ties: first seen);
   // with no plain stack, the most common of all. Same rule as rpic-r.
   const plain = (c) => /Regular|Medium/.test(c.stack[0]) && !/Italic/.test(c.stack[0]);
-  const pick = (cands) => {
+  const pick = (cands, rank = () => 0) => {
     let best = null;
-    for (const c of cands) if (!best || c.n > best.n) best = c;
+    for (const c of cands) {
+      if (!best || rank(c) < rank(best) || (rank(c) === rank(best) && c.n > best.n)) best = c;
+    }
     return best;
   };
-  const all = [...counts.values()];
   const best = pick(all.filter(plain)) ?? pick(all);
-  return best ? best.stack : null;
+  if (!best) return null;
+  const regular = best.stack;
+  const family = parseFace(regular[0]).family;
+  const faces = all.map((c) => ({ ...c, face: parseFace(c.stack[0]) })).filter((c) => c.face.family === family);
+  // Bold itself, then the semi-bolds, then anything heavier
+  const boldRank = (c) => (c.face.tail.includes('Bold') ? 0 : c.face.tail.some((w) => /^(Semi|Demi)/i.test(w)) ? 1 : 2);
+  const bold = pick(faces.filter((c) => c.face.bold && !c.face.italic), boldRank)?.stack;
+  const italic = pick(faces.filter((c) => c.face.italic && c.face.plainWeight))?.stack;
+  const boldItalic = pick(faces.filter((c) => c.face.bold && c.face.italic), boldRank)?.stack;
+  return { regular, bold: bold ?? regular, italic: italic ?? regular, boldItalic: boldItalic ?? bold ?? italic ?? regular };
 }
 
-/** Check `attach`'s `font` option up front: `'style'`, `'spec'` or a stack. */
+/** The `text-font` value for resolved faces: the plain stack when every face
+ *  is the same one (nothing to choose), else the `case` expression. */
+function fontValue(faces) {
+  const k = JSON.stringify(faces.regular);
+  const same = [faces.bold, faces.italic, faces.boldItalic].every((f) => JSON.stringify(f) === k);
+  return same ? faces.regular : textFont(faces);
+}
+
+const FACE_KEYS = ['regular', 'bold', 'italic', 'boldItalic'];
+
+/** Check `attach`'s `font` option up front: `'style'`, `'spec'`, a stack, or
+ *  `{ regular, bold?, italic?, boldItalic? }` stacks. */
 function checkFont(font) {
   if (font === 'style' || font === 'spec' || fontStack(font)) return;
-  throw new TypeError(`rpic: attach: font must be 'style', 'spec' or a non-empty array of font names, got ${JSON.stringify(font)}`);
+  if (font && typeof font === 'object' && !Array.isArray(font)) {
+    const keys = Object.keys(font);
+    if (fontStack(font.regular) && keys.every((k) => FACE_KEYS.includes(k) && fontStack(font[k]))) return;
+  }
+  throw new TypeError(`rpic: attach: font must be 'style', 'spec', a non-empty array of font names or { regular, bold?, italic?, boldItalic? } of such arrays, got ${JSON.stringify(font)}`);
 }
 
 /**
@@ -273,15 +369,18 @@ function checkFont(font) {
  * the layers are added, on top when there is no such layer. The drawing's
  * own labels (`pic-text`, `pic-title`) are always appended on top, so a
  * basemap label never covers them. `font` picks their `text-font`:
- * `'style'` (default) = the most common stack of the style's own symbol
- * layers — the glyph server serves those, and a font it serves with other
- * vertical metrics (CARTO's Noto) puts a text box centred on its anchor
- * instead of beside it; `'spec'` = the engine's `["Noto Sans Regular"]`, a
- * placeholder; or an explicit stack. Resolved when the label layers are
- * added (the caller's specs are copied, never changed); the spec's font when
- * the style has no symbol layer with a `text-font`. Waits for the map's
- * `load` when the style is not loaded yet; calls made meanwhile are applied
- * then.
+ * `'style'` (default) = the style's own fonts — the most common plain stack
+ * of its symbol layers, and for labels written `bold` / `italic` in the pic
+ * source the Bold / Italic faces of that family the style also uses (the
+ * regular one when it has none): the glyph server serves those, and a font
+ * it serves with other vertical metrics (CARTO's Noto) puts a text box
+ * centred on its anchor instead of beside it; `'spec'` = the engine's Noto
+ * Sans placeholders; an explicit stack (one font for every label); or
+ * `{ regular, bold?, italic?, boldItalic? }` stacks. Resolved when the label
+ * layers are added (the caller's specs are copied, never changed); the
+ * spec's font when the style has no symbol layer with a `text-font`. Waits
+ * for the map's `load` when the style is not loaded yet; calls made
+ * meanwhile are applied then.
  * @returns {{ setGeoJSON(fc, layers?): void, fitTo(fc?): void, detach(): void }}
  */
 export function attach(map, fc = EMPTY, opts = {}) {
@@ -299,12 +398,15 @@ export function attach(map, fc = EMPTY, opts = {}) {
   const SIZE_LAYOUT = ['text-size'];
   function applyLayers(specs) {
     let below; // resolved once per pass, only when a layer is added
-    let textFont; // likewise, only when a label layer is added
+    let labelFont; // likewise, only when a label layer is added
     for (const spec of specs) {
       if (!map.getLayer(spec.id)) {
         if (TEXT_LAYER_IDS.includes(spec.id)) {
-          if (textFont === undefined) textFont = { stack: resolveFont(map, font) };
-          const add = textFont.stack ? { ...spec, layout: { ...spec.layout, 'text-font': textFont.stack } } : spec;
+          if (labelFont === undefined) {
+            const faces = resolveFont(map, font);
+            labelFont = { value: faces ? fontValue(faces) : null };
+          }
+          const add = labelFont.value ? { ...spec, layout: { ...spec.layout, 'text-font': labelFont.value } } : spec;
           map.addLayer(add); // the drawing's labels: on top, never buried
           continue;
         }

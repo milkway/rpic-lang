@@ -26,8 +26,8 @@ fn examples() -> Vec<PathBuf> {
         .collect();
     pics.sort();
     assert!(
-        pics.len() >= 4,
-        "expected the four geo examples, found {}",
+        pics.len() >= 5,
+        "expected the five geo examples, found {}",
         pics.len()
     );
     pics
@@ -217,7 +217,14 @@ fn committed_geojson_matches_current_output_and_validates() {
                 );
             }
             if p["geopic:kind"] == "arrowhead" {
-                for k in ["title", "geopic:text", "geopic:font_size"] {
+                for k in [
+                    "title",
+                    "geopic:text",
+                    "geopic:font_size",
+                    "geopic:font_weight",
+                    "geopic:font_style",
+                    "geopic:font_family",
+                ] {
                     assert!(
                         p.get(k).is_none(),
                         "{}: arrowhead carries {k}",
