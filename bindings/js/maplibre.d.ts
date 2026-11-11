@@ -25,6 +25,23 @@ export const LAYER_IDS: readonly string[];
 /** The OpenFreeMap positron basemap URL. */
 export const DEFAULT_STYLE: string;
 
+/** The font stacks of the four faces a label can ask for. */
+export interface FontFaces {
+  regular: string[];
+  bold: string[];
+  italic: string[];
+  boldItalic: string[];
+}
+/** `attach`'s `font`: follow the style, keep the spec's, one stack, or faces. */
+export type FontOption = 'style' | 'spec' | string[] | (Pick<FontFaces, 'regular'> & Partial<FontFaces>);
+/** The specs' placeholder faces (Noto Sans; bold italic asks for Bold). */
+export const FONTS: Readonly<FontFaces>;
+/**
+ * The `text-font` expression choosing a face from a feature's
+ * `geopic:font_weight` / `geopic:font_style` (default: `FONTS`).
+ */
+export function textFont(faces?: FontFaces): unknown[];
+
 export interface Sizing {
   /** `registration.scale_m_per_in` (100 when absent) */
   mPerIn: number;
@@ -107,10 +124,15 @@ export interface AttachOptions {
    * none, the most common of all), the spec's when the style
    * has none — the glyph server serves the style's fonts, and one it serves
    * with other metrics (CARTO's Noto) centres a label on its anchor;
-   * `'spec'` = the engine's `["Noto Sans Regular"]` (a placeholder); or an
-   * explicit stack. Applied to a copy when the layers are added.
+   * `'spec'` = the engine's Noto Sans placeholders; an explicit stack (one
+   * font for every label); or `{ regular, bold?, italic?, boldItalic? }`
+   * stacks. Under `'style'` a label written `bold` / `italic` in the pic
+   * source (`geopic:font_weight` / `geopic:font_style`) takes the Bold /
+   * Italic face of the same family when the style's own symbol layers use
+   * one, the regular face otherwise. Applied to a copy when the layers are
+   * added.
    */
-  font?: 'style' | 'spec' | string[];
+  font?: FontOption;
 }
 
 export interface GeoMapAttachment {
@@ -134,8 +156,8 @@ export interface CreateGeoMapOptions {
   navigation?: boolean;
   /** as in `attach`: a layer id, or `'labels'` to keep the basemap's labels on top */
   before?: 'labels' | (string & {});
-  /** as in `attach`: `'style'` (default), `'spec'` or a font stack */
-  font?: 'style' | 'spec' | string[];
+  /** as in `attach`: `'style'` (default), `'spec'`, a font stack or the faces */
+  font?: FontOption;
 }
 
 export interface GeoMap<M = unknown> extends GeoMapAttachment {

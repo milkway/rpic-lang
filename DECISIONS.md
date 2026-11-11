@@ -485,6 +485,51 @@ the spec's when the style has none), `'spec'` = the placeholder, or an
 explicit stack — set on copies of `pic-text`/`pic-title` when added;
 `createGeoMap` forwards it. rpic.dev needs no change.
 
+### G12. A label's face is data; the map picks the font (#469)
+
+`"Title" bold`, `"note" italic`, `"8080" mono` and `font "Georgia"` drew in
+the SVG and came out Regular on every map: a text feature carried only
+`geopic:font_size`.
+
+- **Properties, present only when set**: `geopic:font_weight` (`"bold"`),
+  `geopic:font_style` (`"italic"`), `geopic:font_family` (`"monospace"` or
+  the name given to `font`), read from the scene's `font` object of the
+  **first** line — the rule `geopic:font_size` already follows; a label is
+  one symbol on the map. On the shape, its title point and free text; removed
+  from arrowheads with the other label keys (G10). Additive: a collection
+  without styled labels is unchanged, and the vocabulary stays schema 1.
+  Enumerated values (`const` in the schema), not booleans, so a numeric
+  weight or `oblique` can join later without a second key.
+- **`text-font` is a `case` on those properties**, the same for every
+  collection (like `text-anchor` and `text-rotate`, it reads the feature;
+  only sizes depend on the collection). MapLibre evaluates `text-font` per
+  feature and fetches only the stacks in use, so a drawing with no bold label
+  requests nothing new.
+- **The placeholders never name a missing font.** The specs' names are
+  those of the OpenMapTiles set (what OpenFreeMap serves, the reference
+  basemap): `Noto Sans Regular`, `Bold`, `Italic` exist; `Noto Sans Bold
+  Italic` is a 404 there (checked 2026-11-10), and a failed glyph range drops
+  the labels of the whole tile. Bold italic therefore asks for Bold.
+- **Consumers resolve the faces from their own style.** The JS
+  `attach({ font: 'style' })` keeps its rule for the regular stack (G11,
+  third addendum) and looks for the other faces among the stacks the style's
+  symbol layers already use — same family by first face, Bold before
+  SemiBold/DemiBold before heavier, an italic of plain weight, a face with
+  both — falling back to the regular stack (bold italic: bold, then italic).
+  Only faces the style itself asks for, because those are the ones its glyph
+  server is known to serve; guessing "`<family> Bold`" would 404 on a style
+  that ships two weights. `font: { regular, bold?, italic?, boldItalic? }` is
+  the explicit form for a server known to have more. rpic-r's `add_rpic()`
+  mirrors the rule once it pins an engine with these properties.
+- **`geopic:font_family` is carried, not drawn.** Basemap glyph servers
+  rarely have a monospace face, never an arbitrary family; the MapLibre
+  layers ignore it and say so in the docs. It is in the collection for
+  renderers that own their fonts.
+- Not done: per-line faces inside one label (`box "Title" bold "sub"`).
+  MapLibre could draw them with a `format` expression, but the collection
+  carries the stack as one string and one size; that is a change to the text
+  model, not to the fonts.
+
 ## Embedder API (2026-11-07, #425)
 
 ### E1. Raw call-site arguments are sliced from the lexed text (side table)

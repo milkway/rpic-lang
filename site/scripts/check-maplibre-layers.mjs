@@ -85,6 +85,24 @@ close(layers({ type: 'FeatureCollection', features: [] }), snap('empty'), 'empty
     assert.equal(evalText(t), want, JSON.stringify(t));
   }
 }
+// G12: `text-font` evaluated by MapLibre's expression engine picks the face
+// from the label's properties, and the faces example really carries them
+{
+  const font = snap('label-faces').find((l) => l.id === 'pic-text').layout['text-font'];
+  const e = createExpression(font, latest.layout_symbol['text-font']);
+  assert.equal(e.result, 'success', JSON.stringify(e.value));
+  const face = (properties) => e.value.evaluate({ zoom: 16 }, { type: 'Point', properties });
+  assert.deepEqual(face({}), ['Noto Sans Regular']);
+  assert.deepEqual(face({ 'geopic:font_weight': 'bold' }), ['Noto Sans Bold']);
+  assert.deepEqual(face({ 'geopic:font_style': 'italic' }), ['Noto Sans Italic']);
+  assert.deepEqual(face({ 'geopic:font_weight': 'bold', 'geopic:font_style': 'italic' }), ['Noto Sans Bold']);
+  assert.deepEqual(face({ 'geopic:font_family': 'monospace' }), ['Noto Sans Regular']);
+  const fc = JSON.parse(readFileSync(join(geoDir, 'label-faces.geojson'), 'utf8'));
+  const faces = fc.features
+    .filter((f) => ['text', 'title'].includes(f.properties['geopic:kind']))
+    .map((f) => face(f.properties)[0]);
+  assert.deepEqual(faces, ['Noto Sans Bold', 'Noto Sans Italic', 'Noto Sans Bold', 'Noto Sans Regular', 'Noto Sans Regular']);
+}
 // every snapshot is a valid style-spec layer list (text-line-height included)
 for (const f of readdirSync(snapDir).filter((f) => f.endsWith('.layers.json'))) {
   validLayers(JSON.parse(readFileSync(join(snapDir, f), 'utf8')), f);

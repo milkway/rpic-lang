@@ -159,6 +159,18 @@ geometry layer), so city and street names stay on top of a filled shape and
 roads and buildings below it — as on this page. Only
 the shapes go there; the drawing's own labels always stay on top.
 
+Labels keep their face. `"Marco Zero" bold` and `"Porto do Recife" italic`
+travel as `geopic:font_weight` and `geopic:font_style`, and the layers'
+`text-font` picks a Bold or Italic stack for them; `attach` takes those faces
+from your style's own symbol layers (its default, `font: 'style'`), so the
+glyphs are ones your basemap already serves — a style with no bold face draws
+the label regular. `mono` and `font "…"` are carried as `geopic:font_family`
+but drawn in the regular family: basemap glyph servers rarely have more.
+
+<PicFigure src="examples/geo/label-faces.pic" caption="examples/geo/label-faces.pic — a bold place name, the water in italics, a bold box title." />
+
+<GeoMap src="examples/geo/label-faces.pic" caption="The same faces on the map, in the basemap's own Noto Sans Bold and Italic." />
+
 `@strategicprojects/rpic/maplibre` has no imports at all — no wasm, no
 maplibre-gl dependency — so it costs a few kilobytes on a page that already
 has MapLibre. `createGeoMap(maplibregl, container, { style, cooperativeGestures,

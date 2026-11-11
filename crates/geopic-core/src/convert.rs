@@ -125,6 +125,23 @@ impl Ctx<'_> {
             {
                 p.insert("geopic:font_size".into(), json!(size));
             }
+            // the first line's face, present only when set (DECISIONS G12):
+            // a map renderer picks a bold / italic font of its own from these
+            let font = lines.first().and_then(|l| l.font.as_ref());
+            let flag = |k: &str| font.and_then(|f| f.get(k)).and_then(Value::as_bool) == Some(true);
+            if flag("bold") {
+                p.insert("geopic:font_weight".into(), json!("bold"));
+            }
+            if flag("italic") {
+                p.insert("geopic:font_style".into(), json!("italic"));
+            }
+            if let Some(family) = font
+                .and_then(|f| f.get("family"))
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+            {
+                p.insert("geopic:font_family".into(), json!(family));
+            }
             for l in lines {
                 if l.math.is_some() {
                     self.warnings.push(
@@ -227,7 +244,14 @@ impl Ctx<'_> {
         for h in heads {
             let mut props = base.clone();
             // the label is the item's title point, not the heads' (G10)
-            for k in ["title", "geopic:text", "geopic:font_size"] {
+            for k in [
+                "title",
+                "geopic:text",
+                "geopic:font_size",
+                "geopic:font_weight",
+                "geopic:font_style",
+                "geopic:font_family",
+            ] {
                 props.remove(k);
             }
             props.insert("geopic:kind".into(), json!("arrowhead"));
