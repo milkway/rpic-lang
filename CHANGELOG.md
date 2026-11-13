@@ -10,6 +10,8 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-11-13
+
 ### Changed
 
 - Credit: the first screen of every README (root, Python, JS) and the
@@ -22,6 +24,16 @@ resolves to the latest version.
   the GeodTest cases of `geopic-core` state their source. rpic is not
   affiliated with or endorsed by the authors of pic, dpic, circuit_macros or
   pikchr.
+
+### Fixed
+
+- Packaging: every published artefact now carries the licence text and the
+  acknowledgements. `LICENSE` (BSD-2-Clause) and `ACKNOWLEDGMENTS.md` are
+  copied into each crate (`rpic-core`, `rpic-render`, `geopic-core`,
+  `rpic-capi`, `rpic-cli`), into the Python binding (`license-files`, so
+  they land in the sdist and in the wheels' `licenses/`) and into the npm
+  package. Until 0.19.0 the crates, the wheels and the npm tarball shipped
+  without them. No engine change.
 
 ## [0.19.0] - 2026-11-10
 
@@ -852,7 +864,8 @@ live examples are at
   (#228).
 - First minted DOI via the GitHub ↔ Zenodo webhook.
 
-[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.19.0...HEAD
+[Unreleased]: https://github.com/milkway/rpic-lang/compare/v0.19.1...HEAD
+[0.19.1]: https://github.com/milkway/rpic-lang/compare/v0.19.0...v0.19.1
 [0.19.0]: https://github.com/milkway/rpic-lang/compare/v0.18.0...v0.19.0
 [0.18.0]: https://github.com/milkway/rpic-lang/compare/v0.17.1...v0.18.0
 [0.17.1]: https://github.com/milkway/rpic-lang/compare/v0.17.0...v0.17.1

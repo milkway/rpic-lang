@@ -1,6 +1,6 @@
 {
   "name": "@strategicprojects/rpic",
-  "version": "0.19.0",
+  "version": "0.19.1",
   "description": "The pic graphics language compiled to SVG with animation manifests, via WebAssembly. Browser + Node. A Rust reimplementation of pic that follows dpic (J. D. Aplevich).",
   "type": "module",
   "main": "./index.js",
@@ -42,7 +42,8 @@
     "pkg/rpic_wasm_geo.d.ts",
     "pkg/rpic_wasm_geo_bg.wasm",
     "pkg/rpic_wasm_geo_bg.wasm.d.ts",
-    "README.md"
+    "README.md",
+    "ACKNOWLEDGMENTS.md"
   ],
   "scripts": {
     "build:wasm:lean": "wasm-pack build ../../crates/wasm --target web --out-dir ../../bindings/js/pkg",
