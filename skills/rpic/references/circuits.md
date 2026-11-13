@@ -76,12 +76,22 @@ A figure marked `spice = 1` that uses the dune prelude's elements (`vsource`, `i
 probes on nets, `.measure` results. The deck is extracted from the drawing: a wire
 touching a lead is a connection, so draw honest topology.
 
+- **Name the nodes you will read, not the ground.** A labelled place becomes the net's
+  name (`Out` → `v(out)`); the ground net is always `0`, so a label on it only earns a
+  `node-name-conflict` warning. Give ground plain coordinates and a `ground(...)`.
+- **Sources**: a scalar value (`DC 5`, or `AC 1` under `.ac`) gets a slider; a waveform
+  (`PULSE(…)`, `SIN(…)`, `EXP(…)`, `SFFM(…)`, `PWL(…)`) opens an editor with one field
+  per argument written in the source — so spell out the arguments you want to tune.
+- **Working examples**: the Studio's Examples menu has five under the *Simulation* tag
+  (RC step with `.measure`, RLC `.ac`, rectifier, BJT amplifier, CMOS inverter).
+
 ```pic skip
 spice = 1
 .tran 10u 5m
-In: (0,0); Out: (1.5,0); Gnd: (0,-1.2)
-V1: vsource(In, Gnd, SIN(0 1 1k))
+In: (0,0); Out: (1.5,0)
+V1: vsource(In, (0,-1.2), SIN(0 1 1k))
 R1: resistor(In, Out, 1k)
 C1: capacitor(Out, (1.5,-1.2), 1u)
-wire((1.5,-1.2), Gnd); ground(Gnd)
+line from V1.N to C1.N
+ground((0.75,-1.2))
 ```
