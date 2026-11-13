@@ -88,6 +88,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Licence copies match the root files
+        # Each published package ships its own copy of LICENSE and
+        # ACKNOWLEDGMENTS.md (cargo/npm/maturin only pack files inside the
+        # package dir). Re-copy them when the root files change.
+        run: |
+          rc=0
+          for d in crates/core crates/render crates/capi crates/cli crates/geopic-core bindings/python bindings/js; do
+            for f in LICENSE ACKNOWLEDGMENTS.md; do
+              cmp "$f" "$d/$f" || { echo "::error file=$d/$f::$d/$f differs from the root $f (cp $f $d/$f)"; rc=1; }
+            done
+          done
+          exit $rc
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
