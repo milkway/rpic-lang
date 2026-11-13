@@ -1,6 +1,6 @@
 [package]
 name = "rpic-cli"
-description = "Command-line front-end for rpic (the pic graphics language → SVG/PNG/PDF)."
+description = "Command-line front-end for rpic (the pic graphics language → SVG/PNG/PDF), a Rust reimplementation that follows dpic (J. D. Aplevich)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -11,6 +11,17 @@
 </p>
 
 <p align="center">
+  pic is the language of <strong>Brian W. Kernighan</strong>. rpic follows the grammar, the tokens and the SVG behaviour of
+  <a href="https://gitlab.com/aplevich/dpic"><strong>dpic</strong></a> by <strong>J. D. (Dwight) Aplevich</strong>, the reference implementation of pic,<br>
+  and its circuit library is modelled on his <a href="https://gitlab.com/aplevich/circuit_macros"><strong>circuit_macros</strong></a>.
+  See <a href="ACKNOWLEDGMENTS.md">ACKNOWLEDGMENTS.md</a>.
+</p>
+
+> rpic is an independent project, not affiliated with, maintained by or
+> endorsed by the authors of pic, dpic, circuit_macros or pikchr.
+> It was written with the assistance of AI coding tools.
+
+<p align="center">
   <strong>📖 Documentation: <a href="https://rpic.dev">rpic.dev</a></strong> — language tour, every extension with live examples, spec and the pic-family history.
 </p>
 

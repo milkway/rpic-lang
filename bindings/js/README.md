@@ -4,6 +4,15 @@ JS/TS bindings for [rpic](https://github.com/milkway/rpic-lang) — the pic
 graphics language compiled to **SVG** with animation and diagnostic manifests,
 via WebAssembly. Works in the browser and in Node, ships TypeScript types.
 
+rpic is a Rust reimplementation of **Brian W. Kernighan**'s pic language. Its
+grammar and behaviour follow [**dpic**](https://gitlab.com/aplevich/dpic) by
+**J. D. (Dwight) Aplevich**, the reference implementation of pic, and its
+circuit library is modelled on his
+[**circuit_macros**](https://gitlab.com/aplevich/circuit_macros).
+
+> An independent project, not affiliated with, maintained by or endorsed by
+> the authors of pic, dpic, circuit_macros or pikchr.
+
 ```js
 import * as rpic from '@strategicprojects/rpic';
 

@@ -34,3 +34,31 @@ abstract: >-
   spirit of J. D. Aplevich's circuit_macros, natively typeset TeX math
   labels, structured compiler diagnostics, a declarative animation layer,
   and bindings for Python, R, JavaScript/WebAssembly and C.
+references:
+  - type: article
+    title: "PIC — A Language for Typesetting Graphics"
+    authors:
+      - family-names: Kernighan
+        given-names: "Brian W."
+    journal: "Software—Practice & Experience"
+    year: 1982
+    volume: 12
+    start: 1
+    end: 21
+    notes: "The pic language that rpic reimplements."
+  - type: software
+    title: "dpic"
+    authors:
+      - family-names: Aplevich
+        given-names: "J. D."
+    repository-code: "https://gitlab.com/aplevich/dpic"
+    license: BSD-2-Clause
+    notes: "The reference implementation of pic. rpic's tokens, grammar and SVG semantics follow it, and it is the oracle of rpic's parity tests."
+  - type: software
+    title: "circuit_macros"
+    authors:
+      - family-names: Aplevich
+        given-names: "J. D."
+    repository-code: "https://gitlab.com/aplevich/circuit_macros"
+    license: LPPL-1.3c
+    notes: "The circuit library that rpic's native circuit elements are modelled on (an independent re-authoring)."

@@ -1,4 +1,9 @@
 // 20 cases sampled from Karney's GeodTest-short.dat (every 500th line):
+// the short version of C. F. F. Karney's "Test set for geodesics"
+// (GeodTest.dat, 2010, doi:10.5281/zenodo.32156, published under CC0),
+// distributed by the GeographicLib project
+// (https://geographiclib.sourceforge.io/C++/doc/geodesic.html#testgeod;
+// GeographicLib is MIT, Copyright (c) 2008-2025, Charles Karney).
 // (lat1, lon1, azi1, lat2, lon2, s12_m) — direct problem reference values.
 #[allow(clippy::excessive_precision)]
 const GEODTEST: [(f64, f64, f64, f64, f64, f64); 20] = [

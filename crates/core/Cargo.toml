@@ -1,6 +1,6 @@
 [package]
 name = "rpic-core"
-description = "Core engine for rpic: lexer, parser, geometry, and SVG/PNG/PDF backends for the pic graphics language."
+description = "Core engine for rpic: lexer, parser, geometry, and SVG/PNG/PDF backends for the pic graphics language. Grammar and SVG semantics follow dpic (J. D. Aplevich)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

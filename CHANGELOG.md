@@ -10,6 +10,19 @@ resolves to the latest version.
 
 ## [Unreleased]
 
+### Changed
+
+- Credit: the first screen of every README (root, Python, JS) and the
+  descriptions of `rpic-core`, `rpic-cli`, `rpiclang` and
+  `@strategicprojects/rpic` name **dpic** by J. D. Aplevich as the reference
+  implementation whose grammar and behaviour rpic follows, and
+  **circuit_macros** as the model of the circuit library; `CITATION.cff`
+  lists Kernighan's paper, dpic and circuit_macros under `references`;
+  `examples/dpic/LICENSE` reproduces dpic's BSD-2-Clause notice verbatim;
+  the GeodTest cases of `geopic-core` state their source. rpic is not
+  affiliated with or endorsed by the authors of pic, dpic, circuit_macros or
+  pikchr.
+
 ## [0.19.0] - 2026-11-10
 
 ### Added

@@ -1,0 +1,44 @@
+The .pic files in this directory tree are redistributed, unmodified, from the
+dpic distribution by J. D. Aplevich (https://gitlab.com/aplevich/dpic), where
+they live under examples/ and doc/. They were compared byte for byte with the
+upstream repository at commit 1354b63eb7120e5d0d40855c18d69e413a636ef2
+(2025-07-31). The .svg files next to them are rpic's output.
+
+dpic's licence terms are in the file Copyright.txt of its distribution
+(https://gitlab.com/aplevich/dpic/-/blob/master/Copyright.txt). The two
+stanzas that apply to these files are reproduced verbatim below: the one
+that states the copyright and licence of "all [files] except as noted", and
+the text of that licence. None of the files that Copyright.txt lists under
+another licence (dpic-doc.pdf, doc/dpictools.pic, dpic.tab.*, the autoconf
+scripts, debian/*) is included here.
+
+=====================================================================
+
+Files: All except as noted below:
+Copyright: 2025, J. D. Aplevich
+License: BSD-2-clause
+
+---------------------------------------------------------------------
+License: BSD-2-clause
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ .
+ * Redistributions of source code must retain the above copyright
+ notice, this list of conditions and the following disclaimer.
+ .
+ * Redistributions in binary form must reproduce the above copyright
+ notice, this list of conditions and the following disclaimer in the
+ documentation and/or other materials provided with the distribution.
+ .
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER "AS IS" AND ANY
+ EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+ LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

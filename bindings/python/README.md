@@ -3,6 +3,15 @@
 Python bindings for [rpic](https://github.com/milkway/rpic-lang) — the pic
 graphics language rendered to SVG / PNG / PDF, with animation manifests.
 
+rpic is a Rust reimplementation of **Brian W. Kernighan**'s pic language. Its
+grammar and behaviour follow [**dpic**](https://gitlab.com/aplevich/dpic) by
+**J. D. (Dwight) Aplevich**, the reference implementation of pic, and its
+circuit library is modelled on his
+[**circuit_macros**](https://gitlab.com/aplevich/circuit_macros).
+
+> An independent project, not affiliated with, maintained by or endorsed by
+> the authors of pic, dpic, circuit_macros or pikchr.
+
 ```sh
 pip install rpiclang        # distribution name; you `import rpic`
 ```
