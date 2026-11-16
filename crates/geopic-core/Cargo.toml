@@ -25,4 +25,4 @@ geographiclib-rs = { version = "0.2.7", default-features = false }
 # dev-dependency is dropped from the published manifest
 rpic-core = { path = "../core" }
 # the properties of every emitted feature validate against docs/geopic.schema.json
-jsonschema = "0.60.2"
+jsonschema = "0.61.2"
